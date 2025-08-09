@@ -8,6 +8,8 @@
 #import <Cocoa/Cocoa.h>
 #import <MapKit/MapKit.h>
 #import "BRouterClient.h"
+#import "GPXParser.h"
+
 
 @implementation BRouterClient
 
@@ -62,6 +64,7 @@
 
         // Parse GPX: look for <trkpt lat="..." lon="..."> tags. Simple parser using NSXMLParser would be more proper.
         // Here we'll do a quick string-based parse that's tolerant for this demo.
+        /*
         NSString *gpx = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
         if (!gpx) { if (completion) completion(nil, [NSError errorWithDomain:@"BRouterClient" code:-3 userInfo:@{NSLocalizedDescriptionKey:@"Unable to decode GPX"}]); return; }
 
@@ -76,11 +79,23 @@
                 CLLocation *loc = [[CLLocation alloc] initWithLatitude:lat longitude:lon];
                 [points addObject:loc];
             }
-        }];
+         }];
+         if (completion) completion([points copy], nil);
+         */
+        
+        GPXParser *pgpx = [[GPXParser alloc]init];
+        NSError *parseError = nil;
+        NSArray<CLLocation *> *points = [pgpx parseGPXData:data error:&parseError];
 
-        if (completion) completion([points copy], nil);
+        if (completion) completion(points, nil);
+
     }];
     [task resume];
 }
+
+
+
+
+
 @end
 

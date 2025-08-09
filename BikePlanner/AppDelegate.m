@@ -41,7 +41,7 @@
     NSString *template = @"https://tile.openstreetmap.org/{z}/{x}/{y}.png";
     SafeOSMTileOverlay *osm = [[SafeOSMTileOverlay alloc] initWithURLTemplate:template];
     osm.canReplaceMapContent = NO; // replace Apple's map
-    [self.mapView addOverlay:osm level:MKOverlayLevelAboveLabels];
+    [self.mapView addOverlay:osm level:MKOverlayLevelAboveRoads];
 
     // Buttons
     NSButton *clearBtn = [[NSButton alloc] initWithFrame:NSMakeRect(10, 10, 80, 28)];
@@ -75,7 +75,8 @@
     [self.window makeKeyAndOrderFront:nil];
 }
 
-- (void)clearAction:(id)sender {
+- (void)clearAction:(id)sender
+{
     self.hasStart = NO; self.hasEnd = NO;
     [self.mapView removeAnnotations:self.mapView.annotations];
     [self.mapView removeOverlays:self.mapView.overlays];
@@ -114,7 +115,10 @@
     // profile can be changed, e.g. "trekking", "fastbike", etc.
     NSString *profile = @"trekking";
     [self.brouter routeFrom:self.startCoord to:self.endCoord profile:profile completion:^(NSArray<CLLocation *> *points, NSError *error) {
-        if (error) { NSLog(@"BRouter error: %@", error); return; }
+        if (error) {
+            NSLog(@"BRouter error: %@", error);
+            return;
+        }
         if (points.count == 0) { NSLog(@"No points returned"); return; }
 
         // Build polyline
@@ -129,15 +133,28 @@
             for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
                 if (![ov isKindOfClass:[MKTileOverlay class]]) [self.mapView removeOverlay:ov];
             }
-            [self.mapView addOverlay:poly level:MKOverlayLevelAboveRoads];
+            [self.mapView addOverlay:poly level:MKOverlayLevelAboveLabels];
             [self.mapView setVisibleMapRect:[poly boundingMapRect] edgePadding:NSEdgeInsetsMake(40, 40, 40, 40) animated:YES];
+            
+            if ((0)) {
+                NSArray *overlays = self.mapView.overlays;
+                [self.mapView removeOverlays:overlays];
+                for (id<MKOverlay> overlay in overlays) {
+                    if ([overlay isKindOfClass:[MKPolyline class]]) {
+                        [self.mapView addOverlay:overlay level:MKOverlayLevelAboveLabels];
+                    } else {
+                        [self.mapView addOverlay:overlay level:MKOverlayLevelAboveRoads];
+                    }
+                }
+            }
         });
     }];
 }
 
 #pragma mark - MKMapViewDelegate
 
-- (MKOverlayRenderer *)mapView:(MKMapView *)mapView rendererForOverlay:(id<MKOverlay>)overlay {
+- (MKOverlayRenderer *)mapView:(MKMapView *)mapView rendererForOverlay:(id<MKOverlay>)overlay
+{
     if ([overlay isKindOfClass:[SafeOSMTileOverlay class]]) {
         return [[SafeTileRenderer alloc] initWithTileOverlay:overlay];
     }
@@ -146,8 +163,8 @@
     }
     if ([overlay isKindOfClass:[MKPolyline class]]) {
         MKPolylineRenderer *r = [[MKPolylineRenderer alloc] initWithPolyline:(MKPolyline *)overlay];
-        r.lineWidth = 4.0;
-        r.alpha = 0.9;
+        r.lineWidth = 6.0;
+        r.alpha = 0.7;
         r.strokeColor = [NSColor systemBlueColor];
         return r;
     }
