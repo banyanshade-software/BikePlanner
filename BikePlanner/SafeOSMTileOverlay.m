@@ -8,7 +8,7 @@
 #import "SafeOSMTileOverlay.h"
 
 @implementation SafeOSMTileOverlay
-
+#if 0
 - (instancetype)initWithURLTemplate:(NSString *)URLTemplate {
     if (self = [super initWithURLTemplate:URLTemplate]) {
         // Force standard tile size and zoom range that match OSM tile server expectations
@@ -53,5 +53,6 @@
     }];
     [task resume];
 }
+#endif
 
 @end

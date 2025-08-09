@@ -10,6 +10,7 @@
 @implementation SafeTileRenderer
 
 
+#if 0
 // Helper to decode NSData into a CGImageRef (thread-safe with CGImageSource)
 - (CGImageRef)cgImageFromData:(NSData *)data {
     if (!data) return NULL;
@@ -95,6 +96,7 @@
         }
     }
 }
+#endif
 
 /*
 - (void)drawMapRect:(MKMapRect)mapRect
