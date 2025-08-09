@@ -64,7 +64,9 @@
     self.brouter = [[BRouterClient alloc] initWithServerURL:server];
 
     // Center map to a default location
-    CLLocationCoordinate2D center = CLLocationCoordinate2DMake(48.8566, 2.3522); // Paris
+    //CLLocationCoordinate2D center = CLLocationCoordinate2DMake(48.8566, 2.3522); // Paris
+    // 44.1249234 ,0.4961707,10920
+    CLLocationCoordinate2D center = CLLocationCoordinate2DMake(44.1249234, 0.4961707); // Laplume
     [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(center, 20000, 20000) animated:NO];
 
     // Add click handler
@@ -165,7 +167,7 @@
         MKPolylineRenderer *r = [[MKPolylineRenderer alloc] initWithPolyline:(MKPolyline *)overlay];
         r.lineWidth = 8.0;
         r.alpha = 0.5;
-        r.strokeColor = [NSColor greenColor];
+        r.strokeColor = [NSColor blueColor];
         return r;
     }
     return nil;

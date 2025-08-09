@@ -28,7 +28,7 @@
     // Build lonlats parameter. BRouter expects lon,lat pairs. 
     // Use pipe or semicolon separator depending on server.
     // We'll use the common format: lon,lat;lon,lat
-    NSString *lonlats = [NSString stringWithFormat:@"%f,%f;%f,%f", from.longitude, from.latitude, to.longitude, to.latitude];
+    NSString *lonlats = [NSString stringWithFormat:@"%f,%f|%f,%f", from.longitude, from.latitude, to.longitude, to.latitude];
 
     // Request GPX output
     NSURLComponents *components = [NSURLComponents componentsWithURL:self.serverURL resolvingAgainstBaseURL:NO];
@@ -46,7 +46,7 @@
         return;
     }
     
-    if ((1)) {
+    if ((0)) {
         NSString *urlString = @"https://brouter.de/brouter?lonlats=11.5754,48.1372|11.5650,48.1550&profile=trekking&alternativeidx=0&format=gpx";
         NSString *encodedString = [urlString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
         url = [NSURL URLWithString:encodedString];
