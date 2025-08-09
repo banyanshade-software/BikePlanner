@@ -6,9 +6,19 @@
 //
 
 #import <Cocoa/Cocoa.h>
+#import <MapKit/MapKit.h>
+#import "BRouterClient.h"
 
-@interface AppDelegate : NSObject <NSApplicationDelegate>
 
+@interface AppDelegate : NSObject <NSApplicationDelegate, MKMapViewDelegate>
+@property (strong) IBOutlet NSWindow *window;
+
+@property (strong) MKMapView *mapView;
+@property (strong) BRouterClient *brouter;
+@property (assign) CLLocationCoordinate2D startCoord;
+@property (assign) CLLocationCoordinate2D endCoord;
+@property (assign) BOOL hasStart;
+@property (assign) BOOL hasEnd;
 
 @end
 

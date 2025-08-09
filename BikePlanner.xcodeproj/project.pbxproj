@@ -14,6 +14,10 @@
 		65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */; };
 		65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE642E47982C001F2966 /* BikePlannerUITests.m */; };
 		65B8EE672E47982C001F2966 /* BikePlannerUITestsLaunchTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE662E47982C001F2966 /* BikePlannerUITestsLaunchTests.m */; };
+		65B8EE752E4798A7001F2966 /* BRouterClient.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE742E4798A7001F2966 /* BRouterClient.m */; };
+		65B8EE782E479A78001F2966 /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65B8EE772E479A77001F2966 /* MapKit.framework */; };
+		65B8EE7C2E47A334001F2966 /* SafeOSMTileOverlay.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE7B2E47A334001F2966 /* SafeOSMTileOverlay.m */; };
+		65B8EE7F2E47A34E001F2966 /* SafeTileRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -46,6 +50,13 @@
 		65B8EE602E47982C001F2966 /* BikePlannerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BikePlannerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		65B8EE642E47982C001F2966 /* BikePlannerUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikePlannerUITests.m; sourceTree = "<group>"; };
 		65B8EE662E47982C001F2966 /* BikePlannerUITestsLaunchTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikePlannerUITestsLaunchTests.m; sourceTree = "<group>"; };
+		65B8EE732E4798A7001F2966 /* BRouterClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRouterClient.h; sourceTree = "<group>"; };
+		65B8EE742E4798A7001F2966 /* BRouterClient.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BRouterClient.m; sourceTree = "<group>"; };
+		65B8EE772E479A77001F2966 /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
+		65B8EE7A2E47A334001F2966 /* SafeOSMTileOverlay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SafeOSMTileOverlay.h; sourceTree = "<group>"; };
+		65B8EE7B2E47A334001F2966 /* SafeOSMTileOverlay.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SafeOSMTileOverlay.m; sourceTree = "<group>"; };
+		65B8EE7D2E47A34E001F2966 /* SafeTileRenderer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SafeTileRenderer.h; sourceTree = "<group>"; };
+		65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SafeTileRenderer.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -53,6 +64,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				65B8EE782E479A78001F2966 /* MapKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -80,6 +92,7 @@
 				65B8EE592E47982C001F2966 /* BikePlannerTests */,
 				65B8EE632E47982C001F2966 /* BikePlannerUITests */,
 				65B8EE452E479821001F2966 /* Products */,
+				65B8EE762E479A77001F2966 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -102,6 +115,12 @@
 				65B8EE4C2E47982A001F2966 /* MainMenu.xib */,
 				65B8EE4F2E47982A001F2966 /* main.m */,
 				65B8EE512E47982A001F2966 /* BikePlanner.entitlements */,
+				65B8EE732E4798A7001F2966 /* BRouterClient.h */,
+				65B8EE742E4798A7001F2966 /* BRouterClient.m */,
+				65B8EE7A2E47A334001F2966 /* SafeOSMTileOverlay.h */,
+				65B8EE7B2E47A334001F2966 /* SafeOSMTileOverlay.m */,
+				65B8EE7D2E47A34E001F2966 /* SafeTileRenderer.h */,
+				65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */,
 			);
 			path = BikePlanner;
 			sourceTree = "<group>";
@@ -121,6 +140,14 @@
 				65B8EE662E47982C001F2966 /* BikePlannerUITestsLaunchTests.m */,
 			);
 			path = BikePlannerUITests;
+			sourceTree = "<group>";
+		};
+		65B8EE762E479A77001F2966 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				65B8EE772E479A77001F2966 /* MapKit.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -253,7 +280,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				65B8EE502E47982A001F2966 /* main.m in Sources */,
+				65B8EE7F2E47A34E001F2966 /* SafeTileRenderer.m in Sources */,
+				65B8EE7C2E47A334001F2966 /* SafeOSMTileOverlay.m in Sources */,
 				65B8EE492E479821001F2966 /* AppDelegate.m in Sources */,
+				65B8EE752E4798A7001F2966 /* BRouterClient.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
