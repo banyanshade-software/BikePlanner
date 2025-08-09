@@ -1,0 +1,563 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		65B8EE492E479821001F2966 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE482E479821001F2966 /* AppDelegate.m */; };
+		65B8EE4B2E47982A001F2966 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 65B8EE4A2E47982A001F2966 /* Assets.xcassets */; };
+		65B8EE4E2E47982A001F2966 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 65B8EE4C2E47982A001F2966 /* MainMenu.xib */; };
+		65B8EE502E47982A001F2966 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE4F2E47982A001F2966 /* main.m */; };
+		65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */; };
+		65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE642E47982C001F2966 /* BikePlannerUITests.m */; };
+		65B8EE672E47982C001F2966 /* BikePlannerUITestsLaunchTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE662E47982C001F2966 /* BikePlannerUITestsLaunchTests.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		65B8EE572E47982C001F2966 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 65B8EE3C2E479821001F2966 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 65B8EE432E479821001F2966;
+			remoteInfo = BikePlanner;
+		};
+		65B8EE612E47982C001F2966 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 65B8EE3C2E479821001F2966 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 65B8EE432E479821001F2966;
+			remoteInfo = BikePlanner;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		65B8EE442E479821001F2966 /* BikePlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BikePlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		65B8EE472E479821001F2966 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		65B8EE482E479821001F2966 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		65B8EE4A2E47982A001F2966 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		65B8EE4D2E47982A001F2966 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		65B8EE4F2E47982A001F2966 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		65B8EE512E47982A001F2966 /* BikePlanner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BikePlanner.entitlements; sourceTree = "<group>"; };
+		65B8EE562E47982C001F2966 /* BikePlannerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BikePlannerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikePlannerTests.m; sourceTree = "<group>"; };
+		65B8EE602E47982C001F2966 /* BikePlannerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BikePlannerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		65B8EE642E47982C001F2966 /* BikePlannerUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikePlannerUITests.m; sourceTree = "<group>"; };
+		65B8EE662E47982C001F2966 /* BikePlannerUITestsLaunchTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikePlannerUITestsLaunchTests.m; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		65B8EE412E479821001F2966 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		65B8EE532E47982C001F2966 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		65B8EE5D2E47982C001F2966 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		65B8EE3B2E479821001F2966 = {
+			isa = PBXGroup;
+			children = (
+				65B8EE462E479821001F2966 /* BikePlanner */,
+				65B8EE592E47982C001F2966 /* BikePlannerTests */,
+				65B8EE632E47982C001F2966 /* BikePlannerUITests */,
+				65B8EE452E479821001F2966 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		65B8EE452E479821001F2966 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				65B8EE442E479821001F2966 /* BikePlanner.app */,
+				65B8EE562E47982C001F2966 /* BikePlannerTests.xctest */,
+				65B8EE602E47982C001F2966 /* BikePlannerUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		65B8EE462E479821001F2966 /* BikePlanner */ = {
+			isa = PBXGroup;
+			children = (
+				65B8EE472E479821001F2966 /* AppDelegate.h */,
+				65B8EE482E479821001F2966 /* AppDelegate.m */,
+				65B8EE4A2E47982A001F2966 /* Assets.xcassets */,
+				65B8EE4C2E47982A001F2966 /* MainMenu.xib */,
+				65B8EE4F2E47982A001F2966 /* main.m */,
+				65B8EE512E47982A001F2966 /* BikePlanner.entitlements */,
+			);
+			path = BikePlanner;
+			sourceTree = "<group>";
+		};
+		65B8EE592E47982C001F2966 /* BikePlannerTests */ = {
+			isa = PBXGroup;
+			children = (
+				65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */,
+			);
+			path = BikePlannerTests;
+			sourceTree = "<group>";
+		};
+		65B8EE632E47982C001F2966 /* BikePlannerUITests */ = {
+			isa = PBXGroup;
+			children = (
+				65B8EE642E47982C001F2966 /* BikePlannerUITests.m */,
+				65B8EE662E47982C001F2966 /* BikePlannerUITestsLaunchTests.m */,
+			);
+			path = BikePlannerUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		65B8EE432E479821001F2966 /* BikePlanner */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 65B8EE6A2E47982C001F2966 /* Build configuration list for PBXNativeTarget "BikePlanner" */;
+			buildPhases = (
+				65B8EE402E479821001F2966 /* Sources */,
+				65B8EE412E479821001F2966 /* Frameworks */,
+				65B8EE422E479821001F2966 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BikePlanner;
+			productName = BikePlanner;
+			productReference = 65B8EE442E479821001F2966 /* BikePlanner.app */;
+			productType = "com.apple.product-type.application";
+		};
+		65B8EE552E47982C001F2966 /* BikePlannerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 65B8EE6D2E47982C001F2966 /* Build configuration list for PBXNativeTarget "BikePlannerTests" */;
+			buildPhases = (
+				65B8EE522E47982C001F2966 /* Sources */,
+				65B8EE532E47982C001F2966 /* Frameworks */,
+				65B8EE542E47982C001F2966 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				65B8EE582E47982C001F2966 /* PBXTargetDependency */,
+			);
+			name = BikePlannerTests;
+			productName = BikePlannerTests;
+			productReference = 65B8EE562E47982C001F2966 /* BikePlannerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		65B8EE5F2E47982C001F2966 /* BikePlannerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 65B8EE702E47982C001F2966 /* Build configuration list for PBXNativeTarget "BikePlannerUITests" */;
+			buildPhases = (
+				65B8EE5C2E47982C001F2966 /* Sources */,
+				65B8EE5D2E47982C001F2966 /* Frameworks */,
+				65B8EE5E2E47982C001F2966 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				65B8EE622E47982C001F2966 /* PBXTargetDependency */,
+			);
+			name = BikePlannerUITests;
+			productName = BikePlannerUITests;
+			productReference = 65B8EE602E47982C001F2966 /* BikePlannerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		65B8EE3C2E479821001F2966 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1420;
+				TargetAttributes = {
+					65B8EE432E479821001F2966 = {
+						CreatedOnToolsVersion = 14.2;
+					};
+					65B8EE552E47982C001F2966 = {
+						CreatedOnToolsVersion = 14.2;
+						TestTargetID = 65B8EE432E479821001F2966;
+					};
+					65B8EE5F2E47982C001F2966 = {
+						CreatedOnToolsVersion = 14.2;
+						TestTargetID = 65B8EE432E479821001F2966;
+					};
+				};
+			};
+			buildConfigurationList = 65B8EE3F2E479821001F2966 /* Build configuration list for PBXProject "BikePlanner" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 65B8EE3B2E479821001F2966;
+			productRefGroup = 65B8EE452E479821001F2966 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				65B8EE432E479821001F2966 /* BikePlanner */,
+				65B8EE552E47982C001F2966 /* BikePlannerTests */,
+				65B8EE5F2E47982C001F2966 /* BikePlannerUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		65B8EE422E479821001F2966 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				65B8EE4B2E47982A001F2966 /* Assets.xcassets in Resources */,
+				65B8EE4E2E47982A001F2966 /* MainMenu.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		65B8EE542E47982C001F2966 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		65B8EE5E2E47982C001F2966 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		65B8EE402E479821001F2966 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				65B8EE502E47982A001F2966 /* main.m in Sources */,
+				65B8EE492E479821001F2966 /* AppDelegate.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		65B8EE522E47982C001F2966 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		65B8EE5C2E47982C001F2966 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				65B8EE672E47982C001F2966 /* BikePlannerUITestsLaunchTests.m in Sources */,
+				65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		65B8EE582E47982C001F2966 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 65B8EE432E479821001F2966 /* BikePlanner */;
+			targetProxy = 65B8EE572E47982C001F2966 /* PBXContainerItemProxy */;
+		};
+		65B8EE622E47982C001F2966 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 65B8EE432E479821001F2966 /* BikePlanner */;
+			targetProxy = 65B8EE612E47982C001F2966 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		65B8EE4C2E47982A001F2966 /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				65B8EE4D2E47982A001F2966 /* Base */,
+			);
+			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		65B8EE682E47982C001F2966 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.7;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		65B8EE692E47982C001F2966 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.7;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		65B8EE6B2E47982C001F2966 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BikePlanner/BikePlanner.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainNibFile = MainMenu;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlanner;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		65B8EE6C2E47982C001F2966 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BikePlanner/BikePlanner.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainNibFile = MainMenu;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlanner;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		65B8EE6E2E47982C001F2966 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlannerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BikePlanner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BikePlanner";
+			};
+			name = Debug;
+		};
+		65B8EE6F2E47982C001F2966 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlannerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BikePlanner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BikePlanner";
+			};
+			name = Release;
+		};
+		65B8EE712E47982C001F2966 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlannerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_TARGET_NAME = BikePlanner;
+			};
+			name = Debug;
+		};
+		65B8EE722E47982C001F2966 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlannerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_TARGET_NAME = BikePlanner;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		65B8EE3F2E479821001F2966 /* Build configuration list for PBXProject "BikePlanner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				65B8EE682E47982C001F2966 /* Debug */,
+				65B8EE692E47982C001F2966 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		65B8EE6A2E47982C001F2966 /* Build configuration list for PBXNativeTarget "BikePlanner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				65B8EE6B2E47982C001F2966 /* Debug */,
+				65B8EE6C2E47982C001F2966 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		65B8EE6D2E47982C001F2966 /* Build configuration list for PBXNativeTarget "BikePlannerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				65B8EE6E2E47982C001F2966 /* Debug */,
+				65B8EE6F2E47982C001F2966 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		65B8EE702E47982C001F2966 /* Build configuration list for PBXNativeTarget "BikePlannerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				65B8EE712E47982C001F2966 /* Debug */,
+				65B8EE722E47982C001F2966 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 65B8EE3C2E479821001F2966 /* Project object */;
+}
