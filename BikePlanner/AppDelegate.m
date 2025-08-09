@@ -57,8 +57,11 @@
     [content addSubview:help];
 
     // BRouter client (default points to local server at port 17777)
-    NSURL *server = [NSURL URLWithString:@"http://127.0.0.1:17777"]; // change if using remote brouter
-    self.brouter = nil; //[[BRouterClient alloc] initWithServerURL:server];
+    //NSString *brouter=@"http://127.0.0.1:17777";
+    //NSString *brouter=@"https://brouter.de/brouter";
+    NSString *brouter=@"https://brouter.de";
+    NSURL *server = [NSURL URLWithString:brouter]; // change if using remote brouter
+    self.brouter = [[BRouterClient alloc] initWithServerURL:server];
 
     // Center map to a default location
     CLLocationCoordinate2D center = CLLocationCoordinate2DMake(48.8566, 2.3522); // Paris

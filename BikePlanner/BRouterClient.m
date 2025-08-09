@@ -33,7 +33,8 @@
     components.path = @"/brouter";
     components.queryItems = @[
         [NSURLQueryItem queryItemWithName:@"lonlats" value:lonlats],
-        [NSURLQueryItem queryItemWithName:@"profile" value:profile ?: @"trekking"],
+        [NSURLQueryItem queryItemWithName:@"profile" value:profile ?: @"fastbike"],
+        [NSURLQueryItem queryItemWithName:@"alternativeidx" value:@"0"],
         [NSURLQueryItem queryItemWithName:@"format" value:@"gpx"]
     ];
 
@@ -42,8 +43,20 @@
         if (completion) completion(nil, [NSError errorWithDomain:@"BRouterClient" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"Invalid URL"}]);
         return;
     }
-
-    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
+    
+    if ((1)) {
+        NSString *urlString = @"https://brouter.de/brouter?lonlats=11.5754,48.1372|11.5650,48.1550&profile=trekking&alternativeidx=0&format=gpx";
+        NSString *encodedString = [urlString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+        url = [NSURL URLWithString:encodedString];
+    }
+    NSLog(@"URL: %@", url);
+    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
+    config.HTTPAdditionalHeaders = @{ @"User-Agent" : @"BikePlaner/1.0" }; // avoid setting Accept-Encoding here
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
+    
+    // NSURLSession *session = [NSURLSession sharedSession];
+    
+    NSURLSessionDataTask *task = [session dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
         if (err) { if (completion) completion(nil, err); return; }
         if (!data) { if (completion) completion(nil, [NSError errorWithDomain:@"BRouterClient" code:-2 userInfo:@{NSLocalizedDescriptionKey:@"No data"}]); return; }
 
