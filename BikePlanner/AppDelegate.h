@@ -7,13 +7,15 @@
 
 #import <Cocoa/Cocoa.h>
 #import <MapKit/MapKit.h>
+#import <WebKit/WebKit.h>
 #import "BRouterClient.h"
 
 
 @interface AppDelegate : NSObject <NSApplicationDelegate, MKMapViewDelegate>
 
 @property (strong) IBOutlet NSWindow *window;
-@property (strong) IBOutlet MKMapView *mapView;
+@property (weak) IBOutlet MKMapView *mapView;
+@property (weak) IBOutlet WKWebView *webView;
 
 @property (strong) BRouterClient *brouter;
 @property (assign) CLLocationCoordinate2D startCoord;

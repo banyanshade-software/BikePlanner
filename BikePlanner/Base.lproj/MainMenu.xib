@@ -18,6 +18,7 @@
         <customObject id="Voe-Tx-rLC" customClass="AppDelegate">
             <connections>
                 <outlet property="mapView" destination="nv1-a0-VO5" id="3ZY-PQ-s4k"/>
+                <outlet property="webView" destination="lke-4c-4Mh" id="ZcM-X0-JsM"/>
                 <outlet property="window" destination="QvC-M9-y7g" id="gIp-Ho-8D9"/>
             </connections>
         </customObject>
