@@ -11,9 +11,10 @@
 
 
 @interface AppDelegate : NSObject <NSApplicationDelegate, MKMapViewDelegate>
-@property (strong) IBOutlet NSWindow *window;
 
-@property (strong) MKMapView *mapView;
+@property (strong) IBOutlet NSWindow *window;
+@property (strong) IBOutlet MKMapView *mapView;
+
 @property (strong) BRouterClient *brouter;
 @property (assign) CLLocationCoordinate2D startCoord;
 @property (assign) CLLocationCoordinate2D endCoord;

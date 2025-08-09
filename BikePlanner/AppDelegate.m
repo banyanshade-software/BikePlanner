@@ -24,18 +24,22 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
 {
-    NSRect frame = NSMakeRect(0, 0, 900, 600);
-    self.window = [[NSWindow alloc] initWithContentRect:frame styleMask:(NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable) backing:NSBackingStoreBuffered defer:NO];
-    [self.window center];
-    [self.window setTitle:@"BRouter + OpenStreetMap (Objective-C Demo)"];
-
-    NSView *content = self.window.contentView;
+    if ((0)) {
+        NSRect frame = NSMakeRect(0, 0, 900, 600);
+        self.window = [[NSWindow alloc] initWithContentRect:frame styleMask:(NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable) backing:NSBackingStoreBuffered defer:NO];
+        [self.window center];
+        [self.window setTitle:@"BRouter + OpenStreetMap (Objective-C Demo)"];
+    }
+    NSView *content = [_mapView superview];// self.window.contentView;
 
     // Map view
-    self.mapView = [[MKMapView alloc] initWithFrame:content.bounds];
-    self.mapView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    /*
+     if (!_mapView) {
+        self.mapView = [[MKMapView alloc] initWithFrame:content.bounds];
+        self.mapView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        [content addSubview:self.mapView];
+    }*/
     self.mapView.delegate = self;
-    [content addSubview:self.mapView];
 
     // Add OpenStreetMap tile overlay
     NSString *template = @"https://tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -84,7 +88,8 @@
     [self.mapView removeOverlays:self.mapView.overlays];
 }
 
-- (void)handleMapClick:(NSGestureRecognizer *)gesture {
+- (void)handleMapClick:(NSGestureRecognizer *)gesture
+{
     NSPoint locInView = [gesture locationInView:self.mapView];
     CLLocationCoordinate2D coord = [self.mapView convertPoint:locInView toCoordinateFromView:self.mapView];
 

@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="17150" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="21507" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17150"/>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="21507"/>
+        <plugIn identifier="com.apple.MapKitIBPlugin" version="21507"/>
+        <plugIn identifier="com.apple.WebKit2IBPlugin" version="21507"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -11,9 +14,10 @@
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
-        <customObject id="-3" userLabel="Application"/>
-        <customObject id="Voe-Tx-rLC" customClass="AppDelegate" customModuleProvider="">
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customObject id="Voe-Tx-rLC" customClass="AppDelegate">
             <connections>
+                <outlet property="mapView" destination="nv1-a0-VO5" id="3ZY-PQ-s4k"/>
                 <outlet property="window" destination="QvC-M9-y7g" id="gIp-Ho-8D9"/>
             </connections>
         </customObject>
@@ -683,13 +687,121 @@
         <window title="BikePlanner" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="QvC-M9-y7g">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="335" y="390" width="480" height="360"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1415"/>
+            <rect key="contentRect" x="335" y="390" width="903" height="502"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="875"/>
             <view key="contentView" id="EiT-Mj-1SZ">
-                <rect key="frame" x="0.0" y="0.0" width="480" height="360"/>
+                <rect key="frame" x="0.0" y="0.0" width="903" height="502"/>
                 <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <splitView arrangesAllSubviews="NO" dividerStyle="paneSplitter" vertical="YES" translatesAutoresizingMaskIntoConstraints="NO" id="WsW-wA-aP0">
+                        <rect key="frame" x="0.0" y="0.0" width="903" height="502"/>
+                        <subviews>
+                            <customView misplaced="YES" id="IDi-mZ-oAB">
+                                <rect key="frame" x="0.0" y="0.0" width="448" height="502"/>
+                                <autoresizingMask key="autoresizingMask"/>
+                                <subviews>
+                                    <mapView mapType="standard" translatesAutoresizingMaskIntoConstraints="NO" id="nv1-a0-VO5">
+                                        <rect key="frame" x="2" y="2" width="444" height="498"/>
+                                    </mapView>
+                                </subviews>
+                                <constraints>
+                                    <constraint firstItem="nv1-a0-VO5" firstAttribute="leading" secondItem="IDi-mZ-oAB" secondAttribute="leading" constant="2" id="NWp-gu-6bU"/>
+                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="200" id="Ruh-xN-8uj"/>
+                                    <constraint firstAttribute="bottom" secondItem="nv1-a0-VO5" secondAttribute="bottom" constant="2" id="YYK-sx-H4V"/>
+                                    <constraint firstItem="nv1-a0-VO5" firstAttribute="top" secondItem="IDi-mZ-oAB" secondAttribute="top" constant="2" id="sLM-iu-sCg"/>
+                                    <constraint firstAttribute="trailing" secondItem="nv1-a0-VO5" secondAttribute="trailing" constant="2" id="sTG-pL-ESV"/>
+                                </constraints>
+                            </customView>
+                            <customView id="3pv-Ww-0ce">
+                                <rect key="frame" x="458" y="0.0" width="445" height="502"/>
+                                <autoresizingMask key="autoresizingMask"/>
+                                <subviews>
+                                    <splitView arrangesAllSubviews="NO" dividerStyle="paneSplitter" translatesAutoresizingMaskIntoConstraints="NO" id="Vns-Kg-3uG">
+                                        <rect key="frame" x="0.0" y="0.0" width="445" height="502"/>
+                                        <subviews>
+                                            <customView id="xRa-Hp-M6i">
+                                                <rect key="frame" x="0.0" y="0.0" width="445" height="240"/>
+                                                <autoresizingMask key="autoresizingMask"/>
+                                                <subviews>
+                                                    <box title="Box" translatesAutoresizingMaskIntoConstraints="NO" id="Fw9-Lk-B2u">
+                                                        <rect key="frame" x="1" y="0.0" width="443" height="236"/>
+                                                        <view key="contentView" id="fEo-6l-Ftu">
+                                                            <rect key="frame" x="3" y="3" width="437" height="218"/>
+                                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                        </view>
+                                                    </box>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="Fw9-Lk-B2u" firstAttribute="top" secondItem="xRa-Hp-M6i" secondAttribute="top" constant="4" id="f3H-QT-hvl"/>
+                                                    <constraint firstAttribute="bottom" secondItem="Fw9-Lk-B2u" secondAttribute="bottom" constant="4" id="pPt-4V-S1a"/>
+                                                    <constraint firstAttribute="trailing" secondItem="Fw9-Lk-B2u" secondAttribute="trailing" constant="4" id="se8-cT-5hd"/>
+                                                    <constraint firstItem="Fw9-Lk-B2u" firstAttribute="leading" secondItem="xRa-Hp-M6i" secondAttribute="leading" constant="4" id="whF-tu-n1g"/>
+                                                </constraints>
+                                            </customView>
+                                            <customView id="GzK-mz-yMo">
+                                                <rect key="frame" x="0.0" y="250" width="445" height="252"/>
+                                                <autoresizingMask key="autoresizingMask"/>
+                                                <subviews>
+                                                    <wkWebView wantsLayer="YES" translatesAutoresizingMaskIntoConstraints="NO" id="lke-4c-4Mh">
+                                                        <rect key="frame" x="4" y="4" width="437" height="244"/>
+                                                        <wkWebViewConfiguration key="configuration">
+                                                            <audiovisualMediaTypes key="mediaTypesRequiringUserActionForPlayback" none="YES"/>
+                                                            <wkPreferences key="preferences"/>
+                                                        </wkWebViewConfiguration>
+                                                    </wkWebView>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstAttribute="trailing" secondItem="lke-4c-4Mh" secondAttribute="trailing" constant="4" id="O3S-kS-4zQ"/>
+                                                    <constraint firstAttribute="bottom" secondItem="lke-4c-4Mh" secondAttribute="bottom" constant="4" id="Qgy-a2-wlQ"/>
+                                                    <constraint firstItem="lke-4c-4Mh" firstAttribute="top" secondItem="GzK-mz-yMo" secondAttribute="top" constant="4" id="l3p-aN-uUe"/>
+                                                    <constraint firstItem="lke-4c-4Mh" firstAttribute="leading" secondItem="GzK-mz-yMo" secondAttribute="leading" constant="4" id="w8T-m8-fE4"/>
+                                                </constraints>
+                                            </customView>
+                                        </subviews>
+                                        <holdingPriorities>
+                                            <real value="250"/>
+                                            <real value="250"/>
+                                        </holdingPriorities>
+                                    </splitView>
+                                </subviews>
+                                <constraints>
+                                    <constraint firstItem="Vns-Kg-3uG" firstAttribute="leading" secondItem="3pv-Ww-0ce" secondAttribute="leading" id="BHV-s2-iZy"/>
+                                    <constraint firstAttribute="bottom" secondItem="Vns-Kg-3uG" secondAttribute="bottom" id="FfO-67-whO"/>
+                                    <constraint firstItem="Vns-Kg-3uG" firstAttribute="top" secondItem="3pv-Ww-0ce" secondAttribute="top" id="Ntc-4v-rJn"/>
+                                    <constraint firstAttribute="trailing" secondItem="Vns-Kg-3uG" secondAttribute="trailing" id="aon-wA-tZK"/>
+                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="200" id="cIc-P4-dV7"/>
+                                </constraints>
+                            </customView>
+                        </subviews>
+                        <holdingPriorities>
+                            <real value="250"/>
+                            <real value="250"/>
+                        </holdingPriorities>
+                    </splitView>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="WsW-wA-aP0" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" id="71n-Ek-ez0"/>
+                    <constraint firstItem="WsW-wA-aP0" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" id="VYg-6K-53f"/>
+                    <constraint firstAttribute="trailing" secondItem="WsW-wA-aP0" secondAttribute="trailing" id="bHb-tK-mnK"/>
+                    <constraint firstAttribute="bottom" secondItem="WsW-wA-aP0" secondAttribute="bottom" id="kpZ-Su-fgN"/>
+                </constraints>
             </view>
-            <point key="canvasLocation" x="200" y="400"/>
+            <toolbar key="toolbar" implicitIdentifier="55FE8108-7CCC-4809-BF14-0A1643DCA0BC" autosavesConfiguration="NO" displayMode="iconAndLabel" sizeMode="regular" id="93p-zE-XVV">
+                <allowedToolbarItems>
+                    <toolbarItem implicitItemIdentifier="NSToolbarShowColorsItem" id="snQ-7j-N25"/>
+                    <toolbarItem implicitItemIdentifier="NSToolbarShowFontsItem" id="Ujo-f0-ABV"/>
+                    <toolbarItem implicitItemIdentifier="NSToolbarPrintItem" id="mUe-YQ-Tv7"/>
+                    <toolbarItem implicitItemIdentifier="NSToolbarSpaceItem" id="K9a-1V-7ob"/>
+                    <toolbarItem implicitItemIdentifier="NSToolbarFlexibleSpaceItem" id="Oir-A6-aFH"/>
+                </allowedToolbarItems>
+                <defaultToolbarItems>
+                    <toolbarItem reference="snQ-7j-N25"/>
+                    <toolbarItem reference="Ujo-f0-ABV"/>
+                    <toolbarItem reference="Oir-A6-aFH"/>
+                    <toolbarItem reference="mUe-YQ-Tv7"/>
+                </defaultToolbarItems>
+            </toolbar>
+            <point key="canvasLocation" x="411.5" y="471"/>
         </window>
     </objects>
 </document>
