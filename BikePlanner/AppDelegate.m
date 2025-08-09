@@ -163,9 +163,9 @@
     }
     if ([overlay isKindOfClass:[MKPolyline class]]) {
         MKPolylineRenderer *r = [[MKPolylineRenderer alloc] initWithPolyline:(MKPolyline *)overlay];
-        r.lineWidth = 6.0;
-        r.alpha = 0.7;
-        r.strokeColor = [NSColor systemBlueColor];
+        r.lineWidth = 8.0;
+        r.alpha = 0.5;
+        r.strokeColor = [NSColor greenColor];
         return r;
     }
     return nil;
