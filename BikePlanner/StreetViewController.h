@@ -15,6 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void) initializeStreetView;
 - (void) viewCoord:(CLLocationCoordinate2D) coord;
+
 @end
 
 NS_ASSUME_NONNULL_END

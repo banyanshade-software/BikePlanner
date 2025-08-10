@@ -103,7 +103,8 @@
     [self.svCtrl viewCoord:coord];
 }
 
-- (void)requestRoute {
+- (void)requestRoute
+{
     // profile can be changed, e.g. "trekking", "fastbike", etc.
     NSString *profile = @"trekking";
     [self.brouter routeFrom:self.startCoord to:self.endCoord profile:profile completion:^(NSArray<CLLocation *> *points, NSError *error) {
@@ -161,5 +162,12 @@
         return r;
     }
     return nil;
+}
+
+
+
+- (IBAction) exportGPX:(id)sender
+{
+    
 }
 @end

@@ -5,6 +5,7 @@
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="21507"/>
         <plugIn identifier="com.apple.MapKitIBPlugin" version="21507"/>
         <plugIn identifier="com.apple.WebKit2IBPlugin" version="21507"/>
+        <capability name="Search Toolbar Item" minToolsVersion="12.0" minSystemVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -708,7 +709,7 @@
                     <splitView arrangesAllSubviews="NO" dividerStyle="paneSplitter" vertical="YES" translatesAutoresizingMaskIntoConstraints="NO" id="WsW-wA-aP0">
                         <rect key="frame" x="0.0" y="0.0" width="903" height="502"/>
                         <subviews>
-                            <customView misplaced="YES" id="IDi-mZ-oAB">
+                            <customView id="IDi-mZ-oAB">
                                 <rect key="frame" x="0.0" y="0.0" width="448" height="502"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <subviews>
@@ -800,20 +801,40 @@
             </view>
             <toolbar key="toolbar" implicitIdentifier="55FE8108-7CCC-4809-BF14-0A1643DCA0BC" autosavesConfiguration="NO" displayMode="iconAndLabel" sizeMode="regular" id="93p-zE-XVV">
                 <allowedToolbarItems>
-                    <toolbarItem implicitItemIdentifier="NSToolbarShowColorsItem" id="snQ-7j-N25"/>
-                    <toolbarItem implicitItemIdentifier="NSToolbarShowFontsItem" id="Ujo-f0-ABV"/>
                     <toolbarItem implicitItemIdentifier="NSToolbarPrintItem" id="mUe-YQ-Tv7"/>
                     <toolbarItem implicitItemIdentifier="NSToolbarSpaceItem" id="K9a-1V-7ob"/>
                     <toolbarItem implicitItemIdentifier="NSToolbarFlexibleSpaceItem" id="Oir-A6-aFH"/>
+                    <toolbarItem implicitItemIdentifier="D259C483-0FC7-4270-BD1F-7B8545263ECE" label="export GPX" paletteLabel="export GPX" tag="-1" image="NSShareTemplate" bordered="YES" id="R38-zf-bwq">
+                        <size key="minSize" width="28" height="25"/>
+                        <size key="maxSize" width="28" height="25"/>
+                        <connections>
+                            <action selector="exportGPX:" target="gMs-Z0-beH" id="uDW-kb-vmF"/>
+                        </connections>
+                    </toolbarItem>
+                    <searchToolbarItem implicitItemIdentifier="C82C1163-F245-4DEB-B0BC-CA5A7BB286D1" label="Search" paletteLabel="Search" visibilityPriority="1001" id="7Ug-sT-DGb">
+                        <nil key="toolTip"/>
+                        <searchField key="view" verticalHuggingPriority="750" textCompletion="NO" id="Ufa-2S-gam">
+                            <rect key="frame" x="0.0" y="0.0" width="100" height="21"/>
+                            <autoresizingMask key="autoresizingMask"/>
+                            <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" usesSingleLineMode="YES" bezelStyle="round" sendsSearchStringImmediately="YES" id="w1V-PK-jmg">
+                                <font key="font" usesAppearanceFont="YES"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            </searchFieldCell>
+                        </searchField>
+                    </searchToolbarItem>
                 </allowedToolbarItems>
                 <defaultToolbarItems>
-                    <toolbarItem reference="snQ-7j-N25"/>
-                    <toolbarItem reference="Ujo-f0-ABV"/>
                     <toolbarItem reference="Oir-A6-aFH"/>
                     <toolbarItem reference="mUe-YQ-Tv7"/>
+                    <toolbarItem reference="R38-zf-bwq"/>
+                    <searchToolbarItem reference="7Ug-sT-DGb"/>
                 </defaultToolbarItems>
             </toolbar>
             <point key="canvasLocation" x="411.5" y="471"/>
         </window>
     </objects>
+    <resources>
+        <image name="NSShareTemplate" width="16" height="17"/>
+    </resources>
 </document>
