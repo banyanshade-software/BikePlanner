@@ -6,22 +6,15 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import <MapKit/MapKit.h>
-#import <WebKit/WebKit.h>
-#import "BRouterClient.h"
+#import "MapController.h"
 
 
-@interface AppDelegate : NSObject <NSApplicationDelegate, MKMapViewDelegate>
+@interface AppDelegate : NSObject <NSApplicationDelegate>
 
 @property (strong) IBOutlet NSWindow *window;
-@property (weak) IBOutlet MKMapView *mapView;
 @property (weak) IBOutlet WKWebView *webView;
+@property (weak) IBOutlet MapController *mapController;
 
-@property (strong) BRouterClient *brouter;
-@property (assign) CLLocationCoordinate2D startCoord;
-@property (assign) CLLocationCoordinate2D endCoord;
-@property (assign) BOOL hasStart;
-@property (assign) BOOL hasEnd;
 
 @end
 

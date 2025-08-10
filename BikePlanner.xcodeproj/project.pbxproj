@@ -19,6 +19,7 @@
 		65B8EE7C2E47A334001F2966 /* SafeOSMTileOverlay.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE7B2E47A334001F2966 /* SafeOSMTileOverlay.m */; };
 		65B8EE7F2E47A34E001F2966 /* SafeTileRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */; };
 		65B8EE822E47B860001F2966 /* GPXParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE812E47B860001F2966 /* GPXParser.m */; };
+		65B8EE852E48C10B001F2966 /* MapController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE842E48C10B001F2966 /* MapController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -60,6 +61,8 @@
 		65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SafeTileRenderer.m; sourceTree = "<group>"; };
 		65B8EE802E47B860001F2966 /* GPXParser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GPXParser.h; sourceTree = "<group>"; };
 		65B8EE812E47B860001F2966 /* GPXParser.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GPXParser.m; sourceTree = "<group>"; };
+		65B8EE832E48C10B001F2966 /* MapController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MapController.h; sourceTree = "<group>"; };
+		65B8EE842E48C10B001F2966 /* MapController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MapController.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -114,6 +117,8 @@
 			children = (
 				65B8EE472E479821001F2966 /* AppDelegate.h */,
 				65B8EE482E479821001F2966 /* AppDelegate.m */,
+				65B8EE832E48C10B001F2966 /* MapController.h */,
+				65B8EE842E48C10B001F2966 /* MapController.m */,
 				65B8EE4A2E47982A001F2966 /* Assets.xcassets */,
 				65B8EE4C2E47982A001F2966 /* MainMenu.xib */,
 				65B8EE4F2E47982A001F2966 /* main.m */,
@@ -288,6 +293,7 @@
 				65B8EE7F2E47A34E001F2966 /* SafeTileRenderer.m in Sources */,
 				65B8EE7C2E47A334001F2966 /* SafeOSMTileOverlay.m in Sources */,
 				65B8EE492E479821001F2966 /* AppDelegate.m in Sources */,
+				65B8EE852E48C10B001F2966 /* MapController.m in Sources */,
 				65B8EE822E47B860001F2966 /* GPXParser.m in Sources */,
 				65B8EE752E4798A7001F2966 /* BRouterClient.m in Sources */,
 			);
