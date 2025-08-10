@@ -184,7 +184,7 @@
                 NSURL *destinationURL = savePanel.URL;
                 NSError *error = nil;
                 
-                if (![_gpxData writeToURL:destinationURL options:NSDataWritingAtomic error:&error]) {
+                if (![self.gpxData writeToURL:destinationURL options:NSDataWritingAtomic error:&error]) {
                     NSAlert *alert = [[NSAlert alloc] init];
                     alert.messageText = @"Export failed";
                     alert.informativeText = error.localizedDescription;
