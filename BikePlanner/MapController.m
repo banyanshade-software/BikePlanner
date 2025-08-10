@@ -80,6 +80,7 @@
         self.startCoord = coord; self.hasStart = YES;
         MKPointAnnotation *a = [MKPointAnnotation new]; a.coordinate = coord; a.title = @"Start";
         [self.mapView addAnnotation:a];
+        [self.svCtrl viewCoord:coord];
         return;
     }
 
@@ -99,6 +100,7 @@
     [self.mapView removeAnnotations:self.mapView.annotations];
     MKPointAnnotation *a = [MKPointAnnotation new]; a.coordinate = coord; a.title = @"Start";
     [self.mapView addAnnotation:a];
+    [self.svCtrl viewCoord:coord];
 }
 
 - (void)requestRoute {

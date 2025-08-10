@@ -20,4 +20,15 @@
     
     
 }
+
+
+- (void) viewCoord:(CLLocationCoordinate2D) coord
+{
+    NSString *surl = [NSString stringWithFormat:@"https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=%f,%f",
+    coord.latitude, coord.longitude];
+    NSURL *url = [NSURL URLWithString:surl];
+    NSURLRequest *req = [NSURLRequest requestWithURL:url];
+    [self.webView loadRequest:req];
+    
+}
 @end

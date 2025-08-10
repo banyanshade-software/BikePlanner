@@ -25,6 +25,7 @@
         <customObject id="gMs-Z0-beH" customClass="MapController">
             <connections>
                 <outlet property="mapView" destination="nv1-a0-VO5" id="CBO-Iu-8Mv"/>
+                <outlet property="svCtrl" destination="bUu-4I-hdJ" id="HHB-zR-LmY"/>
             </connections>
         </customObject>
         <customObject id="bUu-4I-hdJ" customClass="StreetViewController">

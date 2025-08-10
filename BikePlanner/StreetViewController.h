@@ -14,6 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (weak) IBOutlet WKWebView *webView;
 
 - (void) initializeStreetView;
+- (void) viewCoord:(CLLocationCoordinate2D) coord;
 @end
 
 NS_ASSUME_NONNULL_END
