@@ -8,6 +8,7 @@
 #import "MapController.h"
 #import "SafeTileRenderer.h"
 #import "SafeOSMTileOverlay.h"
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 @implementation MapController 
 
@@ -171,6 +172,25 @@
 
 - (IBAction) exportGPX:(id)sender
 {
+    if (!_gpxData) return;
+    NSSavePanel *savePanel = [NSSavePanel savePanel];
+    savePanel.title = @"Export GPX route";
+    //savePanel.allowedFileTypes = @[@"gpx"]; // Change or remove as needed
+    savePanel.allowedContentTypes = @[[UTType typeWithFilenameExtension:@"gpx"]];
+    savePanel.nameFieldStringValue = @"plan.gpx"; // Suggested filename
     
+    [savePanel beginWithCompletionHandler:^(NSModalResponse result) {
+        if (result == NSModalResponseOK) {
+                NSURL *destinationURL = savePanel.URL;
+                NSError *error = nil;
+                
+                if (![_gpxData writeToURL:destinationURL options:NSDataWritingAtomic error:&error]) {
+                    NSAlert *alert = [[NSAlert alloc] init];
+                    alert.messageText = @"Export failed";
+                    alert.informativeText = error.localizedDescription;
+                    [alert runModal];
+                }
+            }
+        }];
 }
 @end
