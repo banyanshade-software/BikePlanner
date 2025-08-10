@@ -129,6 +129,18 @@
                                     <action selector="revertDocumentToSaved:" target="-1" id="iJ3-Pv-kwq"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="XWT-ea-bnS"/>
+                            <menuItem title="Export GPX" id="WeX-1v-AAD">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="exportGPX:" target="gMs-Z0-beH" id="j7H-Ap-24K"/>
+                                    <binding destination="gMs-Z0-beH" name="enabled" keyPath="gpxData" id="PVg-77-D7m">
+                                        <dictionary key="options">
+                                            <string key="NSValueTransformerName">NSIsNotNil</string>
+                                        </dictionary>
+                                    </binding>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="aJh-i4-bef"/>
                             <menuItem title="Page Setup…" keyEquivalent="P" id="qIS-W8-SiK">
                                 <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
