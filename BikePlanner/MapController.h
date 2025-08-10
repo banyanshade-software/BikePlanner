@@ -27,6 +27,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 
 - (IBAction) exportGPX:(id)sender;
+- (IBAction) sendersearchFieldAction:(id)sender;
 
 
 - (void) initializeMapview;

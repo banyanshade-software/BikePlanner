@@ -839,6 +839,9 @@
                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                             </searchFieldCell>
                         </searchField>
+                        <connections>
+                            <action selector="sendersearchFieldAction:" target="gMs-Z0-beH" id="Ez1-Rz-f4q"/>
+                        </connections>
                     </searchToolbarItem>
                 </allowedToolbarItems>
                 <defaultToolbarItems>

@@ -182,6 +182,46 @@
 
 
 
+
+- (IBAction) sendersearchFieldAction:(id)sender
+{
+    NSSearchField *field = (NSSearchField *)sender;
+    NSString *query = field.stringValue;
+    
+    if (query.length == 0) return;
+    
+    MKLocalSearchRequest *request = [[MKLocalSearchRequest alloc] init];
+    request.naturalLanguageQuery = query;
+    request.region = self.mapView.region; // Search near current map
+    
+    MKLocalSearch *search = [[MKLocalSearch alloc] initWithRequest:request];
+    [search startWithCompletionHandler:^(MKLocalSearchResponse * _Nullable response, NSError * _Nullable error) {
+        if (error) {
+            NSLog(@"Search error: %@", error.localizedDescription);
+            return;
+        }
+        
+        if (response.mapItems.count == 0) {
+            NSLog(@"No results found");
+            return;
+        }
+        
+        // Take first result, zoom to it
+        MKMapItem *item = response.mapItems.firstObject;
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(item.placemark.coordinate, 2000, 2000) animated:YES];
+            
+            // Optional: drop a pin
+            MKPointAnnotation *annotation = [[MKPointAnnotation alloc] init];
+            annotation.title = item.name;
+            annotation.coordinate = item.placemark.coordinate;
+            [self.mapView addAnnotation:annotation];
+        });
+    }];
+}
+
+
 - (IBAction) exportGPX:(id)sender
 {
     if (!_gpxData) return;
