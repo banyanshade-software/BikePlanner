@@ -7,13 +7,13 @@
 
 #import <Cocoa/Cocoa.h>
 #import "MapController.h"
-
+#import "StreetViewController.h"
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 
 @property (strong) IBOutlet NSWindow *window;
-@property (weak) IBOutlet WKWebView *webView;
 @property (weak) IBOutlet MapController *mapController;
+@property (weak) IBOutlet StreetViewController *streetViewController;
 
 
 @end

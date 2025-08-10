@@ -18,13 +18,18 @@
         <customObject id="Voe-Tx-rLC" customClass="AppDelegate">
             <connections>
                 <outlet property="mapController" destination="gMs-Z0-beH" id="QRd-gH-xXa"/>
-                <outlet property="webView" destination="lke-4c-4Mh" id="ZcM-X0-JsM"/>
+                <outlet property="streetViewController" destination="bUu-4I-hdJ" id="RWQ-JQ-Ffc"/>
                 <outlet property="window" destination="QvC-M9-y7g" id="gIp-Ho-8D9"/>
             </connections>
         </customObject>
         <customObject id="gMs-Z0-beH" customClass="MapController">
             <connections>
                 <outlet property="mapView" destination="nv1-a0-VO5" id="CBO-Iu-8Mv"/>
+            </connections>
+        </customObject>
+        <customObject id="bUu-4I-hdJ" customClass="StreetViewController">
+            <connections>
+                <outlet property="webView" destination="lke-4c-4Mh" id="QhV-Ab-hQS"/>
             </connections>
         </customObject>
         <customObject id="YLy-65-1bz" customClass="NSFontManager"/>
