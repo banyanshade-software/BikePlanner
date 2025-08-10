@@ -44,6 +44,18 @@
     help.stringValue = @"Click once to set START, click again to set END. Route is requested automatically.";
     [content addSubview:help];
 
+    NSPopUpButton *profileMenu = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(14, 36, 200, 26)];
+    [profileMenu addItemsWithTitles:@[@"trekking", @"fastbike", @"car-fast", @"car-eco"]];
+    [content addSubview:profileMenu];
+    
+    NSSegmentedControl *maptype = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 64, 200, 26)];
+    maptype.segmentCount = 3;
+    maptype.selectedSegment = 0;
+    [maptype setLabel:@"OSM" forSegment:0];
+    [maptype setLabel:@"Apple" forSegment:1];
+    [maptype setLabel:@"Sat" forSegment:2];
+    maptype.segmentStyle = NSSegmentStyleRoundRect;
+    [content addSubview:maptype];
     // BRouter client (default points to local server at port 17777)
     //NSString *brouter=@"http://127.0.0.1:17777";
     //NSString *brouter=@"https://brouter.de/brouter";
