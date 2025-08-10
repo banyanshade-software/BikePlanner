@@ -124,10 +124,6 @@
 				65B8EE842E48C10B001F2966 /* MapController.m */,
 				65B8EE862E48C4AA001F2966 /* StreetViewController.h */,
 				65B8EE872E48C4AA001F2966 /* StreetViewController.m */,
-				65B8EE4A2E47982A001F2966 /* Assets.xcassets */,
-				65B8EE4C2E47982A001F2966 /* MainMenu.xib */,
-				65B8EE4F2E47982A001F2966 /* main.m */,
-				65B8EE512E47982A001F2966 /* BikePlanner.entitlements */,
 				65B8EE732E4798A7001F2966 /* BRouterClient.h */,
 				65B8EE742E4798A7001F2966 /* BRouterClient.m */,
 				65B8EE802E47B860001F2966 /* GPXParser.h */,
@@ -136,6 +132,10 @@
 				65B8EE7B2E47A334001F2966 /* SafeOSMTileOverlay.m */,
 				65B8EE7D2E47A34E001F2966 /* SafeTileRenderer.h */,
 				65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */,
+				65B8EE4A2E47982A001F2966 /* Assets.xcassets */,
+				65B8EE4C2E47982A001F2966 /* MainMenu.xib */,
+				65B8EE4F2E47982A001F2966 /* main.m */,
+				65B8EE512E47982A001F2966 /* BikePlanner.entitlements */,
 			);
 			path = BikePlanner;
 			sourceTree = "<group>";

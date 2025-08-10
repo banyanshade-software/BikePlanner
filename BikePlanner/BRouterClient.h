@@ -24,7 +24,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)routeFrom:(CLLocationCoordinate2D)from
                 to:(CLLocationCoordinate2D)to
           profile:(NSString *)profile
-       completion:(void(^)(NSArray<CLLocation *> *points, NSError *error))completion;
+       completion:(void(^)(NSArray<CLLocation *> *points, NSData *gpx, NSError *error))completion;
 
 @end
 

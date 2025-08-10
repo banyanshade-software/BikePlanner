@@ -9,7 +9,7 @@
 #import "SafeTileRenderer.h"
 #import "SafeOSMTileOverlay.h"
 
-@implementation MapController
+@implementation MapController 
 
 - (void) initializeMapview
 {
@@ -67,6 +67,7 @@
 - (void)clearAction:(id)sender
 {
     self.hasStart = NO; self.hasEnd = NO;
+    self.gpxData = nil;
     [self.mapView removeAnnotations:self.mapView.annotations];
     [self.mapView removeOverlays:self.mapView.overlays];
 }
@@ -106,14 +107,16 @@
 - (void)requestRoute
 {
     // profile can be changed, e.g. "trekking", "fastbike", etc.
+    self.gpxData = nil;
     NSString *profile = @"trekking";
-    [self.brouter routeFrom:self.startCoord to:self.endCoord profile:profile completion:^(NSArray<CLLocation *> *points, NSError *error) {
+    [self.brouter routeFrom:self.startCoord to:self.endCoord profile:profile completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSError *error) {
         if (error) {
             NSLog(@"BRouter error: %@", error);
             return;
         }
         if (points.count == 0) { NSLog(@"No points returned"); return; }
 
+        self.gpxData = gpx;
         // Build polyline
         NSUInteger n = points.count;
         CLLocationCoordinate2D *coords = malloc(sizeof(CLLocationCoordinate2D) * n);

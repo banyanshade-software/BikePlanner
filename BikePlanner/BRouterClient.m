@@ -23,7 +23,7 @@
 - (void)routeFrom:(CLLocationCoordinate2D)from
                 to:(CLLocationCoordinate2D)to
           profile:(NSString *)profile
-       completion:(void(^)(NSArray<CLLocation *> *points, NSError *error))completion
+       completion:(void(^)(NSArray<CLLocation *> *points, NSData *gpx, NSError *error))completion
 {
     // Build lonlats parameter. BRouter expects lon,lat pairs. 
     // Use pipe or semicolon separator depending on server.
@@ -42,7 +42,7 @@
 
     NSURL *url = components.URL;
     if (!url) {
-        if (completion) completion(nil, [NSError errorWithDomain:@"BRouterClient" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"Invalid URL"}]);
+        if (completion) completion(nil, nil, [NSError errorWithDomain:@"BRouterClient" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"Invalid URL"}]);
         return;
     }
     
@@ -59,8 +59,8 @@
     // NSURLSession *session = [NSURLSession sharedSession];
     
     NSURLSessionDataTask *task = [session dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
-        if (err) { if (completion) completion(nil, err); return; }
-        if (!data) { if (completion) completion(nil, [NSError errorWithDomain:@"BRouterClient" code:-2 userInfo:@{NSLocalizedDescriptionKey:@"No data"}]); return; }
+        if (err) { if (completion) completion(nil, nil, err); return; }
+        if (!data) { if (completion) completion(nil, nil, [NSError errorWithDomain:@"BRouterClient" code:-2 userInfo:@{NSLocalizedDescriptionKey:@"No data"}]); return; }
 
         // Parse GPX: look for <trkpt lat="..." lon="..."> tags. Simple parser using NSXMLParser would be more proper.
         // Here we'll do a quick string-based parse that's tolerant for this demo.
@@ -87,7 +87,7 @@
         NSError *parseError = nil;
         NSArray<CLLocation *> *points = [pgpx parseGPXData:data error:&parseError];
 
-        if (completion) completion(points, nil);
+        if (completion) completion(points, data, nil);
 
     }];
     [task resume];

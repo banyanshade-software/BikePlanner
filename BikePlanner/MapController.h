@@ -23,6 +23,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (assign) BOOL hasStart;
 @property (assign) BOOL hasEnd;
 
+@property (strong, nullable) NSData *gpxData;
 
 
 - (IBAction) exportGPX:(id)sender;
