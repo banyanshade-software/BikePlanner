@@ -10,6 +10,23 @@
 #import "BRouterClient.h"
 #import "GPXParser.h"
 
+@implementation NSURL (Additions)
+// https://stackoverflow.com/questions/6309698/objective-c-how-to-add-query-parameter-to-nsurl
+- (NSURL *)URLByAppendingQueryString:(NSString *)queryString {
+    if (![queryString length]) {
+        return self;
+    }
+
+    NSString *URLString = [[NSString alloc] initWithFormat:@"%@%@%@", [self absoluteString],
+                           [self query] ? @"&" : @"?", queryString];
+    NSURL *theURL = [NSURL URLWithString:URLString];
+    //[URLString release];
+    return theURL;
+}
+
+@end
+
+
 
 @implementation BRouterClient
 
@@ -23,6 +40,7 @@
 - (void)routeFrom:(CLLocationCoordinate2D)from
                 to:(CLLocationCoordinate2D)to
           profile:(NSString *)profile
+         extraUrl:(NSString *)extraUrl
        completion:(void(^)(NSArray<CLLocation *> *points, NSData *gpx, NSError *error))completion
 {
     // Build lonlats parameter. BRouter expects lon,lat pairs. 
@@ -37,10 +55,13 @@
         [NSURLQueryItem queryItemWithName:@"lonlats" value:lonlats],
         [NSURLQueryItem queryItemWithName:@"profile" value:profile ?: @"fastbike"],
         [NSURLQueryItem queryItemWithName:@"alternativeidx" value:@"0"],
-        [NSURLQueryItem queryItemWithName:@"format" value:@"gpx"]
+        [NSURLQueryItem queryItemWithName:@"format" value:@"gpx"] //,
+        //[NSURLQueryItem queryItemWithName:extraUrl value:nil]
     ];
-
     NSURL *url = components.URL;
+    if ([extraUrl length]) {
+        url = [url URLByAppendingQueryString:extraUrl];
+    }
     if (!url) {
         if (completion) completion(nil, nil, [NSError errorWithDomain:@"BRouterClient" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"Invalid URL"}]);
         return;

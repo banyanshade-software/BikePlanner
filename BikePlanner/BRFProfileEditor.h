@@ -20,10 +20,10 @@ NS_ASSUME_NONNULL_BEGIN
 @interface BRFProfileEditor : NSWindowController
 
 /// completion will be called on the main thread with the raw extraParams string (e.g. "a=1|b=2") or nil if cancelled
-@property (nonatomic, copy) void (^completion)(NSString * _Nullable extraParams);
+@property (nonatomic, copy) void (^completionHandler)(NSArray *overrideParams);
 
-- (instancetype)initWithProfileURL:(NSURL *)url profileName:(NSString *)profileName;
-- (void)showEditor;
+- (instancetype)initWithProfileName:(NSString *)profileName;
+//- (void)showEditor;
 
 @end
 

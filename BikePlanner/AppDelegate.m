@@ -8,7 +8,9 @@
 #import "AppDelegate.h"
 #import "BRFProfileEditor.h"
 
-@implementation AppDelegate
+@implementation AppDelegate {
+    BRFProfileEditor *brfEditor;
+}
 
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification {
@@ -28,17 +30,24 @@
     
     [self.window makeKeyAndOrderFront:nil];
     
-    NSURL *url = [NSURL URLWithString:@"https://brouter.de/brouter/profiles2/trekking.brf"];
-    BRFProfileEditor *editor = [[BRFProfileEditor alloc] initWithProfileURL:url profileName:@"trekking"];
-    editor.completion = ^(NSString * _Nullable extraParams) {
-        if (extraParams) {
-             NSLog(@"User overrides: %@", extraParams);
+    //NSURL *url = [NSURL URLWithString:@"https://brouter.de/brouter/profiles2/trekking.brf"];
+    //BRFProfileEditor *editor = [[BRFProfileEditor alloc] initWithProfileURL:url profileName:@"trekking"];
+    brfEditor = [[BRFProfileEditor alloc] initWithProfileName:@"trekking"];
+    brfEditor.completionHandler = ^(NSArray * _Nullable overideParams) {
+        if (overideParams && [overideParams count]) {
+             NSLog(@"User overrides: %@", overideParams);
              // append to request as &extraParams=... (remember to percent-encode later)
+            NSString *extraParams = [overideParams componentsJoinedByString:@"&"];
+            self.mapController.extraUrl = [@"extraParams=" stringByAppendingString:extraParams];
+            [self.mapController shouldRecalcRoute];
          } else {
              NSLog(@"User cancelled");
          }
      };
-    [editor showEditor];
+    [brfEditor showWindow:self];
+
+    //[editor loadWindow];
+    //[editor showEditor];
 }
 
 

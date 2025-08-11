@@ -22,13 +22,15 @@ NS_ASSUME_NONNULL_BEGIN
 @property (assign) CLLocationCoordinate2D endCoord;
 @property (assign) BOOL hasStart;
 @property (assign) BOOL hasEnd;
+@property (strong) NSString *extraUrl;
+
 
 @property (strong, nullable) NSData *gpxData;
 
 
 - (IBAction) exportGPX:(id)sender;
 - (IBAction) sendersearchFieldAction:(id)sender;
-
+- (void) shouldRecalcRoute;
 
 - (void) initializeMapview;
 

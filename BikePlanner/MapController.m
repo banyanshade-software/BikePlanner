@@ -117,12 +117,18 @@
     [self.svCtrl viewCoord:coord];
 }
 
-- (void)requestRoute
+- (void) shouldRecalcRoute
+{
+    if (self.hasEnd && self.hasStart) {
+        [self requestRoute];
+    }
+}
+- (void) requestRoute
 {
     // profile can be changed, e.g. "trekking", "fastbike", etc.
     self.gpxData = nil;
     NSString *profile = @"trekking";
-    [self.brouter routeFrom:self.startCoord to:self.endCoord profile:profile completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSError *error) {
+    [self.brouter routeFrom:self.startCoord to:self.endCoord profile:profile extraUrl:_extraUrl completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSError *error) {
         if (error) {
             NSLog(@"BRouter error: %@", error);
             return;

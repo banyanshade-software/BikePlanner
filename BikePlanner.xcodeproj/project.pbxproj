@@ -22,6 +22,7 @@
 		65B8EE852E48C10B001F2966 /* MapController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE842E48C10B001F2966 /* MapController.m */; };
 		65B8EE882E48C4AA001F2966 /* StreetViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE872E48C4AA001F2966 /* StreetViewController.m */; };
 		65B8EE8E2E493F36001F2966 /* BRFProfileEditor.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE8D2E493F36001F2966 /* BRFProfileEditor.m */; };
+		65B8EE902E49D377001F2966 /* BRFProfileEditor.xib in Resources */ = {isa = PBXBuildFile; fileRef = 65B8EE8F2E49D377001F2966 /* BRFProfileEditor.xib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +70,7 @@
 		65B8EE872E48C4AA001F2966 /* StreetViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = StreetViewController.m; sourceTree = "<group>"; };
 		65B8EE8C2E493F36001F2966 /* BRFProfileEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRFProfileEditor.h; sourceTree = "<group>"; };
 		65B8EE8D2E493F36001F2966 /* BRFProfileEditor.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BRFProfileEditor.m; sourceTree = "<group>"; };
+		65B8EE8F2E49D377001F2966 /* BRFProfileEditor.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = BRFProfileEditor.xib; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -128,6 +130,7 @@
 				65B8EE862E48C4AA001F2966 /* StreetViewController.h */,
 				65B8EE8C2E493F36001F2966 /* BRFProfileEditor.h */,
 				65B8EE8D2E493F36001F2966 /* BRFProfileEditor.m */,
+				65B8EE8F2E49D377001F2966 /* BRFProfileEditor.xib */,
 				65B8EE872E48C4AA001F2966 /* StreetViewController.m */,
 				65B8EE732E4798A7001F2966 /* BRouterClient.h */,
 				65B8EE742E4798A7001F2966 /* BRouterClient.m */,
@@ -274,6 +277,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				65B8EE4B2E47982A001F2966 /* Assets.xcassets in Resources */,
+				65B8EE902E49D377001F2966 /* BRFProfileEditor.xib in Resources */,
 				65B8EE4E2E47982A001F2966 /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
