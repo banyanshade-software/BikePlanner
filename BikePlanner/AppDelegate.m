@@ -6,6 +6,7 @@
 //
 
 #import "AppDelegate.h"
+#import "BRFProfileEditor.h"
 
 @implementation AppDelegate
 
@@ -26,6 +27,18 @@
     [self.streetViewController initializeStreetView];
     
     [self.window makeKeyAndOrderFront:nil];
+    
+    NSURL *url = [NSURL URLWithString:@"https://brouter.de/brouter/profiles2/trekking.brf"];
+    BRFProfileEditor *editor = [[BRFProfileEditor alloc] initWithProfileURL:url profileName:@"trekking"];
+    editor.completion = ^(NSString * _Nullable extraParams) {
+        if (extraParams) {
+             NSLog(@"User overrides: %@", extraParams);
+             // append to request as &extraParams=... (remember to percent-encode later)
+         } else {
+             NSLog(@"User cancelled");
+         }
+     };
+    [editor showEditor];
 }
 
 

@@ -21,6 +21,7 @@
 		65B8EE822E47B860001F2966 /* GPXParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE812E47B860001F2966 /* GPXParser.m */; };
 		65B8EE852E48C10B001F2966 /* MapController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE842E48C10B001F2966 /* MapController.m */; };
 		65B8EE882E48C4AA001F2966 /* StreetViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE872E48C4AA001F2966 /* StreetViewController.m */; };
+		65B8EE8E2E493F36001F2966 /* BRFProfileEditor.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE8D2E493F36001F2966 /* BRFProfileEditor.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +67,8 @@
 		65B8EE842E48C10B001F2966 /* MapController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MapController.m; sourceTree = "<group>"; };
 		65B8EE862E48C4AA001F2966 /* StreetViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StreetViewController.h; sourceTree = "<group>"; };
 		65B8EE872E48C4AA001F2966 /* StreetViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = StreetViewController.m; sourceTree = "<group>"; };
+		65B8EE8C2E493F36001F2966 /* BRFProfileEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRFProfileEditor.h; sourceTree = "<group>"; };
+		65B8EE8D2E493F36001F2966 /* BRFProfileEditor.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BRFProfileEditor.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -123,6 +126,8 @@
 				65B8EE832E48C10B001F2966 /* MapController.h */,
 				65B8EE842E48C10B001F2966 /* MapController.m */,
 				65B8EE862E48C4AA001F2966 /* StreetViewController.h */,
+				65B8EE8C2E493F36001F2966 /* BRFProfileEditor.h */,
+				65B8EE8D2E493F36001F2966 /* BRFProfileEditor.m */,
 				65B8EE872E48C4AA001F2966 /* StreetViewController.m */,
 				65B8EE732E4798A7001F2966 /* BRouterClient.h */,
 				65B8EE742E4798A7001F2966 /* BRouterClient.m */,
@@ -294,6 +299,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				65B8EE8E2E493F36001F2966 /* BRFProfileEditor.m in Sources */,
 				65B8EE502E47982A001F2966 /* main.m in Sources */,
 				65B8EE7F2E47A34E001F2966 /* SafeTileRenderer.m in Sources */,
 				65B8EE7C2E47A334001F2966 /* SafeOSMTileOverlay.m in Sources */,
