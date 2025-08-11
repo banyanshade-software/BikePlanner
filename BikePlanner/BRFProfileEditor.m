@@ -153,7 +153,7 @@
         NSTextField *label = (NSTextField *)rowView.arrangedSubviews[1];
         NSTextField *field = (NSTextField *)rowView.arrangedSubviews[2];
         if (check.state == NSControlStateValueOn) {
-            [overrides addObject:[NSString stringWithFormat:@"%@=%@", label.stringValue, field.stringValue]];
+            [overrides addObject:[NSString stringWithFormat:@"profile:%@=%@", label.stringValue, field.stringValue]];
         }
     }
     // NSString *extraParams = [overrides componentsJoinedByString:@"|"];
