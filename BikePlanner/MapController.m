@@ -120,6 +120,8 @@
 - (void) shouldRecalcRoute
 {
     if (self.hasEnd && self.hasStart) {
+        // 0.495477,44.178503
+        if ((0)) self.startCoord = CLLocationCoordinate2DMake(44.178503, 0.495477);
         [self requestRoute];
     }
 }
