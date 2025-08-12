@@ -159,7 +159,7 @@
     // NSString *extraParams = [overrides componentsJoinedByString:@"|"];
     //if (self.completionHandler) self.completionHandler(extraParams);
     if (self.completionHandler) self.completionHandler(overrides);
-    [self.window close];
+    if ((0))  [self.window close];
 }
 
 @end
