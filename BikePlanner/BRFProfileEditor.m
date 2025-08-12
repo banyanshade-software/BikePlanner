@@ -83,7 +83,7 @@
 {
     [self.parameters removeAllObjects];
     NSError *err = nil;
-    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"assign\\s+(\\w+)\\s*=\\s*([\\w\\.\\-]+)"
+    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"assign\\s+(\\w+)\\s*=\\s*([\\d\\.\\-]+|true|false)"
                                   options:NSRegularExpressionCaseInsensitive
                                     error:&err];
     NSArray<NSTextCheckingResult *> *matches = [regex matchesInString:brf options:0 range:NSMakeRange(0, brf.length)];
