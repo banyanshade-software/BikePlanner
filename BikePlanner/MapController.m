@@ -115,8 +115,12 @@
     
     
     if ([self clickNearPolylineAt:coord]) {
-        
-        [self insertWaypoint:coord];
+        NSUInteger idx = [self insertionIndexForCoordinate:coord polyline:poly waypoints:waypoints];
+        [self insertWaypoint:coord atIdx:idx];
+        RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:@"step" subtitle:nil];
+        a.idx = idx;
+        [self.mapView addAnnotation:a];
+        // update all idx
         return;
     }
     NSString *title = nil;
@@ -350,10 +354,128 @@
 }
 
 
-- (void)insertWaypoint:(CLLocationCoordinate2D)coord
+- (void)insertWaypoint:(CLLocationCoordinate2D)coord atIdx:(NSUInteger)idx
 {
-    [waypoints insertObject:[[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude] atIndex:1];
+    [waypoints insertObject:[[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude] atIndex:idx];
+    // update idx
+    
     [self requestRoute];
+}
+
+- (NSUInteger)insertionIndexForCoordinate:(CLLocationCoordinate2D)coord
+                                  polyline:(MKPolyline *)polyline
+                                 waypoints:(NSArray<CLLocation*> *)waypoints
+{
+    if (!polyline || polyline.pointCount < 2) return 1; // default insert after start
+
+    double newProj = [self projectedDistanceAlongPolyline:polyline forCoordinate:coord];
+
+    // compute projected distances for each existing waypoint
+    NSUInteger n = waypoints.count;
+    NSMutableArray<NSNumber*> *proj = [NSMutableArray arrayWithCapacity:n];
+    for (NSUInteger i = 0; i < n; i++) {
+        CLLocation *wp = waypoints[i];
+        double p = [self projectedDistanceAlongPolyline:polyline forCoordinate:wp.coordinate];
+        [proj addObject:@(p)];
+    }
+
+    // ensure monotonicity (just in case): find place where newProj fits between proj[i] and proj[i+1]
+    // we don't allow inserting before index 1 (start must remain first) or after last (end must remain last)
+    NSUInteger insertIndex = 1; // default
+    for (NSUInteger i = 0; i + 1 < proj.count; i++) {
+        double a = proj[i].doubleValue;
+        double b = proj[i+1].doubleValue;
+        if (newProj >= a && newProj <= b) {
+            insertIndex = i + 1;
+            break;
+        }
+    }
+
+    // If it wasn't found (newProj outside bounds), clamp:
+    double first = proj.firstObject.doubleValue;
+    double last = proj.lastObject.doubleValue;
+    if (newProj <= first) insertIndex = 1;
+    else if (newProj >= last) insertIndex = proj.count - 1;
+
+    // safety clamp
+    if (insertIndex < 1) insertIndex = 1;
+    if (insertIndex > proj.count - 1) insertIndex = proj.count - 1;
+
+    return insertIndex;
+}
+
+static void XYFromLatLon(double lat, double lon, double refLat, double *outX, double *outY) {
+    // approximate meters per degree
+    double rad = refLat * M_PI / 180.0;
+    double metersPerDegLat = 111132.92 - 559.82 * cos(2 * rad) + 1.175 * cos(4 * rad);
+    double metersPerDegLon = 111412.84 * cos(rad) - 93.5 * cos(3 * rad);
+    *outX = lon * metersPerDegLon;
+    *outY = lat * metersPerDegLat;
+}
+
+// returns cumulative distance along polyline to closest point projection of coord (meters)
+- (double)projectedDistanceAlongPolyline:(MKPolyline *)polyline
+                            forCoordinate:(CLLocationCoordinate2D)coord
+{
+    NSUInteger count = polyline.pointCount;
+    if (count < 2) return 0.0;
+
+    CLLocationCoordinate2D *coords = malloc(sizeof(CLLocationCoordinate2D) * count);
+    [polyline getCoordinates:coords range:NSMakeRange(0, count)];
+
+    // Precompute segment lengths and cumulative distances
+    double *segLen = malloc(sizeof(double) * (count - 1));
+    double *cum = malloc(sizeof(double) * count); // cum[0] = 0, cum[i] = distance from start to coords[i]
+    cum[0] = 0.0;
+    for (NSUInteger i = 0; i < count - 1; i++) {
+        CLLocation *a = [[CLLocation alloc] initWithLatitude:coords[i].latitude longitude:coords[i].longitude];
+        CLLocation *b = [[CLLocation alloc] initWithLatitude:coords[i+1].latitude longitude:coords[i+1].longitude];
+        segLen[i] = [a distanceFromLocation:b];
+        cum[i+1] = cum[i] + segLen[i];
+    }
+
+    // Find closest projection
+    double bestDist = DBL_MAX;
+    double bestProjectionDist = 0.0;
+
+    for (NSUInteger i = 0; i < count - 1; i++) {
+        // use local planar coords for this segment
+        double refLat = (coords[i].latitude + coords[i+1].latitude) * 0.5;
+        double ax, ay, bx, by, px, py;
+        XYFromLatLon(coords[i].latitude, coords[i].longitude, refLat, &ax, &ay);
+        XYFromLatLon(coords[i+1].latitude, coords[i+1].longitude, refLat, &bx, &by);
+        XYFromLatLon(coord.latitude, coord.longitude, refLat, &px, &py);
+
+        double vx = bx - ax;
+        double vy = by - ay;
+        double wx = px - ax;
+        double wy = py - ay;
+
+        double denom = vx*vx + vy*vy;
+        double t = 0.0;
+        if (denom > 0.0) t = (vx*wx + vy*wy) / denom;
+        if (t < 0.0) t = 0.0;
+        if (t > 1.0) t = 1.0;
+
+        double cx = ax + t*vx;
+        double cy = ay + t*vy;
+
+        double dx = px - cx;
+        double dy = py - cy;
+        double distMeters = hypot(dx, dy);
+
+        if (distMeters < bestDist) {
+            bestDist = distMeters;
+            // projected distance along whole polyline = cumulative distance at segment start + t * segmentLength
+            bestProjectionDist = cum[i] + (segLen[i] * t);
+        }
+    }
+
+    free(coords);
+    free(segLen);
+    free(cum);
+
+    return bestProjectionDist;
 }
 
 #pragma mark - drag and drop
