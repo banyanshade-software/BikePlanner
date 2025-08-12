@@ -16,16 +16,16 @@
         <window title="Profile" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="QvC-M9-y7g">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="196" y="240" width="578" height="347"/>
+            <rect key="contentRect" x="196" y="240" width="652" height="683"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1440" height="875"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
-                <rect key="frame" x="0.0" y="0.0" width="578" height="347"/>
+                <rect key="frame" x="0.0" y="0.0" width="652" height="683"/>
                 <autoresizingMask key="autoresizingMask"/>
             </view>
             <connections>
                 <outlet property="delegate" destination="-2" id="zmi-Ex-2M9"/>
             </connections>
-            <point key="canvasLocation" x="63" y="164.5"/>
+            <point key="canvasLocation" x="100" y="332.5"/>
         </window>
     </objects>
 </document>
