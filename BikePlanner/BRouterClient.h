@@ -21,8 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithServerURL:(NSURL *)url;
 
 
-- (void)routeFrom:(CLLocationCoordinate2D)from
-                to:(CLLocationCoordinate2D)to
+- (void)routeWithWaypoints:(NSArray <CLLocation *>*)waypoints
           profile:(NSString *)profile
          extraUrl:(NSString *)extraUrl  
        completion:(void(^)(NSArray<CLLocation *> *points, NSData *gpx, NSError *error))completion;

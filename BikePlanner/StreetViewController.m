@@ -22,7 +22,7 @@
 }
 
 
-- (void) viewCoord:(CLLocationCoordinate2D) coord
+- (void) viewCoord:(CLLocationCoordinate2D) coord coalesce:(BOOL)coal
 {
     NSString *surl = [NSString stringWithFormat:@"https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=%f,%f",
     coord.latitude, coord.longitude];

@@ -37,8 +37,8 @@
     return self;
 }
 
-- (void)routeFrom:(CLLocationCoordinate2D)from
-                to:(CLLocationCoordinate2D)to
+
+- (void)routeWithWaypoints:(NSArray <CLLocation *>*)waypoints
           profile:(NSString *)profile
          extraUrl:(NSString *)extraUrl
        completion:(void(^)(NSArray<CLLocation *> *points, NSData *gpx, NSError *error))completion
@@ -46,8 +46,16 @@
     // Build lonlats parameter. BRouter expects lon,lat pairs. 
     // Use pipe or semicolon separator depending on server.
     // We'll use the common format: lon,lat;lon,lat
-    NSString *lonlats = [NSString stringWithFormat:@"%f,%f|%f,%f", from.longitude, from.latitude, to.longitude, to.latitude];
-
+    
+    NSString *lonlats = @"";
+    BOOL first = YES;
+    for (CLLocation *loc in waypoints) {
+        lonlats = [lonlats stringByAppendingFormat:@"%s%f,%f",
+                   first ? "" : "|",
+                   loc.coordinate.longitude,
+                   loc.coordinate.latitude];
+        first = NO;
+    }
     // Request GPX output
     NSURLComponents *components = [NSURLComponents componentsWithURL:self.serverURL resolvingAgainstBaseURL:NO];
     components.path = @"/brouter";

@@ -18,10 +18,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property (weak) IBOutlet MKMapView *mapView;
 @property (weak) IBOutlet StreetViewController *svCtrl;
 @property (strong) BRouterClient *brouter;
-@property (assign) CLLocationCoordinate2D startCoord;
-@property (assign) CLLocationCoordinate2D endCoord;
-@property (assign) BOOL hasStart;
-@property (assign) BOOL hasEnd;
+//@property (assign) CLLocationCoordinate2D startCoord;
+//@property (assign) CLLocationCoordinate2D endCoord;
+//@property (assign) BOOL hasStart;
+//@property (assign) BOOL hasEnd;
 @property (strong) NSString *extraUrl;
 
 
