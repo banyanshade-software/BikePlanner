@@ -80,7 +80,10 @@
     // NSURLSession *session = [NSURLSession sharedSession];
     
     NSURLSessionDataTask *task = [session dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
-        if (err) { if (completion) completion(nil, nil, err); return; }
+        if (err) {
+            if (completion) completion(nil, nil, err);
+            return;
+        }
         if (!data) { if (completion) completion(nil, nil, [NSError errorWithDomain:@"BRouterClient" code:-2 userInfo:@{NSLocalizedDescriptionKey:@"No data"}]); return; }
 
         // Parse GPX: look for <trkpt lat="..." lon="..."> tags. Simple parser using NSXMLParser would be more proper.

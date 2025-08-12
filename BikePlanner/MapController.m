@@ -133,20 +133,27 @@
             NSLog(@"BRouter error: %@", error);
             return;
         }
-        if (points.count == 0) { NSLog(@"No points returned"); return; }
+        if (points.count == 0) {
+            NSLog(@"No points returned");
+            return;
+        }
 
         self.gpxData = gpx;
         // Build polyline
         NSUInteger n = points.count;
         CLLocationCoordinate2D *coords = malloc(sizeof(CLLocationCoordinate2D) * n);
-        for (NSUInteger i=0;i<n;i++) coords[i] = points[i].coordinate;
+        for (NSUInteger i=0;i<n;i++) {
+            coords[i] = points[i].coordinate;
+        }
         MKPolyline *poly = [MKPolyline polylineWithCoordinates:coords count:n];
         free(coords);
 
         dispatch_async(dispatch_get_main_queue(), ^{
             // Remove old route overlays (except tile overlays)
             for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
-                if (![ov isKindOfClass:[MKTileOverlay class]]) [self.mapView removeOverlay:ov];
+                if (![ov isKindOfClass:[MKTileOverlay class]]) {
+                    [self.mapView removeOverlay:ov];
+                }
             }
             [self.mapView addOverlay:poly level:MKOverlayLevelAboveLabels];
             [self.mapView setVisibleMapRect:[poly boundingMapRect] edgePadding:NSEdgeInsetsMake(40, 40, 40, 40) animated:YES];
