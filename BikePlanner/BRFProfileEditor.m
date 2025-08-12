@@ -83,8 +83,9 @@
 {
     [self.parameters removeAllObjects];
     NSError *err = nil;
-    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"assign\\s+(\\w+)\\s*=\\s*([\\d\\.\\-]+)"
-                                                                           options:NSRegularExpressionCaseInsensitive error:&err];
+    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"assign\\s+(\\w+)\\s*=\\s*([\\w\\.\\-]+)"
+                                  options:NSRegularExpressionCaseInsensitive
+                                    error:&err];
     NSArray<NSTextCheckingResult *> *matches = [regex matchesInString:brf options:0 range:NSMakeRange(0, brf.length)];
     for (NSTextCheckingResult *m in matches) {
         if (m.numberOfRanges < 3) continue;
@@ -93,7 +94,8 @@
         BRFParam *p = [BRFParam new];
         p.name = name;
         p.defaultValue = val;
-        p.isBoolean = ([val isEqualToString:@"0"] || [val isEqualToString:@"1"]);
+        p.isBoolean = ([val isEqualToString:@"true"] || [val isEqualToString:@"false"]);
+        // note: isBoolean is not yet used
         [self.parameters addObject:p];
     }
 }
