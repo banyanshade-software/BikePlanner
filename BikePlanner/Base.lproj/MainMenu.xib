@@ -727,6 +727,10 @@
                                 <subviews>
                                     <mapView mapType="standard" translatesAutoresizingMaskIntoConstraints="NO" id="nv1-a0-VO5">
                                         <rect key="frame" x="2" y="2" width="444" height="498"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="300" id="Jkx-rt-d0f"/>
+                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="360" id="qyg-sS-h6q"/>
+                                        </constraints>
                                     </mapView>
                                 </subviews>
                                 <constraints>
@@ -769,6 +773,10 @@
                                                 <subviews>
                                                     <wkWebView wantsLayer="YES" translatesAutoresizingMaskIntoConstraints="NO" id="lke-4c-4Mh">
                                                         <rect key="frame" x="4" y="4" width="437" height="244"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="400" id="0mn-co-ti6"/>
+                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="220" id="fNl-3V-sNj"/>
+                                                        </constraints>
                                                         <wkWebViewConfiguration key="configuration">
                                                             <audiovisualMediaTypes key="mediaTypesRequiringUserActionForPlayback" none="YES"/>
                                                             <wkPreferences key="preferences"/>
@@ -831,7 +839,7 @@
                     <searchToolbarItem implicitItemIdentifier="C82C1163-F245-4DEB-B0BC-CA5A7BB286D1" label="Search" paletteLabel="Search" visibilityPriority="1001" id="7Ug-sT-DGb">
                         <nil key="toolTip"/>
                         <searchField key="view" verticalHuggingPriority="750" textCompletion="NO" id="Ufa-2S-gam">
-                            <rect key="frame" x="0.0" y="0.0" width="100" height="21"/>
+                            <rect key="frame" x="0.0" y="0.0" width="120" height="21"/>
                             <autoresizingMask key="autoresizingMask"/>
                             <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" usesSingleLineMode="YES" bezelStyle="round" sendsSearchStringImmediately="YES" id="w1V-PK-jmg">
                                 <font key="font" usesAppearanceFont="YES"/>
