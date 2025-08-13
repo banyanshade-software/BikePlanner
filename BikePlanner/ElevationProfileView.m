@@ -45,6 +45,7 @@
     self.slopes = slopes;
     self.elevations = elevations;
     [self setNeedsDisplay:YES];
+    //[self setNeedsLayout:YES];
 }
 
 - (void)drawRect:(NSRect)dirtyRect {
@@ -99,6 +100,19 @@
         CGContextAddLineToPoint(ctx, x2, y2);
         CGContextStrokePath(ctx);
     }
+    
+    // Draw highlight line
+     if (_highlightDistance > 0 && _highlightDistance <= _maxDist) {
+         CGFloat hx = _plotRect.origin.x + (_highlightDistance / _maxDist) * _plotRect.size.width;
+         [[NSColor blackColor] setStroke];
+         CGContextSetLineWidth(ctx, 1.0);
+         CGContextMoveToPoint(ctx, hx, _plotRect.origin.y);
+         CGContextAddLineToPoint(ctx, hx, _plotRect.origin.y + _plotRect.size.height);
+         CGFloat dash[] = {4.0, 2.0};
+         CGContextSetLineDash(ctx, 0, dash, 2);
+         CGContextStrokePath(ctx);
+         CGContextSetLineDash(ctx, 0, NULL, 0);
+     }
 }
 
 
@@ -115,10 +129,25 @@
     NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
     if (NSPointInRect(p, _plotRect)) {
         double dist = ((p.x - _plotRect.origin.x) / _plotRect.size.width) * _maxDist;
+        [self setHighlightDistance:dist animated:YES];
         if ([self.delegate respondsToSelector:@selector(elevationProfileView:didSelectDistance:)]) {
             [self.delegate elevationProfileView:self didSelectDistance:dist];
         }
+        
     }
 }
 
+
+
+- (void)setHighlightDistance:(double)highlightDistance animated:(BOOL)animated {
+    _highlightDistance =  highlightDistance; //fmax(0, fmin(_highlightDistance, [[self.distances lastObject] doubleValue]));
+    if (animated) {
+        [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+            context.duration = 0.1;
+            [self.animator setNeedsDisplay:YES];
+        } completionHandler:nil];
+    } else {
+        [self setNeedsDisplay:YES];
+    }
+}
 @end

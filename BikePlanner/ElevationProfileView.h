@@ -15,6 +15,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 
 @interface ElevationProfileView : NSView
+
+@property (nonatomic) double highlightDistance; // meters
+- (void)setHighlightDistance:(double)highlightDistance animated:(BOOL)animated;
+
 @property (nonatomic, strong) NSArray<NSNumber *> *distances;
 @property (nonatomic, strong) NSArray<NSNumber *> *elevations;
 @property (nonatomic, strong) NSArray<NSNumber *> *slopes;
