@@ -108,12 +108,23 @@
     [self.mapView removeOverlays:self.mapView.overlays];
 }
 
+- (NSColor *) pinColorForWaypointIdx:(NSUInteger)idx
+{
+    NSColor *c;
+    if (0==idx) c = [NSColor redColor];
+    else if (idx >= [waypointsRouteAnnotations count]-1) c = [NSColor greenColor];
+    else c = [NSColor yellowColor];
+    return c;
+}
 - (NSString *) stringForWaypointIdx:(NSUInteger)idx
 {
     if (!idx) return @"Start";
     //if (idx == [waypoints count]-1) return @"end";
     return [NSString stringWithFormat:@"%d", idx];
 }
+
+
+
 - (void)handleMapClick:(NSGestureRecognizer *)gesture
 {
     NSPoint locInView = [gesture locationInView:self.mapView];
@@ -129,7 +140,7 @@
         RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
         a.idx = idx;
         [waypointsRouteAnnotations insertObject:a atIndex:idx];
-        [self recalcAnnotIndexes];
+        [self recalcAnnotIndexesFrom:idx];
         [self.mapView addAnnotation:a];
         // update all idx
         return;
@@ -142,6 +153,7 @@
     a.idx = idx;
     [waypointsLocations addObject:loc];
     [waypointsRouteAnnotations addObject:a];
+    [self recalcAnnotIndexesFrom:idx];
 
     [self.mapView addAnnotation:a];
     [self.svCtrl viewCoord:coord coalesce:YES];
@@ -150,8 +162,9 @@
   
 }
 
-- (void) recalcAnnotIndexes
+- (void) recalcAnnotIndexesFrom:(NSUInteger)ri
 {
+    // for now ignore ri and recalc all
     NSUInteger n = [waypointsRouteAnnotations count];
     for (NSUInteger i = 0; i<n; i++) {
         RouteAnnotation *ra = waypointsRouteAnnotations[i];
@@ -162,6 +175,9 @@
         if ([aView isKindOfClass:[MKMarkerAnnotationView class]]) {
             MKMarkerAnnotationView *m = (MKMarkerAnnotationView *)aView;
             m.glyphText = ra.title;
+        } else if ([aView isKindOfClass:[MKPinAnnotationView class]]) {
+            MKPinAnnotationView *p = (MKPinAnnotationView *)aView;
+            p.pinTintColor = [self pinColorForWaypointIdx:i];
         }
 
     }/*
@@ -513,26 +529,31 @@ static void XYFromLatLon(double lat, double lon, double refLat, double *outX, do
 
 #pragma mark - drag and drop
 
+static const BOOL useMarker = NO;
 
 - (MKAnnotationView *)mapView:(MKMapView *)mapView viewForAnnotation:(id<MKAnnotation>)annotation
 {
     if ([annotation isKindOfClass:[RouteAnnotation class]]) {
         static NSString *identifier = @"RouteAnnotation";
-        MKMarkerAnnotationView *view = (MKMarkerAnnotationView *)[mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
-        //MKPinAnnotationView *view = (MKPinAnnotationView *)[mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
-        if (!view) {
-            //view = [[MKPinAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
-            view = [[MKMarkerAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
-            view.draggable = YES;
-            
-            //view.animatesDrop = YES;
-            view.glyphText = annotation.title;
-#if TARGET_OS_OSX
-            //view.pinTintColor = [NSColor orangeColor];
-#else
-            //view.pinTintColor = [UIColor orangeColor];
-#endif
+        RouteAnnotation *ra = (RouteAnnotation *)annotation;
+        MKAnnotationView *view = (MKAnnotationView *)[mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
+        if (useMarker) {
+            MKMarkerAnnotationView *mview = (MKMarkerAnnotationView *)view;
+            if (!mview) {
+                mview = [[MKMarkerAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
+                view = mview;
+            }
+            mview.glyphText = annotation.title;
+        } else {
+            MKPinAnnotationView *pview = (MKPinAnnotationView *)view;
+            if (!pview) {
+                pview = [[MKPinAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
+                view = pview;
+            }
+            pview.animatesDrop = YES;
+            pview.pinTintColor = [self pinColorForWaypointIdx:ra.idx];
         }
+        view.draggable = YES;
         return view;
     }
     
