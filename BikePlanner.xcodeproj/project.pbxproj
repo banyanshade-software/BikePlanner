@@ -23,6 +23,7 @@
 		65B8EE882E48C4AA001F2966 /* StreetViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE872E48C4AA001F2966 /* StreetViewController.m */; };
 		65B8EE8E2E493F36001F2966 /* BRFProfileEditor.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE8D2E493F36001F2966 /* BRFProfileEditor.m */; };
 		65B8EE902E49D377001F2966 /* BRFProfileEditor.xib in Resources */ = {isa = PBXBuildFile; fileRef = 65B8EE8F2E49D377001F2966 /* BRFProfileEditor.xib */; };
+		65B8EE932E4CDE46001F2966 /* ElevationProfileView.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE922E4CDE45001F2966 /* ElevationProfileView.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -71,6 +72,8 @@
 		65B8EE8C2E493F36001F2966 /* BRFProfileEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRFProfileEditor.h; sourceTree = "<group>"; };
 		65B8EE8D2E493F36001F2966 /* BRFProfileEditor.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BRFProfileEditor.m; sourceTree = "<group>"; };
 		65B8EE8F2E49D377001F2966 /* BRFProfileEditor.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = BRFProfileEditor.xib; sourceTree = "<group>"; };
+		65B8EE912E4CDE45001F2966 /* ElevationProfileView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ElevationProfileView.h; sourceTree = "<group>"; };
+		65B8EE922E4CDE45001F2966 /* ElevationProfileView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ElevationProfileView.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -136,6 +139,8 @@
 				65B8EE742E4798A7001F2966 /* BRouterClient.m */,
 				65B8EE802E47B860001F2966 /* GPXParser.h */,
 				65B8EE812E47B860001F2966 /* GPXParser.m */,
+				65B8EE912E4CDE45001F2966 /* ElevationProfileView.h */,
+				65B8EE922E4CDE45001F2966 /* ElevationProfileView.m */,
 				65B8EE7A2E47A334001F2966 /* SafeOSMTileOverlay.h */,
 				65B8EE7B2E47A334001F2966 /* SafeOSMTileOverlay.m */,
 				65B8EE7D2E47A34E001F2966 /* SafeTileRenderer.h */,
@@ -309,6 +314,7 @@
 				65B8EE7C2E47A334001F2966 /* SafeOSMTileOverlay.m in Sources */,
 				65B8EE492E479821001F2966 /* AppDelegate.m in Sources */,
 				65B8EE852E48C10B001F2966 /* MapController.m in Sources */,
+				65B8EE932E4CDE46001F2966 /* ElevationProfileView.m in Sources */,
 				65B8EE822E47B860001F2966 /* GPXParser.m in Sources */,
 				65B8EE752E4798A7001F2966 /* BRouterClient.m in Sources */,
 				65B8EE882E48C4AA001F2966 /* StreetViewController.m in Sources */,
