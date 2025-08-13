@@ -14,7 +14,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 
-@interface MapController : NSObject <MKMapViewDelegate>
+@interface MapController : NSObject <MKMapViewDelegate, ElevationProfileViewDelegate>
 
 @property (weak) IBOutlet MKMapView *mapView;
 @property (weak) IBOutlet StreetViewController *svCtrl;

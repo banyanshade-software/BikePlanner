@@ -29,7 +29,9 @@
 @implementation MapController {
     NSMutableArray <CLLocation *>*waypointsLocations;
     NSMutableArray <RouteAnnotation *>*waypointsRouteAnnotations;
+    NSArray<CLLocation *> *routePoints;
     MKPolyline *poly;
+    MKPointAnnotation *scrubberMarker;
 }
 
 - (void) initializeMapview
@@ -95,6 +97,11 @@
     clicker.buttonMask = 0x1; // left mouse
     clicker.numberOfClicksRequired = 1;
     [self.mapView addGestureRecognizer:clicker];
+    
+    scrubberMarker = [[MKPointAnnotation alloc] init];
+    [self.mapView addAnnotation:scrubberMarker];
+    self.elevationView.delegate = self;
+
 }
 
 
@@ -216,6 +223,7 @@
         }
 
         self.gpxData = gpx;
+        routePoints = points;
         [self.elevationView setGpxPoints:points];
         // Build polyline
         NSUInteger n = points.count;
@@ -582,6 +590,31 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     }
 }
 
+#pragma mark -
 
 
+- (void)elevationProfileView:(id)view didSelectDistance:(double)distance
+{
+    CLLocationCoordinate2D coord = [self coordinateAtDistance:distance];
+    scrubberMarker.coordinate = coord;
+    [self.mapView setCenterCoordinate:coord animated:NO];
+}
+
+- (CLLocationCoordinate2D)coordinateAtDistance:(double)targetDist {
+    double cumDist = 0.0;
+    for (NSUInteger i = 1; i < routePoints.count; i++) {
+        CLLocation *prev = routePoints[i - 1];
+        CLLocation *curr = routePoints[i];
+        double segDist = [curr distanceFromLocation:prev];
+
+        if (cumDist + segDist >= targetDist) {
+            double t = (targetDist - cumDist) / segDist;
+            double lat = prev.coordinate.latitude + t * (curr.coordinate.latitude - prev.coordinate.latitude);
+            double lon = prev.coordinate.longitude + t * (curr.coordinate.longitude - prev.coordinate.longitude);
+            return CLLocationCoordinate2DMake(lat, lon);
+        }
+        cumDist += segDist;
+    }
+    return [[routePoints lastObject] coordinate];
+}
 @end

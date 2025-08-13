@@ -7,7 +7,17 @@
 
 #import "ElevationProfileView.h"
 
-@implementation ElevationProfileView
+@implementation ElevationProfileView {
+    double _maxDist;
+    double _minElev, _maxElev;
+    CGRect _plotRect;
+}
+- (void)updateMetrics {
+    _maxDist = [[self.distances lastObject] doubleValue];
+    _maxElev = [[self.elevations valueForKeyPath:@"@max.doubleValue"] doubleValue];
+    _minElev = [[self.elevations valueForKeyPath:@"@min.doubleValue"] doubleValue];
+    _plotRect = NSInsetRect(self.bounds, 40, 30);
+}
 
 - (void) setGpxPoints:(NSArray<CLLocation *> *)trackPoints
 {
@@ -39,6 +49,7 @@
 
 - (void)drawRect:(NSRect)dirtyRect {
     [super drawRect:dirtyRect];
+    [self updateMetrics];
 
     if (self.distances.count == 0) return;
 
@@ -92,5 +103,22 @@
 
 
 
+- (void)mouseDown:(NSEvent *)event {
+    [self handleMouse:event];
+}
+
+- (void)mouseDragged:(NSEvent *)event {
+    [self handleMouse:event];
+}
+
+- (void)handleMouse:(NSEvent *)event {
+    NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
+    if (NSPointInRect(p, _plotRect)) {
+        double dist = ((p.x - _plotRect.origin.x) / _plotRect.size.width) * _maxDist;
+        if ([self.delegate respondsToSelector:@selector(elevationProfileView:didSelectDistance:)]) {
+            [self.delegate elevationProfileView:self didSelectDistance:dist];
+        }
+    }
+}
 
 @end

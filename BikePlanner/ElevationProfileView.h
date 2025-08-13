@@ -9,10 +9,16 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@protocol ElevationProfileViewDelegate <NSObject>
+- (void)elevationProfileView:(id)view didSelectDistance:(double)distance;
+@end
+
+
 @interface ElevationProfileView : NSView
 @property (nonatomic, strong) NSArray<NSNumber *> *distances;
 @property (nonatomic, strong) NSArray<NSNumber *> *elevations;
 @property (nonatomic, strong) NSArray<NSNumber *> *slopes;
+@property (nonatomic, weak) id<ElevationProfileViewDelegate> delegate;
 
 - (void) setGpxPoints:(NSArray<CLLocation *> *)points;
 @end
