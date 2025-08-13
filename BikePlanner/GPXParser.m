@@ -9,6 +9,8 @@
 
 @implementation GPXParser {
     NSMutableArray<CLLocation *> *_points;
+    NSString *stringEle;
+    CLLocation *curloc;
 }
 
 - (nullable NSArray<CLLocation *> *)parseGPXData:(NSData *)data error:(NSError * _Nullable *)error {
@@ -41,7 +43,10 @@
     attributes:(NSDictionary<NSString *, NSString *> *)attributeDict
 {
     // Handle track points, waypoints and route points
-    if ([elementName isEqualToString:@"trkpt"] ||
+    //    <trkpt lon="0.491229" lat="44.193329"><ele>140.25</ele></trkpt>
+    if ([elementName isEqualToString:@"ele"]) {
+        stringEle = @"";
+    } else if ([elementName isEqualToString:@"trkpt"] ||
         [elementName isEqualToString:@"wpt"] ||
         [elementName isEqualToString:@"rtept"]) {
 
@@ -50,11 +55,38 @@
         if (latS.length > 0 && lonS.length > 0) {
             CLLocationDegrees lat = [latS doubleValue];
             CLLocationDegrees lon = [lonS doubleValue];
-            CLLocation *loc = [[CLLocation alloc] initWithLatitude:lat longitude:lon];
-            [_points addObject:loc];
+            curloc = [[CLLocation alloc] initWithLatitude:lat longitude:lon];
         }
     }
 }
+
+- (void) parser:(NSXMLParser *)parser foundCharacters:(nonnull NSString *)string
+{
+    if (stringEle) {
+        stringEle = [stringEle stringByAppendingString:string];
+    }
+}
+- (void)parser:(NSXMLParser *)parser didEndElement:(nonnull NSString *)elementName namespaceURI:(nullable NSString *)namespaceURI qualifiedName:(nullable NSString *)qName
+{
+    // Handle track points, waypoints and route points
+    //    <trkpt lon="0.491229" lat="44.193329"><ele>140.25</ele></trkpt>
+    if ([elementName isEqualToString:@"ele"]) {
+        NSString *s = stringEle;
+        stringEle = nil;
+        CLLocation *nloc = [[CLLocation alloc]initWithCoordinate:curloc.coordinate
+                                                        altitude:[s doubleValue]
+                                              horizontalAccuracy:kCLLocationAccuracyBest verticalAccuracy:kCLLocationAccuracyBest timestamp:[NSDate date]];
+        curloc = nloc;
+
+    }
+    if ([elementName isEqualToString:@"trkpt"] ||
+        [elementName isEqualToString:@"wpt"] ||
+        [elementName isEqualToString:@"rtept"]) {
+        [_points addObject:curloc];
+        curloc = nil;
+    }
+}
+
 
 - (void)parser:(NSXMLParser *)parser parseErrorOccurred:(NSError *)parseError {
     // parser.parserError will be available to the caller after parse returns NO
