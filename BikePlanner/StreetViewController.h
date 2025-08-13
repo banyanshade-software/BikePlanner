@@ -14,7 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (weak) IBOutlet WKWebView *webView;
 
 - (void) initializeStreetView;
-- (void) viewCoord:(CLLocationCoordinate2D) coord coalesce:(BOOL)coal;
+- (void) viewCoord:(CLLocationCoordinate2D)coord lookingAt:(double)bearing coalesce:(BOOL)coal;
 
 @end
 
