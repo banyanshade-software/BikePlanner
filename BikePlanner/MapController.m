@@ -598,6 +598,8 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     CLLocationCoordinate2D coord = [self coordinateAtDistance:distance];
     scrubberMarker.coordinate = coord;
     [self.mapView setCenterCoordinate:coord animated:NO];
+    
+    [self.svCtrl viewCoord:coord coalesce:YES];
 }
 
 - (CLLocationCoordinate2D)coordinateAtDistance:(double)targetDist {
