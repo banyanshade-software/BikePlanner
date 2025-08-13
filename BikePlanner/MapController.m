@@ -27,14 +27,16 @@
 
 
 @implementation MapController {
-    NSMutableArray <CLLocation *>*waypoints;
+    NSMutableArray <CLLocation *>*waypointsLocations;
+    NSMutableArray <RouteAnnotation *>*waypointsRouteAnnotations;
     MKPolyline *poly;
 }
 
 - (void) initializeMapview
 {
     NSView *content = [_mapView superview];// self.window.contentView;
-    waypoints = [[NSMutableArray alloc]initWithCapacity:32];
+    waypointsLocations = [[NSMutableArray alloc]initWithCapacity:32];
+    waypointsRouteAnnotations = [[NSMutableArray alloc]initWithCapacity:32];
     // Map view
     /*
      if (!_mapView) {
@@ -99,13 +101,19 @@
 
 - (void)clearAction:(id)sender
 {
-    [waypoints removeAllObjects];
+    [waypointsLocations removeAllObjects];
     //self.hasStart = NO; self.hasEnd = NO;
     self.gpxData = nil;
     [self.mapView removeAnnotations:self.mapView.annotations];
     [self.mapView removeOverlays:self.mapView.overlays];
 }
 
+- (NSString *) stringForWaypointIdx:(NSUInteger)idx
+{
+    if (!idx) return @"Start";
+    //if (idx == [waypoints count]-1) return @"end";
+    return [NSString stringWithFormat:@"%d", idx];
+}
 - (void)handleMapClick:(NSGestureRecognizer *)gesture
 {
     NSPoint locInView = [gesture locationInView:self.mapView];
@@ -115,23 +123,25 @@
     
     
     if ([self clickNearPolylineAt:coord]) {
-        NSUInteger idx = [self insertionIndexForCoordinate:coord polyline:poly waypoints:waypoints];
+        NSUInteger idx = [self insertionIndexForCoordinate:coord polyline:poly waypoints:waypointsLocations];
         [self insertWaypoint:coord atIdx:idx];
-        RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:@"step" subtitle:nil];
+        NSString *title = [self stringForWaypointIdx:idx];
+        RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
         a.idx = idx;
+        [waypointsRouteAnnotations insertObject:a atIndex:idx];
+        [self recalcAnnotIndexes];
         [self.mapView addAnnotation:a];
         // update all idx
         return;
     }
     NSString *title = nil;
-    if (![waypoints count])  {
-        title = @"Start";
-    } else {
-        title = @"Point";
-    }
+    NSUInteger  idx = [waypointsLocations count];
+    title = [self stringForWaypointIdx:idx];
+
     RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
-    a.idx = [waypoints count];
-    [waypoints addObject:loc];
+    a.idx = idx;
+    [waypointsLocations addObject:loc];
+    [waypointsRouteAnnotations addObject:a];
 
     [self.mapView addAnnotation:a];
     [self.svCtrl viewCoord:coord coalesce:YES];
@@ -140,9 +150,32 @@
   
 }
 
+- (void) recalcAnnotIndexes
+{
+    NSUInteger n = [waypointsRouteAnnotations count];
+    for (NSUInteger i = 0; i<n; i++) {
+        RouteAnnotation *ra = waypointsRouteAnnotations[i];
+        ra.idx = i;
+        ra.title = [self stringForWaypointIdx:i];
+        //continue;
+        MKAnnotationView* aView = [_mapView viewForAnnotation:ra];
+        if ([aView isKindOfClass:[MKMarkerAnnotationView class]]) {
+            MKMarkerAnnotationView *m = (MKMarkerAnnotationView *)aView;
+            m.glyphText = ra.title;
+        }
+
+    }/*
+    for (MKAnnotationView *v in _mapView.annotations) {
+        if ([v isKindOfClass:[RouteAnnotation class]]) {
+            [v]
+        }
+    }*/
+}
+
+
 - (void) shouldRecalcRoute
 {
-    if ([waypoints count]>=2) {
+    if ([waypointsLocations count]>=2) {
         [self requestRoute];
     }
     /*if (self.hasEnd && self.hasStart) {
@@ -156,7 +189,7 @@
     // profile can be changed, e.g. "trekking", "fastbike", etc.
     self.gpxData = nil;
     NSString *profile = @"trekking";
-    [self.brouter routeWithWaypoints:waypoints profile:profile extraUrl:_extraUrl completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSError *error) {
+    [self.brouter routeWithWaypoints:waypointsLocations profile:profile extraUrl:_extraUrl completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSError *error) {
         if (error) {
             NSLog(@"BRouter error: %@", error);
             return;
@@ -356,7 +389,7 @@
 
 - (void)insertWaypoint:(CLLocationCoordinate2D)coord atIdx:(NSUInteger)idx
 {
-    [waypoints insertObject:[[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude] atIndex:idx];
+    [waypointsLocations insertObject:[[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude] atIndex:idx];
     // update idx
     
     [self requestRoute];
@@ -485,15 +518,19 @@ static void XYFromLatLon(double lat, double lon, double refLat, double *outX, do
 {
     if ([annotation isKindOfClass:[RouteAnnotation class]]) {
         static NSString *identifier = @"RouteAnnotation";
-        MKPinAnnotationView *view = (MKPinAnnotationView *)[mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
+        MKMarkerAnnotationView *view = (MKMarkerAnnotationView *)[mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
+        //MKPinAnnotationView *view = (MKPinAnnotationView *)[mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
         if (!view) {
-            view = [[MKPinAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
+            //view = [[MKPinAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
+            view = [[MKMarkerAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
             view.draggable = YES;
-            view.animatesDrop = YES;
+            
+            //view.animatesDrop = YES;
+            view.glyphText = annotation.title;
 #if TARGET_OS_OSX
-            view.pinTintColor = [NSColor orangeColor];
+            //view.pinTintColor = [NSColor orangeColor];
 #else
-            view.pinTintColor = [UIColor orangeColor];
+            //view.pinTintColor = [UIColor orangeColor];
 #endif
         }
         return view;
@@ -510,13 +547,13 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     if (newState == MKAnnotationViewDragStateEnding) {
         
         // Update waypoint in array
-        RouteAnnotation *ra = view.annotation;
+        RouteAnnotation *ra = (RouteAnnotation *) view.annotation;
         if (![ra isKindOfClass:[RouteAnnotation class]]) {
             return;
         }
         NSUInteger idx = ra.idx;
         CLLocationCoordinate2D newCoord = ra.coordinate;
-        waypoints[idx] = [[CLLocation alloc] initWithLatitude:newCoord.latitude longitude:newCoord.longitude];
+        waypointsLocations[idx] = [[CLLocation alloc] initWithLatitude:newCoord.latitude longitude:newCoord.longitude];
         
         
         [self requestRoute];
