@@ -9,7 +9,33 @@
 
 @implementation ElevationProfileView
 
+- (void) setGpxPoints:(NSArray<CLLocation *> *)trackPoints
+{
+    NSMutableArray<NSNumber *> *distances = [NSMutableArray array];
+    NSMutableArray<NSNumber *> *elevations = [NSMutableArray array];
+    NSMutableArray<NSNumber *> *slopes = [NSMutableArray array];
 
+    double totalDist = 0.0;
+
+    for (NSUInteger i = 0; i < trackPoints.count; i++) {
+        CLLocation *pt = trackPoints[i];
+        [elevations addObject:@(pt.altitude)];
+        if (i > 0) {
+            double segmentDist = [pt distanceFromLocation:trackPoints[i - 1]];
+            totalDist += segmentDist;
+            double elevDiff = pt.altitude - trackPoints[i - 1].altitude;
+            double slope = (segmentDist > 0) ? elevDiff / segmentDist : 0; // m/m
+            [slopes addObject:@(slope)];
+        } else {
+            [slopes addObject:@(0)];
+        }
+        [distances addObject:@(totalDist)];
+    }
+    self.distances = distances;
+    self.slopes = slopes;
+    self.elevations = elevations;
+    [self setNeedsDisplay:YES];
+}
 
 - (void)drawRect:(NSRect)dirtyRect {
     [super drawRect:dirtyRect];

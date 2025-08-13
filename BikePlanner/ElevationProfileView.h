@@ -13,6 +13,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong) NSArray<NSNumber *> *distances;
 @property (nonatomic, strong) NSArray<NSNumber *> *elevations;
 @property (nonatomic, strong) NSArray<NSNumber *> *slopes;
+
+- (void) setGpxPoints:(NSArray<CLLocation *> *)points;
 @end
 
 NS_ASSUME_NONNULL_END

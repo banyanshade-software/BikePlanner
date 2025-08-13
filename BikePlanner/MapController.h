@@ -9,6 +9,7 @@
 #import <MapKit/MapKit.h>
 #import "BRouterClient.h"
 #import "StreetViewController.h"
+#import "ElevationProfileView.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -17,6 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (weak) IBOutlet MKMapView *mapView;
 @property (weak) IBOutlet StreetViewController *svCtrl;
+@property (weak) IBOutlet ElevationProfileView *elevationView;
+
 @property (strong) BRouterClient *brouter;
 //@property (assign) CLLocationCoordinate2D startCoord;
 //@property (assign) CLLocationCoordinate2D endCoord;

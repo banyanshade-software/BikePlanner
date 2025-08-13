@@ -25,6 +25,7 @@
         </customObject>
         <customObject id="gMs-Z0-beH" customClass="MapController">
             <connections>
+                <outlet property="elevationView" destination="BBk-1Q-lee" id="XTa-eR-bTw"/>
                 <outlet property="mapView" destination="nv1-a0-VO5" id="CBO-Iu-8Mv"/>
                 <outlet property="svCtrl" destination="bUu-4I-hdJ" id="HHB-zR-LmY"/>
             </connections>
@@ -726,14 +727,14 @@
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <subviews>
                                     <splitView arrangesAllSubviews="NO" dividerStyle="paneSplitter" vertical="YES" translatesAutoresizingMaskIntoConstraints="NO" id="WsW-wA-aP0">
-                                        <rect key="frame" x="0.0" y="0.0" width="903" height="342"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="903" height="304"/>
                                         <subviews>
                                             <customView misplaced="YES" id="IDi-mZ-oAB">
-                                                <rect key="frame" x="0.0" y="0.0" width="448" height="342"/>
+                                                <rect key="frame" x="0.0" y="0.0" width="448" height="304"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                                 <subviews>
                                                     <mapView mapType="standard" translatesAutoresizingMaskIntoConstraints="NO" id="nv1-a0-VO5">
-                                                        <rect key="frame" x="2" y="40" width="444" height="338"/>
+                                                        <rect key="frame" x="2" y="-36" width="444" height="300"/>
                                                         <constraints>
                                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="300" id="Jkx-rt-d0f"/>
                                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="360" id="qyg-sS-h6q"/>
@@ -749,20 +750,20 @@
                                                 </constraints>
                                             </customView>
                                             <customView misplaced="YES" id="3pv-Ww-0ce">
-                                                <rect key="frame" x="458" y="0.0" width="445" height="342"/>
+                                                <rect key="frame" x="458" y="0.0" width="445" height="304"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                                 <subviews>
                                                     <splitView arrangesAllSubviews="NO" dividerStyle="paneSplitter" translatesAutoresizingMaskIntoConstraints="NO" id="Vns-Kg-3uG">
-                                                        <rect key="frame" x="0.0" y="38" width="445" height="342"/>
+                                                        <rect key="frame" x="0.0" y="-38" width="445" height="304"/>
                                                         <subviews>
                                                             <customView misplaced="YES" id="xRa-Hp-M6i">
-                                                                <rect key="frame" x="0.0" y="0.0" width="445" height="161"/>
+                                                                <rect key="frame" x="0.0" y="0.0" width="445" height="143"/>
                                                                 <autoresizingMask key="autoresizingMask"/>
                                                                 <subviews>
                                                                     <box title="Box" translatesAutoresizingMaskIntoConstraints="NO" id="Fw9-Lk-B2u">
-                                                                        <rect key="frame" x="1" y="18" width="443" height="100"/>
+                                                                        <rect key="frame" x="1" y="-18" width="443" height="62"/>
                                                                         <view key="contentView" id="fEo-6l-Ftu">
-                                                                            <rect key="frame" x="3" y="3" width="437" height="82"/>
+                                                                            <rect key="frame" x="3" y="3" width="437" height="44"/>
                                                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                                         </view>
                                                                     </box>
@@ -775,11 +776,11 @@
                                                                 </constraints>
                                                             </customView>
                                                             <customView misplaced="YES" id="GzK-mz-yMo">
-                                                                <rect key="frame" x="0.0" y="171" width="445" height="171"/>
+                                                                <rect key="frame" x="0.0" y="153" width="445" height="151"/>
                                                                 <autoresizingMask key="autoresizingMask"/>
                                                                 <subviews>
                                                                     <wkWebView wantsLayer="YES" translatesAutoresizingMaskIntoConstraints="NO" id="lke-4c-4Mh">
-                                                                        <rect key="frame" x="4" y="24" width="437" height="220"/>
+                                                                        <rect key="frame" x="4" y="-16" width="437" height="220"/>
                                                                         <constraints>
                                                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="400" id="0mn-co-ti6"/>
                                                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="220" id="fNl-3V-sNj"/>
@@ -831,9 +832,9 @@
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <subviews>
                                     <customView translatesAutoresizingMaskIntoConstraints="NO" id="BBk-1Q-lee" customClass="ElevationProfileView">
-                                        <rect key="frame" x="0.0" y="0.0" width="903" height="150"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="903" height="188"/>
                                         <constraints>
-                                            <constraint firstAttribute="height" relation="lessThanOrEqual" constant="150" id="fdn-6d-YSz"/>
+                                            <constraint firstAttribute="height" relation="lessThanOrEqual" constant="240" id="fdn-6d-YSz"/>
                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="40" id="fi6-SE-cll"/>
                                         </constraints>
                                     </customView>

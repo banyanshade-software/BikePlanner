@@ -216,6 +216,7 @@
         }
 
         self.gpxData = gpx;
+        [self.elevationView setGpxPoints:points];
         // Build polyline
         NSUInteger n = points.count;
         CLLocationCoordinate2D *coords = malloc(sizeof(CLLocationCoordinate2D) * n);
