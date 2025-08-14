@@ -223,7 +223,8 @@
             return;
         }
         if (brouterInfo) {
-            
+            unsigned int kmlen = [brouterInfo[@"n-track-length-m"] unsignedIntValue];
+            self.kmlen = kmlen;
         }
         self.gpxData = gpx;
         routePoints = points;

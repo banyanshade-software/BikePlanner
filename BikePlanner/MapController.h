@@ -37,6 +37,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void) initializeMapview;
 
+@property unsigned int kmlen;
 @end
 
 NS_ASSUME_NONNULL_END
