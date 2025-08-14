@@ -98,6 +98,7 @@
     clicker.numberOfClicksRequired = 1;
     [self.mapView addGestureRecognizer:clicker];
     
+   
     scrubberMarker = [[MKPointAnnotation alloc] init];
     [self.mapView addAnnotation:scrubberMarker];
     self.elevationView.delegate = self;
@@ -563,11 +564,59 @@ static const BOOL useMarker = NO;
             pview.pinTintColor = [self pinColorForWaypointIdx:ra.idx];
         }
         view.draggable = YES;
+        // right click menu
+        NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Waypoint Menu"];
+        NSMenuItem *removeItem = [[NSMenuItem alloc] initWithTitle:@"Remove Waypoint"
+                                                            action:@selector(removeWaypointMenuAction:)
+                                                     keyEquivalent:@""];
+        removeItem.target = self;
+        removeItem.representedObject = annotation; // store the annotation reference
+        [menu addItem:removeItem];
+        
+        view.menu = menu;
+        view.annotation = annotation;
+        
+        // Add right-click recognizer
+        NSClickGestureRecognizer *rightClick = [[NSClickGestureRecognizer alloc] initWithTarget:self action:@selector(handleRightClickOnAnnotation:)];
+        rightClick.buttonMask = 0x2; // Right mouse button
+        [view addGestureRecognizer:rightClick];
+        
         return view;
     }
     
     return nil;
 }
+
+
+- (void)handleRightClickOnAnnotation:(NSClickGestureRecognizer *)gesture
+{
+    if (gesture.state == NSGestureRecognizerStateEnded) {
+        MKAnnotationView *view = (MKAnnotationView *)gesture.view;
+        if (!view.annotation) return;
+        
+        NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Waypoint Menu"];
+        NSMenuItem *removeItem = [[NSMenuItem alloc] initWithTitle:@"Remove Waypoint"
+                                                            action:@selector(removeWaypointMenuAction:)
+                                                     keyEquivalent:@""];
+        removeItem.target = self;
+        removeItem.representedObject = view.annotation;
+        [menu addItem:removeItem];
+        
+        NSPoint clickLocation = [gesture locationInView:view];
+        NSEvent *event = [NSEvent mouseEventWithType:NSEventTypeRightMouseDown
+                                            location:[view.window convertPointToScreen:[view convertPoint:clickLocation toView:nil]]
+                                       modifierFlags:0
+                                           timestamp:0
+                                        windowNumber:view.window.windowNumber
+                                             context:nil
+                                         eventNumber:0
+                                          clickCount:1
+                                            pressure:1.0];
+        
+        [NSMenu popUpContextMenu:menu withEvent:event forView:view];
+    }
+}
+
 
 - (void)mapView:(MKMapView *)mapView annotationView:(MKAnnotationView *)view
 didChangeDragState:(MKAnnotationViewDragState)newState
@@ -664,5 +713,25 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     return fmod((bearingDeg + 360.0), 360.0); // normalize to 0–360
 }
 
+
+#pragma  mark -
+
+- (void)removeWaypointMenuAction:(id)sender
+{
+    NSMenuItem *item = (NSMenuItem *)sender;
+    id<MKAnnotation> annotation = item.representedObject;
+    if (annotation) {
+        [self.mapView removeAnnotation:annotation];
+        
+        // If you store waypoints in an array, remove it there too:
+        NSUInteger idx = [waypointsRouteAnnotations indexOfObject:annotation];
+        if (idx != NSNotFound) {
+            [waypointsRouteAnnotations removeObjectAtIndex:idx];
+            [waypointsLocations removeObjectAtIndex:idx];
+            [self recalcAnnotIndexesFrom:idx];
+            [self shouldRecalcRoute];
+        }
+    }
+}
 
 @end
