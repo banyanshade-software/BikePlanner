@@ -13,7 +13,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GPXParser : NSObject <NSXMLParserDelegate>
 
 - (nullable NSArray<CLLocation *> *)parseGPXData:(NSData *)data error:(NSError * _Nullable *)error;
-
+- (NSDictionary *)brouterInfo;
 @end
 
 NS_ASSUME_NONNULL_END

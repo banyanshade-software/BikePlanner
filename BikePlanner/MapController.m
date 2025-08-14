@@ -213,7 +213,7 @@
     // profile can be changed, e.g. "trekking", "fastbike", etc.
     self.gpxData = nil;
     NSString *profile = @"trekking";
-    [self.brouter routeWithWaypoints:waypointsLocations profile:profile extraUrl:_extraUrl completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSError *error) {
+    [self.brouter routeWithWaypoints:waypointsLocations profile:profile extraUrl:_extraUrl completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *brouterInfo, NSError *error) {
         if (error) {
             NSLog(@"BRouter error: %@", error);
             return;
@@ -222,7 +222,9 @@
             NSLog(@"No points returned");
             return;
         }
-        
+        if (brouterInfo) {
+            
+        }
         self.gpxData = gpx;
         routePoints = points;
         [self.elevationView setGpxPoints:points];

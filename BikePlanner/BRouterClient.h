@@ -24,7 +24,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)routeWithWaypoints:(NSArray <CLLocation *>*)waypoints
           profile:(NSString *)profile
          extraUrl:(NSString *)extraUrl  
-       completion:(void(^)(NSArray<CLLocation *> *points, NSData *gpx, NSError *error))completion;
+       completion:(void(^)(NSArray<CLLocation *> *points,   // parsed points
+                           NSData *gpx,                     // raw gpx file, as received
+                           NSDictionary *brouterInfo,       // info brouter found in coments
+                           NSError *error))completion;
 
 @end
 

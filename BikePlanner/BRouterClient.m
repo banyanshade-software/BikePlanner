@@ -41,7 +41,7 @@
 - (void)routeWithWaypoints:(NSArray <CLLocation *>*)waypoints
           profile:(NSString *)profile
          extraUrl:(NSString *)extraUrl
-       completion:(void(^)(NSArray<CLLocation *> *points, NSData *gpx, NSError *error))completion
+       completion:(void(^)(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *brouterInfo, NSError *error))completion
 {
     // Build lonlats parameter. BRouter expects lon,lat pairs. 
     // Use pipe or semicolon separator depending on server.
@@ -71,7 +71,7 @@
         url = [url URLByAppendingQueryString:extraUrl];
     }
     if (!url) {
-        if (completion) completion(nil, nil, [NSError errorWithDomain:@"BRouterClient" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"Invalid URL"}]);
+        if (completion) completion(nil, nil, nil, [NSError errorWithDomain:@"BRouterClient" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"Invalid URL"}]);
         return;
     }
     
@@ -89,37 +89,21 @@
     
     NSURLSessionDataTask *task = [session dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
         if (err) {
-            if (completion) completion(nil, nil, err);
+            if (completion) completion(nil, nil, nil, err);
             return;
         }
-        if (!data) { if (completion) completion(nil, nil, [NSError errorWithDomain:@"BRouterClient" code:-2 userInfo:@{NSLocalizedDescriptionKey:@"No data"}]); return; }
+        if (!data) { if (completion) completion(nil, nil, nil, [NSError errorWithDomain:@"BRouterClient" code:-2 userInfo:@{NSLocalizedDescriptionKey:@"No data"}]); return; }
 
-        // Parse GPX: look for <trkpt lat="..." lon="..."> tags. Simple parser using NSXMLParser would be more proper.
-        // Here we'll do a quick string-based parse that's tolerant for this demo.
-        /*
-        NSString *gpx = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-        if (!gpx) { if (completion) completion(nil, [NSError errorWithDomain:@"BRouterClient" code:-3 userInfo:@{NSLocalizedDescriptionKey:@"Unable to decode GPX"}]); return; }
-
-        NSMutableArray<CLLocation *> *points = [NSMutableArray array];
-        NSRegularExpression *re = [NSRegularExpression regularExpressionWithPattern:@"<trkpt[^>]*lat=\"([0-9.-]+)\"[^>]*lon=\"([0-9.-]+)\"" options:0 error:nil];
-        [re enumerateMatchesInString:gpx options:0 range:NSMakeRange(0, gpx.length) usingBlock:^(NSTextCheckingResult * _Nullable result, NSMatchingFlags flags, BOOL * _Nonnull stop) {
-            if (result.numberOfRanges >= 3) {
-                NSString *latS = [gpx substringWithRange:[result rangeAtIndex:1]];
-                NSString *lonS = [gpx substringWithRange:[result rangeAtIndex:2]];
-                CLLocationDegrees lat = [latS doubleValue];
-                CLLocationDegrees lon = [lonS doubleValue];
-                CLLocation *loc = [[CLLocation alloc] initWithLatitude:lat longitude:lon];
-                [points addObject:loc];
-            }
-         }];
-         if (completion) completion([points copy], nil);
-         */
+        
         
         GPXParser *pgpx = [[GPXParser alloc]init];
         NSError *parseError = nil;
         NSArray<CLLocation *> *points = [pgpx parseGPXData:data error:&parseError];
 
-        if (completion) completion(points, data, nil);
+        if (completion) {
+            NSDictionary *bi = [pgpx brouterInfo];
+            completion(points, data, bi, nil);
+        }
 
     }];
     [task resume];
