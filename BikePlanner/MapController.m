@@ -112,8 +112,17 @@
     [waypointsLocations removeAllObjects];
     //self.hasStart = NO; self.hasEnd = NO;
     self.gpxData = nil;
+    [waypointsLocations removeAllObjects];
+    [waypointsRouteAnnotations removeAllObjects];
+    poly = nil;
+    scrubberMarker = nil;
     [self.mapView removeAnnotations:self.mapView.annotations];
-    [self.mapView removeOverlays:self.mapView.overlays];
+    //[self.mapView removeOverlays:self.mapView.overlays];
+    for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
+        if (![ov isKindOfClass:[MKTileOverlay class]]) {
+            [self.mapView removeOverlay:ov];
+        }
+    }
 }
 
 - (NSColor *) pinColorForWaypointIdx:(NSUInteger)idx
