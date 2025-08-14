@@ -748,4 +748,9 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     }
 }
 
+#pragma mark -
+- (IBAction) importGPXTraceForDisplay:(id)sender
+{
+    
+}
 @end
