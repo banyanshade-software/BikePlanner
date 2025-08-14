@@ -234,6 +234,8 @@
         if (brouterInfo) {
             unsigned int kmlen = [brouterInfo[@"n-track-length-m"] unsignedIntValue];
             self.kmlen = kmlen;
+            int mup = [brouterInfo[@"filtered-ascend"] intValue];
+            self.mup = mup;
         }
         self.gpxData = gpx;
         routePoints = points;

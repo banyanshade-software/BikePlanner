@@ -788,12 +788,38 @@
                                                                                         <binding destination="gMs-Z0-beH" name="value" keyPath="kmlen" id="V9x-Jm-3Fc"/>
                                                                                     </connections>
                                                                                 </textField>
+                                                                                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="u5i-pG-aYR">
+                                                                                    <rect key="frame" x="126" y="3" width="70" height="16"/>
+                                                                                    <textFieldCell key="cell" lineBreakMode="clipping" title="m dénivelé" id="ONl-tb-fXw">
+                                                                                        <font key="font" usesAppearanceFont="YES"/>
+                                                                                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                    </textFieldCell>
+                                                                                </textField>
+                                                                                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="zn8-my-TUl">
+                                                                                    <rect key="frame" x="18" y="3" width="104" height="16"/>
+                                                                                    <constraints>
+                                                                                        <constraint firstAttribute="width" constant="100" id="UKx-uD-XDV"/>
+                                                                                    </constraints>
+                                                                                    <textFieldCell key="cell" lineBreakMode="clipping" title="...." id="ILK-M6-LvP">
+                                                                                        <font key="font" usesAppearanceFont="YES"/>
+                                                                                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                    </textFieldCell>
+                                                                                    <connections>
+                                                                                        <binding destination="gMs-Z0-beH" name="value" keyPath="mup" id="A2K-37-BlV"/>
+                                                                                    </connections>
+                                                                                </textField>
                                                                             </subviews>
                                                                             <constraints>
+                                                                                <constraint firstItem="u5i-pG-aYR" firstAttribute="leading" secondItem="zn8-my-TUl" secondAttribute="trailing" constant="8" symbolic="YES" id="1DA-nG-hPs"/>
+                                                                                <constraint firstItem="zn8-my-TUl" firstAttribute="top" secondItem="jmJ-6h-mgc" secondAttribute="bottom" constant="8" symbolic="YES" id="2Nn-ef-0Dm"/>
+                                                                                <constraint firstItem="zn8-my-TUl" firstAttribute="leading" secondItem="jmJ-6h-mgc" secondAttribute="leading" id="X6k-e6-pku"/>
                                                                                 <constraint firstItem="2nZ-3g-q6G" firstAttribute="leading" secondItem="jmJ-6h-mgc" secondAttribute="trailing" constant="8" symbolic="YES" id="Z99-y9-LTE"/>
                                                                                 <constraint firstItem="jmJ-6h-mgc" firstAttribute="leading" secondItem="fEo-6l-Ftu" secondAttribute="leading" constant="20" symbolic="YES" id="b04-JE-B9x"/>
                                                                                 <constraint firstItem="2nZ-3g-q6G" firstAttribute="firstBaseline" secondItem="jmJ-6h-mgc" secondAttribute="firstBaseline" id="e43-AD-kfy"/>
                                                                                 <constraint firstItem="jmJ-6h-mgc" firstAttribute="top" secondItem="fEo-6l-Ftu" secondAttribute="top" constant="1" symbolic="YES" id="e95-Ay-vwo"/>
+                                                                                <constraint firstItem="u5i-pG-aYR" firstAttribute="firstBaseline" secondItem="zn8-my-TUl" secondAttribute="firstBaseline" id="f9M-Jg-ahe"/>
                                                                             </constraints>
                                                                         </view>
                                                                     </box>
