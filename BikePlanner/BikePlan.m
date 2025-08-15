@@ -9,7 +9,16 @@
 
 @implementation BikePlan
 
-- (BOOL) supportsSecureCoding
+- (instancetype)init
+{
+    self = [super init];
+    if (!self) return self;
+    
+    self.waypointsLocations = [[NSMutableArray alloc]initWithCapacity:32];
+    return self;
+}
+
++ (BOOL) supportsSecureCoding
 {
     return YES;
 }

@@ -24,6 +24,8 @@
     NSAssert([d isKindOfClass:[Document class]], @"bad class document");
     NSAssert(d.mapController, @"document no mapctrl");
     NSAssert(d.mapController.svCtrl, @"document no svctrl");
+    NSAssert(d.mapController.document, @"document not linked to mapController");
+    NSAssert(d==d.mapController.document, @"wrong document  linked to mapController");
     [d.mapController initializeMapview];
     [d.mapController.svCtrl initializeStreetView];
 

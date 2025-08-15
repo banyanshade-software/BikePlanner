@@ -19,6 +19,7 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
+        self.plan = [[BikePlan alloc]init];
         // Add your subclass-specific initialization here.
     }
     return self;

@@ -12,13 +12,13 @@
 #import "SafeOSMTileOverlay.h"
 #import "GPXParser.h"
 #import "RouteAnnotation.h"
-
+#import "BikePlan.h"
 
 
 @implementation MapController {
-    NSMutableArray <CLLocation *>*waypointsLocations;
+    //NSMutableArray <CLLocation *>*waypointsLocations;
     NSMutableArray <RouteAnnotation *>*waypointsRouteAnnotations;
-    NSArray<CLLocation *> *routePoints;
+    //NSArray<CLLocation *> *routePoints;
     MKPolyline *poly; // route being built
     MKPolyline *gpxpoly; // loaded gpx, just displayed
     MKPointAnnotation *scrubberMarker;
@@ -26,8 +26,9 @@
 
 - (void) initializeMapview
 {
+    NSAssert(_document.plan, @"no plan");
     NSView *content = [_mapView superview];// self.window.contentView;
-    waypointsLocations = [[NSMutableArray alloc]initWithCapacity:32];
+    //_document.plan.waypointsLocations = [[NSMutableArray alloc]initWithCapacity:32];
     waypointsRouteAnnotations = [[NSMutableArray alloc]initWithCapacity:32];
     // Map view
     /*
@@ -99,10 +100,10 @@
 
 - (void)clearAction:(id)sender
 {
-    [waypointsLocations removeAllObjects];
+    [_document.plan.waypointsLocations removeAllObjects];
     //self.hasStart = NO; self.hasEnd = NO;
     self.gpxData = nil;
-    [waypointsLocations removeAllObjects];
+    [_document.plan.waypointsLocations removeAllObjects];
     [waypointsRouteAnnotations removeAllObjects];
     poly = nil;
     scrubberMarker = nil;
@@ -127,7 +128,7 @@
 {
     if (!idx) return @"Start";
     //if (idx == [waypoints count]-1) return @"end";
-    return [NSString stringWithFormat:@"%d", idx];
+    return [NSString stringWithFormat:@"%lu", idx];
 }
 
 
@@ -141,7 +142,7 @@
     
     
     if ([self clickNearPolylineAt:coord]) {
-        NSUInteger idx = [self insertionIndexForCoordinate:coord polyline:poly waypoints:waypointsLocations];
+        NSUInteger idx = [self insertionIndexForCoordinate:coord polyline:poly waypoints:_document.plan.waypointsLocations];
         [self insertWaypoint:coord atIdx:idx];
         NSString *title = [self stringForWaypointIdx:idx];
         RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
@@ -153,12 +154,12 @@
         return;
     }
     NSString *title = nil;
-    NSUInteger  idx = [waypointsLocations count];
+    NSUInteger  idx = [_document.plan.waypointsLocations count];
     title = [self stringForWaypointIdx:idx];
     
     RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
     a.idx = idx;
-    [waypointsLocations addObject:loc];
+    [_document.plan.waypointsLocations addObject:loc];
     [waypointsRouteAnnotations addObject:a];
     [self recalcAnnotIndexesFrom:idx];
     
@@ -198,7 +199,7 @@
 
 - (void) shouldRecalcRoute
 {
-    if ([waypointsLocations count]>=2) {
+    if ([_document.plan.waypointsLocations count]>=2) {
         [self requestRoute];
     }
     /*if (self.hasEnd && self.hasStart) {
@@ -212,7 +213,7 @@
     // profile can be changed, e.g. "trekking", "fastbike", etc.
     self.gpxData = nil;
     NSString *profile = @"trekking";
-    [self.brouter routeWithWaypoints:waypointsLocations profile:profile extraUrl:_extraUrl completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *brouterInfo, NSError *error) {
+    [self.brouter routeWithWaypoints:_document.plan.waypointsLocations profile:profile extraUrl:_extraUrl completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *brouterInfo, NSError *error) {
         if (error) {
             NSLog(@"BRouter error: %@", error);
             return;
@@ -228,7 +229,7 @@
             self.mup = mup;
         }
         self.gpxData = gpx;
-        routePoints = points;
+        _document.plan.routePoints = points;
         [self.elevationView setGpxPoints:points];
         // Build polyline
         NSUInteger n = points.count;
@@ -430,7 +431,7 @@
 
 - (void)insertWaypoint:(CLLocationCoordinate2D)coord atIdx:(NSUInteger)idx
 {
-    [waypointsLocations insertObject:[[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude] atIndex:idx];
+    [_document.plan.waypointsLocations insertObject:[[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude] atIndex:idx];
     // update idx
     
     [self requestRoute];
@@ -647,7 +648,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
         }
         NSUInteger idx = ra.idx;
         CLLocationCoordinate2D newCoord = ra.coordinate;
-        waypointsLocations[idx] = [[CLLocation alloc] initWithLatitude:newCoord.latitude longitude:newCoord.longitude];
+        _document.plan.waypointsLocations[idx] = [[CLLocation alloc] initWithLatitude:newCoord.latitude longitude:newCoord.longitude];
         
         
         [self requestRoute];
@@ -669,9 +670,9 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 
 - (CLLocationCoordinate2D)coordinateAtDistance:(double)targetDist {
     double cumDist = 0.0;
-    for (NSUInteger i = 1; i < routePoints.count; i++) {
-        CLLocation *prev = routePoints[i - 1];
-        CLLocation *curr = routePoints[i];
+    for (NSUInteger i = 1; i < _document.plan.routePoints.count; i++) {
+        CLLocation *prev = _document.plan.routePoints[i - 1];
+        CLLocation *curr = _document.plan.routePoints[i];
         double segDist = [curr distanceFromLocation:prev];
         
         if (cumDist + segDist >= targetDist) {
@@ -682,7 +683,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
         }
         cumDist += segDist;
     }
-    return [[routePoints lastObject] coordinate];
+    return [[_document.plan.routePoints lastObject] coordinate];
 }
 
 
@@ -691,9 +692,9 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 - (double)bearingAtDistance:(double)distanceAlongRoute {
     double cumDist = 0.0;
 
-    for (NSUInteger i = 1; i < routePoints.count; i++) {
-        CLLocation *p1 = routePoints[i - 1];
-        CLLocation *p2 = routePoints[i];
+    for (NSUInteger i = 1; i < _document.plan.routePoints.count; i++) {
+        CLLocation *p1 = _document.plan.routePoints[i - 1];
+        CLLocation *p2 = _document.plan.routePoints[i];
         double segDist = [p2 distanceFromLocation:p1];
 
         if (cumDist + segDist >= distanceAlongRoute) {
@@ -703,9 +704,9 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     }
 
     // If distance exceeds total length, return bearing of last segment
-    if (routePoints.count >= 2) {
-        CLLocation *last1 = routePoints[routePoints.count - 2];
-        CLLocation *last2 = routePoints[routePoints.count - 1];
+    if (_document.plan.routePoints.count >= 2) {
+        CLLocation *last1 = _document.plan.routePoints[_document.plan.routePoints.count - 2];
+        CLLocation *last2 = _document.plan.routePoints[_document.plan.routePoints.count - 1];
         return [self bearingFrom:last1.coordinate to:last2.coordinate];
     }
     return 0.0;
@@ -742,7 +743,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
         NSUInteger idx = [waypointsRouteAnnotations indexOfObject:annotation];
         if (idx != NSNotFound) {
             [waypointsRouteAnnotations removeObjectAtIndex:idx];
-            [waypointsLocations removeObjectAtIndex:idx];
+            [_document.plan.waypointsLocations removeObjectAtIndex:idx];
             [self recalcAnnotIndexesFrom:idx];
             [self shouldRecalcRoute];
         }

@@ -10,13 +10,14 @@
 #import "BRouterClient.h"
 #import "StreetViewController.h"
 #import "ElevationProfileView.h"
-
+#import "Document.h"
 NS_ASSUME_NONNULL_BEGIN
 
 
 @interface MapController : NSObject <MKMapViewDelegate, ElevationProfileViewDelegate>
 
 @property (weak) IBOutlet MKMapView *mapView;
+@property (weak) IBOutlet Document *document;
 @property (weak) IBOutlet StreetViewController *svCtrl;
 @property (weak) IBOutlet ElevationProfileView *elevationView;
 

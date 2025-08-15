@@ -19,6 +19,7 @@
         <customObject id="-3" userLabel="Application"/>
         <customObject id="A8h-DG-dAb" customClass="MapController">
             <connections>
+                <outlet property="document" destination="-2" id="tMd-Lv-hc5"/>
                 <outlet property="elevationView" destination="kdg-Pl-jWg" id="Ko8-Nw-xGf"/>
                 <outlet property="mapView" destination="Nai-3j-aq5" id="Lch-9a-Qxz"/>
                 <outlet property="svCtrl" destination="f2E-sf-pma" id="loi-IV-eg2"/>
