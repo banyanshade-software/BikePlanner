@@ -39,14 +39,16 @@
 }
 
 
-- (NSString *)windowNibName {
+- (NSString *)windowNibName
+{
     // Override returning the nib file name of the document
     // If you need to use a subclass of NSWindowController or if your document supports multiple NSWindowControllers, you should remove this method and override -makeWindowControllers instead.
     return @"Document";
 }
 
 
-- (NSData *)dataOfType:(NSString *)typeName error:(NSError **)outError {
+- (NSData *)dataOfType:(NSString *)typeName error:(NSError **)outError
+{
     // Insert code here to write your document to data of the specified type. If outError != NULL, ensure that you create and set an appropriate error if you return nil.
     // Alternatively, you could remove this method and override -fileWrapperOfType:error:, -writeToURL:ofType:error:, or -writeToURL:ofType:forSaveOperation:originalContentsURL:error: instead.
     [NSException raise:@"UnimplementedMethod" format:@"%@ is unimplemented", NSStringFromSelector(_cmd)];

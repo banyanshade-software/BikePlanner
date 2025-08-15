@@ -7,10 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		65B8EE492E479821001F2966 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE482E479821001F2966 /* AppDelegate.m */; };
-		65B8EE4B2E47982A001F2966 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 65B8EE4A2E47982A001F2966 /* Assets.xcassets */; };
-		65B8EE4E2E47982A001F2966 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 65B8EE4C2E47982A001F2966 /* MainMenu.xib */; };
-		65B8EE502E47982A001F2966 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE4F2E47982A001F2966 /* main.m */; };
 		65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */; };
 		65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE642E47982C001F2966 /* BikePlannerUITests.m */; };
 		65B8EE672E47982C001F2966 /* BikePlannerUITestsLaunchTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE662E47982C001F2966 /* BikePlannerUITestsLaunchTests.m */; };
@@ -69,12 +65,6 @@
 
 /* Begin PBXFileReference section */
 		65B8EE442E479821001F2966 /* BikePlanner_org.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BikePlanner_org.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		65B8EE472E479821001F2966 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
-		65B8EE482E479821001F2966 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
-		65B8EE4A2E47982A001F2966 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		65B8EE4D2E47982A001F2966 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
-		65B8EE4F2E47982A001F2966 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		65B8EE512E47982A001F2966 /* BikePlanner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BikePlanner.entitlements; sourceTree = "<group>"; };
 		65B8EE562E47982C001F2966 /* BikePlanner_orgTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BikePlanner_orgTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikePlannerTests.m; sourceTree = "<group>"; };
 		65B8EE602E47982C001F2966 /* BikePlanne_orgrUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BikePlanne_orgrUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -169,10 +159,9 @@
 			isa = PBXGroup;
 			children = (
 				65F3658C2E4F62230046B03D /* SupportClasses */,
-				65B8EE462E479821001F2966 /* BikePlanner_org */,
+				65F365922E4F6BD40046B03D /* BikePlanner */,
 				65B8EE592E47982C001F2966 /* BikePlannerTests */,
 				65B8EE632E47982C001F2966 /* BikePlannerUITests */,
-				65F365922E4F6BD40046B03D /* BikePlanner */,
 				65F365AC2E4F6BE30046B03D /* BikePlannerTests */,
 				65F365B62E4F6BE30046B03D /* BikePlannerUITests */,
 				65B8EE452E479821001F2966 /* Products */,
@@ -191,19 +180,6 @@
 				65F365B32E4F6BE30046B03D /* BikePlannerUITests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		65B8EE462E479821001F2966 /* BikePlanner_org */ = {
-			isa = PBXGroup;
-			children = (
-				65B8EE472E479821001F2966 /* AppDelegate.h */,
-				65B8EE482E479821001F2966 /* AppDelegate.m */,
-				65B8EE4A2E47982A001F2966 /* Assets.xcassets */,
-				65B8EE4C2E47982A001F2966 /* MainMenu.xib */,
-				65B8EE4F2E47982A001F2966 /* main.m */,
-				65B8EE512E47982A001F2966 /* BikePlanner.entitlements */,
-			);
-			path = BikePlanner_org;
 			sourceTree = "<group>";
 		};
 		65B8EE592E47982C001F2966 /* BikePlannerTests */ = {
@@ -461,8 +437,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				65B8EE4B2E47982A001F2966 /* Assets.xcassets in Resources */,
-				65B8EE4E2E47982A001F2966 /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -512,8 +486,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				65B8EE502E47982A001F2966 /* main.m in Sources */,
-				65B8EE492E479821001F2966 /* AppDelegate.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -596,14 +568,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		65B8EE4C2E47982A001F2966 /* MainMenu.xib */ = {
-			isa = PBXVariantGroup;
-			children = (
-				65B8EE4D2E47982A001F2966 /* Base */,
-			);
-			name = MainMenu.xib;
-			sourceTree = "<group>";
-		};
 		65F365992E4F6BD40046B03D /* Document.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
