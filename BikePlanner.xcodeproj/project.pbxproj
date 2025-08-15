@@ -105,6 +105,7 @@
 		65B8EE3B2E479821001F2966 = {
 			isa = PBXGroup;
 			children = (
+				65F3658C2E4F62230046B03D /* SupportClasses */,
 				65B8EE462E479821001F2966 /* BikePlanner */,
 				65B8EE592E47982C001F2966 /* BikePlannerTests */,
 				65B8EE632E47982C001F2966 /* BikePlannerUITests */,
@@ -130,21 +131,6 @@
 				65B8EE482E479821001F2966 /* AppDelegate.m */,
 				65B8EE832E48C10B001F2966 /* MapController.h */,
 				65B8EE842E48C10B001F2966 /* MapController.m */,
-				65B8EE862E48C4AA001F2966 /* StreetViewController.h */,
-				65B8EE872E48C4AA001F2966 /* StreetViewController.m */,
-				65B8EE8C2E493F36001F2966 /* BRFProfileEditor.h */,
-				65B8EE8D2E493F36001F2966 /* BRFProfileEditor.m */,
-				65B8EE8F2E49D377001F2966 /* BRFProfileEditor.xib */,
-				65B8EE732E4798A7001F2966 /* BRouterClient.h */,
-				65B8EE742E4798A7001F2966 /* BRouterClient.m */,
-				65B8EE802E47B860001F2966 /* GPXParser.h */,
-				65B8EE812E47B860001F2966 /* GPXParser.m */,
-				65B8EE912E4CDE45001F2966 /* ElevationProfileView.h */,
-				65B8EE922E4CDE45001F2966 /* ElevationProfileView.m */,
-				65B8EE7A2E47A334001F2966 /* SafeOSMTileOverlay.h */,
-				65B8EE7B2E47A334001F2966 /* SafeOSMTileOverlay.m */,
-				65B8EE7D2E47A34E001F2966 /* SafeTileRenderer.h */,
-				65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */,
 				65B8EE4A2E47982A001F2966 /* Assets.xcassets */,
 				65B8EE4C2E47982A001F2966 /* MainMenu.xib */,
 				65B8EE4F2E47982A001F2966 /* main.m */,
@@ -176,6 +162,28 @@
 				65B8EE772E479A77001F2966 /* MapKit.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		65F3658C2E4F62230046B03D /* SupportClasses */ = {
+			isa = PBXGroup;
+			children = (
+				65B8EE862E48C4AA001F2966 /* StreetViewController.h */,
+				65B8EE872E48C4AA001F2966 /* StreetViewController.m */,
+				65B8EE8C2E493F36001F2966 /* BRFProfileEditor.h */,
+				65B8EE8D2E493F36001F2966 /* BRFProfileEditor.m */,
+				65B8EE8F2E49D377001F2966 /* BRFProfileEditor.xib */,
+				65B8EE732E4798A7001F2966 /* BRouterClient.h */,
+				65B8EE742E4798A7001F2966 /* BRouterClient.m */,
+				65B8EE802E47B860001F2966 /* GPXParser.h */,
+				65B8EE812E47B860001F2966 /* GPXParser.m */,
+				65B8EE912E4CDE45001F2966 /* ElevationProfileView.h */,
+				65B8EE922E4CDE45001F2966 /* ElevationProfileView.m */,
+				65B8EE7A2E47A334001F2966 /* SafeOSMTileOverlay.h */,
+				65B8EE7B2E47A334001F2966 /* SafeOSMTileOverlay.m */,
+				65B8EE7D2E47A34E001F2966 /* SafeTileRenderer.h */,
+				65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */,
+			);
+			path = SupportClasses;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
