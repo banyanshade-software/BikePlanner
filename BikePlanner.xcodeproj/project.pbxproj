@@ -14,16 +14,26 @@
 		65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */; };
 		65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE642E47982C001F2966 /* BikePlannerUITests.m */; };
 		65B8EE672E47982C001F2966 /* BikePlannerUITestsLaunchTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE662E47982C001F2966 /* BikePlannerUITestsLaunchTests.m */; };
-		65B8EE752E4798A7001F2966 /* BRouterClient.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE742E4798A7001F2966 /* BRouterClient.m */; };
 		65B8EE782E479A78001F2966 /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65B8EE772E479A77001F2966 /* MapKit.framework */; };
-		65B8EE7C2E47A334001F2966 /* SafeOSMTileOverlay.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE7B2E47A334001F2966 /* SafeOSMTileOverlay.m */; };
-		65B8EE7F2E47A34E001F2966 /* SafeTileRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */; };
-		65B8EE822E47B860001F2966 /* GPXParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE812E47B860001F2966 /* GPXParser.m */; };
-		65B8EE852E48C10B001F2966 /* MapController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE842E48C10B001F2966 /* MapController.m */; };
-		65B8EE882E48C4AA001F2966 /* StreetViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE872E48C4AA001F2966 /* StreetViewController.m */; };
-		65B8EE8E2E493F36001F2966 /* BRFProfileEditor.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE8D2E493F36001F2966 /* BRFProfileEditor.m */; };
-		65B8EE902E49D377001F2966 /* BRFProfileEditor.xib in Resources */ = {isa = PBXBuildFile; fileRef = 65B8EE8F2E49D377001F2966 /* BRFProfileEditor.xib */; };
-		65B8EE932E4CDE46001F2966 /* ElevationProfileView.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE922E4CDE45001F2966 /* ElevationProfileView.m */; };
+		65F365952E4F6BD40046B03D /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F365942E4F6BD40046B03D /* AppDelegate.m */; };
+		65F365982E4F6BD40046B03D /* Document.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F365972E4F6BD40046B03D /* Document.m */; };
+		65F3659B2E4F6BD40046B03D /* Document.xib in Resources */ = {isa = PBXBuildFile; fileRef = 65F365992E4F6BD40046B03D /* Document.xib */; };
+		65F3659D2E4F6BE10046B03D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 65F3659C2E4F6BE10046B03D /* Assets.xcassets */; };
+		65F365A02E4F6BE10046B03D /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 65F3659E2E4F6BE10046B03D /* MainMenu.xib */; };
+		65F365A32E4F6BE10046B03D /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F365A22E4F6BE10046B03D /* main.m */; };
+		65F365AE2E4F6BE30046B03D /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F365AD2E4F6BE30046B03D /* BikePlannerTests.m */; };
+		65F365B82E4F6BE30046B03D /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F365B72E4F6BE30046B03D /* BikePlannerUITests.m */; };
+		65F365BA2E4F6BE30046B03D /* BikePlannerUITestsLaunchTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F365B92E4F6BE30046B03D /* BikePlannerUITestsLaunchTests.m */; };
+		65F365C52E4F73200046B03D /* ElevationProfileView.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE922E4CDE45001F2966 /* ElevationProfileView.m */; };
+		65F365C62E4F73200046B03D /* SafeOSMTileOverlay.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE7B2E47A334001F2966 /* SafeOSMTileOverlay.m */; };
+		65F365C72E4F73200046B03D /* BRFProfileEditor.xib in Resources */ = {isa = PBXBuildFile; fileRef = 65B8EE8F2E49D377001F2966 /* BRFProfileEditor.xib */; };
+		65F365C82E4F73200046B03D /* SafeTileRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */; };
+		65F365C92E4F73200046B03D /* GPXParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE812E47B860001F2966 /* GPXParser.m */; };
+		65F365CA2E4F73200046B03D /* StreetViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE872E48C4AA001F2966 /* StreetViewController.m */; };
+		65F365CB2E4F73200046B03D /* BRouterClient.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE742E4798A7001F2966 /* BRouterClient.m */; };
+		65F365CC2E4F73200046B03D /* BRFProfileEditor.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE8D2E493F36001F2966 /* BRFProfileEditor.m */; };
+		65F365CD2E4F73300046B03D /* MapController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE842E48C10B001F2966 /* MapController.m */; };
+		65F3660F2E4F7AE50046B03D /* PlannerWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F3660E2E4F7AE50046B03D /* PlannerWindowController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -39,6 +49,20 @@
 			containerPortal = 65B8EE3C2E479821001F2966 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 65B8EE432E479821001F2966;
+			remoteInfo = BikePlanner;
+		};
+		65F365AA2E4F6BE30046B03D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 65B8EE3C2E479821001F2966 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 65F365902E4F6BD40046B03D;
+			remoteInfo = BikePlanner;
+		};
+		65F365B42E4F6BE30046B03D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 65B8EE3C2E479821001F2966 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 65F365902E4F6BD40046B03D;
 			remoteInfo = BikePlanner;
 		};
 /* End PBXContainerItemProxy section */
@@ -74,6 +98,24 @@
 		65B8EE8F2E49D377001F2966 /* BRFProfileEditor.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = BRFProfileEditor.xib; sourceTree = "<group>"; };
 		65B8EE912E4CDE45001F2966 /* ElevationProfileView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ElevationProfileView.h; sourceTree = "<group>"; };
 		65B8EE922E4CDE45001F2966 /* ElevationProfileView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ElevationProfileView.m; sourceTree = "<group>"; };
+		65F365912E4F6BD40046B03D /* BikePlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BikePlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		65F365942E4F6BD40046B03D /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		65F365962E4F6BD40046B03D /* Document.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Document.h; sourceTree = "<group>"; };
+		65F365972E4F6BD40046B03D /* Document.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Document.m; sourceTree = "<group>"; };
+		65F3659A2E4F6BD40046B03D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/Document.xib; sourceTree = "<group>"; };
+		65F3659C2E4F6BE10046B03D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		65F3659F2E4F6BE10046B03D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		65F365A12E4F6BE10046B03D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		65F365A22E4F6BE10046B03D /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		65F365A42E4F6BE10046B03D /* BikePlanner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BikePlanner.entitlements; sourceTree = "<group>"; };
+		65F365A92E4F6BE30046B03D /* BikePlannerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BikePlannerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		65F365AD2E4F6BE30046B03D /* BikePlannerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikePlannerTests.m; sourceTree = "<group>"; };
+		65F365B32E4F6BE30046B03D /* BikePlannerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BikePlannerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		65F365B72E4F6BE30046B03D /* BikePlannerUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikePlannerUITests.m; sourceTree = "<group>"; };
+		65F365B92E4F6BE30046B03D /* BikePlannerUITestsLaunchTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikePlannerUITestsLaunchTests.m; sourceTree = "<group>"; };
+		65F365C42E4F71330046B03D /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		65F3660D2E4F7AE50046B03D /* PlannerWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PlannerWindowController.h; sourceTree = "<group>"; };
+		65F3660E2E4F7AE50046B03D /* PlannerWindowController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PlannerWindowController.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -99,6 +141,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		65F3658E2E4F6BD40046B03D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		65F365A62E4F6BE30046B03D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		65F365B02E4F6BE30046B03D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -109,6 +172,9 @@
 				65B8EE462E479821001F2966 /* BikePlanner_org */,
 				65B8EE592E47982C001F2966 /* BikePlannerTests */,
 				65B8EE632E47982C001F2966 /* BikePlannerUITests */,
+				65F365922E4F6BD40046B03D /* BikePlanner */,
+				65F365AC2E4F6BE30046B03D /* BikePlannerTests */,
+				65F365B62E4F6BE30046B03D /* BikePlannerUITests */,
 				65B8EE452E479821001F2966 /* Products */,
 				65B8EE762E479A77001F2966 /* Frameworks */,
 			);
@@ -120,6 +186,9 @@
 				65B8EE442E479821001F2966 /* BikePlanner_org.app */,
 				65B8EE562E47982C001F2966 /* BikePlanner_orgTests.xctest */,
 				65B8EE602E47982C001F2966 /* BikePlanne_orgrUITests.xctest */,
+				65F365912E4F6BD40046B03D /* BikePlanner.app */,
+				65F365A92E4F6BE30046B03D /* BikePlannerTests.xctest */,
+				65F365B32E4F6BE30046B03D /* BikePlannerUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -129,8 +198,6 @@
 			children = (
 				65B8EE472E479821001F2966 /* AppDelegate.h */,
 				65B8EE482E479821001F2966 /* AppDelegate.m */,
-				65B8EE832E48C10B001F2966 /* MapController.h */,
-				65B8EE842E48C10B001F2966 /* MapController.m */,
 				65B8EE4A2E47982A001F2966 /* Assets.xcassets */,
 				65B8EE4C2E47982A001F2966 /* MainMenu.xib */,
 				65B8EE4F2E47982A001F2966 /* main.m */,
@@ -184,6 +251,44 @@
 				65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */,
 			);
 			path = SupportClasses;
+			sourceTree = "<group>";
+		};
+		65F365922E4F6BD40046B03D /* BikePlanner */ = {
+			isa = PBXGroup;
+			children = (
+				65F365C42E4F71330046B03D /* AppDelegate.h */,
+				65F365942E4F6BD40046B03D /* AppDelegate.m */,
+				65B8EE832E48C10B001F2966 /* MapController.h */,
+				65B8EE842E48C10B001F2966 /* MapController.m */,
+				65F365962E4F6BD40046B03D /* Document.h */,
+				65F365972E4F6BD40046B03D /* Document.m */,
+				65F365992E4F6BD40046B03D /* Document.xib */,
+				65F3660D2E4F7AE50046B03D /* PlannerWindowController.h */,
+				65F3660E2E4F7AE50046B03D /* PlannerWindowController.m */,
+				65F3659C2E4F6BE10046B03D /* Assets.xcassets */,
+				65F3659E2E4F6BE10046B03D /* MainMenu.xib */,
+				65F365A12E4F6BE10046B03D /* Info.plist */,
+				65F365A22E4F6BE10046B03D /* main.m */,
+				65F365A42E4F6BE10046B03D /* BikePlanner.entitlements */,
+			);
+			path = BikePlanner;
+			sourceTree = "<group>";
+		};
+		65F365AC2E4F6BE30046B03D /* BikePlannerTests */ = {
+			isa = PBXGroup;
+			children = (
+				65F365AD2E4F6BE30046B03D /* BikePlannerTests.m */,
+			);
+			path = BikePlannerTests;
+			sourceTree = "<group>";
+		};
+		65F365B62E4F6BE30046B03D /* BikePlannerUITests */ = {
+			isa = PBXGroup;
+			children = (
+				65F365B72E4F6BE30046B03D /* BikePlannerUITests.m */,
+				65F365B92E4F6BE30046B03D /* BikePlannerUITestsLaunchTests.m */,
+			);
+			path = BikePlannerUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -242,6 +347,59 @@
 			productReference = 65B8EE602E47982C001F2966 /* BikePlanne_orgrUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		65F365902E4F6BD40046B03D /* BikePlanner */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 65F365BB2E4F6BE30046B03D /* Build configuration list for PBXNativeTarget "BikePlanner" */;
+			buildPhases = (
+				65F3658D2E4F6BD40046B03D /* Sources */,
+				65F3658E2E4F6BD40046B03D /* Frameworks */,
+				65F3658F2E4F6BD40046B03D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BikePlanner;
+			productName = BikePlanner;
+			productReference = 65F365912E4F6BD40046B03D /* BikePlanner.app */;
+			productType = "com.apple.product-type.application";
+		};
+		65F365A82E4F6BE30046B03D /* BikePlannerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 65F365BE2E4F6BE30046B03D /* Build configuration list for PBXNativeTarget "BikePlannerTests" */;
+			buildPhases = (
+				65F365A52E4F6BE30046B03D /* Sources */,
+				65F365A62E4F6BE30046B03D /* Frameworks */,
+				65F365A72E4F6BE30046B03D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				65F365AB2E4F6BE30046B03D /* PBXTargetDependency */,
+			);
+			name = BikePlannerTests;
+			productName = BikePlannerTests;
+			productReference = 65F365A92E4F6BE30046B03D /* BikePlannerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		65F365B22E4F6BE30046B03D /* BikePlannerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 65F365C12E4F6BE30046B03D /* Build configuration list for PBXNativeTarget "BikePlannerUITests" */;
+			buildPhases = (
+				65F365AF2E4F6BE30046B03D /* Sources */,
+				65F365B02E4F6BE30046B03D /* Frameworks */,
+				65F365B12E4F6BE30046B03D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				65F365B52E4F6BE30046B03D /* PBXTargetDependency */,
+			);
+			name = BikePlannerUITests;
+			productName = BikePlannerUITests;
+			productReference = 65F365B32E4F6BE30046B03D /* BikePlannerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -262,6 +420,17 @@
 						CreatedOnToolsVersion = 14.2;
 						TestTargetID = 65B8EE432E479821001F2966;
 					};
+					65F365902E4F6BD40046B03D = {
+						CreatedOnToolsVersion = 14.2;
+					};
+					65F365A82E4F6BE30046B03D = {
+						CreatedOnToolsVersion = 14.2;
+						TestTargetID = 65F365902E4F6BD40046B03D;
+					};
+					65F365B22E4F6BE30046B03D = {
+						CreatedOnToolsVersion = 14.2;
+						TestTargetID = 65F365902E4F6BD40046B03D;
+					};
 				};
 			};
 			buildConfigurationList = 65B8EE3F2E479821001F2966 /* Build configuration list for PBXProject "BikePlanner" */;
@@ -280,6 +449,9 @@
 				65B8EE432E479821001F2966 /* BikePlanner_org */,
 				65B8EE552E47982C001F2966 /* BikePlanner_orgTests */,
 				65B8EE5F2E47982C001F2966 /* BikePlanne_orgrUITests */,
+				65F365902E4F6BD40046B03D /* BikePlanner */,
+				65F365A82E4F6BE30046B03D /* BikePlannerTests */,
+				65F365B22E4F6BE30046B03D /* BikePlannerUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -290,7 +462,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				65B8EE4B2E47982A001F2966 /* Assets.xcassets in Resources */,
-				65B8EE902E49D377001F2966 /* BRFProfileEditor.xib in Resources */,
 				65B8EE4E2E47982A001F2966 /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -309,6 +480,31 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		65F3658F2E4F6BD40046B03D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				65F3659D2E4F6BE10046B03D /* Assets.xcassets in Resources */,
+				65F3659B2E4F6BD40046B03D /* Document.xib in Resources */,
+				65F365A02E4F6BE10046B03D /* MainMenu.xib in Resources */,
+				65F365C72E4F73200046B03D /* BRFProfileEditor.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		65F365A72E4F6BE30046B03D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		65F365B12E4F6BE30046B03D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -316,16 +512,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				65B8EE8E2E493F36001F2966 /* BRFProfileEditor.m in Sources */,
 				65B8EE502E47982A001F2966 /* main.m in Sources */,
-				65B8EE7F2E47A34E001F2966 /* SafeTileRenderer.m in Sources */,
-				65B8EE7C2E47A334001F2966 /* SafeOSMTileOverlay.m in Sources */,
 				65B8EE492E479821001F2966 /* AppDelegate.m in Sources */,
-				65B8EE852E48C10B001F2966 /* MapController.m in Sources */,
-				65B8EE932E4CDE46001F2966 /* ElevationProfileView.m in Sources */,
-				65B8EE822E47B860001F2966 /* GPXParser.m in Sources */,
-				65B8EE752E4798A7001F2966 /* BRouterClient.m in Sources */,
-				65B8EE882E48C4AA001F2966 /* StreetViewController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -346,6 +534,42 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		65F3658D2E4F6BD40046B03D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				65F365C92E4F73200046B03D /* GPXParser.m in Sources */,
+				65F365C52E4F73200046B03D /* ElevationProfileView.m in Sources */,
+				65F365CD2E4F73300046B03D /* MapController.m in Sources */,
+				65F365982E4F6BD40046B03D /* Document.m in Sources */,
+				65F365A32E4F6BE10046B03D /* main.m in Sources */,
+				65F365C82E4F73200046B03D /* SafeTileRenderer.m in Sources */,
+				65F365C62E4F73200046B03D /* SafeOSMTileOverlay.m in Sources */,
+				65F3660F2E4F7AE50046B03D /* PlannerWindowController.m in Sources */,
+				65F365952E4F6BD40046B03D /* AppDelegate.m in Sources */,
+				65F365CC2E4F73200046B03D /* BRFProfileEditor.m in Sources */,
+				65F365CA2E4F73200046B03D /* StreetViewController.m in Sources */,
+				65F365CB2E4F73200046B03D /* BRouterClient.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		65F365A52E4F6BE30046B03D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				65F365AE2E4F6BE30046B03D /* BikePlannerTests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		65F365AF2E4F6BE30046B03D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				65F365BA2E4F6BE30046B03D /* BikePlannerUITestsLaunchTests.m in Sources */,
+				65F365B82E4F6BE30046B03D /* BikePlannerUITests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -359,6 +583,16 @@
 			target = 65B8EE432E479821001F2966 /* BikePlanner_org */;
 			targetProxy = 65B8EE612E47982C001F2966 /* PBXContainerItemProxy */;
 		};
+		65F365AB2E4F6BE30046B03D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 65F365902E4F6BD40046B03D /* BikePlanner */;
+			targetProxy = 65F365AA2E4F6BE30046B03D /* PBXContainerItemProxy */;
+		};
+		65F365B52E4F6BE30046B03D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 65F365902E4F6BD40046B03D /* BikePlanner */;
+			targetProxy = 65F365B42E4F6BE30046B03D /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
@@ -366,6 +600,22 @@
 			isa = PBXVariantGroup;
 			children = (
 				65B8EE4D2E47982A001F2966 /* Base */,
+			);
+			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+		65F365992E4F6BD40046B03D /* Document.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				65F3659A2E4F6BD40046B03D /* Base */,
+			);
+			name = Document.xib;
+			sourceTree = "<group>";
+		};
+		65F3659E2E4F6BE10046B03D /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				65F3659F2E4F6BE10046B03D /* Base */,
 			);
 			name = MainMenu.xib;
 			sourceTree = "<group>";
@@ -590,6 +840,116 @@
 			};
 			name = Release;
 		};
+		65F365BC2E4F6BE30046B03D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BikePlanner/BikePlanner.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BikePlanner/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainNibFile = MainMenu;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlanner;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		65F365BD2E4F6BE30046B03D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BikePlanner/BikePlanner.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BikePlanner/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainNibFile = MainMenu;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlanner;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		65F365BF2E4F6BE30046B03D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlannerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BikePlanner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BikePlanner";
+			};
+			name = Debug;
+		};
+		65F365C02E4F6BE30046B03D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlannerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BikePlanner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BikePlanner";
+			};
+			name = Release;
+		};
+		65F365C22E4F6BE30046B03D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlannerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_TARGET_NAME = BikePlanner;
+			};
+			name = Debug;
+		};
+		65F365C32E4F6BE30046B03D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlannerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_TARGET_NAME = BikePlanner;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -625,6 +985,33 @@
 			buildConfigurations = (
 				65B8EE712E47982C001F2966 /* Debug */,
 				65B8EE722E47982C001F2966 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		65F365BB2E4F6BE30046B03D /* Build configuration list for PBXNativeTarget "BikePlanner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				65F365BC2E4F6BE30046B03D /* Debug */,
+				65F365BD2E4F6BE30046B03D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		65F365BE2E4F6BE30046B03D /* Build configuration list for PBXNativeTarget "BikePlannerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				65F365BF2E4F6BE30046B03D /* Debug */,
+				65F365C02E4F6BE30046B03D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		65F365C12E4F6BE30046B03D /* Build configuration list for PBXNativeTarget "BikePlannerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				65F365C22E4F6BE30046B03D /* Debug */,
+				65F365C32E4F6BE30046B03D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

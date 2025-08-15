@@ -7,8 +7,11 @@
 
 #import <Cocoa/Cocoa.h>
 
+@class MapController;
+
 @interface Document : NSDocument
 
+@property (weak) IBOutlet MapController *mapController;
 
 @end
 

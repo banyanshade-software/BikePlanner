@@ -6,6 +6,9 @@
 //
 
 #import "PlannerWindowController.h"
+#import "Document.h"
+#import "MapController.h"
+#import "BRFProfileEditor.h"
 
 @interface PlannerWindowController ()
 
@@ -13,10 +16,19 @@
 
 @implementation PlannerWindowController
 
-- (void)windowDidLoad {
+- (void)windowDidLoad
+{
     [super windowDidLoad];
-    
-    // Implement this method to handle any initialization after your window controller's window has been loaded from its nib file.
+    Document *d = (Document *)self.document;
+    NSAssert(d, @"nil document");
+    NSAssert([d isKindOfClass:[Document class]], @"bad class document");
+    NSAssert(d.mapController, @"document no mapctrl");
+    NSAssert(d.mapController.svCtrl, @"document no svctrl");
+    [d.mapController initializeMapview];
+    [d.mapController.svCtrl initializeStreetView];
+
+    [self.window makeKeyAndOrderFront:nil];
+
 }
 
 @end

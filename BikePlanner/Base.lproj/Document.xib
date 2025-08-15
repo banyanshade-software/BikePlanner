@@ -11,6 +11,7 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="Document">
             <connections>
+                <outlet property="mapController" destination="A8h-DG-dAb" id="b97-99-pPO"/>
                 <outlet property="window" destination="ytr-s9-dYp" id="ejQ-Uw-7Yb"/>
             </connections>
         </customObject>

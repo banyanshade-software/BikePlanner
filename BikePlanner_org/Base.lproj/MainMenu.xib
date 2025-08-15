@@ -716,14 +716,15 @@
             </items>
             <point key="canvasLocation" x="200" y="121"/>
         </menu>
+        <userDefaultsController representsSharedInstance="YES" id="jr2-Jp-3L8"/>
         <window title="BikePlanner" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="QvC-M9-y7g">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="335" y="390" width="903" height="502"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="875"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
             <view key="contentView" id="EiT-Mj-1SZ">
                 <rect key="frame" x="0.0" y="0.0" width="903" height="502"/>
-                <autoresizingMask key="autoresizingMask"/>
+                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                 <subviews>
                     <splitView arrangesAllSubviews="NO" dividerStyle="paneSplitter" translatesAutoresizingMaskIntoConstraints="NO" id="nrh-vH-Xev">
                         <rect key="frame" x="0.0" y="0.0" width="903" height="502"/>
@@ -972,7 +973,6 @@
             </toolbar>
             <point key="canvasLocation" x="411.5" y="471"/>
         </window>
-        <userDefaultsController representsSharedInstance="YES" id="jr2-Jp-3L8"/>
     </objects>
     <resources>
         <image name="NSShareTemplate" width="16" height="17"/>
