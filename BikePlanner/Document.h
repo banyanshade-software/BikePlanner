@@ -8,10 +8,12 @@
 #import <Cocoa/Cocoa.h>
 
 @class MapController;
+@class BikePlan;
 
 @interface Document : NSDocument
 
 @property (weak) IBOutlet MapController *mapController;
+@property (strong,nonatomic) BikePlan *plan;
 
 @end
 

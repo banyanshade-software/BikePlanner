@@ -30,6 +30,8 @@
 		65F365CC2E4F73200046B03D /* BRFProfileEditor.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE8D2E493F36001F2966 /* BRFProfileEditor.m */; };
 		65F365CD2E4F73300046B03D /* MapController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE842E48C10B001F2966 /* MapController.m */; };
 		65F3660F2E4F7AE50046B03D /* PlannerWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F3660E2E4F7AE50046B03D /* PlannerWindowController.m */; };
+		65F366122E4FA3DF0046B03D /* BikePlan.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F366112E4FA3DF0046B03D /* BikePlan.m */; };
+		65F366152E4FA4F30046B03D /* RouteAnnotation.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F366142E4FA4F30046B03D /* RouteAnnotation.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -106,6 +108,10 @@
 		65F365C42E4F71330046B03D /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		65F3660D2E4F7AE50046B03D /* PlannerWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PlannerWindowController.h; sourceTree = "<group>"; };
 		65F3660E2E4F7AE50046B03D /* PlannerWindowController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PlannerWindowController.m; sourceTree = "<group>"; };
+		65F366102E4FA3DF0046B03D /* BikePlan.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BikePlan.h; sourceTree = "<group>"; };
+		65F366112E4FA3DF0046B03D /* BikePlan.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikePlan.m; sourceTree = "<group>"; };
+		65F366132E4FA4F30046B03D /* RouteAnnotation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RouteAnnotation.h; sourceTree = "<group>"; };
+		65F366142E4FA4F30046B03D /* RouteAnnotation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RouteAnnotation.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -225,6 +231,8 @@
 				65B8EE7B2E47A334001F2966 /* SafeOSMTileOverlay.m */,
 				65B8EE7D2E47A34E001F2966 /* SafeTileRenderer.h */,
 				65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */,
+				65F366132E4FA4F30046B03D /* RouteAnnotation.h */,
+				65F366142E4FA4F30046B03D /* RouteAnnotation.m */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -238,6 +246,8 @@
 				65B8EE842E48C10B001F2966 /* MapController.m */,
 				65F365962E4F6BD40046B03D /* Document.h */,
 				65F365972E4F6BD40046B03D /* Document.m */,
+				65F366102E4FA3DF0046B03D /* BikePlan.h */,
+				65F366112E4FA3DF0046B03D /* BikePlan.m */,
 				65F365992E4F6BD40046B03D /* Document.xib */,
 				65F3660D2E4F7AE50046B03D /* PlannerWindowController.h */,
 				65F3660E2E4F7AE50046B03D /* PlannerWindowController.m */,
@@ -512,6 +522,8 @@
 			files = (
 				65F365C92E4F73200046B03D /* GPXParser.m in Sources */,
 				65F365C52E4F73200046B03D /* ElevationProfileView.m in Sources */,
+				65F366152E4FA4F30046B03D /* RouteAnnotation.m in Sources */,
+				65F366122E4FA3DF0046B03D /* BikePlan.m in Sources */,
 				65F365CD2E4F73300046B03D /* MapController.m in Sources */,
 				65F365982E4F6BD40046B03D /* Document.m in Sources */,
 				65F365A32E4F6BE10046B03D /* main.m in Sources */,

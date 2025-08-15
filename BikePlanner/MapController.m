@@ -11,21 +11,8 @@
 #import "SafeTileRenderer.h"
 #import "SafeOSMTileOverlay.h"
 #import "GPXParser.h"
+#import "RouteAnnotation.h"
 
-/*
-@interface DraggableWaypoint : CLLocation
-@property (nonatomic, assign) NSUInteger index;
-@end
-
-@implementation DraggableWaypoint
-@end
-*/
-@interface RouteAnnotation : MKPointAnnotation
-@property (nonatomic,assign) NSUInteger idx;
-@end
-
-@implementation RouteAnnotation
-@end
 
 
 @implementation MapController {
