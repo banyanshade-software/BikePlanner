@@ -25,7 +25,8 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
 {
-    [self installRunLoopLogger];
+    //[self installRunLoopLogger];
+    //[self installRunLoopModeLogger];
     [self.mapController initializeMapview];
     [self.streetViewController initializeStreetView];
     
@@ -66,7 +67,7 @@ static void RunLoopLogger(CFRunLoopObserverRef observer, CFRunLoopActivity activ
     }
     NSLog(@"[RunLoop] %@", phase);
 }
-
+#if 0
 - (void)installRunLoopLogger {
     CFRunLoopObserverContext context = {0, (__bridge void *)self, NULL, NULL, NULL};
     CFRunLoopObserverRef observer = CFRunLoopObserverCreate(
@@ -76,6 +77,25 @@ static void RunLoopLogger(CFRunLoopObserverRef observer, CFRunLoopActivity activ
         0,   // order
         RunLoopLogger,
         &context
+    );
+    CFRunLoopAddObserver(CFRunLoopGetMain(), observer, kCFRunLoopCommonModes);
+    CFRelease(observer);
+}
+#endif
+
+- (void)installRunLoopModeLogger {
+    CFRunLoopObserverContext context = {0, (__bridge void *)self, NULL, NULL, NULL};
+    CFRunLoopObserverRef observer = CFRunLoopObserverCreateWithHandler(
+        NULL,
+        kCFRunLoopAllActivities,
+        YES,
+        0,
+        ^(CFRunLoopObserverRef obs, CFRunLoopActivity activity) {
+            NSString *mode = (__bridge_transfer NSString *)CFRunLoopCopyCurrentMode(CFRunLoopGetMain());
+            if (activity == kCFRunLoopBeforeWaiting) {
+                NSLog(@"[%@] Run loop idle in mode: %@", [NSDate date], mode);
+            }
+        }
     );
     CFRunLoopAddObserver(CFRunLoopGetMain(), observer, kCFRunLoopCommonModes);
     CFRelease(observer);

@@ -142,6 +142,12 @@
                                     </binding>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Import &amp; Draw GPX" id="PsH-9k-0cb">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="importGPXTraceForDisplay:" target="gMs-Z0-beH" id="Rsf-Zd-KuO"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="aJh-i4-bef"/>
                             <menuItem title="Page Setup…" keyEquivalent="P" id="qIS-W8-SiK">
                                 <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>

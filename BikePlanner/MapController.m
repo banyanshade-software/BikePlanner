@@ -6,9 +6,11 @@
 //
 
 #import "MapController.h"
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+
 #import "SafeTileRenderer.h"
 #import "SafeOSMTileOverlay.h"
-#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#import "GPXParser.h"
 
 /*
 @interface DraggableWaypoint : CLLocation
@@ -30,7 +32,8 @@
     NSMutableArray <CLLocation *>*waypointsLocations;
     NSMutableArray <RouteAnnotation *>*waypointsRouteAnnotations;
     NSArray<CLLocation *> *routePoints;
-    MKPolyline *poly;
+    MKPolyline *poly; // route being built
+    MKPolyline *gpxpoly; // loaded gpx, just displayed
     MKPointAnnotation *scrubberMarker;
 }
 
@@ -285,10 +288,21 @@
         return [[MKTileOverlayRenderer alloc] initWithTileOverlay:(MKTileOverlay *)overlay];
     }
     if ([overlay isKindOfClass:[MKPolyline class]]) {
-        MKPolylineRenderer *r = [[MKPolylineRenderer alloc] initWithPolyline:(MKPolyline *)overlay];
-        r.lineWidth = 8.0;
-        r.alpha = 0.5;
-        r.strokeColor = [NSColor blueColor];
+        MKPolyline *pl = (MKPolyline *) overlay;
+        MKPolylineRenderer *r = [[MKPolylineRenderer alloc] initWithPolyline:pl];
+        
+        if (pl == poly) {
+            // route being built
+            r.lineWidth = 8.0;
+            r.alpha = 0.5;
+            r.strokeColor = [NSColor blueColor];
+        } else {
+            // gpx loaded
+            r.lineWidth = 6.0;
+            r.alpha = 0.5;
+            //r.strokeColor = [NSColor darkGrayColor];
+            r.strokeColor = [NSColor orangeColor];
+        }
         return r;
     }
     return nil;
@@ -751,6 +765,45 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 #pragma mark -
 - (IBAction) importGPXTraceForDisplay:(id)sender
 {
+    NSOpenPanel *panel = [NSOpenPanel openPanel];
+    panel.allowedContentTypes = @[[UTType typeWithFilenameExtension:@"gpx"]];
+    //panel.allowedFileTypes = @[@"gpx"];
+    panel.allowsMultipleSelection = NO;
+    panel.canChooseDirectories = NO;
+    panel.title = @"Choose a GPX file";
     
+    [panel beginWithCompletionHandler:^(NSModalResponse result) {
+        if (result == NSModalResponseOK) {
+            NSURL *fileURL = panel.URL;
+            [self loadGPXFromURL:fileURL];
+        }
+    }];
+}
+
+- (void)loadGPXFromURL:(NSURL *)url {
+    NSError *error = nil;
+    NSData *data = [NSData dataWithContentsOfURL:url options:0 error:&error];
+    if (!data) {
+        NSLog(@"Failed to read GPX file: %@", error);
+        return;
+    }
+    // Pass data to your parser
+    
+    GPXParser *pgpx = [[GPXParser alloc]init];
+    NSError *parseError = nil;
+    NSArray<CLLocation *> *points = [pgpx parseGPXData:data error:&parseError];
+    if (!points || ![points count]) {
+        NSLog(@"parse gpx err : %@", parseError);
+        return;
+    }
+    NSUInteger n = points.count;
+    CLLocationCoordinate2D *coords = malloc(sizeof(CLLocationCoordinate2D) * n);
+    for (NSUInteger i=0;i<n;i++) {
+        coords[i] = points[i].coordinate;
+    }
+    gpxpoly = [MKPolyline polylineWithCoordinates:coords count:n];
+    [self.mapView addOverlay:gpxpoly level:MKOverlayLevelAboveLabels];
+
+    free(coords);
 }
 @end
