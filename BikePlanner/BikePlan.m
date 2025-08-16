@@ -22,7 +22,7 @@
 {
     self = [super init];
     if (!self) return self;
-    
+    self.brouterInfo = [[BrouterInfo alloc]init];
     self.waypointsLocations = [[NSMutableArray alloc]initWithCapacity:32];
     return self;
 }
@@ -112,6 +112,7 @@
     [coder encodeObject:_waypointsLocations forKey:@"waypointsLocations"];
     [coder encodeObject:_routePoints forKey:@"routePoints"];
     [coder encodeObject:_gpxDisplayed forKey:@"gpxDisplayed"];
+    [coder encodeObject:_brouterInfo forKey:@"brouterInfo"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)coder
@@ -121,6 +122,46 @@
     self.waypointsLocations = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [CLLocation class], nil] forKey:@"waypointsLocations"];
     self.routePoints = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [CLLocation class], nil] forKey:@"routePoints"];
     self.gpxDisplayed = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [CLLocation class], nil] forKey:@"gpxDisplayed"];
+    self.brouterInfo = [coder decodeObjectOfClass:[BrouterInfo class] forKey:@"brouterInfo"];
+    if (!_brouterInfo) self.brouterInfo = [[BrouterInfo alloc]init];
+    return self;
+}
+@end
+
+
+
+#pragma mark -
+
+@implementation BrouterInfo
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        
+    }
+    return self;
+}
+
+
++ (BOOL) supportsSecureCoding
+{
+    return YES;
+}
+
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+    [coder encodeInteger:_kmlen forKey:@"kmlen"];
+    [coder encodeInteger:_mup forKey:@"mup"];
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+    self = [super init];
+    if (!self) return self;
+    self.kmlen = [coder decodeIntegerForKey:@"kmlen"];
+    self.mup = [coder decodeIntegerForKey:@"mup"];
     return self;
 }
 @end

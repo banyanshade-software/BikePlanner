@@ -270,10 +270,11 @@
             return;
         }
         if (brouterInfo) {
-            unsigned int kmlen = [brouterInfo[@"n-track-length-m"] unsignedIntValue];
-            self.kmlen = kmlen;
+            unsigned int kmlen = ([brouterInfo[@"n-track-length-m"] unsignedIntValue] + 500)/1000;
+            NSAssert(_document.plan.brouterInfo, @"no brouterInfo");
+            _document.plan.brouterInfo.kmlen = kmlen;
             int mup = [brouterInfo[@"filtered-ascend"] intValue];
-            self.mup = mup;
+            _document.plan.brouterInfo.mup = mup;
         }
         self.gpxData = gpx;
         self.document.plan.routePoints = points;

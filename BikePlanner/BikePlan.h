@@ -12,6 +12,15 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@interface BrouterInfo : NSObject <NSSecureCoding> {
+}
+
+@property NSInteger kmlen;
+@property NSInteger mup;
+
+@end
+
+
 
 @interface BikePlan : NSObject <NSSecureCoding> {
     //NSMutableArray <RouteAnnotation *>*waypointsRouteAnnotations;
@@ -23,6 +32,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly,nonatomic) NSArray <CLLocation *>*waypointsLocations;
 @property (strong,nonatomic) NSArray<CLLocation *> *routePoints;
 @property (strong,nonatomic) NSArray<CLLocation *> *gpxDisplayed;
+@property (strong,nonatomic) BrouterInfo *brouterInfo;
+
 
 - (void) removeWaypoints;
 - (void) appendWaypoint:(CLLocation *)loc;

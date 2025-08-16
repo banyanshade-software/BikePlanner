@@ -34,7 +34,7 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="335" y="390" width="903" height="502"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1080"/>
             <view key="contentView" id="n2o-kh-tcL">
                 <rect key="frame" x="0.0" y="0.0" width="903" height="502"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -105,7 +105,7 @@
                                                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                                                     </textFieldCell>
                                                                                     <connections>
-                                                                                        <binding destination="A8h-DG-dAb" name="value" keyPath="kmlen" id="82g-Ri-b3w"/>
+                                                                                        <binding destination="-2" name="value" keyPath="plan.brouterInfo.kmlen" id="k5d-MD-JFo"/>
                                                                                     </connections>
                                                                                 </textField>
                                                                                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="BVA-sR-If1">
@@ -127,7 +127,7 @@
                                                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                                                     </textFieldCell>
                                                                                     <connections>
-                                                                                        <binding destination="A8h-DG-dAb" name="value" keyPath="mup" id="Xjg-pM-FmV"/>
+                                                                                        <binding destination="-2" name="value" keyPath="plan.brouterInfo.mup" id="p3S-2B-sP3"/>
                                                                                     </connections>
                                                                                 </textField>
                                                                             </subviews>
