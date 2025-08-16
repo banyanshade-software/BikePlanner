@@ -13,13 +13,14 @@
 #import "GPXParser.h"
 #import "RouteAnnotation.h"
 #import "BikePlan.h"
+#import "TaggedPoly.h"
 
 
 @implementation MapController {
     //NSMutableArray <CLLocation *>*waypointsLocations;
     NSMutableArray <RouteAnnotation *>*waypointsRouteAnnotations;
     //NSArray<CLLocation *> *routePoints;
-    MKPolyline *poly; // route being built
+    //MKPolyline *poly; // route being built
     MKPolyline *gpxpoly; // loaded gpx, just displayed
     MKPointAnnotation *scrubberMarker;
 }
@@ -104,7 +105,7 @@
     //self.hasStart = NO; self.hasEnd = NO;
     self.gpxData = nil;
     [waypointsRouteAnnotations removeAllObjects];
-    poly = nil;
+    //poly = nil;
     scrubberMarker = nil;
     [self.mapView removeAnnotations:self.mapView.annotations];
     //[self.mapView removeOverlays:self.mapView.overlays];
@@ -141,6 +142,7 @@
     
     
     if ([self clickNearPolylineAt:coord]) {
+        MKPolyline *poly = [_document.plan routePoly];
         NSUInteger idx = [self insertionIndexForCoordinate:coord polyline:poly waypoints:_document.plan.waypointsLocations];
         [self insertWaypoint:coord atIdx:idx];
         NSString *title = [self stringForWaypointIdx:idx];
@@ -229,16 +231,11 @@
             self.mup = mup;
         }
         self.gpxData = gpx;
-        _document.plan.routePoints = points;
+        self.document.plan.routePoints = points;
         [self.elevationView setGpxPoints:points];
-        // Build polyline
-        NSUInteger n = points.count;
-        CLLocationCoordinate2D *coords = malloc(sizeof(CLLocationCoordinate2D) * n);
-        for (NSUInteger i=0;i<n;i++) {
-            coords[i] = points[i].coordinate;
-        }
-        poly = [MKPolyline polylineWithCoordinates:coords count:n];
-        free(coords);
+        // get polyline
+        MKPolyline *poly = [self.document.plan routePoly];
+        
         
         dispatch_async(dispatch_get_main_queue(), ^{
             // Remove old route overlays (except tile overlays)
@@ -275,11 +272,11 @@
     if ([overlay isKindOfClass:[MKTileOverlay class]]) {
         return [[MKTileOverlayRenderer alloc] initWithTileOverlay:(MKTileOverlay *)overlay];
     }
-    if ([overlay isKindOfClass:[MKPolyline class]]) {
-        MKPolyline *pl = (MKPolyline *) overlay;
+    if ([overlay isKindOfClass:[TaggedPoly class]]) {
+        TaggedPoly *pl = (TaggedPoly *) overlay;
         MKPolylineRenderer *r = [[MKPolylineRenderer alloc] initWithPolyline:pl];
         
-        if (pl == poly) {
+        if (pl.tag == 0) {
             // route being built
             r.lineWidth = 8.0;
             r.alpha = 0.5;
@@ -366,6 +363,7 @@
 
 - (BOOL)clickNearPolylineAt:(CLLocationCoordinate2D)coord
 {
+    MKPolyline *poly = _document.plan.routePoly;
     NSUInteger count = poly.pointCount;
     CLLocationCoordinate2D *coords = malloc(sizeof(CLLocationCoordinate2D) * count);
     [poly getCoordinates:coords range:NSMakeRange(0, count)];

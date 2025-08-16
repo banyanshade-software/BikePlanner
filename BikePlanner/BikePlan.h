@@ -8,14 +8,16 @@
 #import <Foundation/Foundation.h>
 #import <MapKit/MapKit.h>
 #import "RouteAnnotation.h"
+#import "TaggedPoly.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
+
 @interface BikePlan : NSObject <NSSecureCoding> {
-    NSMutableArray <RouteAnnotation *>*waypointsRouteAnnotations;
+    //NSMutableArray <RouteAnnotation *>*waypointsRouteAnnotations;
     //NSArray<CLLocation *> *routePoints;
-    MKPolyline *gpxpoly; // loaded gpx, just displayed
-    MKPointAnnotation *scrubberMarker;
+    //MKPolyline *gpxpoly; // loaded gpx, just displayed
+    //MKPointAnnotation *scrubberMarker;
 }
 
 @property (readonly,nonatomic) NSArray <CLLocation *>*waypointsLocations;
@@ -27,7 +29,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void) insertWaypoint:(CLLocation *)loc atIndex:(NSUInteger)idx;
 - (void) replaceWaypointAtIndex:(NSUInteger)idx by:(CLLocation *)loc;
 
-@property (readonly,nonatomic) MKPolyline *waypointPoly;
+@property (readonly,nonatomic) TaggedPoly *routePoly;    // MKPolyLine with a tag, 0
+@property (readonly,nonatomic) TaggedPoly *waypointPoly; // MKPolyLine with a tag, 1
 
 
 @end

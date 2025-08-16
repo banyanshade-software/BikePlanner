@@ -14,7 +14,8 @@
 
 @implementation BikePlan {
     NSMutableArray <CLLocation *>*_waypointsLocations;
-    MKPolyline *_waypointPoly;
+    TaggedPoly *_waypointPoly;
+    TaggedPoly *_routePoly;
 }
 
 - (instancetype)init
@@ -68,15 +69,24 @@
     [self didChangeValueForKey:@"waypointPoly"];
 }
 
-- (MKPolyline *) waypointPoly
+- (TaggedPoly *) waypointPoly
 {
     if (!_waypointPoly) {
         _waypointPoly = [self buildPolyWith:_waypointsLocations];
+        _waypointPoly.tag = 1;
     }
     return _waypointPoly;
 }
 
-- (MKPolyline *) buildPolyWith :(NSArray <CLLocation *> *)points
+- (TaggedPoly *) routePoly
+{
+    if (!_waypointPoly) {
+        _routePoly = [self buildPolyWith:_routePoints];
+        _routePoly.tag = 0;
+    }
+    return _routePoly;
+}
+- (TaggedPoly *) buildPolyWith :(NSArray <CLLocation *> *)points
 {
     // Build polyline
     NSUInteger n = points.count;
@@ -84,7 +94,7 @@
     for (NSUInteger i=0;i<n;i++) {
         coords[i] = points[i].coordinate;
     }
-    MKPolyline *poly = [MKPolyline polylineWithCoordinates:coords count:n];
+    TaggedPoly *poly = [TaggedPoly polylineWithCoordinates:coords count:n];
     free(coords);
     return poly;
 }

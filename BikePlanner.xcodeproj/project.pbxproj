@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		65B22D642E50B1360078F4BC /* TaggedPoly.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B22D632E50B1360078F4BC /* TaggedPoly.m */; };
 		65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */; };
 		65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE642E47982C001F2966 /* BikePlannerUITests.m */; };
 		65B8EE672E47982C001F2966 /* BikePlannerUITestsLaunchTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE662E47982C001F2966 /* BikePlannerUITestsLaunchTests.m */; };
@@ -66,6 +67,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		65B22D622E50B1360078F4BC /* TaggedPoly.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TaggedPoly.h; sourceTree = "<group>"; };
+		65B22D632E50B1360078F4BC /* TaggedPoly.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TaggedPoly.m; sourceTree = "<group>"; };
 		65B8EE442E479821001F2966 /* BikePlanner_org.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BikePlanner_org.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		65B8EE562E47982C001F2966 /* BikePlanner_orgTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BikePlanner_orgTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikePlannerTests.m; sourceTree = "<group>"; };
@@ -233,6 +236,8 @@
 				65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */,
 				65F366132E4FA4F30046B03D /* RouteAnnotation.h */,
 				65F366142E4FA4F30046B03D /* RouteAnnotation.m */,
+				65B22D622E50B1360078F4BC /* TaggedPoly.h */,
+				65B22D632E50B1360078F4BC /* TaggedPoly.m */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -524,6 +529,7 @@
 				65F365C52E4F73200046B03D /* ElevationProfileView.m in Sources */,
 				65F366152E4FA4F30046B03D /* RouteAnnotation.m in Sources */,
 				65F366122E4FA3DF0046B03D /* BikePlan.m in Sources */,
+				65B22D642E50B1360078F4BC /* TaggedPoly.m in Sources */,
 				65F365CD2E4F73300046B03D /* MapController.m in Sources */,
 				65F365982E4F6BD40046B03D /* Document.m in Sources */,
 				65F365A32E4F6BE10046B03D /* main.m in Sources */,
