@@ -198,6 +198,24 @@
       }*/
 }
 
+- (void) fullRefresh
+{
+    [self refreshPoly];
+}
+- (void) refreshPoly
+{
+    // Remove old route overlays (except tile overlays)
+    for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
+        if (![ov isKindOfClass:[MKTileOverlay class]]) {
+            [self.mapView removeOverlay:ov];
+        }
+    }
+    MKPolyline *poly = _document.plan.routePoly;
+    
+    [self.mapView addOverlay:poly level:MKOverlayLevelAboveLabels];
+    [self.mapView setVisibleMapRect:[poly boundingMapRect] edgePadding:NSEdgeInsetsMake(40, 40, 40, 40) animated:YES];
+}
+
 
 - (void) shouldRecalcRoute
 {
@@ -238,14 +256,7 @@
         
         
         dispatch_async(dispatch_get_main_queue(), ^{
-            // Remove old route overlays (except tile overlays)
-            for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
-                if (![ov isKindOfClass:[MKTileOverlay class]]) {
-                    [self.mapView removeOverlay:ov];
-                }
-            }
-            [self.mapView addOverlay:poly level:MKOverlayLevelAboveLabels];
-            [self.mapView setVisibleMapRect:[poly boundingMapRect] edgePadding:NSEdgeInsetsMake(40, 40, 40, 40) animated:YES];
+            [self refreshPoly];
             
             if ((0)) {
                 NSArray *overlays = self.mapView.overlays;

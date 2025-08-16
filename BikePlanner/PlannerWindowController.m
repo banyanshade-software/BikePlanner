@@ -28,7 +28,7 @@
     NSAssert(d==d.mapController.document, @"wrong document  linked to mapController");
     [d.mapController initializeMapview];
     [d.mapController.svCtrl initializeStreetView];
-
+    [d.mapController fullRefresh];
     [self.window makeKeyAndOrderFront:nil];
 
 }

@@ -8,6 +8,7 @@
 #import "Document.h"
 #import "PlannerWindowController.h"
 #import "BikePlan.h"
+#import "MapController.h"
 
 @interface Document ()
 
@@ -123,6 +124,7 @@
     }
     
     self.plan = planObject;
+    //[self.mapController fullRefresh];
     return YES;
 }
 
