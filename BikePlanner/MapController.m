@@ -219,12 +219,14 @@
         }
         [self.mapView removeAnnotation:annot];
     }
+    [waypointsRouteAnnotations removeAllObjects];
     NSUInteger idx = 0;
     for (CLLocation *loc in _document.plan.waypointsLocations) {
         CLLocationCoordinate2D coord = loc.coordinate;
         NSString *title = [self stringForWaypointIdx:idx];
         RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
         a.idx = idx;
+        [waypointsRouteAnnotations addObject:a];
         [self.mapView addAnnotation:a];
         idx++;
     }
