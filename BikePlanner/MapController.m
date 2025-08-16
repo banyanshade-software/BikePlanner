@@ -200,6 +200,11 @@
 
 - (void) fullRefresh
 {
+    for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
+        if (![ov isKindOfClass:[MKTileOverlay class]]) {
+            [self.mapView removeOverlay:ov];
+        }
+    }
     [self refreshAnnot];
     [self refreshPoly];
     [self refreshGpxDisplayed];
@@ -241,8 +246,12 @@
 {
     // Remove old route overlays (except tile overlays)
     for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
-        if (![ov isKindOfClass:[MKTileOverlay class]]) {
-            [self.mapView removeOverlay:ov];
+        // if (![ov isKindOfClass:[MKTileOverlay class]]) {
+        if ([ov isKindOfClass:[TaggedPoly class]]) {
+            TaggedPoly *tp = (TaggedPoly *)ov;
+            if (0 == tp.tag) {
+                [self.mapView removeOverlay:ov];
+            }
         }
     }
     MKPolyline *poly = _document.plan.routePoly;
@@ -774,7 +783,8 @@ didChangeDragState:(MKAnnotationViewDragState)newState
         NSUInteger idx = [waypointsRouteAnnotations indexOfObject:annotation];
         if (idx != NSNotFound) {
             [waypointsRouteAnnotations removeObjectAtIndex:idx];
-            [_document.plan removeWaypoints];
+            //[_document.plan removeWaypoints];
+            [_document.plan removeWaypointAtIndex:idx];
             [self recalcAnnotIndexesFrom:idx];
             [self shouldRecalcRoute];
         }

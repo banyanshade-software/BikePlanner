@@ -36,6 +36,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 
 - (void) removeWaypoints;
+- (void) removeWaypointAtIndex:(NSUInteger)idx;
 - (void) appendWaypoint:(CLLocation *)loc;
 - (void) insertWaypoint:(CLLocation *)loc atIndex:(NSUInteger)idx;
 - (void) replaceWaypointAtIndex:(NSUInteger)idx by:(CLLocation *)loc;

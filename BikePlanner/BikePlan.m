@@ -41,6 +41,13 @@
     [self didChangeValueForKey:@"waypointsLocations"];
     [self clearWaypointCache];
 }
+- (void) removeWaypointAtIndex:(NSUInteger)idx
+{
+    [self willChangeValueForKey:@"waypointsLocations"];
+    [_waypointsLocations removeObjectAtIndex:idx];
+    [self didChangeValueForKey:@"waypointsLocations"];
+    [self clearWaypointCache];
+}
 - (void) appendWaypoint:(CLLocation *)loc
 {
     [self willChangeValueForKey:@"waypointsLocations"];
