@@ -271,35 +271,22 @@
             NSLog(@"No points returned");
             return;
         }
-        if (brouterInfo) {
-            unsigned int kmlen = ([brouterInfo[@"n-track-length-m"] unsignedIntValue] + 500)/1000;
-            NSAssert(_document.plan.brouterInfo, @"no brouterInfo");
-            _document.plan.brouterInfo.kmlen = kmlen;
-            int mup = [brouterInfo[@"filtered-ascend"] intValue];
-            _document.plan.brouterInfo.mup = mup;
-        }
-        self.gpxData = gpx;
-        self.document.plan.routePoints = points;
-        [self.elevationView setGpxPoints:points];
-        // get polyline
-        MKPolyline *poly = [self.document.plan routePoly];
-        
-        
+        // process it on main thread, otherwise setNeedDisplay does not operate ok
         dispatch_async(dispatch_get_main_queue(), ^{
+            if (brouterInfo) {
+                unsigned int kmlen = ([brouterInfo[@"n-track-length-m"] unsignedIntValue] + 500)/1000;
+                NSAssert(self.document.plan.brouterInfo, @"no brouterInfo");
+                self.document.plan.brouterInfo.kmlen = kmlen;
+                int mup = [brouterInfo[@"filtered-ascend"] intValue];
+                self.document.plan.brouterInfo.mup = mup;
+            }
+            self.gpxData = gpx;
+            self.document.plan.routePoints = points;
+            [self.elevationView setGpxPoints:points];
             [self refreshPoly];
             
-            if ((0)) {
-                NSArray *overlays = self.mapView.overlays;
-                [self.mapView removeOverlays:overlays];
-                for (id<MKOverlay> overlay in overlays) {
-                    if ([overlay isKindOfClass:[MKPolyline class]]) {
-                        [self.mapView addOverlay:overlay level:MKOverlayLevelAboveLabels];
-                    } else {
-                        [self.mapView addOverlay:overlay level:MKOverlayLevelAboveRoads];
-                    }
-                }
-            }
         });
+    
     }];
 }
 
