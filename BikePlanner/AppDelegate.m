@@ -15,7 +15,8 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     // Insert code here to initialize your application
-    [self installRunLoopLogger];
+    //[self installRunLoopLogger];
+    [self installRunLoopModeLogger];
 }
 
 
@@ -68,5 +69,25 @@ static void RunLoopLogger(CFRunLoopObserverRef observer, CFRunLoopActivity activ
     CFRunLoopAddObserver(CFRunLoopGetMain(), observer, kCFRunLoopCommonModes);
     CFRelease(observer);
 }
+
+- (void)installRunLoopModeLogger
+{
+    CFRunLoopObserverContext context = {0, (__bridge void *)self, NULL, NULL, NULL};
+    CFRunLoopObserverRef observer = CFRunLoopObserverCreateWithHandler(
+        NULL,
+        kCFRunLoopAllActivities,
+        YES,
+        0,
+        ^(CFRunLoopObserverRef obs, CFRunLoopActivity activity) {
+            NSString *mode = (__bridge_transfer NSString *)CFRunLoopCopyCurrentMode(CFRunLoopGetMain());
+            if (activity == kCFRunLoopBeforeWaiting) {
+                NSLog(@"[%@] Run loop idle in mode: %@", [NSDate date], mode);
+            }
+        }
+                                                                       );
+    CFRunLoopAddObserver(CFRunLoopGetMain(), observer, kCFRunLoopCommonModes);
+    CFRelease(observer);
+}
+
 
 @end
