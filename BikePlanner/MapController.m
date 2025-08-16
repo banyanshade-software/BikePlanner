@@ -200,7 +200,26 @@
 
 - (void) fullRefresh
 {
+    [self refreshAnnot];
     [self refreshPoly];
+}
+- (void) refreshAnnot
+{
+    for (RouteAnnotation *annot in self.mapView.annotations) {
+        if (![annot isKindOfClass:[RouteAnnotation class]]) {
+            continue;
+        }
+        [self.mapView removeAnnotation:annot];
+    }
+    NSUInteger idx = 0;
+    for (CLLocation *loc in _document.plan.waypointsLocations) {
+        CLLocationCoordinate2D coord = loc.coordinate;
+        NSString *title = [self stringForWaypointIdx:idx];
+        RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
+        a.idx = idx;
+        [self.mapView addAnnotation:a];
+        idx++;
+    }
 }
 - (void) refreshPoly
 {
