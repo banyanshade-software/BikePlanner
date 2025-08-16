@@ -27,5 +27,12 @@
     return YES;
 }
 
-
+- (BOOL)applicationShouldOpenUntitledFile:(NSApplication *)sender
+{
+    // Only create a new untitled doc if there are no open windows
+    if ([NSApp windows].count == 0) {
+        return YES; // make one
+    }
+    return NO; // don’t
+}
 @end

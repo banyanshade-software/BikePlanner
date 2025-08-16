@@ -124,7 +124,7 @@
     }
     
     self.plan = planObject;
-    //[self.mapController fullRefresh];
+    //[self.mapController fullRefresh]; done by window controller
     return YES;
 }
 
