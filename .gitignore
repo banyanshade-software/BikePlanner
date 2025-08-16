@@ -1,0 +1,7 @@
+.DS_Store
+tags
+xcdebugger
+xcuserdata
+gyroboard-backups/
+*.lck
+\#auto_saved_files\#
