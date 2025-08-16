@@ -202,7 +202,15 @@
 {
     [self refreshAnnot];
     [self refreshPoly];
+    [self refreshSideView];
 }
+
+- (void) refreshSideView
+{
+    [self.elevationView setGpxPoints:_document.plan.routePoints];
+    
+}
+
 - (void) refreshAnnot
 {
     for (RouteAnnotation *annot in self.mapView.annotations) {
