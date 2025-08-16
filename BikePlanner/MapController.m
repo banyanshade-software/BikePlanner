@@ -100,10 +100,9 @@
 
 - (void)clearAction:(id)sender
 {
-    [_document.plan.waypointsLocations removeAllObjects];
+    [_document.plan removeWaypoints];
     //self.hasStart = NO; self.hasEnd = NO;
     self.gpxData = nil;
-    [_document.plan.waypointsLocations removeAllObjects];
     [waypointsRouteAnnotations removeAllObjects];
     poly = nil;
     scrubberMarker = nil;
@@ -159,7 +158,8 @@
     
     RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
     a.idx = idx;
-    [_document.plan.waypointsLocations addObject:loc];
+    [_document.plan appendWaypoint:loc];
+    //[_document.plan.waypointsLocations addObject:loc];
     [waypointsRouteAnnotations addObject:a];
     [self recalcAnnotIndexesFrom:idx];
     
@@ -431,9 +431,8 @@
 
 - (void)insertWaypoint:(CLLocationCoordinate2D)coord atIdx:(NSUInteger)idx
 {
-    [_document.plan.waypointsLocations insertObject:[[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude] atIndex:idx];
-    // update idx
-    
+    CLLocation *loc = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
+    [_document.plan insertWaypoint:loc atIndex:idx];    
     [self requestRoute];
 }
 
@@ -648,8 +647,8 @@ didChangeDragState:(MKAnnotationViewDragState)newState
         }
         NSUInteger idx = ra.idx;
         CLLocationCoordinate2D newCoord = ra.coordinate;
-        _document.plan.waypointsLocations[idx] = [[CLLocation alloc] initWithLatitude:newCoord.latitude longitude:newCoord.longitude];
-        
+        CLLocation *loc = [[CLLocation alloc] initWithLatitude:newCoord.latitude longitude:newCoord.longitude];
+        [_document.plan replaceWaypointAtIndex:idx by:loc];
         
         [self requestRoute];
     }
@@ -743,7 +742,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
         NSUInteger idx = [waypointsRouteAnnotations indexOfObject:annotation];
         if (idx != NSNotFound) {
             [waypointsRouteAnnotations removeObjectAtIndex:idx];
-            [_document.plan.waypointsLocations removeObjectAtIndex:idx];
+            [_document.plan removeWaypoints];
             [self recalcAnnotIndexesFrom:idx];
             [self shouldRecalcRoute];
         }
