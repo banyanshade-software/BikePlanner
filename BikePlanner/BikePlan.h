@@ -42,6 +42,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (readonly,nonatomic) TaggedPoly *routePoly;    // MKPolyLine with a tag, 0
 @property (readonly,nonatomic) TaggedPoly *waypointPoly; // MKPolyLine with a tag, 1
+@property (readonly,nonatomic) TaggedPoly *gpxDisplayedPoly; // MKPolyLine with a tag, 2
 
 
 @end

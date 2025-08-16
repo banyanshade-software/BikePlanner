@@ -21,7 +21,7 @@
     NSMutableArray <RouteAnnotation *>*waypointsRouteAnnotations;
     //NSArray<CLLocation *> *routePoints;
     //MKPolyline *poly; // route being built
-    MKPolyline *gpxpoly; // loaded gpx, just displayed
+    //MKPolyline *gpxpoly; // loaded gpx, just displayed
     MKPointAnnotation *scrubberMarker;
 }
 
@@ -202,9 +202,15 @@
 {
     [self refreshAnnot];
     [self refreshPoly];
+    [self refreshGpxDisplayed];
     [self refreshSideView];
 }
 
+- (void) refreshGpxDisplayed
+{
+    TaggedPoly *gpxpoly = _document.plan.gpxDisplayedPoly;
+    [self.mapView addOverlay:gpxpoly level:MKOverlayLevelAboveLabels];
+}
 - (void) refreshSideView
 {
     [self.elevationView setGpxPoints:_document.plan.routePoints];
@@ -809,14 +815,18 @@ didChangeDragState:(MKAnnotationViewDragState)newState
         NSLog(@"parse gpx err : %@", parseError);
         return;
     }
+    _document.plan.gpxDisplayed = points;
+    /*
     NSUInteger n = points.count;
     CLLocationCoordinate2D *coords = malloc(sizeof(CLLocationCoordinate2D) * n);
     for (NSUInteger i=0;i<n;i++) {
         coords[i] = points[i].coordinate;
     }
     gpxpoly = [MKPolyline polylineWithCoordinates:coords count:n];
+     */
+    TaggedPoly *gpxpoly = _document.plan.gpxDisplayedPoly;
     [self.mapView addOverlay:gpxpoly level:MKOverlayLevelAboveLabels];
 
-    free(coords);
+    //free(coords);
 }
 @end

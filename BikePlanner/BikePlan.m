@@ -16,6 +16,7 @@
     NSMutableArray <CLLocation *>*_waypointsLocations;
     TaggedPoly *_waypointPoly;
     TaggedPoly *_routePoly;
+    TaggedPoly *_gpxDisplayedPoly;
 }
 
 - (instancetype)init
@@ -99,6 +100,20 @@
     return poly;
 }
 
+- (void) setGpxDisplayed:(NSArray<CLLocation *> *)pt
+{
+    _gpxDisplayedPoly = nil;
+    _gpxDisplayed = pt;
+}
+
+- (TaggedPoly *) gpxDisplayedPoly
+{
+    if (!_gpxDisplayedPoly) {
+        _gpxDisplayedPoly = [self buildPolyWith:_gpxDisplayed];
+        _gpxDisplayedPoly.tag = 2;
+    }
+    return _gpxDisplayedPoly;
+}
 #pragma mark - load save
 
 + (BOOL) supportsSecureCoding
