@@ -96,8 +96,22 @@
     btnZoomOut.bezelStyle = NSBezelStyleRoundRect;
     btnZoomOut.action = @selector(zoomOut:);
     btnZoomOut.target = self;
+    //btnZoomOut.contentTintColor = [NSColor labelColor];
     [content addSubview:btnZoomOut];
     
+    
+    NSImage *locImage = [NSImage imageWithSystemSymbolName:@"location.fill"
+                                       accessibilityDescription:@"Show User Location"];
+
+    NSButton *btnCurloc = [[NSButton alloc]initWithFrame:NSMakeRect(14+32*2+10, 32, 32, 32)];
+    btnCurloc.image = locImage;
+    btnCurloc.target = self;
+    btnCurloc.action = @selector(centerOnUserLocation:);
+    btnCurloc.bezelStyle = NSBezelStyleRoundRect;
+    //btnCurloc.contentTintColor = [NSColor orangeColor];
+    [content addSubview:btnCurloc];
+
+
     NSSegmentedControl *maptype = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 64, 280, 26)];
     maptype.segmentCount = 5;
     maptype.selectedSegment = 0;
@@ -143,6 +157,22 @@
         //NSLog(@"hop");
         [self refreshPOI];
     };
+}
+
+- (IBAction)centerOnUserLocation:(id)sender
+{
+    MKUserLocation *userloc = self.mapView.userLocation;
+    if (!userloc.location) {
+        CLLocationManager *locationManager = [[CLLocationManager alloc] init];
+        [locationManager requestWhenInUseAuthorization];
+        self.mapView.showsUserLocation = YES;
+        
+    }
+    if (userloc.location) {
+        CLLocationCoordinate2D coord = self.mapView.userLocation.coordinate;
+        MKCoordinateRegion region = MKCoordinateRegionMakeWithDistance(coord, 1000, 1000);
+        [self.mapView setRegion:region animated:YES];
+    }
 }
 
 

@@ -75,5 +75,7 @@
 			</dict>
 		</dict>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>1</string>
 </dict>
 </plist>
