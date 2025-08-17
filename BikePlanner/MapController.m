@@ -352,7 +352,7 @@
     }
     [self refreshAnnot];
     [self refreshPOI];
-    [self refreshPoly];
+    [self refreshPoly:YES];
     [self refreshGpxDisplayed];
     [self refreshSideView];
 }
@@ -405,7 +405,7 @@
         [self.mapView addAnnotation:ann];
     }
 }
-- (void) refreshPoly
+- (void) refreshPoly:(BOOL)changeVisibleRect
 {
     // Remove old route overlays (except tile overlays)
     for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
@@ -420,7 +420,10 @@
     MKPolyline *poly = _document.plan.routePoly;
     
     [self.mapView addOverlay:poly level:MKOverlayLevelAboveLabels];
-    [self.mapView setVisibleMapRect:[poly boundingMapRect] edgePadding:NSEdgeInsetsMake(40, 40, 40, 40) animated:YES];
+    MKMapRect rect = [poly boundingMapRect];
+    if (changeVisibleRect) {
+        [self.mapView setVisibleMapRect:rect edgePadding:NSEdgeInsetsMake(40, 40, 40, 40) animated:YES];
+    }
 }
 
 
@@ -461,7 +464,7 @@
             self.gpxData = gpx;
             self.document.plan.routePoints = points;
             [self.elevationView setGpxPoints:points];
-            [self refreshPoly];
+            [self refreshPoly:NO];
             
         });
     
