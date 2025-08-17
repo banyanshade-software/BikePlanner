@@ -9,10 +9,13 @@
 
 @implementation BikeMapView
 
-- (void)drawRect:(NSRect)dirtyRect {
-    [super drawRect:dirtyRect];
-    
-    // Drawing code here.
+/*- (NSView *)hitTest:(NSPoint)point
+{
+    NSView *hit = [super hitTest:point];
+    if (hit == self) {
+        return nil; // pass clicks through to underlying map buttons
+    }
+    return hit;
 }
-
+*/
 @end

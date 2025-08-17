@@ -73,9 +73,30 @@
     help.stringValue = @"Click once to set START, click again to set END. Route is requested automatically.";
     [content addSubview:help];
     
+    /*
     NSPopUpButton *profileMenu = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(14, 36, 200, 26)];
     [profileMenu addItemsWithTitles:@[@"trekking", @"fastbike", @"car-fast", @"car-eco"]];
     [content addSubview:profileMenu];
+    */
+    NSImage *zoomInImage = [NSImage imageWithSystemSymbolName:@"plus.magnifyingglass"
+                                        accessibilityDescription:@"Zoom In"];
+    NSButton *btnZoomIn =  [[NSButton alloc]initWithFrame:NSMakeRect(14, 32, 32, 32)];
+    btnZoomIn.image = zoomInImage;
+    //btnZoomIn.imageScaling = NSImageScaleProportionallyDown;
+    btnZoomIn.bezelStyle = NSBezelStyleRoundRect;
+    btnZoomIn.action = @selector(zoomIn:);
+    btnZoomIn.target = self;
+    [content addSubview:btnZoomIn];
+    
+    NSImage *zoomOutImage = [NSImage imageWithSystemSymbolName:@"minus.magnifyingglass"
+                                        accessibilityDescription:@"Zoom Out"];
+    NSButton *btnZoomOut =  [[NSButton alloc]initWithFrame:NSMakeRect(14+32, 32, 32, 32)];
+    btnZoomOut.image = zoomOutImage;
+    //btnZoomOut.imageScaling = NSImageScaleProportionallyDown;
+    btnZoomOut.bezelStyle = NSBezelStyleRoundRect;
+    btnZoomOut.action = @selector(zoomOut:);
+    btnZoomOut.target = self;
+    [content addSubview:btnZoomOut];
     
     NSSegmentedControl *maptype = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 64, 280, 26)];
     maptype.segmentCount = 5;
