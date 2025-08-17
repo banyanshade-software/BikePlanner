@@ -179,7 +179,7 @@
         CLLocationCoordinate2D coord = loc.coordinate;
 
         // Amenity = drinking_water
-        [query appendFormat:@"  node(around:%lu,%.6f,%.6f)[\"amenity\"~\"drinking_water|toilets|grave_yard\"];\n",
+        [query appendFormat:@"  node(around:%lu,%.6f,%.6f)[\"amenity\"~\"drinking_water|toilets|grave_yard|bicycle_repair_station\"];\n",
              (unsigned long)radiusMeters, coord.latitude, coord.longitude];
 
 

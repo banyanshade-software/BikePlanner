@@ -677,6 +677,8 @@ static const BOOL useMarker = NO;
         
         static NSImage *tpl_toilets = nil;
         static NSImage *tpl_water = nil;
+        static NSImage *tpl_cemetery = nil;
+        static NSImage *tpl_repair = nil;
 
         static dispatch_once_t onceToken = (dispatch_once_t)0;
         dispatch_once(&onceToken, ^{
@@ -684,6 +686,10 @@ static const BOOL useMarker = NO;
             [tpl_water setTemplate:YES];
             tpl_toilets = [NSImage imageNamed:@"icon_toilets"];
             [tpl_toilets setTemplate:YES];
+            tpl_cemetery = [NSImage imageNamed:@"icon_cemetary"];
+            [tpl_cemetery setTemplate:YES];
+            tpl_repair = [NSImage imageNamed:@"icon_repair"];
+            [tpl_repair setTemplate:YES];
         });
         if ([poi.poiType isEqualToString:@"drinking_water"]) {
             view.glyphImage = tpl_water;
@@ -691,6 +697,15 @@ static const BOOL useMarker = NO;
         } else if ([poi.poiType isEqualToString:@"toilets"]) {
             view.glyphImage = tpl_toilets;
             view.markerTintColor = [NSColor greenColor];
+        } else if ([poi.poiType isEqualToString:@"cemetery"]) {
+            view.glyphImage = tpl_cemetery;
+            view.markerTintColor = [NSColor blueColor];
+        } else if ([poi.poiType isEqualToString:@"grave_yard"]) {
+            view.glyphImage = tpl_cemetery;
+            view.markerTintColor = [NSColor grayColor];
+        } else if ([poi.poiType isEqualToString:@"bicycle_repair_station"]) {
+            view.glyphImage = tpl_repair;
+            view.markerTintColor = [NSColor orangeColor];
         } else {
             //view.image = [NSImage imageNamed:@"icon_default"];
             return nil;
