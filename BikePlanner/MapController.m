@@ -12,6 +12,7 @@
 #import "SafeOSMTileOverlay.h"
 #import "GPXParser.h"
 #import "RouteAnnotation.h"
+#import "POIAnnotation.h"
 #import "BikePlan.h"
 #import "TaggedPoly.h"
 
@@ -97,6 +98,7 @@
     
     _document.plan.poiAvailableCallback = ^() {
         NSLog(@"hop");
+        [self refreshPOI];
     };
 }
 
@@ -209,6 +211,7 @@
         }
     }
     [self refreshAnnot];
+    [self refreshPOI];
     [self refreshPoly];
     [self refreshGpxDisplayed];
     [self refreshSideView];
@@ -243,6 +246,23 @@
         [waypointsRouteAnnotations addObject:a];
         [self.mapView addAnnotation:a];
         idx++;
+    }
+}
+
+- (void) refreshPOI
+{
+    for (RouteAnnotation *annot in self.mapView.annotations) {
+        if (![annot isKindOfClass:[POIAnnotation class]]) {
+            continue;
+        }
+        [self.mapView removeAnnotation:annot];
+    }
+    for (LocationWithString *loc in _document.plan.poiloc) {
+        POIAnnotation *ann = [[POIAnnotation alloc] init];
+        ann.coordinate = loc.coordinate;
+        ann.title = loc.title;
+        ann.poiType = loc.title; // FIXME
+        [self.mapView addAnnotation:ann];
     }
 }
 - (void) refreshPoly
@@ -643,6 +663,31 @@ static const BOOL useMarker = NO;
         return view;
     }
     
+    
+    if ([annotation isKindOfClass:[POIAnnotation class]]) {
+        static NSString *identifier = @"POIAnnotationView";
+        MKAnnotationView *view = [mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
+        if (!view) {
+            view = [[MKAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
+            view.canShowCallout = YES;
+        } else {
+            view.annotation = annotation;
+        }
+        POIAnnotation *poi = (POIAnnotation *)annotation;
+        
+        if ([poi.poiType isEqualToString:@"drinking_water"]) {
+            view.image = [NSImage imageNamed:@"icon_water"]; // <-- put in Assets.xcassets
+        } else if ([poi.poiType isEqualToString:@"toilets"]) {
+            view.image = [NSImage imageNamed:@"icon_toilets"];
+        } else {
+            //view.image = [NSImage imageNamed:@"icon_default"];
+            return nil;
+        }
+        // <a href="https://www.flaticon.com/free-icons/drinkable" title="drinkable icons">Drinkable icons created by cube29 - Flaticon</a>
+        //<a href="https://www.flaticon.com/free-icons/restroom" title="restroom icons">Restroom icons created by monkik - Flaticon</a>
+        return view;
+    }
+        
     return nil;
 }
 

@@ -190,7 +190,7 @@
             NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
             NSArray *elements = json[@"elements"];
             dispatch_async(dispatch_get_main_queue(), ^{
-                NSMutableArray *poiloc = [[NSMutableArray alloc]initWithCapacity:16];
+                NSMutableArray *tpoiarray = [[NSMutableArray alloc]initWithCapacity:16];
                 for (NSDictionary *el in elements) {
                     double lat = [el[@"lat"] doubleValue];
                     double lon = [el[@"lon"] doubleValue];
@@ -202,7 +202,7 @@
                     NSString *t = el[@"tags"][@"amenity"];
                     CLLocation *loc = [[LocationWithString alloc]initWithLatitude:lat longitude:lon title:t info:info2];
                     
-                    [poiloc addObject:loc];
+                    [tpoiarray addObject:loc];
                     /*
                     MKPointAnnotation *ann = [[MKPointAnnotation alloc] init];
                     ann.title = @"Drinking Water";
@@ -210,11 +210,13 @@
                     //[self.mapView addAnnotation:ann];
                      */
                 }
+                [self willChangeValueForKey:@"poiloc"];
+                _poiloc = tpoiarray;
+                [self didChangeValueForKey:@"poiloc"];
                 // notify controller
                 if (_poiAvailableCallback) {
                     _poiAvailableCallback();
                 }
-                //self.poiloc =
             });
         }];
     [task resume];

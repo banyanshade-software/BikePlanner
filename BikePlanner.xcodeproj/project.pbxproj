@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1B53B7C22E51EC3A00C9470F /* POIAnnotation.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7C12E51EC3A00C9470F /* POIAnnotation.m */; };
 		65B22D642E50B1360078F4BC /* TaggedPoly.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B22D632E50B1360078F4BC /* TaggedPoly.m */; };
 		65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */; };
 		65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE642E47982C001F2966 /* BikePlannerUITests.m */; };
@@ -67,6 +68,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1B53B7C02E51EC3A00C9470F /* POIAnnotation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = POIAnnotation.h; sourceTree = "<group>"; };
+		1B53B7C12E51EC3A00C9470F /* POIAnnotation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = POIAnnotation.m; sourceTree = "<group>"; };
 		65B22D622E50B1360078F4BC /* TaggedPoly.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TaggedPoly.h; sourceTree = "<group>"; };
 		65B22D632E50B1360078F4BC /* TaggedPoly.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TaggedPoly.m; sourceTree = "<group>"; };
 		65B8EE442E479821001F2966 /* BikePlanner_org.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BikePlanner_org.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -236,6 +239,8 @@
 				65B8EE7E2E47A34E001F2966 /* SafeTileRenderer.m */,
 				65F366132E4FA4F30046B03D /* RouteAnnotation.h */,
 				65F366142E4FA4F30046B03D /* RouteAnnotation.m */,
+				1B53B7C02E51EC3A00C9470F /* POIAnnotation.h */,
+				1B53B7C12E51EC3A00C9470F /* POIAnnotation.m */,
 				65B22D622E50B1360078F4BC /* TaggedPoly.h */,
 				65B22D632E50B1360078F4BC /* TaggedPoly.m */,
 			);
@@ -538,6 +543,7 @@
 				65F3660F2E4F7AE50046B03D /* PlannerWindowController.m in Sources */,
 				65F365952E4F6BD40046B03D /* AppDelegate.m in Sources */,
 				65F365CC2E4F73200046B03D /* BRFProfileEditor.m in Sources */,
+				1B53B7C22E51EC3A00C9470F /* POIAnnotation.m in Sources */,
 				65F365CA2E4F73200046B03D /* StreetViewController.m in Sources */,
 				65F365CB2E4F73200046B03D /* BRouterClient.m in Sources */,
 			);

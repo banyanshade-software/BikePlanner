@@ -42,6 +42,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (strong,nonatomic) NSArray<CLLocation *> *gpxDisplayed;
 @property (strong,nonatomic) BrouterInfo *brouterInfo;
 
+@property (readonly,nonatomic) NSArray<LocationWithString *> *poiloc;
 @property (nonatomic, copy) void (^poiAvailableCallback)(void);
 
 - (void) removeWaypoints;
