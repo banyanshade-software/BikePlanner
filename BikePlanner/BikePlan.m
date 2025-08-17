@@ -168,7 +168,7 @@
     NSString *poly = [self polyStringFromCoordinates:coords];
     return [NSString stringWithFormat:
         @"[out:json];"
-         "(node[\"amenity\"~\"drinking_water|toilet\"](poly:\"%@\"););"
+         "(node[\"amenity\"~\"drinking_water|toilet|bicycle_repair_station|cafe|grave_yard|cemetery\"](poly:\"%@\"););"
          "out;", poly];
 }
 
@@ -210,16 +210,25 @@
                     //[self.mapView addAnnotation:ann];
                      */
                 }
-                [self willChangeValueForKey:@"poiloc"];
-                _poiloc = tpoiarray;
-                [self didChangeValueForKey:@"poiloc"];
+                self.poiloc = tpoiarray;
+                
+                //[self willChangeValueForKey:@"poiloc"];
+                //_poiloc = tpoiarray;
+                //[self didChangeValueForKey:@"poiloc"];
                 // notify controller
-                if (_poiAvailableCallback) {
-                    _poiAvailableCallback();
+                if (self.poiAvailableCallback) {
+                    self.poiAvailableCallback();
                 }
             });
         }];
     [task resume];
+}
+
+- (void) setPoiloc:(NSArray<LocationWithString *> * _Nonnull)pl
+{
+    if (pl != _poiloc) {
+        _poiloc = pl;
+    }
 }
 @end
 

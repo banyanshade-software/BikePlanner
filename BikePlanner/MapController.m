@@ -666,19 +666,31 @@ static const BOOL useMarker = NO;
     
     if ([annotation isKindOfClass:[POIAnnotation class]]) {
         static NSString *identifier = @"POIAnnotationView";
-        MKAnnotationView *view = [mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
+        MKMarkerAnnotationView *view = [mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
         if (!view) {
-            view = [[MKAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
+            view = [[MKMarkerAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
             view.canShowCallout = YES;
         } else {
             view.annotation = annotation;
         }
         POIAnnotation *poi = (POIAnnotation *)annotation;
         
+        static NSImage *tpl_toilets = nil;
+        static NSImage *tpl_water = nil;
+
+        static dispatch_once_t onceToken = (dispatch_once_t)0;
+        dispatch_once(&onceToken, ^{
+            tpl_water = [NSImage imageNamed:@"icon_water"];
+            [tpl_water setTemplate:YES];
+            tpl_toilets = [NSImage imageNamed:@"icon_toilets"];
+            [tpl_toilets setTemplate:YES];
+        });
         if ([poi.poiType isEqualToString:@"drinking_water"]) {
-            view.image = [NSImage imageNamed:@"icon_water"]; // <-- put in Assets.xcassets
+            view.glyphImage = tpl_water;
+            view.markerTintColor = [NSColor systemBlueColor];
         } else if ([poi.poiType isEqualToString:@"toilets"]) {
-            view.image = [NSImage imageNamed:@"icon_toilets"];
+            view.glyphImage = tpl_toilets;
+            view.markerTintColor = [NSColor greenColor];
         } else {
             //view.image = [NSImage imageNamed:@"icon_default"];
             return nil;
