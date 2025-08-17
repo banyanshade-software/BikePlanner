@@ -67,11 +67,12 @@
     [content addSubview:profileMenu];
     
     NSSegmentedControl *maptype = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 64, 200, 26)];
-    maptype.segmentCount = 3;
+    maptype.segmentCount = 4;
     maptype.selectedSegment = 0;
     [maptype setLabel:@"OSM" forSegment:0];
     [maptype setLabel:@"Apple" forSegment:1];
-    [maptype setLabel:@"Sat" forSegment:2];
+    [maptype setLabel:@"Sat+Rd" forSegment:2];
+    [maptype setLabel:@"Sat" forSegment:3];
     maptype.segmentStyle = NSSegmentStyleRoundRect;
     maptype.action = @selector(changeMapType:);
     maptype.target = self;
@@ -121,14 +122,21 @@
     }
     mapType = mt;
     switch (mapType) {
+        default: // FALLTHRU
         case 0:
             [self.mapView addOverlay:osmOverlay level:MKOverlayLevelAboveRoads];
             break;
         case 1:
-            
+            self.mapView.mapType = MKMapTypeStandard;
+            break;
+        case 2:
+            self.mapView.mapType = MKMapTypeHybrid;
+            break;
+        case 3:
+            self.mapView.mapType = MKMapTypeSatellite;
+            break;
     }
-    if (0==mapType) {
-    }
+    
 }
 
 
