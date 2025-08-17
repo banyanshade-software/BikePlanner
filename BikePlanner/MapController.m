@@ -24,6 +24,8 @@
     //MKPolyline *poly; // route being built
     //MKPolyline *gpxpoly; // loaded gpx, just displayed
     MKPointAnnotation *scrubberMarker;
+    int mapType;
+    SafeOSMTileOverlay *osmOverlay;
 }
 
 - (void) initializeMapview
@@ -43,10 +45,10 @@
     
     // Add OpenStreetMap tile overlay
     NSString *template = @"https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-    SafeOSMTileOverlay *osm = [[SafeOSMTileOverlay alloc] initWithURLTemplate:template];
-    osm.canReplaceMapContent = NO; // replace Apple's map
-    [self.mapView addOverlay:osm level:MKOverlayLevelAboveRoads];
-    
+    osmOverlay = [[SafeOSMTileOverlay alloc] initWithURLTemplate:template];
+    osmOverlay.canReplaceMapContent = YES; // replace Apple's map
+    [self.mapView addOverlay:osmOverlay level:MKOverlayLevelAboveRoads];
+    mapType = 0;
     // Buttons
     NSButton *clearBtn = [[NSButton alloc] initWithFrame:NSMakeRect(10, 10, 80, 28)];
     clearBtn.title = @"Clear";
@@ -71,6 +73,8 @@
     [maptype setLabel:@"Apple" forSegment:1];
     [maptype setLabel:@"Sat" forSegment:2];
     maptype.segmentStyle = NSSegmentStyleRoundRect;
+    maptype.action = @selector(changeMapType:);
+    maptype.target = self;
     [content addSubview:maptype];
     // BRouter client (default points to local server at port 17777)
     //NSString *brouter=@"http://127.0.0.1:17777";
@@ -81,6 +85,7 @@
     
     // Center map to a default location
     //CLLocationCoordinate2D center = CLLocationCoordinate2DMake(48.8566, 2.3522); // Paris
+    // 44.1249234 ,0.4961707,10920
     // 44.1249234 ,0.4961707,10920
     CLLocationCoordinate2D center = CLLocationCoordinate2DMake(44.1249234, 0.4961707); // Laplume
     [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(center, 20000, 20000) animated:NO];
@@ -102,6 +107,29 @@
     };
 }
 
+
+- (void) changeMapType:(id)sender
+{
+    NSAssert([sender isKindOfClass:[NSSegmentedControl class]], @"bad ctrl class");
+    NSSegmentedControl *seg = (NSSegmentedControl *) sender;
+    int mt = seg.selectedSegment;
+    NSLog(@"mt %d", mt);
+    if (mt==mapType) return;
+    if (0==mapType) {
+        // remove osm
+        [self.mapView removeOverlay:osmOverlay];
+    }
+    mapType = mt;
+    switch (mapType) {
+        case 0:
+            [self.mapView addOverlay:osmOverlay level:MKOverlayLevelAboveRoads];
+            break;
+        case 1:
+            
+    }
+    if (0==mapType) {
+    }
+}
 
 
 - (void)clearAction:(id)sender
