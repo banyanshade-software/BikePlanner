@@ -101,15 +101,18 @@
     // 44.1249234 ,0.4961707,10920
     // 44.1249234 ,0.4961707,10920
     CLLocationCoordinate2D center = CLLocationCoordinate2DMake(44.1249234, 0.4961707); // Laplume
-    [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(center, 20000, 20000) animated:NO];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(center, 20000, 20000) animated:NO];
+
+    });
     
     // Add click handler
     NSClickGestureRecognizer *clicker = [[NSClickGestureRecognizer alloc] initWithTarget:self action:@selector(handleMapClick:)];
-    //clicker.delegate = self;
+    //clicker.delegate = self; unused
     clicker.buttonMask = 0x1; // left mouse
     clicker.numberOfClicksRequired = 1;
-    if ((1)) [self.mapView addGestureRecognizer:clicker];
-    //self.mapView.showsZoomControls = YES;
+    [self.mapView addGestureRecognizer:clicker];
+    self.mapView.showsZoomControls = NO;
    
     scrubberMarker = [[MKPointAnnotation alloc] init];
     [self.mapView addAnnotation:scrubberMarker];
@@ -119,6 +122,23 @@
         //NSLog(@"hop");
         [self refreshPOI];
     };
+}
+
+
+- (IBAction)zoomIn:(id)sender
+{
+    MKCoordinateRegion region = self.mapView.region;
+    region.span.latitudeDelta /= 2.0;
+    region.span.longitudeDelta /= 2.0;
+    [self.mapView setRegion:region animated:YES];
+}
+
+- (IBAction)zoomOut:(id)sender
+{
+    MKCoordinateRegion region = self.mapView.region;
+    region.span.latitudeDelta *= 2.0;
+    region.span.longitudeDelta *= 2.0;
+    [self.mapView setRegion:region animated:YES];
 }
 
 
@@ -205,6 +225,7 @@
     return YES;
 }
  */
+
 
 - (void)handleMapClick:(NSGestureRecognizer *)gesture
 {

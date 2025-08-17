@@ -54,7 +54,7 @@
                                                 <rect key="frame" x="0.0" y="0.0" width="448" height="304"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                                 <subviews>
-                                                    <mapView pitchEnabled="NO" showsPointsOfInterest="NO" showsScale="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Nai-3j-aq5">
+                                                    <mapView pitchEnabled="NO" showsPointsOfInterest="NO" showsScale="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Nai-3j-aq5" customClass="BikeMapView">
                                                         <rect key="frame" x="2" y="2" width="444" height="300"/>
                                                         <constraints>
                                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="360" id="8bQ-EC-SQt"/>
