@@ -137,6 +137,7 @@
     [coder encodeObject:_routePoints forKey:@"routePoints"];
     [coder encodeObject:_gpxDisplayed forKey:@"gpxDisplayed"];
     [coder encodeObject:_brouterInfo forKey:@"brouterInfo"];
+    [coder encodeObject:_poiloc forKey:@"poiloc"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)coder
@@ -148,12 +149,13 @@
     self.gpxDisplayed = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [CLLocation class], nil] forKey:@"gpxDisplayed"];
     self.brouterInfo = [coder decodeObjectOfClass:[BrouterInfo class] forKey:@"brouterInfo"];
     if (!_brouterInfo) self.brouterInfo = [[BrouterInfo alloc]init];
+    self.poiloc = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [LocationWithString class], nil]  forKey:@"poiloc"];
     return self;
 }
 
 #pragma mark - POI
 
-- (NSString *)polyStringFromCoordinates:(NSArray<CLLocation *> *)route
+/*- (NSString *)polyStringFromCoordinates:(NSArray<CLLocation *> *)route
 {
     NSMutableString *poly = [NSMutableString string];
     for (CLLocation *loc in route) {
@@ -161,20 +163,39 @@
         [poly appendFormat:@"%f %f ", c.latitude, c.longitude];
     }
     return [poly stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-}
+}*/
 
-- (NSString *)overpassQueryForPolyline:(NSArray<CLLocation *> *)coords
+- (NSString *)overpassQueryForTrack:(NSArray<CLLocation *> *)trackPoints
+                        sampleEvery:(NSUInteger)step
+                         withRadius:(NSUInteger)radiusMeters
 {
-    NSString *poly = [self polyStringFromCoordinates:coords];
-    return [NSString stringWithFormat:
-        @"[out:json];"
-         "(node[\"amenity\"~\"drinking_water|toilet|bicycle_repair_station|cafe|grave_yard|cemetery\"](poly:\"%@\"););"
-         "out;", poly];
+    NSMutableString *query = [NSMutableString stringWithString:
+        @"[out:json][timeout:25];\n(\n"];
+
+    // Sample points (every Nth point)
+    NSUInteger c = [trackPoints count];
+    for (NSUInteger i = 0; i < c; i += step) {
+        CLLocation *loc = trackPoints[i];
+        CLLocationCoordinate2D coord = loc.coordinate;
+
+        // Amenity = drinking_water
+        [query appendFormat:@"  node(around:%lu,%.6f,%.6f)[\"amenity\"~\"drinking_water|toilets|grave_yard\"];\n",
+             (unsigned long)radiusMeters, coord.latitude, coord.longitude];
+
+
+        // Landuse = cemetery (ways or areas, get center)
+        [query appendFormat:@"  way(around:%lu,%.6f,%.6f)[\"landuse\"=\"cemetery\"];\n",
+             (unsigned long)radiusMeters, coord.latitude, coord.longitude];
+    }
+
+    [query appendString:@");\nout center;"];
+
+    return query;
 }
 
 - (void)fetchPOIsNearRoute:(NSArray<CLLocation *> *)coords
 {
-    NSString *query = [self overpassQueryForPolyline:coords];
+    NSString *query = [self overpassQueryForTrack:coords sampleEvery:10 withRadius:1500];
     NSData *bodyData = [query dataUsingEncoding:NSUTF8StringEncoding];
     
     NSURL *url = [NSURL URLWithString:@"https://overpass-api.de/api/interpreter"];
@@ -192,15 +213,32 @@
             dispatch_async(dispatch_get_main_queue(), ^{
                 NSMutableArray *tpoiarray = [[NSMutableArray alloc]initWithCapacity:16];
                 for (NSDictionary *el in elements) {
-                    double lat = [el[@"lat"] doubleValue];
-                    double lon = [el[@"lon"] doubleValue];
-                   //title = el[@"tags"]
-                    NSDictionary *info = el[@"tags"];
                     NSString *poiid = el[@"id"];
-                    NSMutableDictionary *info2 = [info mutableCopy];
+                    NSDictionary *tags = el[@"tags"];
+                    NSMutableDictionary *info2 = [tags mutableCopy];
                     [info2 setObject:poiid forKey:@"id"];
-                    NSString *t = el[@"tags"][@"amenity"];
-                    CLLocation *loc = [[LocationWithString alloc]initWithLatitude:lat longitude:lon title:t info:info2];
+                    NSDictionary *info = el[@"tags"];
+                    double lon = 0.;
+                    double lat = 0.;
+                    NSString *t = el[@"type"];
+                    NSString *poitype = @"";
+                    if ((0)) {
+                    } else if ([t isEqualToString:@"node"]) {
+                        lat = [el[@"lat"] doubleValue];
+                        lon = [el[@"lon"] doubleValue];
+                        poitype = tags[@"amenity"];
+                    } else if ([t isEqualToString:@"way"]) {
+                        NSDictionary *center = el[@"center"];
+                        lat = [center[@"lat"] doubleValue];
+                        lon = [center[@"lon"] doubleValue];
+                        poitype = tags[@"landuse"];
+                    } else {
+                        NSLog(@"unknown type");
+                        continue;
+                    }
+                   
+                   //title = el[@"tags"]
+                    CLLocation *loc = [[LocationWithString alloc]initWithLatitude:lat longitude:lon title:poitype info:info2];
                     
                     [tpoiarray addObject:loc];
                     /*
@@ -302,7 +340,7 @@
 - (void)encodeWithCoder:(NSCoder *)coder
 {
     [super encodeWithCoder:coder];
-    [coder encodeObject:title forKey:title];
+    [coder encodeObject:title forKey:@"title"];
     [coder encodeObject:info forKey:@"info"];
 }
 
