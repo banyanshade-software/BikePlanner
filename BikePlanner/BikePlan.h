@@ -20,7 +20,15 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
+@interface LocationWithString : CLLocation <NSSecureCoding> {
+    NSString *title;
+    NSDictionary *info;
+}
+@property (nonatomic,readonly) NSString *title;
+@property (nonatomic,readonly) NSDictionary *info;
 
+- (instancetype) initWithLatitude:(CLLocationDegrees)latitude longitude:(CLLocationDegrees)longitude title:(NSString *)title info:(NSDictionary *)info;
+@end
 
 @interface BikePlan : NSObject <NSSecureCoding> {
     //NSMutableArray <RouteAnnotation *>*waypointsRouteAnnotations;

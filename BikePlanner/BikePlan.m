@@ -17,6 +17,7 @@
     TaggedPoly *_waypointPoly;
     TaggedPoly *_routePoly;
     TaggedPoly *_gpxDisplayedPoly;
+    NSMutableArray <LocationWithString *> *poiloc;
 }
 
 - (instancetype)init
@@ -91,6 +92,7 @@
     if (!_waypointPoly) {
         _routePoly = [self buildPolyWith:_routePoints];
         _routePoly.tag = 0;
+        [self fetchPOIsNearRoute:_routePoints];
     }
     return _routePoly;
 }
@@ -148,6 +150,73 @@
     if (!_brouterInfo) self.brouterInfo = [[BrouterInfo alloc]init];
     return self;
 }
+
+#pragma mark - POI
+
+- (NSString *)polyStringFromCoordinates:(NSArray<CLLocation *> *)route
+{
+    NSMutableString *poly = [NSMutableString string];
+    for (CLLocation *loc in route) {
+        CLLocationCoordinate2D c = [loc coordinate];
+        [poly appendFormat:@"%f %f ", c.latitude, c.longitude];
+    }
+    return [poly stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+}
+
+- (NSString *)overpassQueryForPolyline:(NSArray<CLLocation *> *)coords
+{
+    NSString *poly = [self polyStringFromCoordinates:coords];
+    return [NSString stringWithFormat:
+        @"[out:json];"
+         "(node[\"amenity\"~\"drinking_water|toilet\"](poly:\"%@\"););"
+         "out;", poly];
+}
+
+- (void)fetchPOIsNearRoute:(NSArray<CLLocation *> *)coords
+{
+    NSString *query = [self overpassQueryForPolyline:coords];
+    NSData *bodyData = [query dataUsingEncoding:NSUTF8StringEncoding];
+    
+    NSURL *url = [NSURL URLWithString:@"https://overpass-api.de/api/interpreter"];
+    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:url];
+    req.HTTPMethod = @"POST";
+    req.HTTPBody = bodyData;
+    
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:req
+        completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
+            if (err) { NSLog(@"Error: %@", err); return; }
+            if (!data) { return; }
+            
+            NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+            NSArray *elements = json[@"elements"];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                NSMutableArray *poiloc = [[NSMutableArray alloc]initWithCapacity:16];
+                for (NSDictionary *el in elements) {
+                    double lat = [el[@"lat"] doubleValue];
+                    double lon = [el[@"lon"] doubleValue];
+                   //title = el[@"tags"]
+                    NSDictionary *info = el[@"tags"];
+                    NSString *poiid = el[@"id"];
+                    NSMutableDictionary *info2 = [info mutableCopy];
+                    [info2 setObject:poiid forKey:@"id"];
+                    NSString *t = el[@"tags"][@"amenity"];
+                    CLLocation *loc = [[LocationWithString alloc]initWithLatitude:lat longitude:lon title:t info:info2];
+                    
+                    [poiloc addObject:loc];
+                    /*
+                    MKPointAnnotation *ann = [[MKPointAnnotation alloc] init];
+                    ann.title = @"Drinking Water";
+                    ann.coordinate = CLLocationCoordinate2DMake(lat, lon);
+                    //[self.mapView addAnnotation:ann];
+                     */
+                }
+                // notify controller
+                NSLog(@"hop");
+                //self.poiloc =
+            });
+        }];
+    [task resume];
+}
 @end
 
 
@@ -186,4 +255,51 @@
     self.mup = [coder decodeIntegerForKey:@"mup"];
     return self;
 }
+@end
+
+
+@implementation LocationWithString
+
+- (instancetype) initWithLatitude:(CLLocationDegrees)latitude longitude:(CLLocationDegrees)longitude title:(NSString *)_title info:(NSDictionary *)dic
+{
+    self = [super initWithLatitude:latitude longitude:longitude];
+    if (self) {
+        title = _title;
+        info = dic;
+    }
+    return self;
+}
+
+- (NSString *) title
+{
+    return title;
+}
+- (NSDictionary *) info
+{
+    return info;
+}
+
+
++ (BOOL) supportsSecureCoding
+{
+    return YES;
+}
+
+
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+    [super encodeWithCoder:coder];
+    [coder encodeObject:title forKey:title];
+    [coder encodeObject:info forKey:@"info"];
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+    self = [super initWithCoder:coder];
+    if (!self) return self;
+    title = [coder decodeObjectOfClass:[NSString class] forKey:@"title"];
+    info = [coder decodeObjectOfClass:[NSDictionary class] forKey:@"info"];
+    return self;
+}
+
 @end
