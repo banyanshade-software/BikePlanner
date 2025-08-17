@@ -15,6 +15,8 @@
 #import "POIAnnotation.h"
 #import "BikePlan.h"
 #import "TaggedPoly.h"
+#import "Secret.h"
+// Secret.h is not commited, see Secret.h.example
 
 
 @implementation MapController {
@@ -26,6 +28,7 @@
     MKPointAnnotation *scrubberMarker;
     int mapType;
     SafeOSMTileOverlay *osmOverlay;
+    SafeOSMTileOverlay *osmCycleOverlay;
 }
 
 - (void) initializeMapview
@@ -49,6 +52,14 @@
     osmOverlay.canReplaceMapContent = YES; // replace Apple's map
     [self.mapView addOverlay:osmOverlay level:MKOverlayLevelAboveRoads];
     mapType = 0;
+    
+    // thunderforest
+    // https://manage.thunderforest.com/dashboard
+    NSString *ctemplate = @"https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=" THUNDERFOREST_API_KEY;
+
+    osmCycleOverlay =  [[SafeOSMTileOverlay alloc] initWithURLTemplate:ctemplate];
+    osmCycleOverlay.canReplaceMapContent = YES; // replace Apple's map
+    
     // Buttons
     NSButton *clearBtn = [[NSButton alloc] initWithFrame:NSMakeRect(10, 10, 80, 28)];
     clearBtn.title = @"Clear";
@@ -94,17 +105,18 @@
     
     // Add click handler
     NSClickGestureRecognizer *clicker = [[NSClickGestureRecognizer alloc] initWithTarget:self action:@selector(handleMapClick:)];
+    //clicker.delegate = self;
     clicker.buttonMask = 0x1; // left mouse
     clicker.numberOfClicksRequired = 1;
-    [self.mapView addGestureRecognizer:clicker];
-    
+    if ((1)) [self.mapView addGestureRecognizer:clicker];
+    //self.mapView.showsZoomControls = YES;
    
     scrubberMarker = [[MKPointAnnotation alloc] init];
     [self.mapView addAnnotation:scrubberMarker];
     self.elevationView.delegate = self;
     
     _document.plan.poiAvailableCallback = ^() {
-        NSLog(@"hop");
+        //NSLog(@"hop");
         [self refreshPOI];
     };
 }
@@ -114,18 +126,27 @@
 {
     NSAssert([sender isKindOfClass:[NSSegmentedControl class]], @"bad ctrl class");
     NSSegmentedControl *seg = (NSSegmentedControl *) sender;
-    int mt = seg.selectedSegment;
+    int mt = (int) seg.selectedSegment;
     NSLog(@"mt %d", mt);
     if (mt==mapType) return;
-    if (mapType<=1) {
-        // remove osm
-        [self.mapView removeOverlay:osmOverlay];
+    switch (mapType) {
+        default:
+            break;
+        case 0:// remove osm
+            [self.mapView removeOverlay:osmOverlay];
+            break;
+        case 1: //remove cyle osm
+            [self.mapView removeOverlay:osmCycleOverlay];
+            break;
     }
     mapType = mt;
     switch (mapType) {
         default: // FALLTHRU
         case 0:
             [self.mapView addOverlay:osmOverlay level:MKOverlayLevelAboveRoads];
+            break;
+        case 1:
+            [self.mapView addOverlay:osmCycleOverlay level:MKOverlayLevelAboveRoads];
             break;
         case 2:
             self.mapView.mapType = MKMapTypeStandard;
@@ -173,14 +194,24 @@
     return [NSString stringWithFormat:@"%lu", idx];
 }
 
-
+/*
+- (BOOL )gestureRecognizer:(NSGestureRecognizer *)gestureRecognizer
+ shouldAttemptToRecognizeWithEvent:(NSEvent *)event
+{
+    NSView *hitView = [self.mapView hitTest:[event locationInWindow]];
+    if (![hitView isKindOfClass:[MKMapView class]]) {
+        return NO; // let the button handle it
+    }
+    return YES;
+}
+ */
 
 - (void)handleMapClick:(NSGestureRecognizer *)gesture
 {
     NSPoint locInView = [gesture locationInView:self.mapView];
     CLLocationCoordinate2D coord = [self.mapView convertPoint:locInView toCoordinateFromView:self.mapView];
     CLLocation *loc = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
-    
+   
     
     
     if ([self clickNearPolylineAt:coord]) {
