@@ -95,6 +95,9 @@
     [self.mapView addAnnotation:scrubberMarker];
     self.elevationView.delegate = self;
     
+    _document.plan.poiAvailableCallback = ^() {
+        NSLog(@"hop");
+    };
 }
 
 

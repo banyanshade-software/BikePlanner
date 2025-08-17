@@ -30,11 +30,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype) initWithLatitude:(CLLocationDegrees)latitude longitude:(CLLocationDegrees)longitude title:(NSString *)title info:(NSDictionary *)info;
 @end
 
+#pragma mark -
+
+
 @interface BikePlan : NSObject <NSSecureCoding> {
-    //NSMutableArray <RouteAnnotation *>*waypointsRouteAnnotations;
-    //NSArray<CLLocation *> *routePoints;
-    //MKPolyline *gpxpoly; // loaded gpx, just displayed
-    //MKPointAnnotation *scrubberMarker;
+ 
 }
 
 @property (readonly,nonatomic) NSArray <CLLocation *>*waypointsLocations;
@@ -42,6 +42,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (strong,nonatomic) NSArray<CLLocation *> *gpxDisplayed;
 @property (strong,nonatomic) BrouterInfo *brouterInfo;
 
+@property (nonatomic, copy) void (^poiAvailableCallback)(void);
 
 - (void) removeWaypoints;
 - (void) removeWaypointAtIndex:(NSUInteger)idx;

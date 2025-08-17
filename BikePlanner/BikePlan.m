@@ -211,7 +211,9 @@
                      */
                 }
                 // notify controller
-                NSLog(@"hop");
+                if (_poiAvailableCallback) {
+                    _poiAvailableCallback();
+                }
                 //self.poiloc =
             });
         }];
