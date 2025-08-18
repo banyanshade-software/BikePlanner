@@ -61,14 +61,15 @@
     osmCycleOverlay.canReplaceMapContent = YES; // replace Apple's map
     
     // Buttons
+    /*
     NSButton *clearBtn = [[NSButton alloc] initWithFrame:NSMakeRect(10, 10, 80, 28)];
     clearBtn.title = @"Clear";
     clearBtn.bezelStyle = NSBezelStyleRounded;
     clearBtn.target = self;
     clearBtn.action = @selector(clearAction:);
     [content addSubview:clearBtn];
-    
-    NSTextField *help = [[NSTextField alloc] initWithFrame:NSMakeRect(100, 6, 420, 36)];
+    */
+    NSTextField *help = [[NSTextField alloc] initWithFrame:NSMakeRect(14, 20, 500, 36)];
     help.bezeled = NO; help.drawsBackground = NO; help.editable = NO; help.selectable = NO;
     help.stringValue = @"Click once to set START, click again to set END. Route is requested automatically.";
     [content addSubview:help];
@@ -78,22 +79,26 @@
     [profileMenu addItemsWithTitles:@[@"trekking", @"fastbike", @"car-fast", @"car-eco"]];
     [content addSubview:profileMenu];
     */
+    NSBezelStyle bzstyle = NSBezelStyleRoundRect; // NSBezelStyleRoundRect;
+
+    
     NSImage *zoomInImage = [NSImage imageWithSystemSymbolName:@"plus.magnifyingglass"
                                         accessibilityDescription:@"Zoom In"];
-    NSButton *btnZoomIn =  [[NSButton alloc]initWithFrame:NSMakeRect(14, 32, 32, 32)];
+    NSButton *btnZoomIn =  [[NSButton alloc]initWithFrame:NSMakeRect(14, 8, 32, 32)];
     btnZoomIn.image = zoomInImage;
     //btnZoomIn.imageScaling = NSImageScaleProportionallyDown;
-    btnZoomIn.bezelStyle = NSBezelStyleRoundRect;
+    btnZoomIn.bezelStyle = bzstyle;
+    btnZoomIn.bezelColor = [NSColor redColor];
     btnZoomIn.action = @selector(zoomIn:);
     btnZoomIn.target = self;
     [content addSubview:btnZoomIn];
     
     NSImage *zoomOutImage = [NSImage imageWithSystemSymbolName:@"minus.magnifyingglass"
                                         accessibilityDescription:@"Zoom Out"];
-    NSButton *btnZoomOut =  [[NSButton alloc]initWithFrame:NSMakeRect(14+32, 32, 32, 32)];
+    NSButton *btnZoomOut =  [[NSButton alloc]initWithFrame:NSMakeRect(14+32, 8, 32, 32)];
     btnZoomOut.image = zoomOutImage;
     //btnZoomOut.imageScaling = NSImageScaleProportionallyDown;
-    btnZoomOut.bezelStyle = NSBezelStyleRoundRect;
+    btnZoomOut.bezelStyle = bzstyle;
     btnZoomOut.action = @selector(zoomOut:);
     btnZoomOut.target = self;
     //btnZoomOut.contentTintColor = [NSColor labelColor];
@@ -103,11 +108,12 @@
     NSImage *locImage = [NSImage imageWithSystemSymbolName:@"location.fill"
                                        accessibilityDescription:@"Show User Location"];
 
-    NSButton *btnCurloc = [[NSButton alloc]initWithFrame:NSMakeRect(14+32*2+10, 32, 32, 32)];
+    NSButton *btnCurloc = [[NSButton alloc]initWithFrame:NSMakeRect(14+32*2+10, 8, 32, 32)];
     btnCurloc.image = locImage;
     btnCurloc.target = self;
     btnCurloc.action = @selector(centerOnUserLocation:);
-    btnCurloc.bezelStyle = NSBezelStyleRoundRect;
+    btnCurloc.bezelStyle = bzstyle;
+    
     //btnCurloc.contentTintColor = [NSColor orangeColor];
     [content addSubview:btnCurloc];
 
@@ -120,7 +126,10 @@
     [maptype setLabel:@"Apple" forSegment:2];
     [maptype setLabel:@"Sat+Rd" forSegment:3];
     [maptype setLabel:@"Sat" forSegment:4];
+    maptype.selectedSegmentBezelColor = [NSColor lightGrayColor];
+    //maptype.backgroundColor = [NSColor grayColor];
     maptype.segmentStyle = NSSegmentStyleRoundRect;
+    //maptype.bezelColor = [NSColor redColor];
     maptype.action = @selector(changeMapType:);
     maptype.target = self;
     [content addSubview:maptype];
@@ -769,6 +778,7 @@ static const BOOL useMarker = NO;
         static NSString *identifier = @"RouteAnnotation";
         RouteAnnotation *ra = (RouteAnnotation *)annotation;
         MKAnnotationView *view = (MKAnnotationView *)[mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
+        view.displayPriority = MKFeatureDisplayPriorityRequired;
         if (useMarker) {
             MKMarkerAnnotationView *mview = (MKMarkerAnnotationView *)view;
             if (!mview) {
@@ -810,6 +820,7 @@ static const BOOL useMarker = NO;
     if ([annotation isKindOfClass:[POIAnnotation class]]) {
         static NSString *identifier = @"POIAnnotationView";
         MKMarkerAnnotationView *view = [mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
+        view.displayPriority = MKFeatureDisplayPriorityDefaultLow;
         if (!view) {
             view = [[MKMarkerAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
             view.canShowCallout = YES;
@@ -829,7 +840,7 @@ static const BOOL useMarker = NO;
             [tpl_water setTemplate:YES];
             tpl_toilets = [NSImage imageNamed:@"icon_toilets"];
             [tpl_toilets setTemplate:YES];
-            tpl_cemetery = [NSImage imageNamed:@"icon_cemetary"];
+            tpl_cemetery = [NSImage imageNamed:@"icon_cemetery"];
             [tpl_cemetery setTemplate:YES];
             tpl_repair = [NSImage imageNamed:@"icon_repair"];
             [tpl_repair setTemplate:YES];
@@ -837,12 +848,14 @@ static const BOOL useMarker = NO;
         if ([poi.poiType isEqualToString:@"drinking_water"]) {
             view.glyphImage = tpl_water;
             view.markerTintColor = [NSColor systemBlueColor];
+            view.displayPriority = MKFeatureDisplayPriorityDefaultHigh;
         } else if ([poi.poiType isEqualToString:@"toilets"]) {
             view.glyphImage = tpl_toilets;
+            view.displayPriority = MKFeatureDisplayPriorityDefaultLow+1.;
             view.markerTintColor = [NSColor greenColor];
         } else if ([poi.poiType isEqualToString:@"cemetery"]) {
             view.glyphImage = tpl_cemetery;
-            view.markerTintColor = [NSColor blueColor];
+            view.markerTintColor = [NSColor colorWithRed:0. green:0. blue:1. alpha:0.2];
         } else if ([poi.poiType isEqualToString:@"grave_yard"]) {
             view.glyphImage = tpl_cemetery;
             view.markerTintColor = [NSColor grayColor];
