@@ -6,11 +6,15 @@
 //
 
 #import <MapKit/MapKit.h>
+#import "POILocation.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface POIAnnotation : MKPointAnnotation
-@property (nonatomic, copy) NSString *poiType;
+@property (nonatomic, copy) NSString *xxpoiType;
+@property (nonatomic) PoiType_t poiType;
+
+- (void) configureAnnotView:(MKMarkerAnnotationView *)view;
 @end
 
 NS_ASSUME_NONNULL_END

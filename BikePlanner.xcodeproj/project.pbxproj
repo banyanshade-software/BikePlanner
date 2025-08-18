@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1B53B7C22E51EC3A00C9470F /* POIAnnotation.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7C12E51EC3A00C9470F /* POIAnnotation.m */; };
 		1B53B7C52E5265FC00C9470F /* BikeMapView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7C42E5265FC00C9470F /* BikeMapView.m */; };
+		1B53B7C82E53B5BA00C9470F /* POILocation.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7C72E53B5BA00C9470F /* POILocation.m */; };
 		65B22D642E50B1360078F4BC /* TaggedPoly.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B22D632E50B1360078F4BC /* TaggedPoly.m */; };
 		65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */; };
 		65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE642E47982C001F2966 /* BikePlannerUITests.m */; };
@@ -73,6 +74,8 @@
 		1B53B7C12E51EC3A00C9470F /* POIAnnotation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = POIAnnotation.m; sourceTree = "<group>"; };
 		1B53B7C32E5265FC00C9470F /* BikeMapView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BikeMapView.h; sourceTree = "<group>"; };
 		1B53B7C42E5265FC00C9470F /* BikeMapView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikeMapView.m; sourceTree = "<group>"; };
+		1B53B7C62E53B5BA00C9470F /* POILocation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = POILocation.h; sourceTree = "<group>"; };
+		1B53B7C72E53B5BA00C9470F /* POILocation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = POILocation.m; sourceTree = "<group>"; };
 		65B22D622E50B1360078F4BC /* TaggedPoly.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TaggedPoly.h; sourceTree = "<group>"; };
 		65B22D632E50B1360078F4BC /* TaggedPoly.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TaggedPoly.m; sourceTree = "<group>"; };
 		65B8EE442E479821001F2966 /* BikePlanner_org.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BikePlanner_org.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -248,6 +251,8 @@
 				65B22D632E50B1360078F4BC /* TaggedPoly.m */,
 				1B53B7C32E5265FC00C9470F /* BikeMapView.h */,
 				1B53B7C42E5265FC00C9470F /* BikeMapView.m */,
+				1B53B7C62E53B5BA00C9470F /* POILocation.h */,
+				1B53B7C72E53B5BA00C9470F /* POILocation.m */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -544,6 +549,7 @@
 				65F365982E4F6BD40046B03D /* Document.m in Sources */,
 				65F365A32E4F6BE10046B03D /* main.m in Sources */,
 				1B53B7C52E5265FC00C9470F /* BikeMapView.m in Sources */,
+				1B53B7C82E53B5BA00C9470F /* POILocation.m in Sources */,
 				65F365C82E4F73200046B03D /* SafeTileRenderer.m in Sources */,
 				65F365C62E4F73200046B03D /* SafeOSMTileOverlay.m in Sources */,
 				65F3660F2E4F7AE50046B03D /* PlannerWindowController.m in Sources */,

@@ -6,6 +6,7 @@
 //
 
 #import "BikePlan.h"
+#import "POILocation.h"
 
 @interface BikePlan ()
 @property (strong,nonatomic) NSMutableArray <CLLocation *>*waypointsLocations;
@@ -17,7 +18,7 @@
     TaggedPoly *_waypointPoly;
     TaggedPoly *_routePoly;
     TaggedPoly *_gpxDisplayedPoly;
-    NSMutableArray <LocationWithString *> *poiloc;
+    NSMutableArray <POILocation *> *poiloc;
 }
 
 - (instancetype)init
@@ -149,7 +150,7 @@
     self.gpxDisplayed = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [CLLocation class], nil] forKey:@"gpxDisplayed"];
     self.brouterInfo = [coder decodeObjectOfClass:[BrouterInfo class] forKey:@"brouterInfo"];
     if (!_brouterInfo) self.brouterInfo = [[BrouterInfo alloc]init];
-    self.poiloc = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [LocationWithString class], nil]  forKey:@"poiloc"];
+    self.poiloc = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [POILocation class], nil]  forKey:@"poiloc"];
     return self;
 }
 
@@ -221,24 +222,25 @@
                     double lon = 0.;
                     double lat = 0.;
                     NSString *t = el[@"type"];
-                    NSString *poitype = @"";
+                    NSString *poitypname = @"";
                     if ((0)) {
                     } else if ([t isEqualToString:@"node"]) {
                         lat = [el[@"lat"] doubleValue];
                         lon = [el[@"lon"] doubleValue];
-                        poitype = tags[@"amenity"];
+                        poitypname = tags[@"amenity"];
                     } else if ([t isEqualToString:@"way"]) {
                         NSDictionary *center = el[@"center"];
                         lat = [center[@"lat"] doubleValue];
                         lon = [center[@"lon"] doubleValue];
-                        poitype = tags[@"landuse"];
+                        poitypname = tags[@"landuse"];
                     } else {
                         NSLog(@"unknown type");
                         continue;
                     }
                    
-                   //title = el[@"tags"]
-                    CLLocation *loc = [[LocationWithString alloc]initWithLatitude:lat longitude:lon title:poitype info:info2];
+
+                    PoiType_t poit = [[POILocation class]poiTypeForAmenity:poitypname];
+                    CLLocation *loc = [[POILocation alloc]initWithLatitude:lat longitude:lon ofType:poit info:info2];
                     
                     [tpoiarray addObject:loc];
                     /*
@@ -262,7 +264,7 @@
     [task resume];
 }
 
-- (void) setPoiloc:(NSArray<LocationWithString *> * _Nonnull)pl
+- (void) setPoiloc:(NSArray<POILocation *> * _Nonnull)pl
 {
     if (pl != _poiloc) {
         _poiloc = pl;
@@ -309,48 +311,3 @@
 @end
 
 
-@implementation LocationWithString
-
-- (instancetype) initWithLatitude:(CLLocationDegrees)latitude longitude:(CLLocationDegrees)longitude title:(NSString *)_title info:(NSDictionary *)dic
-{
-    self = [super initWithLatitude:latitude longitude:longitude];
-    if (self) {
-        title = _title;
-        info = dic;
-    }
-    return self;
-}
-
-- (NSString *) title
-{
-    return title;
-}
-- (NSDictionary *) info
-{
-    return info;
-}
-
-
-+ (BOOL) supportsSecureCoding
-{
-    return YES;
-}
-
-
-- (void)encodeWithCoder:(NSCoder *)coder
-{
-    [super encodeWithCoder:coder];
-    [coder encodeObject:title forKey:@"title"];
-    [coder encodeObject:info forKey:@"info"];
-}
-
-- (instancetype)initWithCoder:(NSCoder *)coder
-{
-    self = [super initWithCoder:coder];
-    if (!self) return self;
-    title = [coder decodeObjectOfClass:[NSString class] forKey:@"title"];
-    info = [coder decodeObjectOfClass:[NSDictionary class] forKey:@"info"];
-    return self;
-}
-
-@end

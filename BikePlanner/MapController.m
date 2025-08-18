@@ -406,11 +406,12 @@
         }
         [self.mapView removeAnnotation:annot];
     }
-    for (LocationWithString *loc in _document.plan.poiloc) {
+    for (POILocation *loc in _document.plan.poiloc) {
         POIAnnotation *ann = [[POIAnnotation alloc] init];
         ann.coordinate = loc.coordinate;
         ann.title = loc.title;
-        ann.poiType = loc.title; // FIXME
+        ann.poiType = loc.poiType;
+        //ann.xxpoiType = loc.title; // FIXME
         [self.mapView addAnnotation:ann];
     }
 }
@@ -552,7 +553,20 @@
     }];
 }
 
-
+- (NSData *) exportGpxData
+{
+    NSMutableString *xml = [[NSMutableString alloc]initWithCapacity:4000];
+    for (POILocation *poi in _document.plan.poiloc) {
+        [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
+        [xml appendFormat:@"  <name>%@</name>\n", poi.title];
+        //if (poi.subtitle) {
+        //    [xml appendFormat:@"  <desc>%@</desc>\n", poi.subtitle];
+        //}
+        [xml appendFormat:@"  <sym>%@</sym>\n", poi.gpxSymbol ?: @"Flag"];
+        [xml appendString:@"</wpt>\n"];
+    }
+    return self.gpxData;
+}
 - (IBAction) exportGPX:(id)sender
 {
     if (!_gpxData) return;
@@ -567,7 +581,8 @@
             NSURL *destinationURL = savePanel.URL;
             NSError *error = nil;
             
-            if (![self.gpxData writeToURL:destinationURL options:NSDataWritingAtomic error:&error]) {
+            NSData *gpxdta = [self exportGpxData];
+            if (![gpxdta writeToURL:destinationURL options:NSDataWritingAtomic error:&error]) {
                 NSAlert *alert = [[NSAlert alloc] init];
                 alert.messageText = @"Export failed";
                 alert.informativeText = error.localizedDescription;
@@ -828,46 +843,9 @@ static const BOOL useMarker = NO;
             view.annotation = annotation;
         }
         POIAnnotation *poi = (POIAnnotation *)annotation;
-        
-        static NSImage *tpl_toilets = nil;
-        static NSImage *tpl_water = nil;
-        static NSImage *tpl_cemetery = nil;
-        static NSImage *tpl_repair = nil;
+        [poi configureAnnotView:view];
 
-        static dispatch_once_t onceToken = (dispatch_once_t)0;
-        dispatch_once(&onceToken, ^{
-            tpl_water = [NSImage imageNamed:@"icon_water"];
-            [tpl_water setTemplate:YES];
-            tpl_toilets = [NSImage imageNamed:@"icon_toilets"];
-            [tpl_toilets setTemplate:YES];
-            tpl_cemetery = [NSImage imageNamed:@"icon_cemetery"];
-            [tpl_cemetery setTemplate:YES];
-            tpl_repair = [NSImage imageNamed:@"icon_repair"];
-            [tpl_repair setTemplate:YES];
-        });
-        if ([poi.poiType isEqualToString:@"drinking_water"]) {
-            view.glyphImage = tpl_water;
-            view.markerTintColor = [NSColor systemBlueColor];
-            view.displayPriority = MKFeatureDisplayPriorityDefaultHigh;
-        } else if ([poi.poiType isEqualToString:@"toilets"]) {
-            view.glyphImage = tpl_toilets;
-            view.displayPriority = MKFeatureDisplayPriorityDefaultLow+1.;
-            view.markerTintColor = [NSColor greenColor];
-        } else if ([poi.poiType isEqualToString:@"cemetery"]) {
-            view.glyphImage = tpl_cemetery;
-            view.markerTintColor = [NSColor colorWithRed:0. green:0. blue:1. alpha:0.2];
-        } else if ([poi.poiType isEqualToString:@"grave_yard"]) {
-            view.glyphImage = tpl_cemetery;
-            view.markerTintColor = [NSColor grayColor];
-        } else if ([poi.poiType isEqualToString:@"bicycle_repair_station"]) {
-            view.glyphImage = tpl_repair;
-            view.markerTintColor = [NSColor orangeColor];
-        } else {
-            //view.image = [NSImage imageNamed:@"icon_default"];
-            return nil;
-        }
-        // <a href="https://www.flaticon.com/free-icons/drinkable" title="drinkable icons">Drinkable icons created by cube29 - Flaticon</a>
-        //<a href="https://www.flaticon.com/free-icons/restroom" title="restroom icons">Restroom icons created by monkik - Flaticon</a>
+        
         return view;
     }
         
