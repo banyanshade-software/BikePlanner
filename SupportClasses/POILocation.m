@@ -36,7 +36,7 @@
         if (!_poitype) {
             NSLog(@"unknown POItype"); // for breakpoint
         } else if (POI_drinking_water == _poitype) {
-            NSLog(@".."); // to be removed
+            NSLog(@"water"); // to be removed
         }
         poitype = _poitype;
         info = dic;
