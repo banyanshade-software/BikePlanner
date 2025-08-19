@@ -18,7 +18,7 @@
     TaggedPoly *_waypointPoly;
     TaggedPoly *_routePoly;
     TaggedPoly *_gpxDisplayedPoly;
-    NSMutableArray <POILocation *> *poiloc;
+    //NSMutableArray <POILocation *> *poiloc;
 }
 
 - (instancetype)init
