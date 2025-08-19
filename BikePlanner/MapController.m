@@ -31,6 +31,7 @@
     SafeOSMTileOverlay *osmCycleOverlay;
     
     NSTextField *helpTxtField;
+    int clickmode;
 }
 
 - (void) initializeMapview
@@ -151,21 +152,21 @@
     helpTxtField.stringValue = @"...";
     [content addSubview:helpTxtField];
     
-    
-    NSSegmentedControl *clickmode = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 38, 200, 26)];
-    clickmode.segmentCount = 3;
-    clickmode.selectedSegment = 0;
-    [self setHelpStringForClickMode:0];
-    [clickmode setLabel:@"Edit" forSegment:0];
-    [clickmode setLabel:@"Add interm." forSegment:1];
-    [clickmode setLabel:@"view" forSegment:2];
-    clickmode.selectedSegmentBezelColor = [NSColor lightGrayColor];
+    clickmode = 0;
+    NSSegmentedControl *clickmodeseg = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 38, 200, 26)];
+    clickmodeseg.segmentCount = 3;
+    clickmodeseg.selectedSegment = clickmode;
+    [self setHelpStringForClickMode:clickmode];
+    [clickmodeseg setLabel:@"Edit" forSegment:0];
+    [clickmodeseg setLabel:@"Add interm." forSegment:1];
+    [clickmodeseg setLabel:@"view" forSegment:2];
+    clickmodeseg.selectedSegmentBezelColor = [NSColor lightGrayColor];
     //clickmode.backgroundColor = [NSColor grayColor];
-    clickmode.segmentStyle = NSSegmentStyleRoundRect;
+    clickmodeseg.segmentStyle = NSSegmentStyleRoundRect;
     //clickmode.bezelColor = [NSColor redColor];
-    clickmode.action = @selector(changeClickMode:);
-    clickmode.target = self;
-    [content addSubview:clickmode];
+    clickmodeseg.action = @selector(changeClickMode:);
+    clickmodeseg.target = self;
+    [content addSubview:clickmodeseg];
     
     
     
@@ -237,7 +238,10 @@
     NSSegmentedControl *seg = (NSSegmentedControl *) sender;
     int mt = (int) seg.selectedSegment;
     NSLog(@"cm %d", mt);
-    [self setHelpStringForClickMode:mt];
+    if (mt != clickmode) {
+        [self setHelpStringForClickMode:mt];
+        clickmode = mt;
+    }
 }
 
 - (IBAction)zoomIn:(id)sender
@@ -348,36 +352,40 @@
     CLLocationCoordinate2D coord = [self.mapView convertPoint:locInView toCoordinateFromView:self.mapView];
     CLLocation *loc = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
    
-    
-    
-    if ([self clickNearPolylineAt:coord]) {
-        MKPolyline *poly = [_document.plan routePoly];
-        NSUInteger idx = [self insertionIndexForCoordinate:coord polyline:poly waypoints:_document.plan.waypointsLocations];
-        [self insertWaypoint:coord atIdx:idx];
-        NSString *title = [self stringForWaypointIdx:idx];
+    if (clickmode<2) {
+        // in clickmode 0 and 1, a click on route adds intermediate point
+        if ([self clickNearPolylineAt:coord]) {
+            MKPolyline *poly = [_document.plan routePoly];
+            NSUInteger idx = [self insertionIndexForCoordinate:coord polyline:poly waypoints:_document.plan.waypointsLocations];
+            [self insertWaypoint:coord atIdx:idx];
+            NSString *title = [self stringForWaypointIdx:idx];
+            RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
+            a.idx = idx;
+            [waypointsRouteAnnotations insertObject:a atIndex:idx];
+            [self recalcAnnotIndexesFrom:idx];
+            [self.mapView addAnnotation:a];
+            // update all idx
+            return;
+        }
+    }
+    if (clickmode < 1) {
+        // in clickmode 0, a click on map adds end point
+        NSString *title = nil;
+        NSUInteger  idx = [_document.plan.waypointsLocations count];
+        title = [self stringForWaypointIdx:idx];
+        
         RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
         a.idx = idx;
-        [waypointsRouteAnnotations insertObject:a atIndex:idx];
+        [_document.plan appendWaypoint:loc];
+        //[_document.plan.waypointsLocations addObject:loc];
+        [waypointsRouteAnnotations addObject:a];
         [self recalcAnnotIndexesFrom:idx];
+        
         [self.mapView addAnnotation:a];
-        // update all idx
-        return;
+        [self.svCtrl viewCoord:coord lookingAt:0. coalesce:YES];
+        
+        [self shouldRecalcRoute];
     }
-    NSString *title = nil;
-    NSUInteger  idx = [_document.plan.waypointsLocations count];
-    title = [self stringForWaypointIdx:idx];
-    
-    RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
-    a.idx = idx;
-    [_document.plan appendWaypoint:loc];
-    //[_document.plan.waypointsLocations addObject:loc];
-    [waypointsRouteAnnotations addObject:a];
-    [self recalcAnnotIndexesFrom:idx];
-    
-    [self.mapView addAnnotation:a];
-    [self.svCtrl viewCoord:coord lookingAt:0. coalesce:YES];
-    
-    [self shouldRecalcRoute];
     
 }
 
