@@ -29,6 +29,8 @@
     int mapType;
     SafeOSMTileOverlay *osmOverlay;
     SafeOSMTileOverlay *osmCycleOverlay;
+    
+    NSTextField *helpTxtField;
 }
 
 - (void) initializeMapview
@@ -144,14 +146,16 @@
     [content addSubview:maptype];
     
     
-    NSTextField *help = [[NSTextField alloc] initWithFrame:NSMakeRect(14+200+14, 32, 500, 26)];
-    help.bezeled = NO; help.drawsBackground = NO; help.editable = NO; help.selectable = NO;
-    help.stringValue = @"Click once to set START, click again to set END. Route is requested automatically.";
-    [content addSubview:help];
+    helpTxtField = [[NSTextField alloc] initWithFrame:NSMakeRect(14+200+14, 32, 500, 26)];
+    helpTxtField.bezeled = NO; helpTxtField.drawsBackground = NO; helpTxtField.editable = NO; helpTxtField.selectable = NO;
+    helpTxtField.stringValue = @"...";
+    [content addSubview:helpTxtField];
+    
     
     NSSegmentedControl *clickmode = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 38, 200, 26)];
     clickmode.segmentCount = 3;
     clickmode.selectedSegment = 0;
+    [self setHelpStringForClickMode:0];
     [clickmode setLabel:@"Edit" forSegment:0];
     [clickmode setLabel:@"Add interm." forSegment:1];
     [clickmode setLabel:@"view" forSegment:2];
@@ -210,13 +214,30 @@
     }
 }
 
-
+- (void) setHelpStringForClickMode:(int)mt
+{
+    NSString *hlp;
+    switch (mt) {
+        default:
+        case 2:
+            hlp = @"hlp 2";
+            break;
+        case 1:
+            hlp = @"hlp 1";
+            break;
+        case 0:
+            hlp = @"Click once to set START, click again to set END. Route is requested automatically.";
+            break;
+    }
+    helpTxtField.stringValue = hlp;
+}
 - (void) changeClickMode:(id)sender
 {
     NSAssert([sender isKindOfClass:[NSSegmentedControl class]], @"bad ctrl class");
     NSSegmentedControl *seg = (NSSegmentedControl *) sender;
     int mt = (int) seg.selectedSegment;
     NSLog(@"cm %d", mt);
+    [self setHelpStringForClickMode:mt];
 }
 
 - (IBAction)zoomIn:(id)sender
