@@ -221,13 +221,13 @@
     switch (mt) {
         default:
         case 2:
-            hlp = @"hlp 2";
+            hlp = NSLocalizedString( @"Drag waypoints", @"CLICK_MODE_2");
             break;
         case 1:
-            hlp = @"hlp 1";
+            hlp = NSLocalizedString(@"Click on path to add intermediate waypoints", @"CLICK_MODE_1");
             break;
         case 0:
-            hlp = @"Click once to set START, click again to set END. Route is requested automatically.";
+            hlp = NSLocalizedString(@"Click on map to add start and end waypoints",@"CLICK_MODE_0");
             break;
     }
     helpTxtField.stringValue = hlp;
