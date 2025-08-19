@@ -19,6 +19,10 @@
     TaggedPoly *_routePoly;
     TaggedPoly *_gpxDisplayedPoly;
     //NSMutableArray <POILocation *> *poiloc;
+    volatile int32_t poiNeedUpdate;
+    volatile BOOL poiUpdateOnProgress;
+    NSTimeInterval lastpoireq;
+    NSTimer *poireqretrytimer;
 }
 
 - (instancetype)init
@@ -88,12 +92,69 @@
     return _waypointPoly;
 }
 
+- (void) refetchPOI
+{
+    dispatch_async(dispatch_get_main_queue(), ^() {
+        [self tryRequestPoi];
+    });
+}
+- (void) shouldRequestPOI
+{
+    NSLog(@"---- shouldRequestPOI ---- ");
+    OSAtomicIncrement32(&poiNeedUpdate);
+    [self tryRequestPoi];
+}
+
+- (void) tryRequestPoiT
+{
+    // only here for breakpoint or log (tryRequestPoi called by timer)
+    [self tryRequestPoi];
+}
+- (void) tryRequestPoi
+{
+    if ([_routePoints count] <2) {
+        NSLog(@"--- <<< not enought points");
+        [poireqretrytimer invalidate];
+        poireqretrytimer = nil;
+        return;
+    }
+    if (!poiNeedUpdate) {
+        NSLog(@"--- <<< already fetched");
+        [poireqretrytimer invalidate];
+        poireqretrytimer = nil;
+        return;
+    }
+    NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
+    BOOL delay = NO;
+    if (poiUpdateOnProgress) {
+        NSLog(@"--- ++ delayed (poiUpdateOnProgress)");
+        delay = YES;
+    } else if (now-lastpoireq<1.8) {
+        NSLog(@"--- ++ delayed (less than 1.8)");
+        delay = YES;
+    }
+    if (!delay) {
+        poiUpdateOnProgress = YES;
+        lastpoireq = now;
+        [poireqretrytimer invalidate];
+        poireqretrytimer = nil;
+    } else {
+        //NSLog(@"--- ++ delayed");
+        if (!poireqretrytimer) {
+            poireqretrytimer = [[NSTimer alloc]initWithFireDate:[NSDate dateWithTimeIntervalSinceNow:2] interval:2 target:self selector:@selector(tryRequestPoiT) userInfo:nil repeats:YES];
+            [[NSRunLoop mainRunLoop]addTimer:poireqretrytimer forMode:NSRunLoopCommonModes];
+        }
+        return;
+    }
+    [self fetchPOIsNearRoute:_routePoints];
+}
 - (TaggedPoly *) routePoly
 {
     if (!_waypointPoly) {
         _routePoly = [self buildPolyWith:_routePoints];
         _routePoly.tag = 0;
-        [self fetchPOIsNearRoute:_routePoints];
+        [self shouldRequestPOI];
+        //[self fetchPOIsNearRoute:_routePoints];
     }
     return _routePoly;
 }
@@ -194,8 +255,15 @@
     return query;
 }
 
-- (void)fetchPOIsNearRoute:(NSArray<CLLocation *> *)coords
+- (void) refetchPOIWithAdditionalDelay
 {
+    NSLog(@"----- refetchPOIWithAdditionalDelay");
+    [self performSelector:@selector(refetchPOI) withObject:nil afterDelay:2.0];
+}
+
+- (void) fetchPOIsNearRoute:(NSArray<CLLocation *> *)coords
+{
+    NSLog(@"--- >>>> fetch");
     NSString *query = [self overpassQueryForTrack:coords sampleEvery:10 withRadius:1500];
     NSData *bodyData = [query dataUsingEncoding:NSUTF8StringEncoding];
     
@@ -204,68 +272,87 @@
     req.HTTPMethod = @"POST";
     req.HTTPBody = bodyData;
     
-    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:req
-        completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
-            if (err) { NSLog(@"Error: %@", err); return; }
-            if (!data) { return; }
-            
-            NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-            NSArray *elements = json[@"elements"];
-            dispatch_async(dispatch_get_main_queue(), ^{
-                NSMutableArray *tpoiarray = [[NSMutableArray alloc]initWithCapacity:16];
-                for (NSDictionary *el in elements) {
-                    NSString *poiid = el[@"id"];
-                    NSDictionary *tags = el[@"tags"];
-                    NSMutableDictionary *info2 = [tags mutableCopy];
-                    [info2 setObject:poiid forKey:@"id"];
-                    NSDictionary *info = el[@"tags"];
-                    double lon = 0.;
-                    double lat = 0.;
-                    NSString *t = el[@"type"];
-                    NSString *poitypname = @"";
-                    if ((0)) {
-                    } else if ([t isEqualToString:@"node"]) {
-                        lat = [el[@"lat"] doubleValue];
-                        lon = [el[@"lon"] doubleValue];
-                        poitypname = tags[@"amenity"];
-                    } else if ([t isEqualToString:@"way"]) {
-                        NSDictionary *center = el[@"center"];
-                        lat = [center[@"lat"] doubleValue];
-                        lon = [center[@"lon"] doubleValue];
-                        poitypname = tags[@"landuse"];
-                    } else {
-                        NSLog(@"unknown type");
-                        continue;
-                    }
-                   
-
-                    PoiType_t poit = [[POILocation class]poiTypeForAmenity:poitypname];
-                    CLLocation *loc = [[POILocation alloc]initWithLatitude:lat longitude:lon ofType:poit info:info2];
-                    
-                    [tpoiarray addObject:loc];
-                    /*
-                    MKPointAnnotation *ann = [[MKPointAnnotation alloc] init];
-                    ann.title = @"Drinking Water";
-                    ann.coordinate = CLLocationCoordinate2DMake(lat, lon);
-                    //[self.mapView addAnnotation:ann];
-                     */
+    NSLog(@"----- fetch poi");
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession]
+                                  dataTaskWithRequest:req
+                                  completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
+        poiUpdateOnProgress = NO;
+        if (err) {
+            NSLog(@"Error: %@", err);
+            [self refetchPOIWithAdditionalDelay];
+            return;
+        }
+        if (!data) {
+            [self refetchPOIWithAdditionalDelay];
+            return;
+        }
+        NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *) resp;
+        NSInteger httpcode = [httpResponse statusCode];
+        if (httpcode>299) {
+            NSLog(@"HTTP status for POI : %d", (int) httpcode);
+            [self refetchPOIWithAdditionalDelay];
+            return;
+        }
+        OSAtomicDecrement32(&poiNeedUpdate);
+        
+        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+        NSArray *elements = json[@"elements"];
+        if (![elements count]) {
+            //debug
+            NSLog(@"no poi");
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSMutableArray *tpoiarray = [[NSMutableArray alloc]initWithCapacity:16];
+            for (NSDictionary *el in elements) {
+                NSString *poiid = el[@"id"];
+                NSDictionary *tags = el[@"tags"];
+                NSMutableDictionary *info2 = [tags mutableCopy];
+                [info2 setObject:poiid forKey:@"id"];
+                NSDictionary *info = el[@"tags"];
+                double lon = 0.;
+                double lat = 0.;
+                NSString *t = el[@"type"];
+                NSString *poitypname = @"";
+                if ((0)) {
+                } else if ([t isEqualToString:@"node"]) {
+                    lat = [el[@"lat"] doubleValue];
+                    lon = [el[@"lon"] doubleValue];
+                    poitypname = tags[@"amenity"];
+                } else if ([t isEqualToString:@"way"]) {
+                    NSDictionary *center = el[@"center"];
+                    lat = [center[@"lat"] doubleValue];
+                    lon = [center[@"lon"] doubleValue];
+                    poitypname = tags[@"landuse"];
+                } else {
+                    NSLog(@"unknown type");
+                    continue;
                 }
-                self.poiloc = tpoiarray;
                 
-                //[self willChangeValueForKey:@"poiloc"];
-                //_poiloc = tpoiarray;
-                //[self didChangeValueForKey:@"poiloc"];
-                // notify controller
-                if (self.poiAvailableCallback) {
-                    self.poiAvailableCallback();
-                }
-            });
-        }];
+                PoiType_t poit = [[POILocation class]poiTypeForAmenity:poitypname];
+                CLLocation *loc = [[POILocation alloc]initWithLatitude:lat longitude:lon ofType:poit info:info2];
+                
+                [tpoiarray addObject:loc];
+            }
+            self.poiloc = tpoiarray;
+            
+            //[self willChangeValueForKey:@"poiloc"];
+            //_poiloc = tpoiarray;
+            //[self didChangeValueForKey:@"poiloc"];
+            // notify controller
+            if (self.poiAvailableCallback) {
+                self.poiAvailableCallback();
+            }
+        });
+    }];
     [task resume];
 }
 
 - (void) setPoiloc:(NSArray<POILocation *> * _Nonnull)pl
 {
+    if (!pl || ![pl count]) {
+        // for debug
+        NSLog(@"no poi");
+    }
     if (pl != _poiloc) {
         _poiloc = pl;
     }
