@@ -354,7 +354,7 @@
    
     if (clickmode<2) {
         // in clickmode 0 and 1, a click on route adds intermediate point
-        if ([self clickNearPolylineAt:coord]) {
+        if ([self clickNearPolylineAt:locInView tolerence:4.]) {
             MKPolyline *poly = [_document.plan routePoly];
             NSUInteger idx = [self insertionIndexForCoordinate:coord polyline:poly waypoints:_document.plan.waypointsLocations];
             [self insertWaypoint:coord atIdx:idx];
@@ -693,6 +693,7 @@
 
 #pragma mark -
 
+#if 0
 - (BOOL)clickNearPolylineAt:(CLLocationCoordinate2D)coord
 {
     MKPolyline *poly = _document.plan.routePoly;
@@ -757,7 +758,79 @@
     double dist = hypot(px - cx, py - cy);
     return dist;
 }
+#endif
 
+- (CGFloat)distanceFromPoint:(CGPoint)p toSegmentFrom:(CGPoint)a to:(CGPoint)b
+{
+    CGFloat dx = b.x - a.x;
+    CGFloat dy = b.y - a.y;
+    
+    if (dx == 0 && dy == 0) {
+        // a == b case
+        dx = p.x - a.x;
+        dy = p.y - a.y;
+        return sqrt(dx*dx + dy*dy);
+    }
+    
+    CGFloat t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx*dx + dy*dy);
+    if (t < 0) {
+        dx = p.x - a.x;
+        dy = p.y - a.y;
+    } else if (t > 1) {
+        dx = p.x - b.x;
+        dy = p.y - b.y;
+    } else {
+        CGFloat projX = a.x + t * dx;
+        CGFloat projY = a.y + t * dy;
+        dx = p.x - projX;
+        dy = p.y - projY;
+    }
+    
+    return sqrt(dx*dx + dy*dy);
+}
+
+- (NSInteger)nearestPolylineSegmentToPoint:(CGPoint)tapPoint
+                                polyline:(MKPolyline *)polyline
+                          pixelTolerance:(CGFloat)pixelTolerance {
+    NSInteger nearestIndex = -1;
+    CGFloat minDistance = CGFLOAT_MAX;
+    if (!polyline.points) return -1;
+    
+    for (NSInteger i = 0; i < polyline.pointCount - 1; i++) {
+        MKMapPoint p1 = polyline.points[i];
+        MKMapPoint p2 = polyline.points[i+1];
+
+        CGPoint pt1 = [self.mapView convertCoordinate:MKCoordinateForMapPoint(p1)
+                                            toPointToView:self.mapView];
+        CGPoint pt2 = [self.mapView convertCoordinate:MKCoordinateForMapPoint(p2)
+                                            toPointToView:self.mapView];
+        
+        CGFloat distance = [self distanceFromPoint:tapPoint toSegmentFrom:pt1 to:pt2];
+        
+        if (distance < minDistance) {
+            minDistance = distance;
+            nearestIndex = i;
+        }
+    }
+    
+    if (minDistance <= pixelTolerance) {
+        return nearestIndex;
+    } else {
+        return -1; // not close enough
+    }
+}
+
+- (BOOL)clickNearPolylineAt:(CGPoint)clickPoint tolerence:(CGFloat)tol
+{
+    MKPolyline *poly = [_document.plan routePoly];
+    NSInteger segmentIndex = [self nearestPolylineSegmentToPoint:clickPoint
+                                                        polyline:poly
+                                                  pixelTolerance:tol];
+    if (segmentIndex>=0) return YES;
+    else return NO;
+}
+
+#pragma mark -
 
 - (void)insertWaypoint:(CLLocationCoordinate2D)coord atIdx:(NSUInteger)idx
 {
