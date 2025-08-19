@@ -27,6 +27,8 @@ typedef NS_ENUM(int, PoiType_t) {
 @property (nonatomic,readonly) NSString *title;
 @property (nonatomic,readonly) NSDictionary *info;
 @property (nonatomic,readonly) NSString *gpxSymbol;
+@property (nonatomic,readonly) NSString *gpxType;
+
 
 - (instancetype) initWithLatitude:(CLLocationDegrees)latitude longitude:(CLLocationDegrees)longitude ofType:(PoiType_t)poitype info:(NSDictionary *)info;
 

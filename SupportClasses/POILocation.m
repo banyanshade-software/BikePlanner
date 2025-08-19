@@ -77,6 +77,36 @@
         case POI_cemetery:              return @"cemetery"; break;
     }
 }
+- (NSString *)gpxType
+{
+    switch (poitype) {
+        default:
+            return nil;
+            break;
+        case POI_drinking_water:        return @"WATER"; break;
+        case POI_toilets:               return @"TOILET"; break;
+        case POI_bicycle_repair_station:return @"SERVICE"; break;
+        case POI_cemetery:              return @"CEMETERY"; break;
+    }
+}
+/*
+ AID STATION
+ ALERT
+ CROSSING
+ DANGER
+ ENERGY GEL
+ FOOD
+ GENERIC
+ INFO
+ OBSTACLE
+ SERVICE
+ SHARP CURVE
+ SHOWER
+ TOILET
+ TRANSITION
+ WATER
+
+ */
 
 + (BOOL) supportsSecureCoding
 {

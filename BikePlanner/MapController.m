@@ -555,17 +555,53 @@
 
 - (NSData *) exportGpxData
 {
-    NSMutableString *xml = [[NSMutableString alloc]initWithCapacity:4000];
-    for (POILocation *poi in _document.plan.poiloc) {
-        [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
-        [xml appendFormat:@"  <name>%@</name>\n", poi.title];
-        //if (poi.subtitle) {
-        //    [xml appendFormat:@"  <desc>%@</desc>\n", poi.subtitle];
-        //}
-        [xml appendFormat:@"  <sym>%@</sym>\n", poi.gpxSymbol ?: @"Flag"];
-        [xml appendString:@"</wpt>\n"];
+    //NSMutableString *xml = [[NSMutableString alloc]initWithCapacity:4000];
+    NSString *gpxstr = [[NSString alloc] initWithData:_gpxData encoding:NSUTF8StringEncoding];
+    NSRange closingTag = [gpxstr rangeOfString:@"</gpx>" options:NSBackwardsSearch];
+    if (closingTag.location == NSNotFound) {
+        NSLog(@"Invalid GPX: missing </gpx>");
+        return _gpxData;
     }
-    return self.gpxData;
+    NSMutableString *xml = [NSMutableString stringWithString:
+                               [gpxstr substringToIndex:closingTag.location]];
+  
+    
+    
+    if ((1)) {
+        for (POILocation *poi in _document.plan.poiloc) {
+            [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
+            [xml appendFormat:@"  <name>%@</name>\n", poi.title];
+            //if (poi.subtitle) {
+            //    [xml appendFormat:@"  <desc>%@</desc>\n", poi.subtitle];
+            //}
+            [xml appendFormat:@"  <sym>%@</sym>\n", poi.gpxSymbol ?: @"Flag"];
+            [xml appendFormat:@"  <type>%@</type>\n", poi.gpxType ?: @"Flag"];
+            [xml appendString:@"</wpt>\n"];
+        }
+    }
+    if ((0)) {
+        [xml appendString:@"<rte>\n"];
+        for (POILocation *poi in _document.plan.poiloc) {
+            [xml appendFormat:@"<rtept lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
+            [xml appendFormat:@"  <name>%@</name>\n", poi.title];
+            [xml appendFormat:@"  <sym>%@</sym>\n", poi.gpxSymbol ?: @"Flag"];
+            if ((0)) {
+                
+                [xml appendString:@"  <extensions>\n"];
+                [xml appendString:@"    <gpxx:RoutePointExtension>\n"];
+                [xml appendFormat:@"      <gpxx:Subclass>%@</gpxx:Subclass>\n", /*poi.subclass ?: */ poi.title];
+                [xml appendString:@"    </gpxx:RoutePointExtension>\n"];
+                [xml appendString:@"  </extensions>\n"];
+            }
+            [xml appendString:@"</rtept>\n"];
+        }
+        [xml appendString:@"</rte>\n"];
+    }
+    [xml appendString:@"</gpx>\n"];
+    
+    NSData *d = [xml dataUsingEncoding:NSUTF8StringEncoding];
+    
+    return d;
 }
 - (IBAction) exportGPX:(id)sender
 {
