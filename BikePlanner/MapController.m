@@ -60,6 +60,16 @@
     osmCycleOverlay =  [[SafeOSMTileOverlay alloc] initWithURLTemplate:ctemplate];
     osmCycleOverlay.canReplaceMapContent = YES; // replace Apple's map
     
+    
+    // BRouter client (default points to local server at port 17777)
+    //NSString *brouter=@"http://127.0.0.1:17777";
+    //NSString *brouter=@"https://brouter.de/brouter";
+    NSString *brouter=@"https://brouter.de";
+    NSURL *server = [NSURL URLWithString:brouter]; // change if using remote brouter
+    self.brouter = [[BRouterClient alloc] initWithServerURL:server];
+    
+    
+    
     // Buttons
     /*
     NSButton *clearBtn = [[NSButton alloc] initWithFrame:NSMakeRect(10, 10, 80, 28)];
@@ -69,10 +79,6 @@
     clearBtn.action = @selector(clearAction:);
     [content addSubview:clearBtn];
     */
-    NSTextField *help = [[NSTextField alloc] initWithFrame:NSMakeRect(14, 20, 500, 36)];
-    help.bezeled = NO; help.drawsBackground = NO; help.editable = NO; help.selectable = NO;
-    help.stringValue = @"Click once to set START, click again to set END. Route is requested automatically.";
-    [content addSubview:help];
     
     /*
     NSPopUpButton *profileMenu = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(14, 36, 200, 26)];
@@ -117,7 +123,10 @@
     //btnCurloc.contentTintColor = [NSColor orangeColor];
     [content addSubview:btnCurloc];
 
-
+    
+   
+    
+    
     NSSegmentedControl *maptype = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 64, 280, 26)];
     maptype.segmentCount = 5;
     maptype.selectedSegment = 0;
@@ -133,13 +142,30 @@
     maptype.action = @selector(changeMapType:);
     maptype.target = self;
     [content addSubview:maptype];
-    // BRouter client (default points to local server at port 17777)
-    //NSString *brouter=@"http://127.0.0.1:17777";
-    //NSString *brouter=@"https://brouter.de/brouter";
-    NSString *brouter=@"https://brouter.de";
-    NSURL *server = [NSURL URLWithString:brouter]; // change if using remote brouter
-    self.brouter = [[BRouterClient alloc] initWithServerURL:server];
     
+    
+    NSTextField *help = [[NSTextField alloc] initWithFrame:NSMakeRect(14+200+14, 32, 500, 26)];
+    help.bezeled = NO; help.drawsBackground = NO; help.editable = NO; help.selectable = NO;
+    help.stringValue = @"Click once to set START, click again to set END. Route is requested automatically.";
+    [content addSubview:help];
+    
+    NSSegmentedControl *clickmode = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 38, 200, 26)];
+    clickmode.segmentCount = 3;
+    clickmode.selectedSegment = 0;
+    [clickmode setLabel:@"Edit" forSegment:0];
+    [clickmode setLabel:@"Add interm." forSegment:1];
+    [clickmode setLabel:@"view" forSegment:2];
+    clickmode.selectedSegmentBezelColor = [NSColor lightGrayColor];
+    //clickmode.backgroundColor = [NSColor grayColor];
+    clickmode.segmentStyle = NSSegmentStyleRoundRect;
+    //clickmode.bezelColor = [NSColor redColor];
+    clickmode.action = @selector(changeClickMode:);
+    clickmode.target = self;
+    [content addSubview:clickmode];
+    
+    
+    
+   
     // Center map to a default location
     //CLLocationCoordinate2D center = CLLocationCoordinate2DMake(48.8566, 2.3522); // Paris
     // 44.1249234 ,0.4961707,10920
@@ -184,6 +210,14 @@
     }
 }
 
+
+- (void) changeClickMode:(id)sender
+{
+    NSAssert([sender isKindOfClass:[NSSegmentedControl class]], @"bad ctrl class");
+    NSSegmentedControl *seg = (NSSegmentedControl *) sender;
+    int mt = (int) seg.selectedSegment;
+    NSLog(@"cm %d", mt);
+}
 
 - (IBAction)zoomIn:(id)sender
 {
