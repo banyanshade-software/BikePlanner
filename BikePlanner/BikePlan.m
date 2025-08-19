@@ -19,10 +19,12 @@
     TaggedPoly *_routePoly;
     TaggedPoly *_gpxDisplayedPoly;
     //NSMutableArray <POILocation *> *poiloc;
-    volatile int32_t poiNeedUpdate;
+    //volatile int32_t poiNeedUpdate;
     volatile BOOL poiUpdateOnProgress;
     NSTimeInterval lastpoireq;
     NSTimer *poireqretrytimer;
+    NSTimeInterval tpoineed;
+    NSTimeInterval tpoireq;
 }
 
 - (instancetype)init
@@ -92,6 +94,11 @@
     return _waypointPoly;
 }
 
+- (void) refetchPOIWithErr
+{
+    tpoireq = tpoireq-1;
+    [self tryRequestPoi];
+}
 - (void) refetchPOI
 {
     dispatch_async(dispatch_get_main_queue(), ^() {
@@ -101,7 +108,8 @@
 - (void) shouldRequestPOI
 {
     NSLog(@"---- shouldRequestPOI ---- ");
-    OSAtomicIncrement32(&poiNeedUpdate);
+    //OSAtomicIncrement32(&poiNeedUpdate);
+    tpoineed = [NSDate timeIntervalSinceReferenceDate];
     [self tryRequestPoi];
 }
 
@@ -118,7 +126,9 @@
         poireqretrytimer = nil;
         return;
     }
-    if (!poiNeedUpdate) {
+    //
+    if (tpoireq >= tpoineed) {
+    //if (!poiNeedUpdate) {
         NSLog(@"--- <<< already fetched");
         [poireqretrytimer invalidate];
         poireqretrytimer = nil;
@@ -134,6 +144,7 @@
         delay = YES;
     }
     if (!delay) {
+        tpoireq = tpoineed;
         poiUpdateOnProgress = YES;
         lastpoireq = now;
         [poireqretrytimer invalidate];
@@ -258,7 +269,7 @@
 - (void) refetchPOIWithAdditionalDelay
 {
     NSLog(@"----- refetchPOIWithAdditionalDelay");
-    [self performSelector:@selector(refetchPOI) withObject:nil afterDelay:2.0];
+    [self performSelector:@selector(refetchPOIWithErr) withObject:nil afterDelay:2.0];
 }
 
 - (void) fetchPOIsNearRoute:(NSArray<CLLocation *> *)coords
@@ -293,7 +304,7 @@
             [self refetchPOIWithAdditionalDelay];
             return;
         }
-        OSAtomicDecrement32(&poiNeedUpdate);
+        //OSAtomicDecrement32(&poiNeedUpdate);
         
         NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
         NSArray *elements = json[@"elements"];
