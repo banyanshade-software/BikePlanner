@@ -139,8 +139,8 @@
     if (poiUpdateOnProgress) {
         NSLog(@"--- ++ delayed (poiUpdateOnProgress)");
         delay = YES;
-    } else if (now-lastpoireq<1.8) {
-        NSLog(@"--- ++ delayed (less than 1.8)");
+    } else if (now-lastpoireq<2.8) {
+        NSLog(@"--- ++ delayed (less than 2.8)");
         delay = YES;
     }
     if (!delay) {
