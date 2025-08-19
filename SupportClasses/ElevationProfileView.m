@@ -48,8 +48,9 @@
     //[self setNeedsLayout:YES];
 }
 
-- (void)drawRect:(NSRect)dirtyRect {
-    NSLog(@"[%@] drawRect called", [NSDate date]);
+- (void)drawRect:(NSRect)dirtyRect
+{
+    //NSLog(@"[%@] drawRect called", [NSDate date]);
     [super drawRect:dirtyRect];
     [self updateMetrics];
 
@@ -153,8 +154,9 @@
 }
 
 
-- (void)setNeedsDisplay:(BOOL)flag {
-    NSLog(@"[%@] setNeedsDisplay called", [NSDate date]);
+- (void)setNeedsDisplay:(BOOL)flag
+{
+    //NSLog(@"[%@] setNeedsDisplay called", [NSDate date]);
     [super setNeedsDisplay:flag];
 }
 
