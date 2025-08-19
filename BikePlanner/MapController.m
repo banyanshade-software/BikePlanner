@@ -352,14 +352,31 @@
     CLLocationCoordinate2D coord = [self.mapView convertPoint:locInView toCoordinateFromView:self.mapView];
     CLLocation *loc = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
    
+    if (clickmode == 2) {
+        CLLocationCoordinate2D rcoord;
+        // in clickmode 3, a click on route moves view
+        if ([self clickNearPolylineAt:locInView tolerence:40. nearestPoint:&rcoord]) {
+            scrubberMarker.coordinate = rcoord;
+            [self.mapView setCenterCoordinate:rcoord animated:NO];
+            double distance = [self distanceAtCoordinate:rcoord];
+            double bearing = [self bearingAtDistance:distance];
+            [self.svCtrl viewCoord:rcoord lookingAt:bearing coalesce:NO];
+            self.elevationView.highlightDistance = distance;
+            [self.elevationView setNeedsDisplay:YES];
+            return;
+        }
+    }
     if (clickmode<2) {
+        CLLocationCoordinate2D rcoord;
+        CGFloat tolerence = 16.;
+        if (clickmode == 1) tolerence = 50.;
         // in clickmode 0 and 1, a click on route adds intermediate point
-        if ([self clickNearPolylineAt:locInView tolerence:4.]) {
+        if ([self clickNearPolylineAt:locInView tolerence:tolerence nearestPoint:&rcoord]) {
             MKPolyline *poly = [_document.plan routePoly];
-            NSUInteger idx = [self insertionIndexForCoordinate:coord polyline:poly waypoints:_document.plan.waypointsLocations];
-            [self insertWaypoint:coord atIdx:idx];
+            NSUInteger idx = [self insertionIndexForCoordinate:rcoord polyline:poly waypoints:_document.plan.waypointsLocations];
+            [self insertWaypoint:rcoord atIdx:idx];
             NSString *title = [self stringForWaypointIdx:idx];
-            RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
+            RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:rcoord title:title subtitle:nil];
             a.idx = idx;
             [waypointsRouteAnnotations insertObject:a atIndex:idx];
             [self recalcAnnotIndexesFrom:idx];
@@ -788,7 +805,76 @@
     
     return sqrt(dx*dx + dy*dy);
 }
+- (CLLocationCoordinate2D)nearestCoordinateOnPolyline:(MKPolyline *)polyline
+                                           toPoint:(CGPoint)tapPoint
+                                     pixelTolerance:(CGFloat)pixelTolerance
+                                      found:(BOOL *)found
+{
+    CGFloat minDistance = CGFLOAT_MAX;
+    CLLocationCoordinate2D nearestCoord = kCLLocationCoordinate2DInvalid;
+    if (!polyline.points) return nearestCoord;
 
+    for (NSInteger i = 0; i < polyline.pointCount - 1; i++) {
+        MKMapPoint p1 = polyline.points[i];
+        MKMapPoint p2 = polyline.points[i+1];
+        
+        CGPoint pt1 = [self.mapView convertCoordinate:MKCoordinateForMapPoint(p1)
+                                        toPointToView:self.mapView];
+        CGPoint pt2 = [self.mapView convertCoordinate:MKCoordinateForMapPoint(p2)
+                                        toPointToView:self.mapView];
+        
+        CGPoint proj;
+        CGFloat distance = [self projectPoint:tapPoint
+                                    ontoSegmentFrom:pt1
+                                                 to:pt2
+                                         projection:&proj];
+        
+        if (distance < minDistance) {
+            minDistance = distance;
+            // convert projection point back to map coordinate
+            nearestCoord = [self.mapView convertPoint:proj toCoordinateFromView:self.mapView];
+        }
+    }
+    
+    if (minDistance <= pixelTolerance) {
+        if (found) *found = YES;
+        return nearestCoord;
+    } else {
+        if (found) *found = NO;
+        return kCLLocationCoordinate2DInvalid;
+    }
+}
+
+- (CGFloat)projectPoint:(CGPoint)p
+       ontoSegmentFrom:(CGPoint)a
+                    to:(CGPoint)b
+            projection:(CGPoint *)projection {
+    CGFloat dx = b.x - a.x;
+    CGFloat dy = b.y - a.y;
+    
+    if (dx == 0 && dy == 0) {
+        // a == b case
+        if (projection) *projection = a;
+        dx = p.x - a.x;
+        dy = p.y - a.y;
+        return sqrt(dx*dx + dy*dy);
+    }
+    
+    CGFloat t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx*dx + dy*dy);
+    
+    if (t < 0) {
+        if (projection) *projection = a;
+    } else if (t > 1) {
+        if (projection) *projection = b;
+    } else {
+        if (projection) *projection = CGPointMake(a.x + t * dx, a.y + t * dy);
+    }
+    
+    CGFloat px = p.x - projection->x;
+    CGFloat py = p.y - projection->y;
+    return sqrt(px*px + py*py);
+}
+/*
 - (NSInteger)nearestPolylineSegmentToPoint:(CGPoint)tapPoint
                                 polyline:(MKPolyline *)polyline
                           pixelTolerance:(CGFloat)pixelTolerance {
@@ -819,15 +905,17 @@
         return -1; // not close enough
     }
 }
+ */
 
-- (BOOL)clickNearPolylineAt:(CGPoint)clickPoint tolerence:(CGFloat)tol
+- (BOOL)clickNearPolylineAt:(CGPoint)clickPoint tolerence:(CGFloat)tol nearestPoint:(CLLocationCoordinate2D *)ppt
 {
     MKPolyline *poly = [_document.plan routePoly];
-    NSInteger segmentIndex = [self nearestPolylineSegmentToPoint:clickPoint
-                                                        polyline:poly
-                                                  pixelTolerance:tol];
-    if (segmentIndex>=0) return YES;
-    else return NO;
+    BOOL found = NO;
+    CLLocationCoordinate2D loc = [self nearestCoordinateOnPolyline:poly toPoint:clickPoint pixelTolerance:tol found:&found];
+    if (found && ppt) {
+        *ppt = loc;
+    }
+    return found;
 }
 
 #pragma mark -
@@ -1087,6 +1175,65 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     [self.mapView setCenterCoordinate:coord animated:NO];
     
     [self.svCtrl viewCoord:coord lookingAt:bearing coalesce:NO];
+}
+- (CLLocationDistance)distanceAtCoordinate:(CLLocationCoordinate2D)coord
+{
+    NSArray <CLLocation *>  *lp = _document.plan.routePoints;
+    NSUInteger c = lp.count;
+    if (lp.count < 2) return 0;
+    
+    CLLocationDistance total = 0.0;
+    CLLocationDistance result = 0.0;
+    
+    CLLocation *target = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
+    
+    BOOL found = NO;
+    
+    for (NSInteger i = 0; i < c - 1; i++) {
+        //CLLocationCoordinate2D c1 = lp[i].coordinate;
+        //CLLocationCoordinate2D c2 = lp[i+1].coordinate;
+        CLLocation *loc1 = lp[i];
+        CLLocation *loc2 = lp[i+1];
+        
+        
+        CLLocationDistance segLen = [loc1 distanceFromLocation:loc2];
+        
+        // project target onto segment
+        CGPoint a = CGPointMake(loc1.coordinate.longitude, loc1.coordinate.latitude);
+        CGPoint b = CGPointMake(loc2.coordinate.longitude, loc2.coordinate.latitude);
+        CGPoint p = CGPointMake(coord.longitude, coord.latitude);
+        
+        double dx = b.x - a.x;
+        double dy = b.y - a.y;
+        double segLen2 = dx*dx + dy*dy;
+        
+        double t = 0;
+        if (segLen2 > 0) {
+            t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / segLen2;
+        }
+        
+        if (t >= 0.0 && t <= 1.0) {
+            // falls on this segment
+            CLLocationCoordinate2D projCoord = CLLocationCoordinate2DMake(
+                a.y + t * dy,
+                a.x + t * dx
+            );
+            CLLocation *projLoc = [[CLLocation alloc] initWithLatitude:projCoord.latitude
+                                                             longitude:projCoord.longitude];
+            result = total + [loc1 distanceFromLocation:projLoc];
+            found = YES;
+            break;
+        }
+        
+        total += segLen;
+    }
+    
+    if (!found) {
+        // if coord is beyond the end, clamp to full length
+        return total; // MKMetersBetweenMapPoints(polyline.points[0], polyline.points[polyline.pointCount - 1]);
+    }
+    
+    return result;
 }
 
 - (CLLocationCoordinate2D)coordinateAtDistance:(double)targetDist {
