@@ -15,6 +15,7 @@
 #import "POIAnnotation.h"
 #import "BikePlan.h"
 #import "TaggedPoly.h"
+#import "POICalloutView.h"
 #import "Secret.h"
 // Secret.h is not commited, see Secret.h.example
 
@@ -183,7 +184,7 @@
     
     // Add click handler
     NSClickGestureRecognizer *clicker = [[NSClickGestureRecognizer alloc] initWithTarget:self action:@selector(handleMapClick:)];
-    //clicker.delegate = self; unused
+    clicker.delegate = self;
     clicker.buttonMask = 0x1; // left mouse
     clicker.numberOfClicksRequired = 1;
     [self.mapView addGestureRecognizer:clicker];
@@ -333,21 +334,23 @@
     return [NSString stringWithFormat:@"%lu", idx];
 }
 
-/*
+
 - (BOOL )gestureRecognizer:(NSGestureRecognizer *)gestureRecognizer
  shouldAttemptToRecognizeWithEvent:(NSEvent *)event
 {
-    NSView *hitView = [self.mapView hitTest:[event locationInWindow]];
+  /*  NSView *hitView = [self.mapView hitTest:[event locationInWindow]];
     if (![hitView isKindOfClass:[MKMapView class]]) {
         return NO; // let the button handle it
-    }
+    }*/
     return YES;
 }
- */
+ 
 
-
+- (void)
 - (void)handleMapClick:(NSGestureRecognizer *)gesture
 {
+    NSView *gview =gesture.view;
+
     NSPoint locInView = [gesture locationInView:self.mapView];
     CLLocationCoordinate2D coord = [self.mapView convertPoint:locInView toCoordinateFromView:self.mapView];
     CLLocation *loc = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
@@ -1094,11 +1097,16 @@ static const BOOL useMarker = NO;
     
     if ([annotation isKindOfClass:[POIAnnotation class]]) {
         static NSString *identifier = @"POIAnnotationView";
-        MKMarkerAnnotationView *view = [mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
+        MKMarkerAnnotationView *view = (MKMarkerAnnotationView *) [mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
         view.displayPriority = MKFeatureDisplayPriorityDefaultLow;
         if (!view) {
             view = [[MKMarkerAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
             view.canShowCallout = YES;
+            view.calloutOffset = CGPointMake(0, 4);
+            POICalloutView *detailView = [[POICalloutView alloc] initWithFrame:NSMakeRect(0, 0, 200, 80)];
+            view.detailCalloutAccessoryView = detailView;
+            detailView.excludeControl.target = self;
+            detailView.excludeControl.action = @selector(excludeControlChanged:);
         } else {
             view.annotation = annotation;
         }
@@ -1110,6 +1118,18 @@ static const BOOL useMarker = NO;
     }
         
     return nil;
+}
+
+- (void)excludeControlChanged:(NSSegmentedControl *)sender
+{
+    POIAnnotation *poi = (__bridge POIAnnotation *)(void *)sender.tag;
+    if (sender.selectedSegment == 0) {
+        NSLog(@"Include POI: %@", poi.title);
+        // add to route logic here
+    } else {
+        NSLog(@"Exclude POI: %@", poi.title);
+        // remove from route logic here
+    }
 }
 
 
