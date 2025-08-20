@@ -14,12 +14,13 @@
 NS_ASSUME_NONNULL_BEGIN
 
 
-@interface MapController : NSObject <MKMapViewDelegate, ElevationProfileViewDelegate> //, NSGestureRecognizerDelegate>
+@interface MapController : NSObject <MKMapViewDelegate, ElevationProfileViewDelegate, NSGestureRecognizerDelegate>
 
 @property (weak) IBOutlet MKMapView *mapView;
 @property (weak) IBOutlet Document *document;
 @property (weak) IBOutlet StreetViewController *svCtrl;
 @property (weak) IBOutlet ElevationProfileView *elevationView;
+@property (weak) NSView *activeCalloutView;   // your POICalloutView
 
 @property (strong) BRouterClient *brouter;
 //@property (assign) CLLocationCoordinate2D startCoord;

@@ -11,6 +11,7 @@
 		1B53B7C52E5265FC00C9470F /* BikeMapView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7C42E5265FC00C9470F /* BikeMapView.m */; };
 		1B53B7C82E53B5BA00C9470F /* POILocation.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7C72E53B5BA00C9470F /* POILocation.m */; };
 		1B53B7CB2E559DED00C9470F /* POICalloutView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7CA2E559DED00C9470F /* POICalloutView.m */; };
+		1B53B7CE2E56444100C9470F /* POIAnnotationView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7CD2E56444100C9470F /* POIAnnotationView.m */; };
 		65B22D642E50B1360078F4BC /* TaggedPoly.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B22D632E50B1360078F4BC /* TaggedPoly.m */; };
 		65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */; };
 		65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE642E47982C001F2966 /* BikePlannerUITests.m */; };
@@ -79,6 +80,8 @@
 		1B53B7C72E53B5BA00C9470F /* POILocation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = POILocation.m; sourceTree = "<group>"; };
 		1B53B7C92E559DED00C9470F /* POICalloutView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = POICalloutView.h; sourceTree = "<group>"; };
 		1B53B7CA2E559DED00C9470F /* POICalloutView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = POICalloutView.m; sourceTree = "<group>"; };
+		1B53B7CC2E56444100C9470F /* POIAnnotationView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = POIAnnotationView.h; sourceTree = "<group>"; };
+		1B53B7CD2E56444100C9470F /* POIAnnotationView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = POIAnnotationView.m; sourceTree = "<group>"; };
 		65B22D622E50B1360078F4BC /* TaggedPoly.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TaggedPoly.h; sourceTree = "<group>"; };
 		65B22D632E50B1360078F4BC /* TaggedPoly.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TaggedPoly.m; sourceTree = "<group>"; };
 		65B8EE442E479821001F2966 /* BikePlanner_org.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BikePlanner_org.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -258,6 +261,8 @@
 				1B53B7C42E5265FC00C9470F /* BikeMapView.m */,
 				1B53B7C62E53B5BA00C9470F /* POILocation.h */,
 				1B53B7C72E53B5BA00C9470F /* POILocation.m */,
+				1B53B7CC2E56444100C9470F /* POIAnnotationView.h */,
+				1B53B7CD2E56444100C9470F /* POIAnnotationView.m */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -549,6 +554,7 @@
 				65F365C52E4F73200046B03D /* ElevationProfileView.m in Sources */,
 				65F366152E4FA4F30046B03D /* RouteAnnotation.m in Sources */,
 				65F366122E4FA3DF0046B03D /* BikePlan.m in Sources */,
+				1B53B7CE2E56444100C9470F /* POIAnnotationView.m in Sources */,
 				65B22D642E50B1360078F4BC /* TaggedPoly.m in Sources */,
 				65F365CD2E4F73300046B03D /* MapController.m in Sources */,
 				65F365982E4F6BD40046B03D /* Document.m in Sources */,

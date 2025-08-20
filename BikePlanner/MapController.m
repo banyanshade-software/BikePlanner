@@ -16,7 +16,9 @@
 #import "BikePlan.h"
 #import "TaggedPoly.h"
 #import "POICalloutView.h"
+#import "POIAnnotationView.h"
 #import "Secret.h"
+
 // Secret.h is not commited, see Secret.h.example
 
 
@@ -216,6 +218,20 @@
     }
 }
 
+
+
+// When a pin is selected/deselected:
+- (void)mapView:(MKMapView *)mapView didSelectAnnotationView:(MKAnnotationView *)view {
+    self.activeCalloutView = view.detailCalloutAccessoryView;
+}
+
+- (void)mapView:(MKMapView *)mapView didDeselectAnnotationView:(MKAnnotationView *)view {
+    if (self.activeCalloutView == view.detailCalloutAccessoryView) {
+        self.activeCalloutView = nil;
+    }
+}
+
+
 - (void) setHelpStringForClickMode:(int)mt
 {
     NSString *hlp;
@@ -338,18 +354,22 @@
 - (BOOL )gestureRecognizer:(NSGestureRecognizer *)gestureRecognizer
  shouldAttemptToRecognizeWithEvent:(NSEvent *)event
 {
-  /*  NSView *hitView = [self.mapView hitTest:[event locationInWindow]];
-    if (![hitView isKindOfClass:[MKMapView class]]) {
-        return NO; // let the button handle it
-    }*/
+    if (self.activeCalloutView) {
+         NSPoint pInCallout = [self.activeCalloutView convertPoint:event.locationInWindow
+                                                          fromView:nil];
+         NSView *hit = [self.activeCalloutView hitTest:pInCallout];
+         if (hit) {
+             // Click landed on the callout (e.g., the NSSegmentedControl or label) — let it handle the event.
+             return NO;
+         }
+     }
     return YES;
 }
  
 
-- (void)
 - (void)handleMapClick:(NSGestureRecognizer *)gesture
 {
-    NSView *gview =gesture.view;
+    //NSView *gview =gesture.view;
 
     NSPoint locInView = [gesture locationInView:self.mapView];
     CLLocationCoordinate2D coord = [self.mapView convertPoint:locInView toCoordinateFromView:self.mapView];
@@ -1097,10 +1117,11 @@ static const BOOL useMarker = NO;
     
     if ([annotation isKindOfClass:[POIAnnotation class]]) {
         static NSString *identifier = @"POIAnnotationView";
-        MKMarkerAnnotationView *view = (MKMarkerAnnotationView *) [mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
+        POIAnnotationView *view = (POIAnnotationView *) [mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
+        //MKMarkerAnnotationView *view = (MKMarkerAnnotationView *) [mapView dequeueReusableAnnotationViewWithIdentifier:identifier];
         view.displayPriority = MKFeatureDisplayPriorityDefaultLow;
         if (!view) {
-            view = [[MKMarkerAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
+            view = [[POIAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
             view.canShowCallout = YES;
             view.calloutOffset = CGPointMake(0, 4);
             POICalloutView *detailView = [[POICalloutView alloc] initWithFrame:NSMakeRect(0, 0, 200, 80)];
