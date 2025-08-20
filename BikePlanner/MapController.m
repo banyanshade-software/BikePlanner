@@ -372,6 +372,23 @@
     //NSView *gview =gesture.view;
 
     NSPoint locInView = [gesture locationInView:self.mapView];
+    
+    /*if (![self gestureRecognizerShouldHandleMapClick:gr]) {
+        // should not happen
+        return;
+    }*/
+    // check if POI is selected (standard mechanism require tricky click right on the bottom of annotation view)
+    float radius = 24;
+    if (clickmode>=2) radius=40;
+    id<MKAnnotation> poi = [self nearestPOIToScreenPoint:locInView
+                                          maxPixelRadius:radius];
+    if (poi) {
+        NSAssert([poi isKindOfClass:[POIAnnotation class]], @"bad poi class");
+        [self.mapView selectAnnotation:poi animated:YES];
+        return; // don’t treat as route edit
+    }
+    
+    
     CLLocationCoordinate2D coord = [self.mapView convertPoint:locInView toCoordinateFromView:self.mapView];
     CLLocation *loc = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
    
@@ -427,6 +444,25 @@
         [self shouldRecalcRoute];
     }
     
+}
+
+- (id<MKAnnotation>)nearestPOIToScreenPoint:(CGPoint)p maxPixelRadius:(CGFloat)radius
+{
+    id<MKAnnotation> best = nil;
+    CGFloat bestDist = CGFLOAT_MAX;
+
+    for (id<MKAnnotation> ann in self.mapView.annotations) {
+        if ([ann isKindOfClass:[POIAnnotation class]]) continue;
+        // If you have a POI class:
+        // if (![ann isKindOfClass:[POIAnnotation class]]) continue;
+
+        CGPoint q = [self.mapView convertCoordinate:ann.coordinate toPointToView:self.mapView];
+        CGFloat dx = q.x - p.x, dy = q.y - p.y;
+        CGFloat d = sqrt(dx*dx + dy*dy);
+        if (d < bestDist) { bestDist = d; best = ann; }
+    }
+
+    return (bestDist <= radius) ? best : nil;
 }
 
 - (void) recalcAnnotIndexesFrom:(NSUInteger)ri
