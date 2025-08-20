@@ -9,7 +9,7 @@
 
 @implementation POIAnnotation
 
-- (void) configureAnnotView:(MKMarkerAnnotationView *)view
+- (void) configureAnnotViewIcon:(MKMarkerAnnotationView *)view
 {
     static NSImage *tpl_toilets = nil;
     static NSImage *tpl_water = nil;

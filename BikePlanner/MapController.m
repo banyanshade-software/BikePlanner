@@ -378,16 +378,17 @@
         return;
     }*/
     // check if POI is selected (standard mechanism require tricky click right on the bottom of annotation view)
-    float radius = 24;
-    if (clickmode>=2) radius=40;
-    id<MKAnnotation> poi = [self nearestPOIToScreenPoint:locInView
-                                          maxPixelRadius:radius];
-    if (poi) {
-        NSAssert([poi isKindOfClass:[POIAnnotation class]], @"bad poi class");
-        [self.mapView selectAnnotation:poi animated:YES];
-        return; // don’t treat as route edit
+    if (!self.activeCalloutView) {
+        float radius = 24;
+        if (clickmode>=2) radius=40;
+        id<MKAnnotation> poi = [self nearestPOIToScreenPoint:locInView
+                                              maxPixelRadius:radius];
+        if (poi) {
+            NSAssert([poi isKindOfClass:[POIAnnotation class]], @"bad poi class");
+            [self.mapView selectAnnotation:poi animated:YES];
+            return; // don’t treat as route edit
+        }
     }
-    
     
     CLLocationCoordinate2D coord = [self.mapView convertPoint:locInView toCoordinateFromView:self.mapView];
     CLLocation *loc = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
@@ -547,6 +548,7 @@
     }
     for (POILocation *loc in _document.plan.poiloc) {
         POIAnnotation *ann = [[POIAnnotation alloc] init];
+        ann.info = loc.info;
         ann.coordinate = loc.coordinate;
         ann.title = loc.title;
         ann.poiType = loc.poiType;
@@ -1160,7 +1162,7 @@ static const BOOL useMarker = NO;
             view = [[POIAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
             view.canShowCallout = YES;
             view.calloutOffset = CGPointMake(0, 4);
-            POICalloutView *detailView = [[POICalloutView alloc] initWithFrame:NSMakeRect(0, 0, 200, 80)];
+            POICalloutView *detailView = [[POICalloutView alloc] initWithFrame:NSMakeRect(0, 0, 200, 200)];
             view.detailCalloutAccessoryView = detailView;
             detailView.excludeControl.target = self;
             detailView.excludeControl.action = @selector(excludeControlChanged:);
@@ -1168,8 +1170,8 @@ static const BOOL useMarker = NO;
             view.annotation = annotation;
         }
         POIAnnotation *poi = (POIAnnotation *)annotation;
-        [poi configureAnnotView:view];
-
+        [poi configureAnnotViewIcon:view];
+        ((POICalloutView *)view.detailCalloutAccessoryView).infodic = poi.info; //XXX TODO
         
         return view;
     }

@@ -11,7 +11,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface POICalloutView : NSView
 
-@property  (readonly,nonatomic)   NSSegmentedControl *excludeControl;
+@property (assign,nonatomic) NSDictionary *infodic;
+@property  (readonly,nonatomic) NSSegmentedControl *excludeControl;
 
 @end
 

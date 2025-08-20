@@ -26,10 +26,11 @@
         _infoLabel.usesSingleLineMode = NO;
         _infoLabel.font = [NSFont systemFontOfSize:12];
         _infoLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        _infoLabel.stringValue = @"coucou";
         [self addSubview:_infoLabel];
         
         // Segmented control
-        _excludeControl = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 64, 280, 26)];
+        _excludeControl = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 64, 280, 56)];
         _excludeControl.segmentCount = 2;
         _excludeControl.selectedSegment = 0;
         [_excludeControl setLabel:@"Include" forSegment:0];
@@ -53,4 +54,11 @@
     return self;
 }
 
+- (void) setInfodic:(NSDictionary *)dic
+{
+    if (_infodic == dic) return;
+    _infodic = dic;
+    _infoLabel.stringValue = [dic description];
+    [self setNeedsDisplay:YES];
+}
 @end
