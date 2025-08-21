@@ -133,8 +133,9 @@ static void RunLoopLogger(CFRunLoopObserverRef observer, CFRunLoopActivity activ
 - (IBAction)showAboutWindow:(id)sender {
     
     // Set about window values (override defaults)
-    self.aboutWindowController.appWebsiteURL = [NSURL URLWithString:@"http://www.dangercove.com/tapetrap?source=DCOAbouwWindowExample"];
-    
+    //self.aboutWindowController.appWebsiteURL = [NSURL URLWithString:@"http://www.dangercove.com/tapetrap?source=DCOAbouwWindowExample"];
+    //self.aboutWindowController.useTextViewForAcknowledgments = NO;
+
     // Show the about window
     [self.aboutWindowController showWindow:nil];
     
