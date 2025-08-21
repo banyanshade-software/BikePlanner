@@ -407,8 +407,8 @@
 - (NSColor *) pinColorForWaypointIdx:(NSUInteger)idx
 {
     NSColor *c;
-    if (0==idx) c = [NSColor redColor];
-    else if (idx >= [waypointsRouteAnnotations count]-1) c = [NSColor greenColor];
+    if (0==idx) c = [NSColor grayColor];
+    else if (idx >= [waypointsRouteAnnotations count]-1) c = [NSColor whiteColor];
     else c = [NSColor yellowColor];
     return c;
 }
