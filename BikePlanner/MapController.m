@@ -155,10 +155,15 @@
    
 }
 #endif
-- (void)mouseMoved:(NSEvent *)event {
+
+
+#define MOUSE_RADIUS ((clickmode >=2) ? 18.0 : 36.0)
+
+
+- (void)mouseMoved:(NSEvent *)event
+{
     CGPoint point = [self.mapView convertPoint:event.locationInWindow fromView:nil];
-    CGFloat radius = 18.;
-    if (clickmode>=2) radius=36.;
+    CGFloat radius = MOUSE_RADIUS;
     id<MKAnnotation> nearest = [self nearestPOIToScreenPoint:point maxPixelRadius:radius];
 
     if (nearest != _highlightedPOI) {
@@ -440,8 +445,7 @@
     }*/
     // check if POI is selected (standard mechanism require tricky click right on the bottom of annotation view)
     if (!self.activeCalloutView) {
-        float radius = 24;
-        if (clickmode>=2) radius=40;
+        float radius = MOUSE_RADIUS;
         id<MKAnnotation> poi = [self nearestPOIToScreenPoint:locInView
                                               maxPixelRadius:radius];
         if (poi) {
