@@ -79,7 +79,7 @@
     }
     
     return data;
-
+    
     //[NSException raise:@"UnimplementedMethod" format:@"%@ is unimplemented", NSStringFromSelector(_cmd)];
     //return nil;
 }
@@ -133,6 +133,36 @@
 - (void)windowControllerDidLoadNib:(NSWindowController *)windowController
 {
     [super windowControllerDidLoadNib:windowController];
+}
+
+
+
+#pragma mark - relay for menu
+
+
+- (IBAction) setClickModeToEdit:(id)sender
+{
+    [_mapController setClickModeToEdit:sender];
+}
+
+- (IBAction) setClickModeToInterm:(id)sender
+{
+    [_mapController setClickModeToInterm:sender];
+}
+
+- (IBAction) setClickModeToView:(id)sender
+{
+    [_mapController setClickModeToView:sender];
+}
+
+- (IBAction) importGPXTraceForDisplay:(id)sender
+{
+    [_mapController importGPXTraceForDisplay:sender];
+}
+
+- (IBAction) exportGPX:(id)sender
+{
+    [_mapController exportGPX:sender];
 }
 
 @end

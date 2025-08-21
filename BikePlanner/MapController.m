@@ -282,8 +282,8 @@
 - (void) setClickModeTo:(int)mt
 {
     if (mt != clickmode) {
-        //[self setHelpStringForClickMode:mt];
-        //clickmode = mt;
+        [self setHelpStringForClickMode:mt];
+        clickmode = mt;
         clickmodeseg.selectedSegment = mt;
     }
 }
