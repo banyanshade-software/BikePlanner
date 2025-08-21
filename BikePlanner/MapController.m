@@ -35,6 +35,8 @@
     
     NSTextField *helpTxtField;
     int clickmode;
+    
+    POIAnnotation *_highlightedPOI;
 }
 
 - (void) initializeMapview
@@ -100,7 +102,60 @@
         [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(center, 20000, 20000) animated:NO];
 
     });
+    if ((1)) [self addTrackingAreas];
 }
+
+#pragma  mark - tracking area
+
+- (void) mouseEntered:(id)x
+{
+    
+}
+- (void) mouseExited:(id)x
+{
+    
+}
+- (void) addTrackingAreas
+{
+    [self.mapView addTrackingArea:[[NSTrackingArea alloc] initWithRect:self.mapView.bounds
+                                                               options:(NSTrackingActiveAlways |
+                                                                        NSTrackingMouseMoved |
+                                                                        NSTrackingInVisibleRect)
+                                                                 owner:self
+                                                              userInfo:nil]];
+}
+- (BOOL)acceptsFirstResponder {
+    return YES;
+}
+
+
+- (void)mouseMoved:(NSEvent *)event {
+    CGPoint point = [self.mapView convertPoint:event.locationInWindow fromView:nil];
+    id<MKAnnotation> nearest = [self nearestPOIToScreenPoint:point maxPixelRadius:18.0];
+
+    if (nearest != _highlightedPOI) {
+        // Remove highlight from old one
+        if (_highlightedPOI) {
+            MKAnnotationView *oldView = [self.mapView viewForAnnotation:_highlightedPOI];
+            oldView.layer.borderWidth = 0;
+            oldView.layer.borderColor = nil;
+        }
+
+        _highlightedPOI = nearest;
+
+        // Apply highlight to new one
+        if (_highlightedPOI) {
+            MKAnnotationView *newView = [self.mapView viewForAnnotation:_highlightedPOI];
+            newView.wantsLayer = YES;
+            newView.layer.borderWidth = 2.0;
+            newView.layer.borderColor = [NSColor systemRedColor].CGColor;
+            newView.layer.cornerRadius = newView.frame.size.width / 2.0;
+        }
+    }
+}
+
+
+#pragma  mark - mapview buttons
 
 - (void) addMapviewButtonsIn:(NSView *)content
 {
@@ -373,6 +428,8 @@
             NSAssert([poi isKindOfClass:[POIAnnotation class]], @"bad poi class");
             [self.mapView selectAnnotation:poi animated:YES];
             return; // don’t treat as route edit
+        } else {
+            NSLog(@"out of poi");
         }
     }
     
@@ -439,7 +496,7 @@
     CGFloat bestDist = CGFLOAT_MAX;
 
     for (id<MKAnnotation> ann in self.mapView.annotations) {
-        if ([ann isKindOfClass:[POIAnnotation class]]) continue;
+        if (![ann isKindOfClass:[POIAnnotation class]]) continue;
         // If you have a POI class:
         // if (![ann isKindOfClass:[POIAnnotation class]]) continue;
 
