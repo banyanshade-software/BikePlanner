@@ -1236,9 +1236,11 @@ static const BOOL useMarker = NO;
             view.detailCalloutAccessoryView = detailView;
             detailView.excludeControl.target = self;
             detailView.excludeControl.action = @selector(excludeControlChanged:);
+            detailView.annotview = view;
         } else {
             view.annotation = annotation;
         }
+        
         POIAnnotation *poi = (POIAnnotation *)annotation;
         [poi configureAnnotViewIcon:view];
         ((POICalloutView *)view.detailCalloutAccessoryView).infodic = poi.info; //XXX TODO
