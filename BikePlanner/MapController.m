@@ -128,29 +128,49 @@
     return YES;
 }
 
+#if 1
+- (void) highlightPoi:(POIAnnotation *)poi
+{
+    MKAnnotationView *newView = [self.mapView viewForAnnotation:_highlightedPOI];
+    newView.wantsLayer = YES;
+    newView.layer.borderWidth = 2.0;
+    newView.layer.borderColor = [NSColor systemRedColor].CGColor;
+    newView.layer.cornerRadius = newView.frame.size.width / 2.0;
 
+}
+- (void) unHighlightPoi:(POIAnnotation *)poi
+{
+    if (!poi) return;
+    MKAnnotationView *oldView = [self.mapView viewForAnnotation:poi];
+    oldView.layer.borderWidth = 0;
+    oldView.layer.borderColor = nil;
+}
+#else
+- (void) highlightPoi:(POIAnnotation *)poi
+{
+   
+}
+- (void) unHighlightPoi:(POIAnnotation *)poi
+{
+   
+}
+#endif
 - (void)mouseMoved:(NSEvent *)event {
     CGPoint point = [self.mapView convertPoint:event.locationInWindow fromView:nil];
-    id<MKAnnotation> nearest = [self nearestPOIToScreenPoint:point maxPixelRadius:18.0];
+    CGFloat radius = 18.;
+    if (clickmode>=2) radius=36.;
+    id<MKAnnotation> nearest = [self nearestPOIToScreenPoint:point maxPixelRadius:radius];
 
     if (nearest != _highlightedPOI) {
         // Remove highlight from old one
-        if (_highlightedPOI) {
-            MKAnnotationView *oldView = [self.mapView viewForAnnotation:_highlightedPOI];
-            oldView.layer.borderWidth = 0;
-            oldView.layer.borderColor = nil;
-        }
-
-        _highlightedPOI = nearest;
+        if (_highlightedPOI) [self unHighlightPoi:_highlightedPOI];
+       
+        NSAssert(!nearest || [nearest isKindOfClass:[POIAnnotation class]], @"bad class");
+        _highlightedPOI = (POIAnnotation *) nearest;
 
         // Apply highlight to new one
-        if (_highlightedPOI) {
-            MKAnnotationView *newView = [self.mapView viewForAnnotation:_highlightedPOI];
-            newView.wantsLayer = YES;
-            newView.layer.borderWidth = 2.0;
-            newView.layer.borderColor = [NSColor systemRedColor].CGColor;
-            newView.layer.cornerRadius = newView.frame.size.width / 2.0;
-        }
+        if (_highlightedPOI) [self highlightPoi:_highlightedPOI];
+           
     }
 }
 
