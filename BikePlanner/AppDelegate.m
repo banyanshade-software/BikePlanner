@@ -72,7 +72,7 @@ static void RunLoopLogger(CFRunLoopObserverRef observer, CFRunLoopActivity activ
 
 - (void)installRunLoopModeLogger
 {
-    CFRunLoopObserverContext context = {0, (__bridge void *)self, NULL, NULL, NULL};
+    //CFRunLoopObserverContext context = {0, (__bridge void *)self, NULL, NULL, NULL};
     CFRunLoopObserverRef observer = CFRunLoopObserverCreateWithHandler(
         NULL,
         kCFRunLoopAllActivities,

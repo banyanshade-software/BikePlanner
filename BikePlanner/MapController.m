@@ -1264,7 +1264,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     CLLocationDistance total = 0.0;
     CLLocationDistance result = 0.0;
     
-    CLLocation *target = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
+    //CLLocation *target = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
     
     BOOL found = NO;
     
@@ -1382,8 +1382,9 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 - (void)removeWaypointMenuAction:(id)sender
 {
     NSMenuItem *item = (NSMenuItem *)sender;
-    id<MKAnnotation> annotation = item.representedObject;
+    RouteAnnotation *annotation = item.representedObject;
     if (annotation) {
+        NSAssert([annotation isKindOfClass:[RouteAnnotation class]], @"bad class");
         [self.mapView removeAnnotation:annotation];
         
         // If you store waypoints in an array, remove it there too:

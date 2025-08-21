@@ -288,7 +288,7 @@
     NSURLSessionDataTask *task = [[NSURLSession sharedSession]
                                   dataTaskWithRequest:req
                                   completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
-        poiUpdateOnProgress = NO;
+        self->poiUpdateOnProgress = NO;
         if (err) {
             NSLog(@"Error: %@", err);
             [self refetchPOIWithAdditionalDelay];
@@ -320,7 +320,7 @@
                 NSDictionary *tags = el[@"tags"];
                 NSMutableDictionary *info2 = [tags mutableCopy];
                 [info2 setObject:poiid forKey:@"id"];
-                NSDictionary *info = el[@"tags"];
+                //NSDictionary *info = el[@"tags"];
                 double lon = 0.;
                 double lat = 0.;
                 NSString *t = el[@"type"];
