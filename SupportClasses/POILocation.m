@@ -55,12 +55,22 @@
         default:
             return nil;
             break;
-        case POI_drinking_water:        return @"water"; break;
-        case POI_toilets:               return @"toilets"; break;
-        case POI_bicycle_repair_station:return @"repair_station"; break;
-        case POI_cemetery:              return @"cemetery"; break;
+        case POI_drinking_water:
+            return NSLocalizedString(@"water", "water (poi title)");
+            break;
+        case POI_toilets:
+            return NSLocalizedString(@"toilets", "toilets (poi title)");
+            break;
+        case POI_bicycle_repair_station:
+            return NSLocalizedString(@"repair station", "bike repair (poi title)");
+            break;
+        case POI_cemetery:
+            return NSLocalizedString(@"cemetery", "cemetery (poi title");
+            break;
     }
 }
+
+
 - (NSDictionary *) info
 {
     return info;

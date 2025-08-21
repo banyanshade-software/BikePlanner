@@ -61,4 +61,9 @@
     _infoLabel.stringValue = [dic description];
     [self setNeedsDisplay:YES];
 }
+
+- (void) mouseDown:(NSEvent *)event
+{
+    [self.annotview  setSelected:NO animated:YES];
+}
 @end
