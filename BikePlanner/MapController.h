@@ -41,6 +41,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void) initializeMapview;
 
+
+- (IBAction) setClickModeToEdit:(id)sender;
+- (IBAction) setClickModeToInterm:(id)sender;
+- (IBAction) setClickModeToView:(id)sender;
+
 //@property unsigned int kmlen;
 //@property unsigned int mup;
 @end

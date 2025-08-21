@@ -35,6 +35,7 @@
     
     NSTextField *helpTxtField;
     int clickmode;
+    NSSegmentedControl *clickmodeseg;
 }
 
 - (void) initializeMapview
@@ -156,7 +157,7 @@
     [content addSubview:helpTxtField];
     
     clickmode = 0;
-    NSSegmentedControl *clickmodeseg = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 38, 200, 26)];
+    clickmodeseg = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 38, 200, 26)];
     clickmodeseg.segmentCount = 3;
     clickmodeseg.selectedSegment = clickmode;
     [self setHelpStringForClickMode:clickmode];
@@ -258,6 +259,32 @@
     if (mt != clickmode) {
         [self setHelpStringForClickMode:mt];
         clickmode = mt;
+    }
+}
+
+
+
+- (IBAction) setClickModeToEdit:(id)sender
+{
+    [self setClickModeTo:0];
+}
+
+- (IBAction) setClickModeToInterm:(id)sender
+{
+    [self setClickModeTo:1];
+}
+
+- (IBAction) setClickModeToView:(id)sender
+{
+    [self setClickModeTo:2];
+}
+
+- (void) setClickModeTo:(int)mt
+{
+    if (mt != clickmode) {
+        //[self setHelpStringForClickMode:mt];
+        //clickmode = mt;
+        clickmodeseg.selectedSegment = mt;
     }
 }
 
