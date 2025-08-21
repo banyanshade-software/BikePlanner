@@ -57,7 +57,7 @@
             break;
         case POI_drinking_water:        return @"water"; break;
         case POI_toilets:               return @"toilets"; break;
-        case POI_bicycle_repair_station:return @"repair_station"; break;
+        case POI_bicycle_repair_station:return @"repair station"; break;
         case POI_cemetery:              return @"cemetery"; break;
     }
 }
