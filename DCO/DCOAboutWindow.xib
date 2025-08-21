@@ -6,7 +6,7 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
-        <customObject id="-2" userLabel="File's Owner" customClass="DCOAboutWindowController">
+        <customObject id="-2" userLabel="File's Owner" customClass="BSSUI_AboutWindowController">
             <connections>
                 <outlet property="acknowledgmentsButton" destination="rvK-GI-M19" id="aOq-p2-IVi"/>
                 <outlet property="acknowledgmentsTextView" destination="pPz-0S-Xyc" id="MAH-7K-HpQ"/>
@@ -14,6 +14,7 @@
                 <outlet property="creditsTextView" destination="buD-lD-W3V" id="0d7-rF-jQd"/>
                 <outlet property="infoView" destination="0U4-kJ-vLE" id="PDd-2w-qnD"/>
                 <outlet property="placeHolderView" destination="azJ-mF-gLH" id="aaQ-yS-ysR"/>
+                <outlet property="scrollView" destination="3g5-Cj-ETk" id="mu1-VT-U6H"/>
                 <outlet property="visitWebsiteButton" destination="DNh-ZA-cca" id="wD5-ro-jbQ"/>
                 <outlet property="window" destination="1" id="3"/>
             </connections>
@@ -186,7 +187,7 @@
                     <rect key="frame" x="0.0" y="0.0" width="560" height="270"/>
                     <clipView key="contentView" drawsBackground="NO" id="McN-uU-tJe">
                         <rect key="frame" x="0.0" y="0.0" width="560" height="270"/>
-                        <autoresizingMask key="autoresizingMask"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <textView editable="NO" importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" allowsNonContiguousLayout="YES" quoteSubstitution="YES" dashSubstitution="YES" smartInsertDelete="YES" id="pPz-0S-Xyc">
                                 <rect key="frame" x="0.0" y="0.0" width="560" height="270"/>

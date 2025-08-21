@@ -18,6 +18,7 @@
 		1B53B7E22E57B1C500C9470F /* DCOAboutWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7D82E57AF9600C9470F /* DCOAboutWindowController.m */; };
 		1B53B83A2E57B8E800C9470F /* DCOAboutWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1B53B7D72E57AF9600C9470F /* DCOAboutWindow.xib */; };
 		1B53B83F2E57BAA500C9470F /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 1B53B8412E57BAA500C9470F /* Credits.rtf */; };
+		1B53B8492E57C54500C9470F /* BSSUI_AboutWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B8472E57C54500C9470F /* BSSUI_AboutWindowController.m */; };
 		65B22D642E50B1360078F4BC /* TaggedPoly.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B22D632E50B1360078F4BC /* TaggedPoly.m */; };
 		65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */; };
 		65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE642E47982C001F2966 /* BikePlannerUITests.m */; };
@@ -99,6 +100,8 @@
 		1B53B7D82E57AF9600C9470F /* DCOAboutWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DCOAboutWindowController.m; sourceTree = "<group>"; };
 		1B53B7D92E57AF9600C9470F /* DCOBackgroundView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DCOBackgroundView.h; sourceTree = "<group>"; };
 		1B53B8402E57BAA500C9470F /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = Base; path = Base.lproj/Credits.rtf; sourceTree = "<group>"; };
+		1B53B8472E57C54500C9470F /* BSSUI_AboutWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BSSUI_AboutWindowController.m; sourceTree = "<group>"; };
+		1B53B8482E57C54500C9470F /* BSSUI_AboutWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BSSUI_AboutWindowController.h; sourceTree = "<group>"; };
 		65B22D622E50B1360078F4BC /* TaggedPoly.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TaggedPoly.h; sourceTree = "<group>"; };
 		65B22D632E50B1360078F4BC /* TaggedPoly.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TaggedPoly.m; sourceTree = "<group>"; };
 		65B8EE442E479821001F2966 /* BikePlanner_org.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BikePlanner_org.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -213,9 +216,19 @@
 			path = DCO;
 			sourceTree = "<group>";
 		};
+		1B53B8462E57C54500C9470F /* BSSUI */ = {
+			isa = PBXGroup;
+			children = (
+				1B53B8472E57C54500C9470F /* BSSUI_AboutWindowController.m */,
+				1B53B8482E57C54500C9470F /* BSSUI_AboutWindowController.h */,
+			);
+			path = BSSUI;
+			sourceTree = "<group>";
+		};
 		65B8EE3B2E479821001F2966 = {
 			isa = PBXGroup;
 			children = (
+				1B53B8462E57C54500C9470F /* BSSUI */,
 				1B53B7CF2E57AF9600C9470F /* DCO */,
 				65F3658C2E4F62230046B03D /* SupportClasses */,
 				65F365922E4F6BD40046B03D /* BikePlanner */,
@@ -600,6 +613,7 @@
 				65F365CD2E4F73300046B03D /* MapController.m in Sources */,
 				1B53B7E22E57B1C500C9470F /* DCOAboutWindowController.m in Sources */,
 				65F365982E4F6BD40046B03D /* Document.m in Sources */,
+				1B53B8492E57C54500C9470F /* BSSUI_AboutWindowController.m in Sources */,
 				65F365A32E4F6BE10046B03D /* main.m in Sources */,
 				1B53B7C52E5265FC00C9470F /* BikeMapView.m in Sources */,
 				1B53B7C82E53B5BA00C9470F /* POILocation.m in Sources */,

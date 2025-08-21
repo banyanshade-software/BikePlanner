@@ -6,10 +6,10 @@
 //
 
 #import "AppDelegate.h"
-#import "DCOAboutWindowController.h"
+#import "BSSUI_AboutWindowController.h"
 
 @interface AppDelegate ()
-@property (nonatomic, strong) DCOAboutWindowController *aboutWindowController;
+@property (nonatomic, strong) BSSUI_AboutWindowController *aboutWindowController;
 
 @end
 
@@ -103,24 +103,13 @@ static void RunLoopLogger(CFRunLoopObserverRef observer, CFRunLoopActivity activ
 
 - (DCOAboutWindowController *) aboutWindowController {
     if(!_aboutWindowController) {
-        _aboutWindowController = [[DCOAboutWindowController alloc] init];
+        _aboutWindowController = [[BSSUI_AboutWindowController alloc] init];
     }
     return _aboutWindowController;
 }
 
 
-- (BOOL)isResizable {
-    return self.aboutWindowController.window.styleMask & NSResizableWindowMask;
-}
 
-- (void)setResizable:(BOOL)resizable {
-    
-    if(self.isResizable) {
-        self.aboutWindowController.window.styleMask &= ~NSResizableWindowMask;
-    } else {
-        self.aboutWindowController.window.styleMask |= NSResizableWindowMask;
-    }
-}
 
 - (void)setUseTextView:(BOOL)useTextView {
     
