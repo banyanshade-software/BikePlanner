@@ -75,39 +75,41 @@
     self.brouter = [[BRouterClient alloc] initWithServerURL:server];
     
     
+    [self addMapviewButtonsIn:content];
     
-    // Buttons
-    /*
-    NSButton *clearBtn = [[NSButton alloc] initWithFrame:NSMakeRect(10, 10, 80, 28)];
-    clearBtn.title = @"Clear";
-    clearBtn.bezelStyle = NSBezelStyleRounded;
-    clearBtn.target = self;
-    clearBtn.action = @selector(clearAction:);
-    [content addSubview:clearBtn];
-    */
+    // Add click handler
+    NSClickGestureRecognizer *clicker = [[NSClickGestureRecognizer alloc] initWithTarget:self action:@selector(handleMapClick:)];
+    clicker.delegate = self;
+    clicker.buttonMask = 0x1; // left mouse
+    clicker.numberOfClicksRequired = 1;
+    [self.mapView addGestureRecognizer:clicker];
+    self.mapView.showsZoomControls = NO;
+   
+    scrubberMarker = [[MKPointAnnotation alloc] init];
+    [self.mapView addAnnotation:scrubberMarker];
+    self.elevationView.delegate = self;
     
-    /*
-    NSPopUpButton *profileMenu = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(14, 36, 200, 26)];
-    [profileMenu addItemsWithTitles:@[@"trekking", @"fastbike", @"car-fast", @"car-eco"]];
-    [content addSubview:profileMenu];
-    */
+    _document.plan.poiAvailableCallback = ^() {
+        //NSLog(@"hop");
+        [self refreshPOI];
+    };
+    // move to defined place
+    // 44.1249234 ,0.4961707,10920
+    CLLocationCoordinate2D center = CLLocationCoordinate2DMake(44.1249234, 0.4961707); // Laplume
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(center, 20000, 20000) animated:NO];
+
+    });
+}
+
+- (void) addMapviewButtonsIn:(NSView *)content
+{
     NSBezelStyle bzstyle = NSBezelStyleRoundRect; // NSBezelStyleRoundRect;
 
-    
-    NSImage *zoomInImage = [NSImage imageWithSystemSymbolName:@"plus.magnifyingglass"
-                                        accessibilityDescription:@"Zoom In"];
-    NSButton *btnZoomIn =  [[NSButton alloc]initWithFrame:NSMakeRect(14, 8, 32, 32)];
-    btnZoomIn.image = zoomInImage;
-    //btnZoomIn.imageScaling = NSImageScaleProportionallyDown;
-    btnZoomIn.bezelStyle = bzstyle;
-    btnZoomIn.bezelColor = [NSColor redColor];
-    btnZoomIn.action = @selector(zoomIn:);
-    btnZoomIn.target = self;
-    [content addSubview:btnZoomIn];
-    
     NSImage *zoomOutImage = [NSImage imageWithSystemSymbolName:@"minus.magnifyingglass"
                                         accessibilityDescription:@"Zoom Out"];
-    NSButton *btnZoomOut =  [[NSButton alloc]initWithFrame:NSMakeRect(14+32, 8, 32, 32)];
+    NSButton *btnZoomOut =  [[NSButton alloc]initWithFrame:NSMakeRect(14, 8, 32, 32)];
+
     btnZoomOut.image = zoomOutImage;
     //btnZoomOut.imageScaling = NSImageScaleProportionallyDown;
     btnZoomOut.bezelStyle = bzstyle;
@@ -116,6 +118,19 @@
     //btnZoomOut.contentTintColor = [NSColor labelColor];
     [content addSubview:btnZoomOut];
     
+    
+    NSImage *zoomInImage = [NSImage imageWithSystemSymbolName:@"plus.magnifyingglass"
+                                        accessibilityDescription:@"Zoom In"];
+    NSButton *btnZoomIn =  [[NSButton alloc]initWithFrame:NSMakeRect(14+32, 8, 32, 32)];
+    btnZoomIn.image = zoomInImage;
+    //btnZoomIn.imageScaling = NSImageScaleProportionallyDown;
+    btnZoomIn.bezelStyle = bzstyle;
+    btnZoomIn.bezelColor = [NSColor redColor];
+    btnZoomIn.action = @selector(zoomIn:);
+    btnZoomIn.target = self;
+    [content addSubview:btnZoomIn];
+    
+  
     
     NSImage *locImage = [NSImage imageWithSystemSymbolName:@"location.fill"
                                        accessibilityDescription:@"Show User Location"];
@@ -171,35 +186,6 @@
     clickmodeseg.target = self;
     [content addSubview:clickmodeseg];
     
-    
-    
-   
-    // Center map to a default location
-    //CLLocationCoordinate2D center = CLLocationCoordinate2DMake(48.8566, 2.3522); // Paris
-    // 44.1249234 ,0.4961707,10920
-    // 44.1249234 ,0.4961707,10920
-    CLLocationCoordinate2D center = CLLocationCoordinate2DMake(44.1249234, 0.4961707); // Laplume
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(center, 20000, 20000) animated:NO];
-
-    });
-    
-    // Add click handler
-    NSClickGestureRecognizer *clicker = [[NSClickGestureRecognizer alloc] initWithTarget:self action:@selector(handleMapClick:)];
-    clicker.delegate = self;
-    clicker.buttonMask = 0x1; // left mouse
-    clicker.numberOfClicksRequired = 1;
-    [self.mapView addGestureRecognizer:clicker];
-    self.mapView.showsZoomControls = NO;
-   
-    scrubberMarker = [[MKPointAnnotation alloc] init];
-    [self.mapView addAnnotation:scrubberMarker];
-    self.elevationView.delegate = self;
-    
-    _document.plan.poiAvailableCallback = ^() {
-        //NSLog(@"hop");
-        [self refreshPOI];
-    };
 }
 
 - (IBAction)centerOnUserLocation:(id)sender
