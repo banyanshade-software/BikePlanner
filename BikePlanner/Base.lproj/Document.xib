@@ -50,12 +50,12 @@
                                     <splitView arrangesAllSubviews="NO" dividerStyle="paneSplitter" vertical="YES" translatesAutoresizingMaskIntoConstraints="NO" id="5fM-Xt-7z9">
                                         <rect key="frame" x="0.0" y="0.0" width="985" height="358"/>
                                         <subviews>
-                                            <customView misplaced="YES" id="AEX-8D-3XS">
+                                            <customView id="AEX-8D-3XS">
                                                 <rect key="frame" x="0.0" y="0.0" width="489" height="358"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                                 <subviews>
                                                     <mapView pitchEnabled="NO" showsPointsOfInterest="NO" showsScale="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Nai-3j-aq5" customClass="BikeMapView">
-                                                        <rect key="frame" x="2" y="36" width="485" height="354"/>
+                                                        <rect key="frame" x="2" y="2" width="485" height="354"/>
                                                         <constraints>
                                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="360" id="8bQ-EC-SQt"/>
                                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="300" id="TKR-wy-5Ga"/>
@@ -71,7 +71,7 @@
                                                     <constraint firstAttribute="bottom" secondItem="Nai-3j-aq5" secondAttribute="bottom" constant="2" id="tkm-yU-U5c"/>
                                                 </constraints>
                                             </customView>
-                                            <customView misplaced="YES" id="Rvg-JO-ig3">
+                                            <customView id="Rvg-JO-ig3">
                                                 <rect key="frame" x="499" y="0.0" width="486" height="358"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                                 <subviews>
@@ -167,7 +167,7 @@
                                                                                     <autoresizingMask key="autoresizingMask"/>
                                                                                     <subviews>
                                                                                         <wkWebView wantsLayer="YES" translatesAutoresizingMaskIntoConstraints="NO" id="024-o5-5MO">
-                                                                                            <rect key="frame" x="4" y="21" width="472" height="300"/>
+                                                                                            <rect key="frame" x="4" y="4" width="472" height="300"/>
                                                                                             <constraints>
                                                                                                 <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="400" id="agT-Vx-65g"/>
                                                                                                 <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="300" id="vAW-zK-7Ty"/>
@@ -202,7 +202,7 @@
                                                             </tabViewItem>
                                                             <tabViewItem label="Params" identifier="2" id="Lfe-aP-fN2">
                                                                 <view key="view" id="vVI-p3-yOz">
-                                                                    <rect key="frame" x="10" y="33" width="480" height="340"/>
+                                                                    <rect key="frame" x="10" y="33" width="480" height="328"/>
                                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                                 </view>
                                                             </tabViewItem>

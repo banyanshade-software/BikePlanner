@@ -25,6 +25,7 @@
 - (void) viewCoord:(CLLocationCoordinate2D)coord  lookingAt:(double)bearing coalesce:(BOOL)coal
 {
     if ((0)) return; // disable
+    if ((1)) bearing-=20;
     NSString *surl = [NSString stringWithFormat:@"https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=%f,%f&heading=%f",
     coord.latitude, coord.longitude, bearing];
     NSURL *url = [NSURL URLWithString:surl];
