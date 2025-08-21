@@ -128,7 +128,7 @@
     return YES;
 }
 
-#if 1
+#if 0
 - (void) highlightPoi:(POIAnnotation *)poi
 {
     MKAnnotationView *newView = [self.mapView viewForAnnotation:_highlightedPOI];
@@ -148,11 +148,14 @@
 #else
 - (void) highlightPoi:(POIAnnotation *)poi
 {
-   
+    POIAnnotationView *v = (POIAnnotationView *)[self.mapView viewForAnnotation:_highlightedPOI];
+    v.savedColor = v.glyphTintColor;
+    v.glyphTintColor =[NSColor yellowColor];
 }
 - (void) unHighlightPoi:(POIAnnotation *)poi
 {
-   
+    POIAnnotationView *v = (POIAnnotationView *)[self.mapView viewForAnnotation:_highlightedPOI];
+    v.glyphTintColor = v.savedColor;
 }
 #endif
 
