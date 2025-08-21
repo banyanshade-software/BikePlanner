@@ -121,7 +121,7 @@
                     <rect key="frame" x="225" y="32" width="310" height="154"/>
                     <clipView key="contentView" drawsBackground="NO" id="qZW-xH-lOC">
                         <rect key="frame" x="0.0" y="0.0" width="310" height="154"/>
-                        <autoresizingMask key="autoresizingMask"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <textView editable="NO" selectable="NO" importsGraphics="NO" richText="NO" verticallyResizable="YES" quoteSubstitution="YES" dashSubstitution="YES" spellingCorrection="YES" id="buD-lD-W3V">
                                 <rect key="frame" x="0.0" y="0.0" width="310" height="154"/>
