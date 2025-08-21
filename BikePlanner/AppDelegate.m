@@ -6,8 +6,10 @@
 //
 
 #import "AppDelegate.h"
+#import "DCOAboutWindowController.h"
 
 @interface AppDelegate ()
+@property (nonatomic, strong) DCOAboutWindowController *aboutWindowController;
 
 @end
 
@@ -89,5 +91,53 @@ static void RunLoopLogger(CFRunLoopObserverRef observer, CFRunLoopActivity activ
     CFRelease(observer);
 }
 
+/*
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
+    return YES;
+}
+ */
+
+
+#pragma mark - DCO about win
+
+
+- (DCOAboutWindowController *) aboutWindowController {
+    if(!_aboutWindowController) {
+        _aboutWindowController = [[DCOAboutWindowController alloc] init];
+    }
+    return _aboutWindowController;
+}
+
+
+- (BOOL)isResizable {
+    return self.aboutWindowController.window.styleMask & NSResizableWindowMask;
+}
+
+- (void)setResizable:(BOOL)resizable {
+    
+    if(self.isResizable) {
+        self.aboutWindowController.window.styleMask &= ~NSResizableWindowMask;
+    } else {
+        self.aboutWindowController.window.styleMask |= NSResizableWindowMask;
+    }
+}
+
+- (void)setUseTextView:(BOOL)useTextView {
+    
+    _useTextView = useTextView;
+    self.aboutWindowController.useTextViewForAcknowledgments = useTextView;
+}
+
+
+
+- (IBAction)showAboutWindow:(id)sender {
+    
+    // Set about window values (override defaults)
+    self.aboutWindowController.appWebsiteURL = [NSURL URLWithString:@"http://www.dangercove.com/tapetrap?source=DCOAbouwWindowExample"];
+    
+    // Show the about window
+    [self.aboutWindowController showWindow:nil];
+    
+}
 
 @end

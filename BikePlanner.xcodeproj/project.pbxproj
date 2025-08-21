@@ -12,6 +12,12 @@
 		1B53B7C82E53B5BA00C9470F /* POILocation.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7C72E53B5BA00C9470F /* POILocation.m */; };
 		1B53B7CB2E559DED00C9470F /* POICalloutView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7CA2E559DED00C9470F /* POICalloutView.m */; };
 		1B53B7CE2E56444100C9470F /* POIAnnotationView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7CD2E56444100C9470F /* POIAnnotationView.m */; };
+		1B53B7DF2E57B1B800C9470F /* DCOTransparentScrollView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7D12E57AF9600C9470F /* DCOTransparentScrollView.m */; };
+		1B53B7E02E57B1BD00C9470F /* DCOBackgroundView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7D32E57AF9600C9470F /* DCOBackgroundView.m */; };
+		1B53B7E12E57B1C100C9470F /* DCOTransparentScroller.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7D62E57AF9600C9470F /* DCOTransparentScroller.m */; };
+		1B53B7E22E57B1C500C9470F /* DCOAboutWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7D82E57AF9600C9470F /* DCOAboutWindowController.m */; };
+		1B53B83A2E57B8E800C9470F /* DCOAboutWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1B53B7D72E57AF9600C9470F /* DCOAboutWindow.xib */; };
+		1B53B83E2E57B99F00C9470F /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 1B53B83D2E57B99F00C9470F /* Credits.rtf */; };
 		65B22D642E50B1360078F4BC /* TaggedPoly.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B22D632E50B1360078F4BC /* TaggedPoly.m */; };
 		65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */; };
 		65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE642E47982C001F2966 /* BikePlannerUITests.m */; };
@@ -82,6 +88,17 @@
 		1B53B7CA2E559DED00C9470F /* POICalloutView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = POICalloutView.m; sourceTree = "<group>"; };
 		1B53B7CC2E56444100C9470F /* POIAnnotationView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = POIAnnotationView.h; sourceTree = "<group>"; };
 		1B53B7CD2E56444100C9470F /* POIAnnotationView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = POIAnnotationView.m; sourceTree = "<group>"; };
+		1B53B7D02E57AF9600C9470F /* DCOTransparentScroller.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DCOTransparentScroller.h; sourceTree = "<group>"; };
+		1B53B7D12E57AF9600C9470F /* DCOTransparentScrollView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DCOTransparentScrollView.m; sourceTree = "<group>"; };
+		1B53B7D22E57AF9600C9470F /* DCOAboutWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DCOAboutWindow.h; sourceTree = "<group>"; };
+		1B53B7D32E57AF9600C9470F /* DCOBackgroundView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DCOBackgroundView.m; sourceTree = "<group>"; };
+		1B53B7D42E57AF9600C9470F /* DCOAboutWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DCOAboutWindowController.h; sourceTree = "<group>"; };
+		1B53B7D52E57AF9600C9470F /* DCOTransparentScrollView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DCOTransparentScrollView.h; sourceTree = "<group>"; };
+		1B53B7D62E57AF9600C9470F /* DCOTransparentScroller.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DCOTransparentScroller.m; sourceTree = "<group>"; };
+		1B53B7D72E57AF9600C9470F /* DCOAboutWindow.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = DCOAboutWindow.xib; sourceTree = "<group>"; };
+		1B53B7D82E57AF9600C9470F /* DCOAboutWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DCOAboutWindowController.m; sourceTree = "<group>"; };
+		1B53B7D92E57AF9600C9470F /* DCOBackgroundView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DCOBackgroundView.h; sourceTree = "<group>"; };
+		1B53B83D2E57B99F00C9470F /* Credits.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		65B22D622E50B1360078F4BC /* TaggedPoly.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TaggedPoly.h; sourceTree = "<group>"; };
 		65B22D632E50B1360078F4BC /* TaggedPoly.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TaggedPoly.m; sourceTree = "<group>"; };
 		65B8EE442E479821001F2966 /* BikePlanner_org.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BikePlanner_org.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -179,9 +196,27 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1B53B7CF2E57AF9600C9470F /* DCO */ = {
+			isa = PBXGroup;
+			children = (
+				1B53B7D02E57AF9600C9470F /* DCOTransparentScroller.h */,
+				1B53B7D12E57AF9600C9470F /* DCOTransparentScrollView.m */,
+				1B53B7D22E57AF9600C9470F /* DCOAboutWindow.h */,
+				1B53B7D32E57AF9600C9470F /* DCOBackgroundView.m */,
+				1B53B7D42E57AF9600C9470F /* DCOAboutWindowController.h */,
+				1B53B7D52E57AF9600C9470F /* DCOTransparentScrollView.h */,
+				1B53B7D62E57AF9600C9470F /* DCOTransparentScroller.m */,
+				1B53B7D72E57AF9600C9470F /* DCOAboutWindow.xib */,
+				1B53B7D82E57AF9600C9470F /* DCOAboutWindowController.m */,
+				1B53B7D92E57AF9600C9470F /* DCOBackgroundView.h */,
+			);
+			path = DCO;
+			sourceTree = "<group>";
+		};
 		65B8EE3B2E479821001F2966 = {
 			isa = PBXGroup;
 			children = (
+				1B53B7CF2E57AF9600C9470F /* DCO */,
 				65F3658C2E4F62230046B03D /* SupportClasses */,
 				65F365922E4F6BD40046B03D /* BikePlanner */,
 				65B8EE592E47982C001F2966 /* BikePlannerTests */,
@@ -270,6 +305,7 @@
 		65F365922E4F6BD40046B03D /* BikePlanner */ = {
 			isa = PBXGroup;
 			children = (
+				1B53B83D2E57B99F00C9470F /* Credits.rtf */,
 				65F365C42E4F71330046B03D /* AppDelegate.h */,
 				65F365942E4F6BD40046B03D /* AppDelegate.m */,
 				65B8EE832E48C10B001F2966 /* MapController.h */,
@@ -499,7 +535,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				65F3659D2E4F6BE10046B03D /* Assets.xcassets in Resources */,
+				1B53B83E2E57B99F00C9470F /* Credits.rtf in Resources */,
 				65F3659B2E4F6BD40046B03D /* Document.xib in Resources */,
+				1B53B83A2E57B8E800C9470F /* DCOAboutWindow.xib in Resources */,
 				65F365A02E4F6BE10046B03D /* MainMenu.xib in Resources */,
 				65F365C72E4F73200046B03D /* BRFProfileEditor.xib in Resources */,
 			);
@@ -551,12 +589,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				65F365C92E4F73200046B03D /* GPXParser.m in Sources */,
+				1B53B7E02E57B1BD00C9470F /* DCOBackgroundView.m in Sources */,
 				65F365C52E4F73200046B03D /* ElevationProfileView.m in Sources */,
 				65F366152E4FA4F30046B03D /* RouteAnnotation.m in Sources */,
 				65F366122E4FA3DF0046B03D /* BikePlan.m in Sources */,
 				1B53B7CE2E56444100C9470F /* POIAnnotationView.m in Sources */,
+				1B53B7E12E57B1C100C9470F /* DCOTransparentScroller.m in Sources */,
+				1B53B7DF2E57B1B800C9470F /* DCOTransparentScrollView.m in Sources */,
 				65B22D642E50B1360078F4BC /* TaggedPoly.m in Sources */,
 				65F365CD2E4F73300046B03D /* MapController.m in Sources */,
+				1B53B7E22E57B1C500C9470F /* DCOAboutWindowController.m in Sources */,
 				65F365982E4F6BD40046B03D /* Document.m in Sources */,
 				65F365A32E4F6BE10046B03D /* main.m in Sources */,
 				1B53B7C52E5265FC00C9470F /* BikeMapView.m in Sources */,

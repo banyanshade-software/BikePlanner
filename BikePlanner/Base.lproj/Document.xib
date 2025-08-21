@@ -98,7 +98,7 @@
                                                                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                                                                 <subviews>
                                                                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="AjL-z0-k0r">
-                                                                                                        <rect key="frame" x="126" y="-5" width="23" height="16"/>
+                                                                                                        <rect key="frame" x="126" y="-11" width="23" height="16"/>
                                                                                                         <textFieldCell key="cell" lineBreakMode="clipping" title="km" id="0yY-S0-2XT">
                                                                                                             <font key="font" usesAppearanceFont="YES"/>
                                                                                                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -106,7 +106,7 @@
                                                                                                         </textFieldCell>
                                                                                                     </textField>
                                                                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rGs-eO-BFo">
-                                                                                                        <rect key="frame" x="18" y="-5" width="104" height="16"/>
+                                                                                                        <rect key="frame" x="18" y="-11" width="104" height="16"/>
                                                                                                         <constraints>
                                                                                                             <constraint firstAttribute="width" constant="100" id="1C0-46-abf"/>
                                                                                                         </constraints>
@@ -120,7 +120,7 @@
                                                                                                         </connections>
                                                                                                     </textField>
                                                                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="BVA-sR-If1">
-                                                                                                        <rect key="frame" x="126" y="-29" width="143" height="16"/>
+                                                                                                        <rect key="frame" x="126" y="-35" width="143" height="16"/>
                                                                                                         <textFieldCell key="cell" lineBreakMode="clipping" title="m cumulative elevation" id="e15-xQ-5Lr">
                                                                                                             <font key="font" usesAppearanceFont="YES"/>
                                                                                                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -128,7 +128,7 @@
                                                                                                         </textFieldCell>
                                                                                                     </textField>
                                                                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="WvJ-rx-Rl4">
-                                                                                                        <rect key="frame" x="18" y="-29" width="104" height="16"/>
+                                                                                                        <rect key="frame" x="18" y="-35" width="104" height="16"/>
                                                                                                         <constraints>
                                                                                                             <constraint firstAttribute="width" constant="100" id="zr9-nS-K4o"/>
                                                                                                         </constraints>
