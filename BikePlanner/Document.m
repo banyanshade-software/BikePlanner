@@ -9,6 +9,9 @@
 #import "PlannerWindowController.h"
 #import "BikePlan.h"
 #import "MapController.h"
+#import "BRFProfileEditor.h"
+
+
 
 @interface Document ()
 
@@ -34,6 +37,20 @@
     //[wc setDocument: self];
     [self addWindowController:wc];
     //[super makeWindowControllers];
+    self.brfEditor = [[BRFProfileEditor alloc] initWithProfileName:@"trekking"];
+    _brfEditor.completionHandler = ^(NSArray * _Nullable overideParams) {
+            if (overideParams && [overideParams count]) {
+                 NSLog(@"User overrides: %@", overideParams);
+                 // append to request as &extraParams=... (remember to percent-encode later)
+                NSString *extraParams = [overideParams componentsJoinedByString:@"&"];
+                self.mapController.extraUrl = [@"extraParams=" stringByAppendingString:extraParams];
+                [self.mapController shouldRecalcRoute];
+             } else {
+                 NSLog(@"User cancelled");
+             }
+         };
+        [_brfEditor showWindow:self];
+
 }
 
 
@@ -164,5 +181,8 @@
 {
     [_mapController exportGPX:sender];
 }
+
+
+// BikePlanner/AppDelegate.m:    brfEditor = [[BRFProfileEditor alloc] initWithProfileName:@"trekking"];
 
 @end
