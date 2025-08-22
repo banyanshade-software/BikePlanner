@@ -38,8 +38,13 @@
 {
     [super windowDidLoad];
     self.window.title = [NSString stringWithFormat:@"Edit Profile: %@", self.profileName];
+    
+    [self initEditorViewIn:self.window.contentView];
+}
 
-    self.scrollView = [[NSScrollView alloc] initWithFrame:self.window.contentView.bounds];
+- (void) initEditorViewIn:(NSView *)contentView
+{
+    self.scrollView = [[NSScrollView alloc] initWithFrame:contentView.bounds];
     self.scrollView.translatesAutoresizingMaskIntoConstraints = NO;
     self.scrollView.hasVerticalScroller = YES;
 
@@ -49,13 +54,13 @@
     self.stackView.translatesAutoresizingMaskIntoConstraints = NO;
 
     self.scrollView.documentView = self.stackView;
-    [self.window.contentView addSubview:self.scrollView];
+    [contentView addSubview:self.scrollView];
 
     [NSLayoutConstraint activateConstraints:@[
-        [self.scrollView.leadingAnchor constraintEqualToAnchor:self.window.contentView.leadingAnchor],
-        [self.scrollView.trailingAnchor constraintEqualToAnchor:self.window.contentView.trailingAnchor],
-        [self.scrollView.topAnchor constraintEqualToAnchor:self.window.contentView.topAnchor],
-        [self.scrollView.bottomAnchor constraintEqualToAnchor:self.window.contentView.bottomAnchor]
+        [self.scrollView.leadingAnchor constraintEqualToAnchor:contentView.leadingAnchor],
+        [self.scrollView.trailingAnchor constraintEqualToAnchor:contentView.trailingAnchor],
+        [self.scrollView.topAnchor constraintEqualToAnchor:contentView.topAnchor],
+        [self.scrollView.bottomAnchor constraintEqualToAnchor:contentView.bottomAnchor]
     ]];
 
     [self fetchProfile];
