@@ -12,6 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface ExportAccessoryViewController : NSViewController
 @property (weak) IBOutlet NSButton *poiCheckbox;
 @property (assign, nonatomic) int outputFormatNum;
+@property (weak) NSSavePanel *savePanel;
 @end
 
 NS_ASSUME_NONNULL_END

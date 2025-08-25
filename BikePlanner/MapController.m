@@ -857,7 +857,7 @@
     // Load XIB
     ExportAccessoryViewController *accessoryVC = [[ExportAccessoryViewController alloc] initWithNibName:@"ExportAccessoryView" bundle:nil];
     savePanel.accessoryView = accessoryVC.view;
-     
+    accessoryVC.savePanel = savePanel;
     
     [savePanel beginWithCompletionHandler:^(NSModalResponse result) {
         if (result == NSModalResponseOK) {
