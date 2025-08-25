@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="21507" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="21507"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="ExportAccessoryViewController">
+            <connections>
+                <outlet property="poiCheckbox" destination="ep7-G9-5Z0" id="XfS-DE-yze"/>
+                <outlet property="view" destination="Hz6-mo-xeY" id="0bl-1N-x8E"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="Hz6-mo-xeY">
+            <rect key="frame" x="0.0" y="0.0" width="422" height="185"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ep7-G9-5Z0">
+                    <rect key="frame" x="18" y="148" width="96" height="18"/>
+                    <buttonCell key="cell" type="check" title="Include POI" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="gUY-rI-8Jn">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                </button>
+                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="5VB-M3-ccV">
+                    <rect key="frame" x="68" y="118" width="66" height="25"/>
+                    <popUpButtonCell key="cell" type="push" title="GPX" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="Ht0-cK-YOc" id="Prn-V6-5TU">
+                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="menu"/>
+                        <menu key="menu" id="Hbl-1C-7Zf">
+                            <items>
+                                <menuItem title="GPX" state="on" id="Ht0-cK-YOc"/>
+                                <menuItem title="FIT" id="Yf1-Km-xBx"/>
+                            </items>
+                        </menu>
+                    </popUpButtonCell>
+                    <connections>
+                        <binding destination="-2" name="selectedIndex" keyPath="outputFormatNum" id="7uI-Vl-frw"/>
+                    </connections>
+                </popUpButton>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="3ow-pL-egl">
+                    <rect key="frame" x="18" y="125" width="47" height="16"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" title="Format" id="9xp-h5-sjp">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+            </subviews>
+            <constraints>
+                <constraint firstItem="3ow-pL-egl" firstAttribute="leading" secondItem="ep7-G9-5Z0" secondAttribute="leading" id="LuX-uQ-XjS"/>
+                <constraint firstItem="5VB-M3-ccV" firstAttribute="firstBaseline" secondItem="3ow-pL-egl" secondAttribute="firstBaseline" id="PvT-EL-8P7"/>
+                <constraint firstItem="ep7-G9-5Z0" firstAttribute="top" secondItem="Hz6-mo-xeY" secondAttribute="top" constant="20" symbolic="YES" id="Qno-gB-5qA"/>
+                <constraint firstItem="3ow-pL-egl" firstAttribute="top" secondItem="ep7-G9-5Z0" secondAttribute="bottom" constant="8" symbolic="YES" id="Y5f-eE-D9B"/>
+                <constraint firstItem="5VB-M3-ccV" firstAttribute="leading" secondItem="3ow-pL-egl" secondAttribute="trailing" constant="8" symbolic="YES" id="u4D-wy-7Ei"/>
+                <constraint firstItem="ep7-G9-5Z0" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="20" symbolic="YES" id="vBq-q3-hd6"/>
+            </constraints>
+            <point key="canvasLocation" x="111" y="156.5"/>
+        </customView>
+    </objects>
+</document>
