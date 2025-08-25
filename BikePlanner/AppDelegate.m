@@ -6,8 +6,10 @@
 //
 
 #import "AppDelegate.h"
+#import "BSSUI_AboutWindowController.h"
 
 @interface AppDelegate ()
+@property (nonatomic, strong) BSSUI_AboutWindowController *aboutWindowController;
 
 @end
 
@@ -89,5 +91,43 @@ static void RunLoopLogger(CFRunLoopObserverRef observer, CFRunLoopActivity activ
     CFRelease(observer);
 }
 
+/*
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
+    return YES;
+}
+ */
+
+
+#pragma mark - DCO about win
+
+
+- (DCOAboutWindowController *) aboutWindowController {
+    if(!_aboutWindowController) {
+        _aboutWindowController = [[BSSUI_AboutWindowController alloc] init];
+    }
+    return _aboutWindowController;
+}
+
+
+
+
+- (void)setUseTextView:(BOOL)useTextView {
+    
+    _useTextView = useTextView;
+    self.aboutWindowController.useTextViewForAcknowledgments = useTextView;
+}
+
+
+
+- (IBAction)showAboutWindow:(id)sender {
+    
+    // Set about window values (override defaults)
+    //self.aboutWindowController.appWebsiteURL = [NSURL URLWithString:@"http://www.dangercove.com/tapetrap?source=DCOAbouwWindowExample"];
+    //self.aboutWindowController.useTextViewForAcknowledgments = NO;
+
+    // Show the about window
+    [self.aboutWindowController showWindow:nil];
+    
+}
 
 @end
