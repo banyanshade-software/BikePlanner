@@ -7,9 +7,12 @@
 
 #import <Cocoa/Cocoa.h>
 
+@class BRFProfileEditor;
+
 NS_ASSUME_NONNULL_BEGIN
 
 @interface PlannerWindowController : NSWindowController
+@property (strong, nonatomic) BRFProfileEditor *brfEditor;
 
 @end
 

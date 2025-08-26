@@ -17,12 +17,12 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong) NSView *valueControl; // NSTextField or NSSlider or NSButton
 @end
 
-@interface BRFProfileEditor : NSWindowController
+@interface BRFProfileEditor : NSViewController
 
 /// completion will be called on the main thread with the raw extraParams string (e.g. "a=1|b=2") or nil if cancelled
 @property (nonatomic, copy) void (^completionHandler)(NSArray *overrideParams);
 
-- (instancetype)initWithProfileName:(NSString *)profileName;
+- (void)loadProfileName:(NSString *)profileName;
 //- (void)showEditor;
 
 @end

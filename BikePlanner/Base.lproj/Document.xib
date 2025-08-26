@@ -12,6 +12,7 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="Document">
             <connections>
+                <outlet property="brfParamsPlaceholder" destination="vVI-p3-yOz" id="Gi8-vh-OMp"/>
                 <outlet property="mapController" destination="A8h-DG-dAb" id="b97-99-pPO"/>
                 <outlet property="window" destination="ytr-s9-dYp" id="ejQ-Uw-7Yb"/>
             </connections>
@@ -35,7 +36,7 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="335" y="390" width="985" height="574"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1055"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1080"/>
             <view key="contentView" id="n2o-kh-tcL">
                 <rect key="frame" x="0.0" y="0.0" width="985" height="574"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -202,7 +203,7 @@
                                                             </tabViewItem>
                                                             <tabViewItem label="Params" identifier="2" id="Lfe-aP-fN2">
                                                                 <view key="view" id="vVI-p3-yOz">
-                                                                    <rect key="frame" x="10" y="33" width="480" height="328"/>
+                                                                    <rect key="frame" x="10" y="33" width="480" height="326"/>
                                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                                 </view>
                                                             </tabViewItem>

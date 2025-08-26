@@ -14,7 +14,9 @@
 @interface Document : NSDocument
 
 @property (weak) IBOutlet MapController *mapController;
+//@property (strong, nonatomic) BRFProfileEditor *brfEditor;
+@property (weak, nonatomic) IBOutlet NSView *brfParamsPlaceholder;
+
 @property (strong,nonatomic) BikePlan *plan;
-@property (strong, nonatomic) BRFProfileEditor *brfEditor;
 @end
 

@@ -24,22 +24,18 @@
 
 @implementation BRFProfileEditor
 
-- (instancetype)initWithProfileName:(NSString *)profileName
+
+- (void)loadProfileName:(NSString *)profileName;
 {
-    self = [super initWithWindowNibName:@"BRFProfileEditor"];
-    if (self) {
         _profileName = [profileName copy];
         _parameters = [NSMutableArray array];
-    }
-    return self;
 }
 
-- (void) windowDidLoad
+ -(void) viewDidLoad
 {
-    [super windowDidLoad];
-    self.window.title = [NSString stringWithFormat:@"Edit Profile: %@", self.profileName];
+    [super viewDidLoad];
     
-    [self initEditorViewIn:self.window.contentView];
+    [self initEditorViewIn:self.view];
 }
 
 - (void) initEditorViewIn:(NSView *)contentView
@@ -166,7 +162,7 @@
     // NSString *extraParams = [overrides componentsJoinedByString:@"|"];
     //if (self.completionHandler) self.completionHandler(extraParams);
     if (self.completionHandler) self.completionHandler(overrides);
-    if ((0))  [self.window close];
+    //if ((0))  [self.window close];
 }
 
 @end
