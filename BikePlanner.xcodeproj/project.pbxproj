@@ -19,6 +19,8 @@
 		1B53B83A2E57B8E800C9470F /* DCOAboutWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1B53B7D72E57AF9600C9470F /* DCOAboutWindow.xib */; };
 		1B53B83F2E57BAA500C9470F /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 1B53B8412E57BAA500C9470F /* Credits.rtf */; };
 		1B53B8492E57C54500C9470F /* BSSUI_AboutWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B8472E57C54500C9470F /* BSSUI_AboutWindowController.m */; };
+		1B53B84D2E5CDEFD00C9470F /* ExportAccessoryViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B84B2E5CDEFD00C9470F /* ExportAccessoryViewController.m */; };
+		1B53B84E2E5CDEFD00C9470F /* ExportAccessoryView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1B53B84C2E5CDEFD00C9470F /* ExportAccessoryView.xib */; };
 		65B22D642E50B1360078F4BC /* TaggedPoly.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B22D632E50B1360078F4BC /* TaggedPoly.m */; };
 		65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */; };
 		65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE642E47982C001F2966 /* BikePlannerUITests.m */; };
@@ -102,6 +104,9 @@
 		1B53B8402E57BAA500C9470F /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = Base; path = Base.lproj/Credits.rtf; sourceTree = "<group>"; };
 		1B53B8472E57C54500C9470F /* BSSUI_AboutWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BSSUI_AboutWindowController.m; sourceTree = "<group>"; };
 		1B53B8482E57C54500C9470F /* BSSUI_AboutWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BSSUI_AboutWindowController.h; sourceTree = "<group>"; };
+		1B53B84A2E5CDEFD00C9470F /* ExportAccessoryViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ExportAccessoryViewController.h; sourceTree = "<group>"; };
+		1B53B84B2E5CDEFD00C9470F /* ExportAccessoryViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ExportAccessoryViewController.m; sourceTree = "<group>"; };
+		1B53B84C2E5CDEFD00C9470F /* ExportAccessoryView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ExportAccessoryView.xib; sourceTree = "<group>"; };
 		65B22D622E50B1360078F4BC /* TaggedPoly.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TaggedPoly.h; sourceTree = "<group>"; };
 		65B22D632E50B1360078F4BC /* TaggedPoly.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TaggedPoly.m; sourceTree = "<group>"; };
 		65B8EE442E479821001F2966 /* BikePlanner_org.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BikePlanner_org.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -330,6 +335,9 @@
 				65F365992E4F6BD40046B03D /* Document.xib */,
 				65F3660D2E4F7AE50046B03D /* PlannerWindowController.h */,
 				65F3660E2E4F7AE50046B03D /* PlannerWindowController.m */,
+				1B53B84A2E5CDEFD00C9470F /* ExportAccessoryViewController.h */,
+				1B53B84B2E5CDEFD00C9470F /* ExportAccessoryViewController.m */,
+				1B53B84C2E5CDEFD00C9470F /* ExportAccessoryView.xib */,
 				65F3659C2E4F6BE10046B03D /* Assets.xcassets */,
 				65F3659E2E4F6BE10046B03D /* MainMenu.xib */,
 				65F365A12E4F6BE10046B03D /* Info.plist */,
@@ -552,6 +560,7 @@
 				65F3659B2E4F6BD40046B03D /* Document.xib in Resources */,
 				1B53B83A2E57B8E800C9470F /* DCOAboutWindow.xib in Resources */,
 				65F365A02E4F6BE10046B03D /* MainMenu.xib in Resources */,
+				1B53B84E2E5CDEFD00C9470F /* ExportAccessoryView.xib in Resources */,
 				65F365C72E4F73200046B03D /* BRFProfileEditor.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -622,6 +631,7 @@
 				65F3660F2E4F7AE50046B03D /* PlannerWindowController.m in Sources */,
 				65F365952E4F6BD40046B03D /* AppDelegate.m in Sources */,
 				65F365CC2E4F73200046B03D /* BRFProfileEditor.m in Sources */,
+				1B53B84D2E5CDEFD00C9470F /* ExportAccessoryViewController.m in Sources */,
 				1B53B7CB2E559DED00C9470F /* POICalloutView.m in Sources */,
 				1B53B7C22E51EC3A00C9470F /* POIAnnotation.m in Sources */,
 				65F365CA2E4F73200046B03D /* StreetViewController.m in Sources */,

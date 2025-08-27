@@ -17,6 +17,7 @@
 #import "TaggedPoly.h"
 #import "POICalloutView.h"
 #import "POIAnnotationView.h"
+#import "ExportAccessoryViewController.h"
 #import "Secret.h"
 
 // Secret.h is not commited, see Secret.h.example
@@ -791,8 +792,11 @@
     }];
 }
 
-- (NSData *) exportGpxData
+- (NSData *) exportGpxDataWithPOI:(BOOL)inclPOI
 {
+    if (!inclPOI) {
+        return _gpxData;
+    }
     //NSMutableString *xml = [[NSMutableString alloc]initWithCapacity:4000];
     NSString *gpxstr = [[NSString alloc] initWithData:_gpxData encoding:NSUTF8StringEncoding];
     NSRange closingTag = [gpxstr rangeOfString:@"</gpx>" options:NSBackwardsSearch];
@@ -850,12 +854,18 @@
     savePanel.allowedContentTypes = @[[UTType typeWithFilenameExtension:@"gpx"]];
     savePanel.nameFieldStringValue = @"plan.gpx"; // Suggested filename
     
+    // Load XIB
+    ExportAccessoryViewController *accessoryVC = [[ExportAccessoryViewController alloc] initWithNibName:@"ExportAccessoryView" bundle:nil];
+    savePanel.accessoryView = accessoryVC.view;
+    accessoryVC.savePanel = savePanel;
+    
     [savePanel beginWithCompletionHandler:^(NSModalResponse result) {
         if (result == NSModalResponseOK) {
             NSURL *destinationURL = savePanel.URL;
             NSError *error = nil;
-            
-            NSData *gpxdta = [self exportGpxData];
+            BOOL includePOI = (accessoryVC.poiCheckbox.state == NSControlStateValueOn);
+
+            NSData *gpxdta = [self exportGpxDataWithPOI:includePOI];
             if (![gpxdta writeToURL:destinationURL options:NSDataWritingAtomic error:&error]) {
                 NSAlert *alert = [[NSAlert alloc] init];
                 alert.messageText = @"Export failed";
