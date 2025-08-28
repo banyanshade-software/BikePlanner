@@ -156,7 +156,8 @@
         NSTextField *label = (NSTextField *)rowView.arrangedSubviews[1];
         NSTextField *field = (NSTextField *)rowView.arrangedSubviews[2];
         if (check.state == NSControlStateValueOn) {
-            [overrides addObject:[NSString stringWithFormat:@"profile:%@=%@", label.stringValue, field.stringValue]];
+            NSString *key = [self fixProfileKey:label.stringValue];
+            [overrides addObject:[NSString stringWithFormat:@"%@=%@", key, field.stringValue]];
         }
     }
     // NSString *extraParams = [overrides componentsJoinedByString:@"|"];
@@ -165,4 +166,17 @@
     //if ((0))  [self.window close];
 }
 
+- (NSString *) fixProfileKey:(NSString *)k
+{
+    NSString *prefix = nil;
+    if ((0)) {
+        prefix = @"profile";
+    }
+    
+    if (prefix) {
+        return [NSString stringWithFormat:@"%@:%@", prefix, k];
+    } else {
+        return k;
+    }
+}
 @end

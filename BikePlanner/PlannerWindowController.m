@@ -45,6 +45,8 @@
                  NSLog(@"User overrides: %@", overideParams);
                  // append to request as &extraParams=... (remember to percent-encode later)
                 NSString *extraParams = [overideParams componentsJoinedByString:@"&"];
+                extraParams = [extraParams stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+
                 d.mapController.extraUrl = [@"extraParams=" stringByAppendingString:extraParams];
                 [d.mapController shouldRecalcRoute];
              } else {
