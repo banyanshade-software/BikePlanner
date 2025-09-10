@@ -1147,6 +1147,7 @@ static void XYFromLatLon(double lat, double lon, double refLat, double *outX, do
 }
 
 // returns cumulative distance along polyline to closest point projection of coord (meters)
+
 - (double)projectedDistanceAlongPolyline:(MKPolyline *)polyline
                            forCoordinate:(CLLocationCoordinate2D)coord
 {

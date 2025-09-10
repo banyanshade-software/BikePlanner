@@ -35,28 +35,28 @@
         <window title="BikePlanner" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="ytr-s9-dYp">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="335" y="390" width="985" height="574"/>
+            <rect key="contentRect" x="335" y="390" width="1122" height="702"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1080"/>
             <view key="contentView" id="n2o-kh-tcL">
-                <rect key="frame" x="0.0" y="0.0" width="985" height="574"/>
+                <rect key="frame" x="0.0" y="0.0" width="1122" height="702"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                 <subviews>
                     <splitView arrangesAllSubviews="NO" dividerStyle="paneSplitter" translatesAutoresizingMaskIntoConstraints="NO" id="yMs-fs-cgI">
-                        <rect key="frame" x="0.0" y="0.0" width="985" height="574"/>
+                        <rect key="frame" x="0.0" y="0.0" width="1122" height="702"/>
                         <subviews>
                             <customView misplaced="YES" id="mJ3-Hl-5nZ">
-                                <rect key="frame" x="0.0" y="0.0" width="985" height="370"/>
+                                <rect key="frame" x="0.0" y="0.0" width="1122" height="454"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <subviews>
                                     <splitView arrangesAllSubviews="NO" dividerStyle="paneSplitter" vertical="YES" translatesAutoresizingMaskIntoConstraints="NO" id="5fM-Xt-7z9">
-                                        <rect key="frame" x="0.0" y="0.0" width="985" height="356"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="1122" height="452"/>
                                         <subviews>
                                             <customView id="AEX-8D-3XS">
-                                                <rect key="frame" x="0.0" y="0.0" width="489" height="356"/>
+                                                <rect key="frame" x="0.0" y="0.0" width="558" height="452"/>
                                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                 <subviews>
                                                     <mapView pitchEnabled="NO" showsPointsOfInterest="NO" showsScale="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Nai-3j-aq5" customClass="BikeMapView">
-                                                        <rect key="frame" x="2" y="2" width="485" height="352"/>
+                                                        <rect key="frame" x="2" y="2" width="554" height="448"/>
                                                         <constraints>
                                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="360" id="8bQ-EC-SQt"/>
                                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="300" id="TKR-wy-5Ga"/>
@@ -73,33 +73,34 @@
                                                 </constraints>
                                             </customView>
                                             <customView id="Rvg-JO-ig3">
-                                                <rect key="frame" x="499" y="0.0" width="486" height="356"/>
+                                                <rect key="frame" x="568" y="0.0" width="554" height="452"/>
                                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                 <subviews>
                                                     <tabView translatesAutoresizingMaskIntoConstraints="NO" id="UXr-Cl-f1d">
-                                                        <rect key="frame" x="-7" y="-10" width="500" height="372"/>
+                                                        <rect key="frame" x="-7" y="-10" width="568" height="468"/>
                                                         <font key="font" metaFont="system"/>
                                                         <tabViewItems>
                                                             <tabViewItem label="Info" identifier="1" id="yxa-9u-9fi">
                                                                 <view key="view" id="G9K-XO-4nQ">
-                                                                    <rect key="frame" x="10" y="33" width="480" height="326"/>
+                                                                    <rect key="frame" x="10" y="33" width="548" height="422"/>
                                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                                     <subviews>
                                                                         <splitView arrangesAllSubviews="NO" dividerStyle="paneSplitter" translatesAutoresizingMaskIntoConstraints="NO" id="zIq-zp-sIj">
-                                                                            <rect key="frame" x="0.0" y="0.0" width="480" height="326"/>
+                                                                            <rect key="frame" x="0.0" y="0.0" width="548" height="422"/>
                                                                             <subviews>
-                                                                                <customView misplaced="YES" id="Jiz-eL-xvn">
-                                                                                    <rect key="frame" x="0.0" y="0.0" width="480" height="154"/>
+                                                                                <customView fixedFrame="YES" id="Jiz-eL-xvn">
+                                                                                    <rect key="frame" x="0.0" y="0.0" width="548" height="199"/>
                                                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                                                     <subviews>
-                                                                                        <box misplaced="YES" borderType="none" title="Box" titlePosition="noTitle" translatesAutoresizingMaskIntoConstraints="NO" id="X0m-1R-OGj">
-                                                                                            <rect key="frame" x="1" y="7" width="482" height="149"/>
+                                                                                        <box borderType="none" title="Box" titlePosition="noTitle" id="X0m-1R-OGj">
+                                                                                            <rect key="frame" x="1" y="9" width="546" height="181"/>
+                                                                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                                                             <view key="contentView" id="mEt-2g-WER">
-                                                                                                <rect key="frame" x="0.0" y="0.0" width="482" height="149"/>
+                                                                                                <rect key="frame" x="0.0" y="0.0" width="546" height="181"/>
                                                                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                                                                 <subviews>
                                                                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="AjL-z0-k0r">
-                                                                                                        <rect key="frame" x="126" y="-11" width="23" height="16"/>
+                                                                                                        <rect key="frame" x="126" y="89" width="23" height="16"/>
                                                                                                         <textFieldCell key="cell" lineBreakMode="clipping" title="km" id="0yY-S0-2XT">
                                                                                                             <font key="font" usesAppearanceFont="YES"/>
                                                                                                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -107,7 +108,7 @@
                                                                                                         </textFieldCell>
                                                                                                     </textField>
                                                                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rGs-eO-BFo">
-                                                                                                        <rect key="frame" x="18" y="-11" width="104" height="16"/>
+                                                                                                        <rect key="frame" x="18" y="89" width="104" height="16"/>
                                                                                                         <constraints>
                                                                                                             <constraint firstAttribute="width" constant="100" id="1C0-46-abf"/>
                                                                                                         </constraints>
@@ -121,7 +122,7 @@
                                                                                                         </connections>
                                                                                                     </textField>
                                                                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="BVA-sR-If1">
-                                                                                                        <rect key="frame" x="126" y="-35" width="143" height="16"/>
+                                                                                                        <rect key="frame" x="126" y="65" width="143" height="16"/>
                                                                                                         <textFieldCell key="cell" lineBreakMode="clipping" title="m cumulative elevation" id="e15-xQ-5Lr">
                                                                                                             <font key="font" usesAppearanceFont="YES"/>
                                                                                                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -129,7 +130,7 @@
                                                                                                         </textFieldCell>
                                                                                                     </textField>
                                                                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="WvJ-rx-Rl4">
-                                                                                                        <rect key="frame" x="18" y="-35" width="104" height="16"/>
+                                                                                                        <rect key="frame" x="18" y="65" width="104" height="16"/>
                                                                                                         <constraints>
                                                                                                             <constraint firstAttribute="width" constant="100" id="zr9-nS-K4o"/>
                                                                                                         </constraints>
@@ -142,33 +143,57 @@
                                                                                                             <binding destination="-2" name="value" keyPath="plan.brouterInfo.mup" id="p3S-2B-sP3"/>
                                                                                                         </connections>
                                                                                                     </textField>
+                                                                                                    <switch horizontalHuggingPriority="750" verticalHuggingPriority="750" controlSize="small" baseWritingDirection="leftToRight" alignment="left" translatesAutoresizingMaskIntoConstraints="NO" id="p3e-MY-n66">
+                                                                                                        <rect key="frame" x="18" y="153" width="36" height="21"/>
+                                                                                                    </switch>
+                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lc8-q4-TL7">
+                                                                                                        <rect key="frame" x="58" y="157" width="64" height="16"/>
+                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="Fetch POI" id="J1y-Mt-gLs">
+                                                                                                            <font key="font" usesAppearanceFont="YES"/>
+                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                                        </textFieldCell>
+                                                                                                    </textField>
+                                                                                                    <switch horizontalHuggingPriority="750" verticalHuggingPriority="750" controlSize="small" baseWritingDirection="leftToRight" alignment="left" translatesAutoresizingMaskIntoConstraints="NO" id="phD-JS-Ndx">
+                                                                                                        <rect key="frame" x="18" y="127" width="36" height="21"/>
+                                                                                                    </switch>
+                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Chb-mI-ZLw">
+                                                                                                        <rect key="frame" x="58" y="131" width="59" height="16"/>
+                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="View POI" id="pIQ-LV-fHt">
+                                                                                                            <font key="font" usesAppearanceFont="YES"/>
+                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                                        </textFieldCell>
+                                                                                                    </textField>
                                                                                                 </subviews>
                                                                                                 <constraints>
+                                                                                                    <constraint firstItem="Chb-mI-ZLw" firstAttribute="leading" secondItem="phD-JS-Ndx" secondAttribute="trailing" constant="8" id="3jp-xd-TS0"/>
+                                                                                                    <constraint firstItem="p3e-MY-n66" firstAttribute="top" secondItem="mEt-2g-WER" secondAttribute="top" constant="8" id="721-mT-PnV"/>
+                                                                                                    <constraint firstItem="phD-JS-Ndx" firstAttribute="top" secondItem="p3e-MY-n66" secondAttribute="bottom" constant="8" id="8mR-3p-aay"/>
                                                                                                     <constraint firstItem="BVA-sR-If1" firstAttribute="leading" secondItem="WvJ-rx-Rl4" secondAttribute="trailing" constant="8" symbolic="YES" id="8xN-Kt-NYo"/>
+                                                                                                    <constraint firstItem="rGs-eO-BFo" firstAttribute="top" secondItem="phD-JS-Ndx" secondAttribute="bottom" constant="24" id="CSJ-Zu-QgT"/>
+                                                                                                    <constraint firstItem="p3e-MY-n66" firstAttribute="leading" secondItem="mEt-2g-WER" secondAttribute="leading" constant="20" symbolic="YES" id="CkA-3a-sNH"/>
                                                                                                     <constraint firstItem="BVA-sR-If1" firstAttribute="firstBaseline" secondItem="WvJ-rx-Rl4" secondAttribute="firstBaseline" id="EJm-hM-ZZe"/>
+                                                                                                    <constraint firstItem="lc8-q4-TL7" firstAttribute="leading" secondItem="p3e-MY-n66" secondAttribute="trailing" constant="8" id="EbA-Un-hBb"/>
                                                                                                     <constraint firstItem="AjL-z0-k0r" firstAttribute="firstBaseline" secondItem="rGs-eO-BFo" secondAttribute="firstBaseline" id="GYG-kq-M9g"/>
                                                                                                     <constraint firstItem="rGs-eO-BFo" firstAttribute="leading" secondItem="mEt-2g-WER" secondAttribute="leading" constant="20" symbolic="YES" id="Gr4-lF-bkS"/>
+                                                                                                    <constraint firstItem="lc8-q4-TL7" firstAttribute="firstBaseline" secondItem="p3e-MY-n66" secondAttribute="firstBaseline" id="Iux-Qz-Zre"/>
                                                                                                     <constraint firstItem="AjL-z0-k0r" firstAttribute="leading" secondItem="rGs-eO-BFo" secondAttribute="trailing" constant="8" symbolic="YES" id="Qkh-CJ-Ihv"/>
+                                                                                                    <constraint firstItem="phD-JS-Ndx" firstAttribute="leading" secondItem="p3e-MY-n66" secondAttribute="leading" id="gbQ-Hs-zOH"/>
+                                                                                                    <constraint firstItem="Chb-mI-ZLw" firstAttribute="firstBaseline" secondItem="phD-JS-Ndx" secondAttribute="firstBaseline" id="hvR-KO-jti"/>
                                                                                                     <constraint firstItem="WvJ-rx-Rl4" firstAttribute="leading" secondItem="rGs-eO-BFo" secondAttribute="leading" id="oTj-aq-1IG"/>
                                                                                                     <constraint firstItem="WvJ-rx-Rl4" firstAttribute="top" secondItem="rGs-eO-BFo" secondAttribute="bottom" constant="8" symbolic="YES" id="sQ7-1w-hIR"/>
-                                                                                                    <constraint firstItem="rGs-eO-BFo" firstAttribute="top" secondItem="mEt-2g-WER" secondAttribute="top" constant="1" symbolic="YES" id="yn4-zV-OsZ"/>
                                                                                                 </constraints>
                                                                                             </view>
                                                                                         </box>
                                                                                     </subviews>
-                                                                                    <constraints>
-                                                                                        <constraint firstAttribute="bottom" secondItem="X0m-1R-OGj" secondAttribute="bottom" constant="4" id="M6H-wM-Fu3"/>
-                                                                                        <constraint firstAttribute="trailing" secondItem="X0m-1R-OGj" secondAttribute="trailing" constant="4" id="hPh-Og-zXs"/>
-                                                                                        <constraint firstItem="X0m-1R-OGj" firstAttribute="top" secondItem="Jiz-eL-xvn" secondAttribute="top" constant="4" id="hbW-wl-MAe"/>
-                                                                                        <constraint firstItem="X0m-1R-OGj" firstAttribute="leading" secondItem="Jiz-eL-xvn" secondAttribute="leading" constant="4" id="onk-Gd-22Q"/>
-                                                                                    </constraints>
                                                                                 </customView>
                                                                                 <customView misplaced="YES" id="eZo-bu-FNr">
-                                                                                    <rect key="frame" x="0.0" y="164" width="480" height="162"/>
+                                                                                    <rect key="frame" x="0.0" y="209" width="548" height="213"/>
                                                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                                                     <subviews>
                                                                                         <wkWebView wantsLayer="YES" translatesAutoresizingMaskIntoConstraints="NO" id="024-o5-5MO">
-                                                                                            <rect key="frame" x="4" y="4" width="472" height="300"/>
+                                                                                            <rect key="frame" x="4" y="4" width="540" height="300"/>
                                                                                             <constraints>
                                                                                                 <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="400" id="agT-Vx-65g"/>
                                                                                                 <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="300" id="vAW-zK-7Ty"/>
@@ -233,11 +258,11 @@
                                 </constraints>
                             </customView>
                             <customView misplaced="YES" id="O6d-X9-CNL">
-                                <rect key="frame" x="0.0" y="380" width="985" height="194"/>
+                                <rect key="frame" x="0.0" y="464" width="1122" height="238"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <subviews>
                                     <customView translatesAutoresizingMaskIntoConstraints="NO" id="kdg-Pl-jWg" customClass="ElevationProfileView">
-                                        <rect key="frame" x="0.0" y="0.0" width="985" height="208"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="1122" height="240"/>
                                         <constraints>
                                             <constraint firstAttribute="height" relation="lessThanOrEqual" constant="240" id="0pl-6i-dkx"/>
                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="40" id="xW0-xy-nLP"/>
@@ -316,7 +341,7 @@
             <connections>
                 <outlet property="delegate" destination="-2" id="IAA-Fx-iYB"/>
             </connections>
-            <point key="canvasLocation" x="452.5" y="507"/>
+            <point key="canvasLocation" x="521" y="443"/>
         </window>
     </objects>
     <resources>
