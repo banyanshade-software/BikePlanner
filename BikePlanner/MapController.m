@@ -55,7 +55,8 @@
      [content addSubview:self.mapView];
      }*/
     self.mapView.delegate = self;
-    
+    self.viewPOI = YES;
+
     // Add OpenStreetMap tile overlay
     NSString *template = @"https://tile.openstreetmap.org/{z}/{x}/{y}.png";
     osmOverlay = [[SafeOSMTileOverlay alloc] initWithURLTemplate:template];
@@ -644,6 +645,7 @@
         }
         [self.mapView removeAnnotation:annot];
     }
+    if (!_viewPOI) return;
     for (POILocation *loc in _document.plan.poiloc) {
         POIAnnotation *ann = [[POIAnnotation alloc] init];
         ann.info = loc.info;
@@ -653,6 +655,13 @@
         //ann.xxpoiType = loc.title; // FIXME
         [self.mapView addAnnotation:ann];
     }
+}
+
+- (void) setViewPOI:(BOOL)v
+{
+    if (v == _viewPOI) return;
+    _viewPOI = v;
+    [self refreshPOI];
 }
 - (void) refreshPoly:(BOOL)changeVisibleRect
 {

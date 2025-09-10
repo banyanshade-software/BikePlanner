@@ -18,5 +18,6 @@
 @property (weak, nonatomic) IBOutlet NSView *brfParamsPlaceholder;
 
 @property (strong,nonatomic) BikePlan *plan;
+
 @end
 

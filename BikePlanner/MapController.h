@@ -31,6 +31,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 
 @property (strong, nullable) NSData *gpxData;
+@property (nonatomic) BOOL viewPOI;
 
 
 - (IBAction) exportGPX:(id)sender;

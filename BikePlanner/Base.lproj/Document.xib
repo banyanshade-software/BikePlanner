@@ -159,6 +159,9 @@
                                                                                                     </textField>
                                                                                                     <switch horizontalHuggingPriority="750" verticalHuggingPriority="750" controlSize="small" baseWritingDirection="leftToRight" alignment="left" translatesAutoresizingMaskIntoConstraints="NO" id="phD-JS-Ndx">
                                                                                                         <rect key="frame" x="18" y="127" width="36" height="21"/>
+                                                                                                        <connections>
+                                                                                                            <binding destination="-2" name="value" keyPath="mapController.viewPOI" id="RBV-EE-91s"/>
+                                                                                                        </connections>
                                                                                                     </switch>
                                                                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Chb-mI-ZLw">
                                                                                                         <rect key="frame" x="58" y="131" width="59" height="16"/>
