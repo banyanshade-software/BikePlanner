@@ -33,6 +33,7 @@
     if (!self) return self;
     self.brouterInfo = [[BrouterInfo alloc]init];
     self.waypointsLocations = [[NSMutableArray alloc]initWithCapacity:32];
+    self.fetchPOI = YES;
     return self;
 }
 
@@ -275,6 +276,7 @@
 
 - (void) fetchPOIsNearRoute:(NSArray<CLLocation *> *)coords
 {
+    if (!_fetchPOI) return;
     NSLog(@"--- >>>> fetch");
     NSString *query = [self overpassQueryForTrack:coords sampleEvery:10 withRadius:1500];
     NSData *bodyData = [query dataUsingEncoding:NSUTF8StringEncoding];

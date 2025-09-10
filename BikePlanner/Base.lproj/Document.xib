@@ -145,6 +145,9 @@
                                                                                                     </textField>
                                                                                                     <switch horizontalHuggingPriority="750" verticalHuggingPriority="750" controlSize="small" baseWritingDirection="leftToRight" alignment="left" translatesAutoresizingMaskIntoConstraints="NO" id="p3e-MY-n66">
                                                                                                         <rect key="frame" x="18" y="153" width="36" height="21"/>
+                                                                                                        <connections>
+                                                                                                            <binding destination="-2" name="value" keyPath="plan.fetchPOI" id="qUm-RJ-bTO"/>
+                                                                                                        </connections>
                                                                                                     </switch>
                                                                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lc8-q4-TL7">
                                                                                                         <rect key="frame" x="58" y="157" width="64" height="16"/>

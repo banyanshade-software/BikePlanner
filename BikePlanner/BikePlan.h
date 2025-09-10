@@ -27,7 +27,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 
 @interface BikePlan : NSObject <NSSecureCoding> {
- 
+    
 }
 
 @property (readonly,nonatomic) NSArray <CLLocation *>*waypointsLocations;
@@ -48,7 +48,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly,nonatomic) TaggedPoly *waypointPoly; // MKPolyLine with a tag, 1
 @property (readonly,nonatomic) TaggedPoly *gpxDisplayedPoly; // MKPolyLine with a tag, 2
 
-
+@property (nonatomic) BOOL fetchPOI;
 @end
 
 NS_ASSUME_NONNULL_END
