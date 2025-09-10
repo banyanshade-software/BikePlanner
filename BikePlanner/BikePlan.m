@@ -119,8 +119,19 @@
     // only here for breakpoint or log (tryRequestPoi called by timer)
     [self tryRequestPoi];
 }
+
+- (void) setFetchPOI:(BOOL)f
+{
+    if (f == _fetchPOI) return;
+    _fetchPOI = f;
+    if (_fetchPOI) {
+        [self tryRequestPoi];
+    }
+}
 - (void) tryRequestPoi
 {
+    if (!_fetchPOI) return;
+
     if ([_routePoints count] <2) {
         NSLog(@"--- <<< not enought points");
         [poireqretrytimer invalidate];
@@ -276,7 +287,6 @@
 
 - (void) fetchPOIsNearRoute:(NSArray<CLLocation *> *)coords
 {
-    if (!_fetchPOI) return;
     NSLog(@"--- >>>> fetch");
     NSString *query = [self overpassQueryForTrack:coords sampleEvery:10 withRadius:1500];
     NSData *bodyData = [query dataUsingEncoding:NSUTF8StringEncoding];
