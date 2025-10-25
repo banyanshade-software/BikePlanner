@@ -169,7 +169,7 @@
 - (NSString *) fixProfileKey:(NSString *)k
 {
     NSString *prefix = nil;
-    if ((0)) {
+    if ((1)) {
         prefix = @"profile";
     }
     
