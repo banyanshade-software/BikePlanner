@@ -166,10 +166,16 @@
                                     <action selector="setClickModeToInterm:" target="-1" id="Uma-Rw-scd"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Mode: View/Drag" id="cBR-92-xUs">
+                            <menuItem title="Mode: Add POI" id="cBR-92-xUs">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="setClickModeToView:" target="-1" id="c5z-if-Kvt"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Mode: View/Drag" id="nxb-FB-hnT">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="setClickModeToView:" target="-1" id="5zb-jr-ozD"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="fvz-FL-Ixr"/>

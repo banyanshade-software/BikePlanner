@@ -160,7 +160,7 @@
 #endif
 
 
-#define MOUSE_RADIUS ((clickmode >=2) ? 18.0 : 36.0)
+#define MOUSE_RADIUS ((clickmode >=3) ? 30. : 36.0)
 
 
 - (void)mouseMoved:(NSEvent *)event
@@ -248,21 +248,21 @@
     [content addSubview:maptype];
     
     
-    helpTxtField = [[NSTextField alloc] initWithFrame:NSMakeRect(14+200+14, 32, 500, 26)];
+    helpTxtField = [[NSTextField alloc] initWithFrame:NSMakeRect(14+230+14, 32, 500, 26)];
     helpTxtField.bezeled = NO; helpTxtField.drawsBackground = NO; helpTxtField.editable = NO; helpTxtField.selectable = NO;
     helpTxtField.stringValue = @"...";
     [content addSubview:helpTxtField];
     
     clickmode = 0;
-    clickmodeseg = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 38, 200, 26)];
-    clickmodeseg.segmentCount = 3;
+    clickmodeseg = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 38, 230, 26)];
+    clickmodeseg.segmentCount = 4;
     clickmodeseg.selectedSegment = clickmode;
     [self setHelpStringForClickMode:clickmode];
     [clickmodeseg setLabel:@"Edit" forSegment:0];
     [clickmodeseg setLabel:@"Add interm." forSegment:1];
-    [clickmodeseg setLabel:@"view" forSegment:2];
+    [clickmodeseg setLabel:@"Add POI" forSegment:2];
+    [clickmodeseg setLabel:@"View" forSegment:3];
     clickmodeseg.selectedSegmentBezelColor = [NSColor lightGrayColor];
-    //clickmode.backgroundColor = [NSColor grayColor];
     clickmodeseg.segmentStyle = NSSegmentStyleRoundRect;
     //clickmode.bezelColor = [NSColor redColor];
     clickmodeseg.action = @selector(changeClickMode:);
@@ -306,8 +306,11 @@
     NSString *hlp;
     switch (mt) {
         default:
+        case 3:
+            hlp = NSLocalizedString( @"Drag waypoints", @"CLICK_MODE_3");
+            break;
         case 2:
-            hlp = NSLocalizedString( @"Drag waypoints", @"CLICK_MODE_2");
+            hlp = NSLocalizedString( @"Add POI", @"CLICK_MODE_2");
             break;
         case 1:
             hlp = NSLocalizedString(@"Click on path to add intermediate waypoints", @"CLICK_MODE_1");
@@ -343,6 +346,11 @@
 }
 
 - (IBAction) setClickModeToView:(id)sender
+{
+    [self setClickModeTo:3];
+}
+
+- (IBAction) setClickModeToAddPoi:(id)sender
 {
     [self setClickModeTo:2];
 }
@@ -489,7 +497,7 @@
     CLLocationCoordinate2D coord = [self.mapView convertPoint:locInView toCoordinateFromView:self.mapView];
     CLLocation *loc = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
    
-    if (clickmode == 2) {
+    if (clickmode == 3) { // TODO use defined/enum !!
         CLLocationCoordinate2D rcoord;
         // in clickmode 3, a click on route moves view
         if ([self clickNearPolylineAt:locInView tolerence:40. nearestPoint:&rcoord]) {
@@ -502,6 +510,11 @@
             [self.elevationView setNeedsDisplay:YES];
             return;
         }
+    }
+    if (clickmode == 2) {
+        // Add POI
+        NSLog(@"..");
+        return;
     }
     if (clickmode<2) {
         CLLocationCoordinate2D rcoord;

@@ -46,6 +46,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (IBAction) setClickModeToEdit:(id)sender;
 - (IBAction) setClickModeToInterm:(id)sender;
 - (IBAction) setClickModeToView:(id)sender;
+- (IBAction) setClickModeToAddPoi:(id)sender;
+
 
 //@property unsigned int kmlen;
 //@property unsigned int mup;

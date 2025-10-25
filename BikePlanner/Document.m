@@ -159,6 +159,13 @@
     [_mapController setClickModeToView:sender];
 }
 
+
+- (IBAction) setClickModeToAddPoi:(id)sender
+{
+    [_mapController setClickModeToAddPoi:sender];
+}
+
+
 - (IBAction) importGPXTraceForDisplay:(id)sender
 {
     [_mapController importGPXTraceForDisplay:sender];
