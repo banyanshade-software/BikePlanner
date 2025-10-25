@@ -36,7 +36,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property (strong,nonatomic) BrouterInfo *brouterInfo;
 
 @property (readonly,nonatomic) NSArray<POILocation *> *poiloc;
+@property (readonly,nonatomic) NSMutableArray<POILocation *> *customPoiloc;
 @property (nonatomic, copy) void (^poiAvailableCallback)(void);
+- (void) addCustomPoiAt:(CLLocationCoordinate2D)coord;
 
 - (void) removeWaypoints;
 - (void) removeWaypointAtIndex:(NSUInteger)idx;

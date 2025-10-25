@@ -34,6 +34,8 @@
     self.brouterInfo = [[BrouterInfo alloc]init];
     self.waypointsLocations = [[NSMutableArray alloc]initWithCapacity:32];
     self.fetchPOI = YES;
+    self.customPoiloc = [[NSMutableArray alloc]initWithCapacity:5];
+
     return self;
 }
 
@@ -223,6 +225,7 @@
     [coder encodeObject:_gpxDisplayed forKey:@"gpxDisplayed"];
     [coder encodeObject:_brouterInfo forKey:@"brouterInfo"];
     [coder encodeObject:_poiloc forKey:@"poiloc"];
+    [coder encodeObject:_customPoiloc forKey:@"customPoiloc"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)coder
@@ -234,8 +237,11 @@
     self.gpxDisplayed = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [CLLocation class], nil] forKey:@"gpxDisplayed"];
     self.brouterInfo = [coder decodeObjectOfClass:[BrouterInfo class] forKey:@"brouterInfo"];
     if (!_brouterInfo) self.brouterInfo = [[BrouterInfo alloc]init];
-    if ((0)) return self;
     self.poiloc = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [POILocation class], nil]  forKey:@"poiloc"];
+    self.customPoiloc = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [POILocation class], nil]  forKey:@"customPoiloc"];
+    if (!_customPoiloc) {
+        self.customPoiloc = [[NSMutableArray alloc]initWithCapacity:5];
+    }
     return self;
 }
 
@@ -380,6 +386,29 @@
     if (pl != _poiloc) {
         _poiloc = pl;
     }
+}
+
+- (void) setCustomPoiloc:(NSMutableArray<POILocation *> * _Nonnull)pl
+{
+    if (!pl || ![pl count]) {
+        // for debug
+        NSLog(@"no poi");
+    }
+    if (pl != _customPoiloc) {
+        _customPoiloc = pl;
+    }
+}
+
+- (void) addCustomPoiAt:(CLLocationCoordinate2D)coord
+{
+    PoiType_t poit = [[POILocation class]poiTypeForAmenity:@"warning"];
+    NSDictionary *info2 =[[NSDictionary alloc]init];
+    POILocation *loc = [[POILocation alloc] initWithLatitude:coord.latitude
+                                                   longitude:coord.longitude
+                                                      ofType:poit
+                                                        info:info2];
+    NSAssert([_customPoiloc isKindOfClass:[NSMutableArray class]], @"bad class customPoi");
+    [_customPoiloc addObject:loc];
 }
 @end
 

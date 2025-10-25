@@ -508,11 +508,16 @@
             [self.svCtrl viewCoord:rcoord lookingAt:bearing coalesce:NO];
             self.elevationView.highlightDistance = distance;
             [self.elevationView setNeedsDisplay:YES];
-            return;
         }
+        return;
     }
     if (clickmode == 2) {
-        // Add POI
+        // Add POI on the track
+        CLLocationCoordinate2D rcoord;
+        if ([self clickNearPolylineAt:locInView tolerence:50. nearestPoint:&rcoord]) {
+            [self.document.plan addCustomPoiAt:rcoord];
+            [self refreshPOI];
+        }
         NSLog(@"..");
         return;
     }
@@ -648,6 +653,16 @@
     }
 }
 
+- (void) addAnnotationViewForPoi:(POILocation *)loc
+{
+    POIAnnotation *ann = [[POIAnnotation alloc] init];
+    ann.info = loc.info;
+    ann.coordinate = loc.coordinate;
+    ann.title = loc.title;
+    ann.poiType = loc.poiType;
+    //ann.xxpoiType = loc.title; // FIXME
+    [self.mapView addAnnotation:ann];
+}
 - (void) refreshPOI
 {
     for (RouteAnnotation *annot in self.mapView.annotations) {
@@ -656,15 +671,20 @@
         }
         [self.mapView removeAnnotation:annot];
     }
+    for (POILocation *loc in _document.plan.customPoiloc) {
+        [self addAnnotationViewForPoi:loc];
+    }
     if (!_viewPOI) return;
     for (POILocation *loc in _document.plan.poiloc) {
+        [self addAnnotationViewForPoi:loc];
+        /*
         POIAnnotation *ann = [[POIAnnotation alloc] init];
         ann.info = loc.info;
         ann.coordinate = loc.coordinate;
         ann.title = loc.title;
         ann.poiType = loc.poiType;
         //ann.xxpoiType = loc.title; // FIXME
-        [self.mapView addAnnotation:ann];
+        [self.mapView addAnnotation:ann];*/
     }
 }
 

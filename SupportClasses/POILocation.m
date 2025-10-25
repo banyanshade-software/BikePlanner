@@ -23,6 +23,8 @@
         return POI_toilets;
     } else if ([s isEqualToString:@"bicycle_repair_station"]) {
         return POI_bicycle_repair_station;
+    } else if ([s isEqualToString:@"warning"]) {
+        return POI_warning;
     } else {
         return POI_unknown;
     }

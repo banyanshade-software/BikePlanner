@@ -14,7 +14,8 @@ typedef NS_ENUM(int, PoiType_t) {
     POI_drinking_water,
     POI_toilets,
     POI_bicycle_repair_station,
-    POI_cemetery
+    POI_cemetery,
+    POI_warning,
 };
 
 @interface POILocation : CLLocation <NSSecureCoding> {
