@@ -47,13 +47,8 @@
     NSView *content = [_mapView superview];// self.window.contentView;
     //_document.plan.waypointsLocations = [[NSMutableArray alloc]initWithCapacity:32];
     waypointsRouteAnnotations = [[NSMutableArray alloc]initWithCapacity:32];
-    // Map view
-    /*
-     if (!_mapView) {
-     self.mapView = [[MKMapView alloc] initWithFrame:content.bounds];
-     self.mapView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-     [content addSubview:self.mapView];
-     }*/
+   
+    
     self.mapView.delegate = self;
     self.viewPOI = YES;
 
@@ -98,13 +93,15 @@
         //NSLog(@"hop");
         [self refreshPOI];
     };
-    // move to defined place
-    // 44.1249234 ,0.4961707,10920
-    CLLocationCoordinate2D center = CLLocationCoordinate2DMake(44.1249234, 0.4961707); // Laplume
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(center, 20000, 20000) animated:NO];
-
-    });
+    if ((0)) {
+        // move to defined place
+        // 44.1249234 ,0.4961707,10920
+        CLLocationCoordinate2D center = CLLocationCoordinate2DMake(44.1249234, 0.4961707); // Laplume
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(center, 20000, 20000) animated:NO];
+            
+        });
+    }
     if ((1)) [self addTrackingAreas];
 }
 
@@ -609,6 +606,7 @@
 {
     TaggedPoly *gpxpoly = _document.plan.gpxDisplayedPoly;
     [self.mapView addOverlay:gpxpoly level:MKOverlayLevelAboveLabels];
+ 
 }
 - (void) refreshSideView
 {
@@ -678,9 +676,13 @@
     MKPolyline *poly = _document.plan.routePoly;
     
     [self.mapView addOverlay:poly level:MKOverlayLevelAboveLabels];
-    MKMapRect rect = [poly boundingMapRect];
     if (changeVisibleRect) {
-        [self.mapView setVisibleMapRect:rect edgePadding:NSEdgeInsetsMake(40, 40, 40, 40) animated:YES];
+        if (poly.pointCount>0) {
+            MKMapRect rect = [poly boundingMapRect];
+            [self.mapView setVisibleMapRect:rect edgePadding:NSEdgeInsetsMake(40, 40, 40, 40) animated:YES];
+        } else {
+            [self centerOnUserLocation:nil];
+        }
     }
 }
 
