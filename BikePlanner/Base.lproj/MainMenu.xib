@@ -169,7 +169,7 @@
                             <menuItem title="Mode: Add POI" id="cBR-92-xUs">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="setClickModeToView:" target="-1" id="c5z-if-Kvt"/>
+                                    <action selector="setClickModeToAddPoi:" target="-1" id="4k6-sh-ock"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Mode: View/Drag" id="nxb-FB-hnT">
