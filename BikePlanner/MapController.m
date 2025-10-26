@@ -852,7 +852,18 @@
                                [gpxstr substringToIndex:closingTag.location]];
   
     
-    
+    if ((1)) {
+        for (POILocation *poi in _document.plan.customPoiloc) {
+            [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
+            [xml appendFormat:@"  <name>%@</name>\n", poi.title];
+            //if (poi.subtitle) {
+            //    [xml appendFormat:@"  <desc>%@</desc>\n", poi.subtitle];
+            //}
+            [xml appendFormat:@"  <sym>%@</sym>\n", poi.gpxSymbol ?: @"Flag"];
+            [xml appendFormat:@"  <type>%@</type>\n", poi.gpxType ?: @"Flag"];
+            [xml appendString:@"</wpt>\n"];
+        }
+    }
     if ((1)) {
         for (POILocation *poi in _document.plan.poiloc) {
             [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];

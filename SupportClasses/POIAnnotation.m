@@ -15,6 +15,7 @@
     static NSImage *tpl_water = nil;
     static NSImage *tpl_cemetery = nil;
     static NSImage *tpl_repair = nil;
+    static NSImage *tpl_warning = nil;
 
     static dispatch_once_t onceToken = (dispatch_once_t)0;
     dispatch_once(&onceToken, ^{
@@ -26,6 +27,8 @@
         [tpl_cemetery setTemplate:YES];
         tpl_repair = [NSImage imageNamed:@"icon_repair"];
         [tpl_repair setTemplate:YES];
+        tpl_warning = [NSImage imageNamed:@"icon_warning"];
+        [tpl_warning setTemplate:YES];
     });
     
     NSAssert(view.annotation, @"no annotation");
@@ -49,6 +52,10 @@
             break;
         case POI_bicycle_repair_station:
             view.glyphImage = tpl_repair;
+            view.markerTintColor = [NSColor cyanColor];
+            break;
+        case POI_warning:
+            view.glyphImage = tpl_warning;
             view.markerTintColor = [NSColor orangeColor];
             break;
         default:
@@ -58,4 +65,8 @@
 }
 // <a href="https://www.flaticon.com/free-icons/drinkable" title="drinkable icons">Drinkable icons created by cube29 - Flaticon</a>
 // <a href="https://www.flaticon.com/free-icons/restroom" title="restroom icons">Restroom icons created by monkik - Flaticon</a>
+// <a href="https://www.flaticon.com/free-icons/error" title="error icons">Error icons created by Gregor Cresnar - Flaticon</a>
+
+
+// SVG icons :https://github.com/mapbox/maki/tree/main/icons
 @end

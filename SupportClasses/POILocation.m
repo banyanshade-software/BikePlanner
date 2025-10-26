@@ -87,6 +87,7 @@
         case POI_toilets:               return @"toilets"; break;
         case POI_bicycle_repair_station:return @"bicycle_repair_station"; break;
         case POI_cemetery:              return @"cemetery"; break;
+        case POI_warning:               return @"..." ; break;
     }
 }
 - (NSString *)gpxType
@@ -99,6 +100,7 @@
         case POI_toilets:               return @"TOILET"; break;
         case POI_bicycle_repair_station:return @"SERVICE"; break;
         case POI_cemetery:              return @"GENERIC"; break;
+        case POI_warning:               return @"DANGER"; break;
     }
 }
 /*
