@@ -31,7 +31,7 @@
 }
 
 
-- (instancetype) initWithLatitude:(CLLocationDegrees)latitude longitude:(CLLocationDegrees)longitude ofType:(PoiType_t)_poitype info:(NSDictionary *)dic;
+- (instancetype) initWithLatitude:(CLLocationDegrees)latitude longitude:(CLLocationDegrees)longitude ofType:(PoiType_t)_poitype info:(NSDictionary *)dic custom:(BOOL)_useradded
 {
     self = [super initWithLatitude:latitude longitude:longitude];
     if (self) {
@@ -42,6 +42,7 @@
         }
         poitype = _poitype;
         info = dic;
+        userAdded = _useradded;
     }
     return self;
 }

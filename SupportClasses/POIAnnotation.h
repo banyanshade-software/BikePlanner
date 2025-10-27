@@ -18,4 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void) configureAnnotViewIcon:(MKMarkerAnnotationView *)view;
 @end
 
+@interface POICustomAnnotation : POIAnnotation
+
+@end
+
 NS_ASSUME_NONNULL_END

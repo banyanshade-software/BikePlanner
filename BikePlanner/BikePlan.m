@@ -359,7 +359,7 @@
                 }
                 
                 PoiType_t poit = [[POILocation class]poiTypeForAmenity:poitypname];
-                CLLocation *loc = [[POILocation alloc]initWithLatitude:lat longitude:lon ofType:poit info:info2];
+                CLLocation *loc = [[POILocation alloc]initWithLatitude:lat longitude:lon ofType:poit info:info2 custom:NO];
                 
                 [tpoiarray addObject:loc];
             }
@@ -406,7 +406,7 @@
     POILocation *loc = [[POILocation alloc] initWithLatitude:coord.latitude
                                                    longitude:coord.longitude
                                                       ofType:poit
-                                                        info:info2];
+                                                        info:info2 custom:YES];
     NSAssert([_customPoiloc isKindOfClass:[NSMutableArray class]], @"bad class customPoi");
     [_customPoiloc addObject:loc];
 }

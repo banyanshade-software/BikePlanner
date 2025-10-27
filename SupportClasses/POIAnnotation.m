@@ -70,3 +70,9 @@
 
 // SVG icons :https://github.com/mapbox/maki/tree/main/icons
 @end
+
+
+
+@implementation POICustomAnnotation
+
+@end

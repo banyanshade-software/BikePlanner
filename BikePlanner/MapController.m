@@ -568,9 +568,7 @@
 
     for (id<MKAnnotation> ann in self.mapView.annotations) {
         if (![ann isKindOfClass:[POIAnnotation class]]) continue;
-        // If you have a POI class:
-        // if (![ann isKindOfClass:[POIAnnotation class]]) continue;
-
+    
         CGPoint q = [self.mapView convertCoordinate:ann.coordinate toPointToView:self.mapView];
         CGFloat dx = q.x - p.x, dy = q.y - p.y;
         CGFloat d = sqrt(dx*dx + dy*dy);
@@ -663,6 +661,7 @@
     //ann.xxpoiType = loc.title; // FIXME
     [self.mapView addAnnotation:ann];
 }
+
 - (void) refreshPOI
 {
     for (RouteAnnotation *annot in self.mapView.annotations) {

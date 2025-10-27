@@ -23,6 +23,7 @@ typedef NS_ENUM(int, PoiType_t) {
     //NSString *title;
     NSDictionary *info;
     BOOL selectedForExport;
+    BOOL userAdded;
 }
 @property (nonatomic,readonly) PoiType_t poiType;
 @property (nonatomic,readonly) NSString *title;
@@ -31,7 +32,7 @@ typedef NS_ENUM(int, PoiType_t) {
 @property (nonatomic,readonly) NSString *gpxType;
 
 
-- (instancetype) initWithLatitude:(CLLocationDegrees)latitude longitude:(CLLocationDegrees)longitude ofType:(PoiType_t)poitype info:(NSDictionary *)info;
+- (instancetype) initWithLatitude:(CLLocationDegrees)latitude longitude:(CLLocationDegrees)longitude ofType:(PoiType_t)poitype info:(NSDictionary *)info custom:(BOOL)useradded;
 
 + (PoiType_t) poiTypeForAmenity:(NSString *)s;
 
