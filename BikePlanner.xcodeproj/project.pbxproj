@@ -21,6 +21,7 @@
 		1B53B8492E57C54500C9470F /* BSSUI_AboutWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B8472E57C54500C9470F /* BSSUI_AboutWindowController.m */; };
 		1B53B84D2E5CDEFD00C9470F /* ExportAccessoryViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B84B2E5CDEFD00C9470F /* ExportAccessoryViewController.m */; };
 		1B53B84E2E5CDEFD00C9470F /* ExportAccessoryView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1B53B84C2E5CDEFD00C9470F /* ExportAccessoryView.xib */; };
+		1B99A38A2F4FAB5A00760D8D /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B99A3892F4FAB5900760D8D /* WebKit.framework */; };
 		65B22D642E50B1360078F4BC /* TaggedPoly.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B22D632E50B1360078F4BC /* TaggedPoly.m */; };
 		65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */; };
 		65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE642E47982C001F2966 /* BikePlannerUITests.m */; };
@@ -107,6 +108,7 @@
 		1B53B84A2E5CDEFD00C9470F /* ExportAccessoryViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ExportAccessoryViewController.h; sourceTree = "<group>"; };
 		1B53B84B2E5CDEFD00C9470F /* ExportAccessoryViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ExportAccessoryViewController.m; sourceTree = "<group>"; };
 		1B53B84C2E5CDEFD00C9470F /* ExportAccessoryView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ExportAccessoryView.xib; sourceTree = "<group>"; };
+		1B99A3892F4FAB5900760D8D /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		65B22D622E50B1360078F4BC /* TaggedPoly.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TaggedPoly.h; sourceTree = "<group>"; };
 		65B22D632E50B1360078F4BC /* TaggedPoly.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TaggedPoly.m; sourceTree = "<group>"; };
 		65B8EE442E479821001F2966 /* BikePlanner_org.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BikePlanner_org.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -184,6 +186,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1B99A38A2F4FAB5A00760D8D /* WebKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -279,6 +282,7 @@
 		65B8EE762E479A77001F2966 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				1B99A3892F4FAB5900760D8D /* WebKit.framework */,
 				65B8EE772E479A77001F2966 /* MapKit.framework */,
 			);
 			name = Frameworks;
