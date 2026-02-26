@@ -1373,29 +1373,32 @@ static const BOOL useMarker = NO;
 - (void)handleRightClickOnAnnotation:(NSClickGestureRecognizer *)gesture
 {
     if (gesture.state == NSGestureRecognizerStateEnded) {
-        MKAnnotationView *view = (MKAnnotationView *)gesture.view;
-        if (!view.annotation) return;
+        MKAnnotationView *annotView = (MKAnnotationView *)gesture.view;
+        if (!annotView.annotation) return;
         
         NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Waypoint Menu"];
         NSMenuItem *removeItem = [[NSMenuItem alloc] initWithTitle:@"Remove Waypoint"
                                                             action:@selector(removeWaypointMenuAction:)
                                                      keyEquivalent:@""];
         removeItem.target = self;
-        removeItem.representedObject = view.annotation;
+        removeItem.representedObject = annotView.annotation;
         [menu addItem:removeItem];
         
-        NSPoint clickLocation = [gesture locationInView:view];
+        NSPoint clickLocation = [gesture locationInView:annotView];
+        NSPoint windowLocation = [annotView convertPoint:clickLocation toView:nil];
+        //NSPoint screenLocation = [_mapView.window convertPointToScreen:windowLocation];
+        //NSPoint clickLocation = [gesture locationInView:_mapView];
         NSEvent *event = [NSEvent mouseEventWithType:NSEventTypeRightMouseDown
-                                            location:[view.window convertPointToScreen:[view convertPoint:clickLocation toView:nil]]
+                                            location:windowLocation //screenLocation
                                        modifierFlags:0
                                            timestamp:0
-                                        windowNumber:view.window.windowNumber
+                                        windowNumber:annotView.window.windowNumber
                                              context:nil
                                          eventNumber:0
                                           clickCount:1
                                             pressure:1.0];
         
-        [NSMenu popUpContextMenu:menu withEvent:event forView:view];
+        [NSMenu popUpContextMenu:menu withEvent:event forView:annotView];
     }
 }
 
