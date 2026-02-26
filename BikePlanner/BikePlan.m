@@ -7,14 +7,42 @@
 
 #import "BikePlan.h"
 #import "POILocation.h"
+ 
+@interface NSArray (Insertion)
+- (NSArray *)arrayByInsertingObject:(id)object atIndex:(NSUInteger)index;
+- (NSArray *)arrayByReplacingObjectAtIndex:(NSUInteger)index withObject:(id)object;
+- (NSArray *)arrayByRemovingObjectAtIndex:(NSUInteger)index;
+@end
+
+@implementation NSArray (Insertion)
+- (NSArray *)arrayByRemovingObjectAtIndex:(NSUInteger)idx {
+    NSMutableIndexSet *indexes = [NSMutableIndexSet indexSetWithIndexesInRange:NSMakeRange(0, self.count)];
+    [indexes removeIndex:idx];
+    NSArray *newArray = [self objectsAtIndexes:indexes];
+    return newArray;
+}
+- (NSArray *)arrayByInsertingObject:(id)object atIndex:(NSUInteger)index {
+    NSMutableArray *m = [self mutableCopy];
+    [m insertObject:object atIndex:index];
+    return [m copy];
+}
+- (NSArray *)arrayByReplacingObjectAtIndex:(NSUInteger)index withObject:(id)object {
+    NSMutableArray *m = [self mutableCopy];
+    [m replaceObjectAtIndex:index withObject:object];
+    return [m copy];
+}
+@end
+
+
+#pragma mark -
 
 @interface BikePlan ()
-@property (strong,nonatomic) NSMutableArray <CLLocation *>*waypointsLocations;
+@property (strong,nonatomic) NSArray <CLLocation *>*waypointsLocations;
 @end
 
 
 @implementation BikePlan {
-    NSMutableArray <CLLocation *>*_waypointsLocations;
+    NSArray <CLLocation *>*_waypointsLocations;
     TaggedPoly *_waypointPoly;
     TaggedPoly *_routePoly;
     TaggedPoly *_gpxDisplayedPoly;
@@ -35,7 +63,7 @@
     self.waypointsLocations = [[NSMutableArray alloc]initWithCapacity:32];
     self.fetchPOI = YES;
     self.customPoiloc = [[NSMutableArray alloc]initWithCapacity:5];
-
+    
     return self;
 }
 
@@ -45,42 +73,44 @@
 {
     return _waypointsLocations;
 }
-- (void) removeWaypoints
+//     [_docUndoMgr registerUndoWithTarget:self selector:@selector(undoSetWayPt:) object:_waypointsLocations];
+
+
+- (NSArray <CLLocation *>*) removeWaypoints
 {
-    [self willChangeValueForKey:@"waypointsLocations"];
-    [_waypointsLocations removeAllObjects];
-    [self didChangeValueForKey:@"waypointsLocations"];
-    [self clearWaypointCache];
+    NSArray <CLLocation *>*old = _waypointsLocations;
+    self.waypointsLocations = @[];
+    return old;
 }
-- (void) removeWaypointAtIndex:(NSUInteger)idx
+- (NSArray <CLLocation *>*) removeWaypointAtIndex:(NSUInteger)idx
 {
-    [self willChangeValueForKey:@"waypointsLocations"];
-    [_waypointsLocations removeObjectAtIndex:idx];
-    [self didChangeValueForKey:@"waypointsLocations"];
-    [self clearWaypointCache];
+    NSArray <CLLocation *>*old = _waypointsLocations;
+    //[_waypointsLocations removeObjectAtIndex:idx];
+    self.waypointsLocations  = [_waypointsLocations arrayByRemovingObjectAtIndex:idx];
+    return old;
 }
-- (void) appendWaypoint:(CLLocation *)loc
+- (NSArray <CLLocation *>*) appendWaypoint:(CLLocation *)loc
 {
-    [self willChangeValueForKey:@"waypointsLocations"];
-    [_waypointsLocations addObject:loc];
-    [self didChangeValueForKey:@"waypointsLocations"];
-    [self clearWaypointCache];
+    NSArray <CLLocation *>*old = _waypointsLocations;
+    //[_waypointsLocations addObject:loc];
+    self.waypointsLocations  = [_waypointsLocations arrayByAddingObject:loc];
+    return old;
 }
-- (void) insertWaypoint:(CLLocation *)loc atIndex:(NSUInteger)idx
+- (NSArray <CLLocation *>*) insertWaypoint:(CLLocation *)loc atIndex:(NSUInteger)idx
 {
-    
-    [self willChangeValueForKey:@"waypointsLocations"];
-    [_waypointsLocations insertObject:loc atIndex:idx];
-    [self didChangeValueForKey:@"waypointsLocations"];
-    [self clearWaypointCache];
+    NSArray <CLLocation *>*old = _waypointsLocations;
+    //[_waypointsLocations insertObject:loc atIndex:idx];
+    self.waypointsLocations  = [_waypointsLocations arrayByInsertingObject:loc atIndex:idx];
+    return old;
 }
-- (void) replaceWaypointAtIndex:(NSUInteger)idx by:(CLLocation *)loc
+- (NSArray <CLLocation *>*) replaceWaypointAtIndex:(NSUInteger)idx by:(CLLocation *)loc
 {
-    [self willChangeValueForKey:@"waypointsLocations"];
-    [_waypointsLocations replaceObjectAtIndex:idx withObject:loc];
-    [self didChangeValueForKey:@"waypointsLocations"];
-    [self clearWaypointCache];
+    NSArray <CLLocation *>*old = _waypointsLocations;
+    //[_waypointsLocations replaceObjectAtIndex:idx withObject:loc];
+    self.waypointsLocations  = [_waypointsLocations arrayByReplacingObjectAtIndex:idx withObject:loc];
+    return old;
 }
+
 - (void) clearWaypointCache
 {
     [self willChangeValueForKey:@"waypointPoly"];
@@ -88,6 +118,13 @@
     [self didChangeValueForKey:@"waypointPoly"];
 }
 
+- (void) undoSetWayPt:() wp
+{
+    [self willChangeValueForKey:@"waypointsLocations"]; \
+    _waypointsLocations = wp;
+    [self didChangeValueForKey:@"waypointsLocations"]; \
+    [self clearWaypointCache]; \
+}
 - (TaggedPoly *) waypointPoly
 {
     if (!_waypointPoly) {

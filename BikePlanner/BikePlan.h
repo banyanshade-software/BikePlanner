@@ -30,6 +30,7 @@ NS_ASSUME_NONNULL_BEGIN
     
 }
 
+//@property (weak,nonatomic) NSUndoManager *docUndoMgr;
 @property (readonly,nonatomic) NSArray <CLLocation *>*waypointsLocations;
 @property (strong,nonatomic) NSArray<CLLocation *> *routePoints;
 @property (strong,nonatomic) NSArray<CLLocation *> *gpxDisplayed;
@@ -40,11 +41,14 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy) void (^poiAvailableCallback)(void);
 - (void) addCustomPoiAt:(CLLocationCoordinate2D)coord;
 
-- (void) removeWaypoints;
-- (void) removeWaypointAtIndex:(NSUInteger)idx;
-- (void) appendWaypoint:(CLLocation *)loc;
-- (void) insertWaypoint:(CLLocation *)loc atIndex:(NSUInteger)idx;
-- (void) replaceWaypointAtIndex:(NSUInteger)idx by:(CLLocation *)loc;
+// returns old waypointsLocations for undo
+- (NSArray <CLLocation *>*) removeWaypoints NS_WARN_UNUSED_RESULT;
+- (NSArray <CLLocation *>*) removeWaypointAtIndex:(NSUInteger)idx NS_WARN_UNUSED_RESULT;
+- (NSArray <CLLocation *>*) appendWaypoint:(CLLocation *)loc NS_WARN_UNUSED_RESULT;
+- (NSArray <CLLocation *>*) insertWaypoint:(CLLocation *)loc atIndex:(NSUInteger)idx NS_WARN_UNUSED_RESULT;
+- (NSArray <CLLocation *>*) replaceWaypointAtIndex:(NSUInteger)idx by:(CLLocation *)loc NS_WARN_UNUSED_RESULT;
+
+- (void) undoSetWayPt:() wp;
 
 @property (readonly,nonatomic) TaggedPoly *routePoly;    // MKPolyLine with a tag, 0
 @property (readonly,nonatomic) TaggedPoly *waypointPoly; // MKPolyLine with a tag, 1

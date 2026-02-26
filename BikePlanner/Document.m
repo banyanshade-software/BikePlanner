@@ -24,7 +24,10 @@
     self = [super init];
     if (self) {
         self.plan = [[BikePlan alloc]init];
-        // Add your subclass-specific initialization here.
+        if (!self.hasUndoManager) {
+            NSLog(@"no undo mgr??");
+        }
+        //self.plan.docUndoMgr = self.undoManager;
     }
     return self;
 }
@@ -91,6 +94,7 @@
 
 - (BOOL)readFromData:(NSData *)data ofType:(NSString *)typeName error:(NSError **)outError
 {
+   
     if (!data) {
         if (outError) {
             *outError = [NSError errorWithDomain:NSCocoaErrorDomain
@@ -137,6 +141,9 @@
 - (void)windowControllerDidLoadNib:(NSWindowController *)windowController
 {
     [super windowControllerDidLoadNib:windowController];
+    BOOL k = self.hasUndoManager;
+    id x = self.undoManager;
+    NSLog(@"um %s %@", k ? "Yes":"No", x);
 }
 
 

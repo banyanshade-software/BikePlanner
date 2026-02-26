@@ -423,7 +423,7 @@
 
 - (void)clearAction:(id)sender
 {
-    [_document.plan removeWaypoints];
+    [self undoableWP:[_document.plan removeWaypoints] desc:@"clear all"];
     //self.hasStart = NO; self.hasEnd = NO;
     self.gpxData = nil;
     [waypointsRouteAnnotations removeAllObjects];
@@ -548,7 +548,7 @@
         
         RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
         a.idx = idx;
-        [_document.plan appendWaypoint:loc];
+        [self undoableWP:[_document.plan appendWaypoint:loc] desc:@"add destination"];
         //[_document.plan.waypointsLocations addObject:loc];
         [waypointsRouteAnnotations addObject:a];
         [self recalcAnnotIndexesFrom:idx];
@@ -558,8 +558,8 @@
         
         [self shouldRecalcRoute];
     }
-    
 }
+
 
 - (id<MKAnnotation>)nearestPOIToScreenPoint:(CGPoint)p maxPixelRadius:(CGFloat)radius
 {
@@ -1145,7 +1145,7 @@
 - (void)insertWaypoint:(CLLocationCoordinate2D)coord atIdx:(NSUInteger)idx
 {
     CLLocation *loc = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
-    [_document.plan insertWaypoint:loc atIndex:idx];    
+    [self undoableWP:[_document.plan insertWaypoint:loc atIndex:idx] desc:@"insert waypoint"];
     [self requestRoute];
 }
 
@@ -1401,11 +1401,13 @@ didChangeDragState:(MKAnnotationViewDragState)newState
         NSUInteger idx = ra.idx;
         CLLocationCoordinate2D newCoord = ra.coordinate;
         CLLocation *loc = [[CLLocation alloc] initWithLatitude:newCoord.latitude longitude:newCoord.longitude];
-        [_document.plan replaceWaypointAtIndex:idx by:loc];
+        [self undoableWP:[_document.plan replaceWaypointAtIndex:idx by:loc] desc:@"move waypoint"];
         
         [self requestRoute];
     }
 }
+
+#pragma mark -
 
 #pragma mark -
 
@@ -1557,6 +1559,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
             [waypointsRouteAnnotations removeObjectAtIndex:idx];
             //[_document.plan removeWaypoints];
             [_document.plan removeWaypointAtIndex:idx];
+            [self undoableWP:[_document.plan removeWaypointAtIndex:idx] desc:@"remove waypoint"];
             [self recalcAnnotIndexesFrom:idx];
             [self shouldRecalcRoute];
         }
@@ -1610,5 +1613,20 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     [self.mapView addOverlay:gpxpoly level:MKOverlayLevelAboveLabels];
 
     //free(coords);
+}
+
+#pragma mark -
+
+
+- (void) undoableWP:(NSArray <CLLocation *>*)oldwp desc:(NSString *)d
+{
+    [_document.undoManager registerUndoWithTarget:self selector:@selector(undoAction:) object:oldwp];
+}
+
+- (void) undoAction:(NSArray <CLLocation *>*)oldwp
+{
+    [_document.plan undoSetWayPt:oldwp];
+    [self fullRefresh];
+    [self shouldRecalcRoute];
 }
 @end
