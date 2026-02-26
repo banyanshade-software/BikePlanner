@@ -1639,13 +1639,18 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 {
     NSUndoManager *um = _document.undoManager;
     [um registerUndoWithTarget:self selector:@selector(undoAction:) object:oldwp];
-    [um setActionName:d];
+    if (d) [um setActionName:d];
 }
 
 - (void) undoAction:(NSArray <CLLocation *>*)oldwp
 {
+    NSLog(@"undo action %d %d", _document.undoManager.isUndoing, _document.undoManager.isRedoing);
     //BOOL oa = animateDropPins;
     //animateDropPins = NO;
+    if ( _document.undoManager.isUndoing) {
+        // register for redo
+        [self undoableWP:_document.plan.waypointsLocations desc:nil];
+    }
     [_document.plan undoSetWayPt:oldwp];
     [self fullRefresh:NO];
     [self shouldRecalcRoute];
