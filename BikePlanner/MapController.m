@@ -1647,7 +1647,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     NSLog(@"undo action %d %d", _document.undoManager.isUndoing, _document.undoManager.isRedoing);
     //BOOL oa = animateDropPins;
     //animateDropPins = NO;
-    if ( _document.undoManager.isUndoing) {
+    if (1 || _document.undoManager.isUndoing) {
         // register for redo
         [self undoableWP:_document.plan.waypointsLocations desc:nil];
     }
