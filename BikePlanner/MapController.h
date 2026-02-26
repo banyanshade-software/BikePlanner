@@ -38,7 +38,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (IBAction) importGPXTraceForDisplay:(id)sender;
 - (IBAction) sendersearchFieldAction:(id)sender;
 - (void) shouldRecalcRoute;
-- (void) fullRefresh; // called after load
+- (void) fullRefresh:(BOOL)fromLoad; // called after load
 
 - (void) initializeMapview;
 

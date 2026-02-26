@@ -29,7 +29,7 @@
     [d.mapController initializeMapview];
     [d.mapController.svCtrl initializeStreetView];
     
-    [d.mapController fullRefresh];
+    [d.mapController fullRefresh:YES];
     [self setupBrfEditor];
     [self.window makeKeyAndOrderFront:nil];
 }

@@ -39,11 +39,13 @@
     NSSegmentedControl *clickmodeseg;
     
     POIAnnotation *_highlightedPOI;
+    BOOL animateDropPins;
 }
 
 - (void) initializeMapview
 {
     NSAssert(_document.plan, @"no plan");
+    animateDropPins = NO; //YES;
     NSView *content = [_mapView superview];// self.window.contentView;
     //_document.plan.waypointsLocations = [[NSMutableArray alloc]initWithCapacity:32];
     waypointsRouteAnnotations = [[NSMutableArray alloc]initWithCapacity:32];
@@ -604,16 +606,16 @@
       }*/
 }
 
-- (void) fullRefresh
+- (void) fullRefresh:(BOOL)fromLoad
 {
     for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
         if (![ov isKindOfClass:[MKTileOverlay class]]) {
             [self.mapView removeOverlay:ov];
         }
     }
-    [self refreshAnnot];
+    [self refreshAnnot:!fromLoad];
     [self refreshPOI];
-    [self refreshPoly:YES];
+    [self refreshPoly:fromLoad]; // change view rect when loading, not when undoing
     [self refreshGpxDisplayed];
     [self refreshSideView];
 }
@@ -630,7 +632,7 @@
     
 }
 
-- (void) refreshAnnot
+- (void) refreshAnnot:(BOOL)anim
 {
     for (RouteAnnotation *annot in self.mapView.annotations) {
         if (![annot isKindOfClass:[RouteAnnotation class]]) {
@@ -640,6 +642,7 @@
     }
     [waypointsRouteAnnotations removeAllObjects];
     NSUInteger idx = 0;
+    /*
     for (CLLocation *loc in _document.plan.waypointsLocations) {
         CLLocationCoordinate2D coord = loc.coordinate;
         NSString *title = [self stringForWaypointIdx:idx];
@@ -649,6 +652,17 @@
         [self.mapView addAnnotation:a];
         idx++;
     }
+    */
+    NSMutableArray *ans = [[NSMutableArray alloc]initWithCapacity:4];
+    for (CLLocation *loc in _document.plan.waypointsLocations) {
+        CLLocationCoordinate2D coord = loc.coordinate;
+        NSString *title = [self stringForWaypointIdx:idx];
+        RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:coord title:title subtitle:nil];
+        a.idx = idx;
+        [waypointsRouteAnnotations addObject:a];
+        idx++;
+    }
+    [self.mapView addAnnotations:waypointsRouteAnnotations];
 }
 
 - (void) addAnnotationViewForPoi:(POILocation *)loc
@@ -1290,7 +1304,7 @@ static const BOOL useMarker = NO;
                 pview = [[MKPinAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
                 view = pview;
             }
-            pview.animatesDrop = YES;
+            pview.animatesDrop = animateDropPins;
             pview.pinTintColor = [self pinColorForWaypointIdx:ra.idx];
         }
         view.draggable = YES;
@@ -1620,13 +1634,18 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 
 - (void) undoableWP:(NSArray <CLLocation *>*)oldwp desc:(NSString *)d
 {
-    [_document.undoManager registerUndoWithTarget:self selector:@selector(undoAction:) object:oldwp];
+    NSUndoManager *um = _document.undoManager;
+    [um registerUndoWithTarget:self selector:@selector(undoAction:) object:oldwp];
+    [um setActionName:d];
 }
 
 - (void) undoAction:(NSArray <CLLocation *>*)oldwp
 {
+    //BOOL oa = animateDropPins;
+    //animateDropPins = NO;
     [_document.plan undoSetWayPt:oldwp];
-    [self fullRefresh];
+    [self fullRefresh:NO];
     [self shouldRecalcRoute];
+    //animateDropPins = oa;
 }
 @end
