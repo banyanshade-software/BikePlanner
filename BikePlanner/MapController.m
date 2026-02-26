@@ -849,14 +849,23 @@
     }];
 }
 
-- (NSData *) exportGpxDataWithPOI:(BOOL)inclPOI
+- (NSData *) exportGpxDataWithPOI:(BOOL)inclPOI trackName:(NSString *)trackName
 {
-    if (!inclPOI) {
+    if (0 && !inclPOI) {
         return _gpxData;
     }
+    if (!trackName) trackName = @"track";
     //NSMutableString *xml = [[NSMutableString alloc]initWithCapacity:4000];
     NSString *gpxstr = [[NSString alloc] initWithData:_gpxData encoding:NSUTF8StringEncoding];
-    NSRange closingTag = [gpxstr rangeOfString:@"</gpx>" options:NSBackwardsSearch];
+    
+    //gpxstr = [gpxstr stringByAppendingString:@"<name>plop</name>"];
+    NSRange nameTag = [gpxstr rangeOfString:@"<name>.*</name>" options:NSRegularExpressionSearch|NSCaseInsensitiveSearch];
+    if (nameTag.location != NSNotFound) {
+        NSString *nname = [NSString stringWithFormat:@"<name>%@</name>", trackName];
+        gpxstr = [gpxstr stringByReplacingCharactersInRange:nameTag withString:nname];
+    }
+    
+    NSRange closingTag = [gpxstr rangeOfString:@"</gpx>" options:NSBackwardsSearch|NSCaseInsensitiveSearch];
     if (closingTag.location == NSNotFound) {
         NSLog(@"Invalid GPX: missing </gpx>");
         return _gpxData;
@@ -865,7 +874,7 @@
                                [gpxstr substringToIndex:closingTag.location]];
   
     
-    if ((1)) {
+    if (inclPOI) {
         for (POILocation *poi in _document.plan.customPoiloc) {
             [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
             [xml appendFormat:@"  <name>%@</name>\n", poi.title];
@@ -877,7 +886,7 @@
             [xml appendString:@"</wpt>\n"];
         }
     }
-    if ((1)) {
+    if (inclPOI) {
         for (POILocation *poi in _document.plan.poiloc) {
             [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
             [xml appendFormat:@"  <name>%@</name>\n", poi.title];
@@ -930,10 +939,11 @@
     [savePanel beginWithCompletionHandler:^(NSModalResponse result) {
         if (result == NSModalResponseOK) {
             NSURL *destinationURL = savePanel.URL;
+            NSString *trackname = [[destinationURL lastPathComponent] stringByDeletingPathExtension];
             NSError *error = nil;
             BOOL includePOI = (accessoryVC.poiCheckbox.state == NSControlStateValueOn);
 
-            NSData *gpxdta = [self exportGpxDataWithPOI:includePOI];
+            NSData *gpxdta = [self exportGpxDataWithPOI:includePOI trackName:trackname];
             if (![gpxdta writeToURL:destinationURL options:NSDataWritingAtomic error:&error]) {
                 NSAlert *alert = [[NSAlert alloc] init];
                 alert.messageText = @"Export failed";
