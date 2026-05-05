@@ -1595,7 +1595,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
         if (idx != NSNotFound) {
             [waypointsRouteAnnotations removeObjectAtIndex:idx];
             //[_document.plan removeWaypoints];
-            [_document.plan removeWaypointAtIndex:idx];
+            //[_document.plan removeWaypointAtIndex:idx];
             [self undoableWP:[_document.plan removeWaypointAtIndex:idx] desc:@"remove waypoint"];
             [self recalcAnnotIndexesFrom:idx];
             [self shouldRecalcRoute];
