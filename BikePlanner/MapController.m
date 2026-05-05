@@ -505,7 +505,10 @@
         if ([self clickNearPolylineAt:locInView tolerence:40. nearestPoint:&rcoord]) {
             scrubberMarker.coordinate = rcoord;
             [self.mapView setCenterCoordinate:rcoord animated:NO];
-            double distance = [self distanceAtCoordinate:rcoord];
+            // for elevation view, compute distance from begin
+            NSUInteger segstart = 0;
+            double distance = [self distanceAtCoordinate:rcoord segstart:&segstart];
+            // for streetview compute orientation
             double bearing = [self bearingAtDistance:distance];
             [self.svCtrl viewCoord:rcoord lookingAt:bearing coalesce:NO];
             self.elevationView.highlightDistance = distance;
@@ -1448,8 +1451,9 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     
     [self.svCtrl viewCoord:coord lookingAt:bearing coalesce:NO];
 }
-- (CLLocationDistance)distanceAtCoordinate:(CLLocationCoordinate2D)coord
+- (CLLocationDistance)distanceAtCoordinate:(CLLocationCoordinate2D)coord segstart:(NSUInteger *)psegstart
 {
+    *psegstart = 0;
     NSArray <CLLocation *>  *lp = _document.plan.routePoints;
     NSUInteger c = lp.count;
     if (lp.count < 2) return 0;
@@ -1493,6 +1497,8 @@ didChangeDragState:(MKAnnotationViewDragState)newState
             CLLocation *projLoc = [[CLLocation alloc] initWithLatitude:projCoord.latitude
                                                              longitude:projCoord.longitude];
             result = total + [loc1 distanceFromLocation:projLoc];
+            NSLog(@"distance %g seg %ld-%lu", result, i, i+1);
+            *psegstart = i;
             found = YES;
             break;
         }
@@ -1502,6 +1508,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     
     if (!found) {
         // if coord is beyond the end, clamp to full length
+        *psegstart = (c>1) ? c-1 : 0;
         return total; // MKMetersBetweenMapPoints(polyline.points[0], polyline.points[polyline.pointCount - 1]);
     }
     
@@ -1531,14 +1538,17 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 
 - (double)bearingAtDistance:(double)distanceAlongRoute {
     double cumDist = 0.0;
-
-    for (NSUInteger i = 1; i < _document.plan.routePoints.count; i++) {
+    NSUInteger npt = _document.plan.routePoints.count;
+    for (NSUInteger i = 1; i < npt; i++) {
         CLLocation *p1 = _document.plan.routePoints[i - 1];
         CLLocation *p2 = _document.plan.routePoints[i];
         double segDist = [p2 distanceFromLocation:p1];
-
+        
+        NSLog(@"segdist %d-%d  : %g (tot %g, target %g)", i-1, i,  segDist, cumDist+segDist, distanceAlongRoute);
         if (cumDist + segDist >= distanceAlongRoute) {
-            return [self bearingFrom:p1.coordinate to:p2.coordinate];
+            double b = [self bearingFrom:p1.coordinate to:p2.coordinate];
+            NSLog(@"  bearing b=%g", b);
+            return b;
         }
         cumDist += segDist;
     }

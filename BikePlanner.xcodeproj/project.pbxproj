@@ -22,6 +22,7 @@
 		1B53B84D2E5CDEFD00C9470F /* ExportAccessoryViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B84B2E5CDEFD00C9470F /* ExportAccessoryViewController.m */; };
 		1B53B84E2E5CDEFD00C9470F /* ExportAccessoryView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1B53B84C2E5CDEFD00C9470F /* ExportAccessoryView.xib */; };
 		1B99A38A2F4FAB5A00760D8D /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B99A3892F4FAB5900760D8D /* WebKit.framework */; };
+		1B99A38B2F50F69000760D8D /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65B8EE772E479A77001F2966 /* MapKit.framework */; };
 		65B22D642E50B1360078F4BC /* TaggedPoly.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B22D632E50B1360078F4BC /* TaggedPoly.m */; };
 		65B8EE5B2E47982C001F2966 /* BikePlannerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE5A2E47982C001F2966 /* BikePlannerTests.m */; };
 		65B8EE652E47982C001F2966 /* BikePlannerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE642E47982C001F2966 /* BikePlannerUITests.m */; };
@@ -186,6 +187,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1B99A38B2F50F69000760D8D /* MapKit.framework in Frameworks */,
 				1B99A38A2F4FAB5A00760D8D /* WebKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -948,7 +950,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.2;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlanner;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -973,7 +975,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.2;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlanner;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

@@ -299,7 +299,7 @@
                          withRadius:(NSUInteger)radiusMeters
 {
     NSMutableString *query = [NSMutableString stringWithString:
-        @"[out:json][timeout:25];\n(\n"];
+        @"[out:json][timeout:120];\n(\n"];
 
     // Sample points (every Nth point)
     NSUInteger c = [trackPoints count];
@@ -366,7 +366,9 @@
         NSArray *elements = json[@"elements"];
         if (![elements count]) {
             //debug
-            NSLog(@"no poi");
+            NSLog(@"no poi1");
+            NSString *r = json[@"remark"];
+            NSLog(@"no poi1 remark %@", r);
         }
         dispatch_async(dispatch_get_main_queue(), ^{
             NSMutableArray *tpoiarray = [[NSMutableArray alloc]initWithCapacity:16];
@@ -418,7 +420,7 @@
 {
     if (!pl || ![pl count]) {
         // for debug
-        NSLog(@"no poi");
+        NSLog(@"no poi2");
     }
     if (pl != _poiloc) {
         _poiloc = pl;
@@ -429,7 +431,7 @@
 {
     if (!pl || ![pl count]) {
         // for debug
-        NSLog(@"no poi");
+        NSLog(@"no poi3");
     }
     if (pl != _customPoiloc) {
         _customPoiloc = pl;
