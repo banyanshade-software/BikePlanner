@@ -6,7 +6,7 @@
 //    GET  /brouter?lonlats=lon,lat|lon,lat…&profile=…   → GPX (straight lines, synthetic elevation,
 //                                                         BRouter statistics comment)
 //    GET  /brouter/profiles2/<name>.brf                  → small BRouter profile
-//    POST /api/interpreter                               → Overpass JSON (3 POIs near the first
+//    POST /api/interpreter                               → Overpass JSON (3 POIs ~1 km from the first
 //                                                         "around" point of the query)
 //  Every request is recorded. Use with BPEnvironment overrides
 //  (-BPBRouterServer <baseURL> -BPOverpassURL <baseURL>/api/interpreter).
@@ -26,11 +26,16 @@ NS_ASSUME_NONNULL_BEGIN
 @interface BPStubServer : NSObject
 
 /// Starts listening on 127.0.0.1, on a free port. Returns NO on failure.
+/// For UI tests (the app runs in another process). Needs the network.server entitlement.
 - (BOOL) start;
+/// Serves http://bpstub.test/… inside the current process through an NSURLProtocol (no socket).
+/// For unit tests: works even when the host app is sandboxed without network.server.
+/// Only one in-process server at a time.
+- (BOOL) startInProcess;
 - (void) stop;
 
 @property (nonatomic, readonly) uint16_t port;
-@property (nonatomic, readonly) NSURL *baseURL;          // http://127.0.0.1:<port>
+@property (nonatomic, readonly) NSURL *baseURL;          // http://127.0.0.1:<port> or http://bpstub.test
 @property (nonatomic, readonly) NSURL *overpassURL;      // <baseURL>/api/interpreter
 
 /// Requests received so far (thread safe snapshot)

@@ -47,6 +47,21 @@
     XCTAssertEqualObjects([BPEnvironment brouterServerURL].absoluteString, @"https://brouter.de");
 }
 
+- (void)testInitialRegion
+{
+    XCTAssertFalse([BPEnvironment getInitialRegion:NULL]);
+    BPOverrideDefaults(@{ @"BPInitialRegion": @"44.05,0.55,0.2" });
+    MKCoordinateRegion r;
+    XCTAssertTrue([BPEnvironment getInitialRegion:&r]);
+    XCTAssertEqualWithAccuracy(r.center.latitude, 44.05, 1e-9);
+    XCTAssertEqualWithAccuracy(r.center.longitude, 0.55, 1e-9);
+    XCTAssertEqualWithAccuracy(r.span.latitudeDelta, 0.2, 1e-9);
+    BPOverrideDefaults(@{ @"BPInitialRegion": @"44.05,0.55" });
+    XCTAssertFalse([BPEnvironment getInitialRegion:&r]);
+    BPOverrideDefaults(@{ @"BPInitialRegion": @"44.05,0.55,0" });
+    XCTAssertFalse([BPEnvironment getInitialRegion:&r]);
+}
+
 - (void)testIsUnitTestHost
 {
     XCTAssertTrue([BPEnvironment isUnitTestHost]);

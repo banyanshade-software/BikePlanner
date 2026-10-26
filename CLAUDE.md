@@ -14,24 +14,36 @@ Work items are tracked as GitHub issues on `banyanshade-software/BikePlanner`.
 
 One-time setup: `cp BikePlanner/Secret.h.example BikePlanner/Secret.h` (git-ignored; the build fails without it;
 put a real Thunderforest key in it for the OSM+cycle map).
+UI tests also need macOS Automation Mode, enabled once by the owner in Terminal.app:
+`sudo automationmodetool enable-automationmode-without-authentication` (`automationmodetool` shows the status).
 
+No signing identity on this machine: sign ad hoc. Signing applies the entitlements (app sandbox), as Xcode's ⌘U does.
 ```sh
-# build the app
-xcodebuild -project BikePlanner.xcodeproj -scheme BikePlanner -destination 'platform=macOS,arch=arm64' \
-  CODE_SIGNING_ALLOWED=NO build -quiet
+SIGN="CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="
+DEST="-destination platform=macOS,arch=arm64"
 
-# unit tests (≈ 1 min, no network needed)
-xcodebuild -project BikePlanner.xcodeproj -scheme BikePlanner -destination 'platform=macOS,arch=arm64' \
-  -only-testing:BikePlannerTests CODE_SIGNING_ALLOWED=NO test 2>&1 \
+# build the app
+xcodebuild -project BikePlanner.xcodeproj -scheme BikePlanner $DEST $SIGN build -quiet
+
+# unit tests (≈ 2 min, offline)
+xcodebuild -project BikePlanner.xcodeproj -scheme BikePlanner $DEST $SIGN -only-testing:BikePlannerTests test 2>&1 \
   | grep -E "Test case .*(failed|expected)|\*\* TEST"
+
+# UI tests (≈ 4 min, offline; they take control of the mouse and keyboard — tell the owner before running)
+xcodebuild ... -only-testing:BikePlannerUITests test
+
+# everything + coverage
+xcodebuild ... -enableCodeCoverage YES -resultBundlePath <scratch>/r.xcresult test
+xcrun xccov view --report --files-for-target BikePlanner.app <scratch>/r.xcresult
 
 # one test class / method
   -only-testing:BikePlannerTests/GPXParserTests[/testParsesTrackPointsWithElevation]
 ```
+(in zsh, `$SIGN`/`$DEST` are not word-split: write the options out, or use `${=SIGN}`.)
 Failure details: add `-resultBundlePath <scratch>/r.xcresult`, then
 `xcrun xcresulttool get test-results tests --path <scratch>/r.xcresult`.
 
-UI tests (`BikePlannerUITests`) are Xcode templates, not maintained.
+Expected state: all tests pass; the `XCTExpectFailure` ones (known bugs) are reported as "expected failure".
 
 ## Adding files to the Xcode project
 
@@ -39,7 +51,10 @@ Do not hand-edit `project.pbxproj`. Use:
 ```sh
 scripts/xcode_add_files.py --target BikePlanner      --anchor MapController.m   BikePlanner/NewThing.m BikePlanner/NewThing.h
 scripts/xcode_add_files.py --target BikePlannerTests --anchor BikePlannerTests.m BikePlannerTests/NewTests.m
+scripts/xcode_add_files.py --target BikePlannerUITests --anchor BikePlannerUITests.m BikePlannerUITests/NewUITests.m
 ```
+A file already in the project can be added to another target the same way (e.g. `BikePlannerTests/BPStubServer.m`
+is in both test targets). Removing a file: delete its lines from `project.pbxproj` (grep its name).
 New files go in the anchor's group/directory. Use `SupportClasses/` + `--anchor GPXParser.m` for support classes.
 XIB files (`Document.xib`, `MainMenu.xib`, …) should be edited in Xcode by the owner when possible; if a change is
 needed, keep it minimal and say so.
@@ -60,12 +75,31 @@ The targets `BikePlanner_org*` are leftovers from an earlier project: ignore the
 
 ## Tests conventions
 
-- Tests live in `BikePlannerTests/`, hosted in the app; shared data/helpers in `TestFixtures.h`.
-- Private methods are tested by declaring a category in the test file (see `MapControllerGeometryTests.m`).
-- **No network** in unit tests: set `plan.fetchPOI = NO` on any `BikePlan` used; don't call `requestRoute`.
-- A known, not-yet-fixed bug is documented with a test wrapped in `XCTExpectFailure(@"…")`. When fixing the bug,
-  remove the `XCTExpectFailure` — the test must then pass.
-- Fix a bug = first a failing test, then the fix.
+- Unit tests: `BikePlannerTests/`, hosted in the app; shared data/helpers in `TestFixtures.h`
+  (`BPOverrideDefaults`, `BPWaitUntil`, `BPSpin`, `BPLoc`…). UI tests: `BikePlannerUITests/`, base class `BPUITestCase`.
+- **Everything runs offline.** External services are replaced by `BPStubServer` (in `BikePlannerTests/`, compiled
+  into both test targets), which imitates BRouter (route GPX, `.brf` profiles) and Overpass (3 POIs ~1 km from the
+  route start) and records every request — use the request log as the oracle.
+  - unit tests: `[server startInProcess]` (NSURLProtocol, no socket — the sandboxed host app cannot listen), then
+    point the app to it with `BPOverrideDefaults(@{ @"BPBRouterServer": server.baseURL.absoluteString, … })` and
+    `BPRestoreDefaults()` in tearDown;
+  - UI tests: `BPUITestCase` starts a real HTTP server (`[server start]`, needs `network.server`, granted to the UI test
+    runner by `BikePlannerUITests.entitlements`) and passes launch arguments to the app.
+- App-side test hooks are in `BPEnvironment` (`BPBRouterServer`, `BPOverpassURL`, `BPDisableStreetView`,
+  `BPDisableTiles`, `BPInitialRegion`); no effect without overrides. When adding an external endpoint, route it
+  through `BPEnvironment` and teach `BPStubServer` to answer it.
+- Integration tests of the window: `DocumentWindowTests` opens a real document window and drives `MapController`;
+  map clicks go through `-handleMapClick:` with a fake gesture recognizer (`BPFakeClick`).
+- Private methods are tested by declaring a category in the test file.
+- Undo: in tests, the undo manager does not close its automatic groups in nested run loops — set
+  `groupsByEvent = NO` and group explicitly (see `UndoTests`).
+- UI tests: controls created in code have `accessibilityIdentifier`s (`map`, `clickMode`, `mapType`, `clickModeHelp`,
+  `zoomIn`…, `routeLength`/`routeAscent` in the XIB). POI markers and callouts are not exposed to accessibility:
+  check POI behavior through its effects (stub requests, undo menu items). Files exchanged with the app go in
+  `/private/tmp/bp-uitests/`.
+- A known, not-yet-fixed bug is documented with a test wrapped in `XCTExpectFailure(@"… (#issue)")`. When fixing
+  the bug, remove the `XCTExpectFailure` — the test must then pass.
+- Fix a bug = first a failing test, then the fix. No fix without test coverage of the code involved.
 
 ## Workflow
 

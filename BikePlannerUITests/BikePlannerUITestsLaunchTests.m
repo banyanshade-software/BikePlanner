@@ -2,32 +2,23 @@
 //  BikePlannerUITestsLaunchTests.m
 //  BikePlannerUITests
 //
-//  Created by Daniel on 15/08/2025.
+//  Launch screenshot, for each UI configuration (light / dark appearance), offline.
 //
 
-#import <XCTest/XCTest.h>
+#import "BPUITestCase.h"
 
-@interface BikePlannerUITestsLaunchTests : XCTestCase
-
+@interface BikePlannerUITestsLaunchTests : BPUITestCase
 @end
 
 @implementation BikePlannerUITestsLaunchTests
 
-+ (BOOL)runsForEachTargetApplicationUIConfiguration {
++ (BOOL)runsForEachTargetApplicationUIConfiguration
+{
     return YES;
 }
 
-- (void)setUp {
-    self.continueAfterFailure = NO;
-}
-
-- (void)testLaunch {
-    XCUIApplication *app = [[XCUIApplication alloc] init];
-    [app launch];
-
-    // Insert steps here to perform after app launch but before taking a screenshot,
-    // such as logging into a test account or navigating somewhere in the app
-
+- (void)testLaunch
+{
     XCTAttachment *attachment = [XCTAttachment attachmentWithScreenshot:XCUIScreen.mainScreen.screenshot];
     attachment.name = @"Launch Screen";
     attachment.lifetime = XCTAttachmentLifetimeKeepAlways;

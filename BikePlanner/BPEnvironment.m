@@ -39,6 +39,20 @@
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"BPDisableTiles"];
 }
 
++ (BOOL) getInitialRegion:(MKCoordinateRegion * _Nullable)region
+{
+    NSArray<NSString *> *c = [[[NSUserDefaults standardUserDefaults] stringForKey:@"BPInitialRegion"]
+                              componentsSeparatedByString:@","];
+    if (c.count != 3) return NO;
+    double span = [c[2] doubleValue];
+    if (span <= 0) return NO;
+    if (region) {
+        *region = MKCoordinateRegionMake(CLLocationCoordinate2DMake([c[0] doubleValue], [c[1] doubleValue]),
+                                         MKCoordinateSpanMake(span, span));
+    }
+    return YES;
+}
+
 + (BOOL) isUnitTestHost
 {
     NSDictionary *env = [[NSProcessInfo processInfo] environment];

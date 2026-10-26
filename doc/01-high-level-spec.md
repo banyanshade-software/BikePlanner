@@ -143,7 +143,7 @@ A help text next to the control explains the current mode.
 - F7.1 When “Fetch POI” is on, after each route change the app queries Overpass for, within 1.5 km of
   (a sample of) the route points: drinking water, toilets, bicycle repair stations, grave yards (nodes)
   and cemeteries (land use areas).
-- F7.2 Requests are throttled (≥ ~2.8 s apart) and retried on error.
+- F7.2 Requests are throttled (≥ ~2.8 s apart). A retry on error is intended but does not work today (#12).
 - F7.3 “View POI” toggles display of fetched POIs. Custom POIs are always shown.
 - F7.4 Each POI type has its own icon and color; the POI under the mouse is highlighted.
 - F7.5 Clicking a POI shows a callout with its raw OSM tags and an Include/Exclude control

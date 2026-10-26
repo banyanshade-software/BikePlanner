@@ -117,6 +117,7 @@
                                                                                                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                                                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                                                                         </textFieldCell>
+                                                                                                        <accessibility identifier="routeLength"/>
                                                                                                         <connections>
                                                                                                             <binding destination="-2" name="value" keyPath="plan.brouterInfo.kmlen" id="k5d-MD-JFo"/>
                                                                                                         </connections>
@@ -139,6 +140,7 @@
                                                                                                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                                                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                                                                         </textFieldCell>
+                                                                                                        <accessibility identifier="routeAscent"/>
                                                                                                         <connections>
                                                                                                             <binding destination="-2" name="value" keyPath="plan.brouterInfo.mup" id="p3S-2B-sP3"/>
                                                                                                         </connections>

@@ -23,7 +23,7 @@
 - (void)setUp
 {
     server = [[BPStubServer alloc] init];
-    XCTAssertTrue([server start]);
+    XCTAssertTrue([server startInProcess]);
     BPOverrideDefaults(@{ @"BPOverpassURL": server.overpassURL.absoluteString });
     plan = [[BikePlan alloc] init];
     callbacks = 0;

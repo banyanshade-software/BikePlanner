@@ -53,6 +53,7 @@
    
     
     self.mapView.delegate = self;
+    self.mapView.accessibilityIdentifier = @"map";
     self.viewPOI = YES;
 
     // Add OpenStreetMap tile overlay
@@ -741,7 +742,12 @@
             MKMapRect rect = [poly boundingMapRect];
             [self.mapView setVisibleMapRect:rect edgePadding:NSEdgeInsetsMake(40, 40, 40, 40) animated:YES];
         } else {
-            [self centerOnUserLocation:nil];
+            MKCoordinateRegion region;
+            if ([BPEnvironment getInitialRegion:&region]) {
+                [self.mapView setRegion:region animated:NO]; // tests
+            } else {
+                [self centerOnUserLocation:nil];
+            }
         }
     }
 }

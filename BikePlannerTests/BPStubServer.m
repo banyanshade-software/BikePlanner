@@ -5,9 +5,106 @@
 
 #import "BPStubServer.h"
 #import <Network/Network.h>
+#import <objc/runtime.h>
 #import <math.h>
 
 @implementation BPStubRequest
+@end
+
+
+#pragma mark - in-process transport
+
+static NSString * const kBPStubHost = @"bpstub.test";
+static __weak BPStubServer *bpInProcessServer = nil;
+
+@interface BPStubServer (InProcess)
+- (NSInteger) handle:(BPStubRequest *)req contentType:(NSString **)ctype body:(NSData **)body;
+@end
+
+// Serves requests to http://bpstub.test/… from the in-process stub server, without any socket.
+@interface BPStubURLProtocol : NSURLProtocol
+@end
+
+@implementation BPStubURLProtocol
+
++ (BOOL) canInitWithRequest:(NSURLRequest *)request
+{
+    return bpInProcessServer && [request.URL.host isEqualToString:kBPStubHost];
+}
+
++ (NSURLRequest *) canonicalRequestForRequest:(NSURLRequest *)request
+{
+    return request;
+}
+
++ (NSData *) bodyOf:(NSURLRequest *)request
+{
+    if (request.HTTPBody) return request.HTTPBody;
+    NSInputStream *in = request.HTTPBodyStream;
+    if (!in) return [NSData data];
+    NSMutableData *d = [NSMutableData data];
+    uint8_t buf[4096];
+    [in open];
+    NSInteger n;
+    while ((n = [in read:buf maxLength:sizeof(buf)]) > 0) [d appendBytes:buf length:(NSUInteger)n];
+    [in close];
+    return d;
+}
+
+- (void) startLoading
+{
+    BPStubServer *server = bpInProcessServer;
+    NSURLComponents *c = [NSURLComponents componentsWithURL:self.request.URL resolvingAgainstBaseURL:NO];
+    NSMutableDictionary *q = [NSMutableDictionary dictionary];
+    for (NSURLQueryItem *it in c.queryItems) q[it.name] = it.value ?: @"";
+    BPStubRequest *req = [BPStubRequest new];
+    req.method = self.request.HTTPMethod ?: @"GET";
+    req.path = c.path.length ? c.path : @"/";
+    req.query = q;
+    req.body = [[NSString alloc] initWithData:[[self class] bodyOf:self.request] encoding:NSUTF8StringEncoding] ?: @"";
+
+    NSString *ctype = nil;
+    NSData *body = nil;
+    NSInteger status = [server handle:req contentType:&ctype body:&body];
+    NSHTTPURLResponse *resp = [[NSHTTPURLResponse alloc] initWithURL:self.request.URL statusCode:status
+                                                         HTTPVersion:@"HTTP/1.1"
+                                                        headerFields:@{ @"Content-Type": ctype }];
+    void (^deliver)(void) = ^{
+        [self.client URLProtocol:self didReceiveResponse:resp cacheStoragePolicy:NSURLCacheStorageNotAllowed];
+        [self.client URLProtocol:self didLoadData:body];
+        [self.client URLProtocolDidFinishLoading:self];
+    };
+    double delay = server.responseDelay;
+    if (delay > 0) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_global_queue(0, 0), deliver);
+    } else {
+        deliver();
+    }
+}
+
+- (void) stopLoading
+{
+}
+
+// Sessions created from +defaultSessionConfiguration (e.g. BRouterClient) do not consult the
+// globally registered NSURLProtocols: add ours to every default configuration (test process only;
+// it ignores requests unless an in-process server is running).
++ (void) installInDefaultSessionConfiguration
+{
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        Class meta = object_getClass([NSURLSessionConfiguration class]);
+        Method m = class_getClassMethod([NSURLSessionConfiguration class], @selector(defaultSessionConfiguration));
+        IMP original = method_getImplementation(m);
+        IMP replacement = imp_implementationWithBlock(^NSURLSessionConfiguration *(id cls) {
+            NSURLSessionConfiguration *c = ((NSURLSessionConfiguration *(*)(id, SEL))original)(cls, @selector(defaultSessionConfiguration));
+            c.protocolClasses = [@[[BPStubURLProtocol class]] arrayByAddingObjectsFromArray:c.protocolClasses ?: @[]];
+            return c;
+        });
+        class_replaceMethod(meta, @selector(defaultSessionConfiguration), replacement, method_getTypeEncoding(m));
+    });
+}
+
 @end
 
 
@@ -15,6 +112,7 @@
     nw_listener_t _listener;
     dispatch_queue_t _queue;
     NSMutableArray<BPStubRequest *> *_requests;
+    BOOL _inProcess;
 }
 
 - (instancetype) init
@@ -65,8 +163,22 @@
     return _port != 0;
 }
 
+- (BOOL) startInProcess
+{
+    _inProcess = YES;
+    bpInProcessServer = self;
+    [NSURLProtocol registerClass:[BPStubURLProtocol class]];
+    [BPStubURLProtocol installInDefaultSessionConfiguration];
+    return YES;
+}
+
 - (void) stop
 {
+    if (_inProcess && bpInProcessServer == self) {
+        bpInProcessServer = nil;
+        [NSURLProtocol unregisterClass:[BPStubURLProtocol class]];
+    }
+    _inProcess = NO;
     if (_listener) {
         nw_listener_cancel(_listener);
         _listener = nil;
@@ -75,6 +187,7 @@
 
 - (NSURL *) baseURL
 {
+    if (_inProcess) return [NSURL URLWithString:[@"http://" stringByAppendingString:kBPStubHost]];
     return [NSURL URLWithString:[NSString stringWithFormat:@"http://127.0.0.1:%u", _port]];
 }
 
@@ -166,7 +279,8 @@
     return req;
 }
 
-- (void) respondTo:(BPStubRequest *)req on:(nw_connection_t)conn
+// Records the request and computes the response (status, content type, body); used by both transports.
+- (NSInteger) handle:(BPStubRequest *)req contentType:(NSString **)ctypeOut body:(NSData **)bodyOut
 {
     @synchronized (_requests) {
         [_requests addObject:req];
@@ -202,7 +316,16 @@
         body = @"not found";
     }
 
-    NSData *payload = [body dataUsingEncoding:NSUTF8StringEncoding];
+    *ctypeOut = ctype;
+    *bodyOut = [body dataUsingEncoding:NSUTF8StringEncoding];
+    return status;
+}
+
+- (void) respondTo:(BPStubRequest *)req on:(nw_connection_t)conn
+{
+    NSString *ctype = nil;
+    NSData *payload = nil;
+    NSInteger status = [self handle:req contentType:&ctype body:&payload];
     NSString *header = [NSString stringWithFormat:
                         @"HTTP/1.1 %ld Stub\r\nContent-Type: %@\r\nContent-Length: %lu\r\nConnection: close\r\n\r\n",
                         (long)status, ctype, (unsigned long)payload.length];
@@ -269,7 +392,7 @@ static double BPDistance(double lat1, double lon1, double lat2, double lon2)
 
 - (NSString *) overpassJSONForQuery:(NSString *)q
 {
-    // POIs placed just next to the first sampled route point
+    // POIs placed ~1 km from the first sampled route point (N: water, E: toilets, S: cemetery)
     double lat = 44.0, lon = 0.5;
     NSRegularExpression *re = [NSRegularExpression regularExpressionWithPattern:@"around:\\d+,([-\\d.]+),([-\\d.]+)"
                                                                         options:0 error:NULL];
@@ -280,11 +403,11 @@ static double BPDistance(double lat1, double lon1, double lat2, double lon2)
     }
     NSDictionary *json = @{
         @"elements": @[
-            @{ @"type": @"node", @"id": @1001, @"lat": @(lat + 0.001), @"lon": @(lon),
+            @{ @"type": @"node", @"id": @1001, @"lat": @(lat + 0.01), @"lon": @(lon),
                @"tags": @{ @"amenity": @"drinking_water" } },
-            @{ @"type": @"node", @"id": @1002, @"lat": @(lat), @"lon": @(lon + 0.001),
+            @{ @"type": @"node", @"id": @1002, @"lat": @(lat), @"lon": @(lon + 0.01),
                @"tags": @{ @"amenity": @"toilets" } },
-            @{ @"type": @"way", @"id": @1003, @"center": @{ @"lat": @(lat - 0.001), @"lon": @(lon) },
+            @{ @"type": @"way", @"id": @1003, @"center": @{ @"lat": @(lat - 0.01), @"lon": @(lon) },
                @"tags": @{ @"landuse": @"cemetery" } },
         ]
     };

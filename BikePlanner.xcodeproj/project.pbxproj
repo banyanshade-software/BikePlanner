@@ -68,6 +68,7 @@
 		01435B563DFEA2B347713204 /* StreetViewControllerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = AB6A2A3DF8A3B8D215954841 /* StreetViewControllerTests.m */; };
 		921AB6E2925C367358C68CCF /* AppAndPanelsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = C24E7BBF0D5DBFAE7D7C8B3E /* AppAndPanelsTests.m */; };
 		99C7B154189B217AC2F6B951 /* DocumentWindowTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 877818E4CD09D95A03B2BE89 /* DocumentWindowTests.m */; };
+		EBE95D8BBF9581EE067F7691 /* BPUITestCase.m in Sources */ = {isa = PBXBuildFile; fileRef = 006448FCD1F51E4F8F46E51E /* BPUITestCase.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -198,6 +199,8 @@
 		AB6A2A3DF8A3B8D215954841 /* StreetViewControllerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = StreetViewControllerTests.m; sourceTree = "<group>"; };
 		C24E7BBF0D5DBFAE7D7C8B3E /* AppAndPanelsTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppAndPanelsTests.m; sourceTree = "<group>"; };
 		877818E4CD09D95A03B2BE89 /* DocumentWindowTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DocumentWindowTests.m; sourceTree = "<group>"; };
+		452CB23554E1B857BEAD70E1 /* BPUITestCase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPUITestCase.h; sourceTree = "<group>"; };
+		006448FCD1F51E4F8F46E51E /* BPUITestCase.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPUITestCase.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -427,6 +430,8 @@
 			children = (
 				65F365B72E4F6BE30046B03D /* BikePlannerUITests.m */,
 				65F365B92E4F6BE30046B03D /* BikePlannerUITestsLaunchTests.m */,
+				452CB23554E1B857BEAD70E1 /* BPUITestCase.h */,
+				006448FCD1F51E4F8F46E51E /* BPUITestCase.m */,
 			);
 			path = BikePlannerUITests;
 			sourceTree = "<group>";
@@ -739,6 +744,7 @@
 				65F365BA2E4F6BE30046B03D /* BikePlannerUITestsLaunchTests.m in Sources */,
 				65F365B82E4F6BE30046B03D /* BikePlannerUITests.m in Sources */,
 				31D2ACEC6E33F240F24DF444 /* BPStubServer.m in Sources */,
+				EBE95D8BBF9581EE067F7691 /* BPUITestCase.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1097,6 +1103,7 @@
 		65F365C22E4F6BE30046B03D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BikePlannerUITests/BikePlannerUITests.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1111,6 +1118,7 @@
 		65F365C32E4F6BE30046B03D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BikePlannerUITests/BikePlannerUITests.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;

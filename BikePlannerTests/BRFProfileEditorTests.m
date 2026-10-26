@@ -28,7 +28,7 @@
 - (void)setUp
 {
     server = [[BPStubServer alloc] init];
-    XCTAssertTrue([server start]);
+    XCTAssertTrue([server startInProcess]);
     BPOverrideDefaults(@{ @"BPBRouterServer": server.baseURL.absoluteString });
     editor = [[BRFProfileEditor alloc] initWithNibName:@"BRFProfileEditor" bundle:nil];
     [editor loadProfileName:@"trekking"];

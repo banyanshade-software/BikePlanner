@@ -213,15 +213,29 @@ before `</gpx>` by string manipulation.
 - Xcode project `BikePlanner.xcodeproj`, scheme `BikePlanner`, targets: app, unit tests, UI tests.
   The project also contains three leftover targets `BikePlanner_org`, `BikePlanner_orgTests`, `BikePlanne_orgrUITests`
   (empty app from an earlier project); they are not in the scheme and should be deleted.
-- Unit tests: `BikePlannerTests` (hosted in the app). See `CLAUDE.md` for the command line.
-  Known bugs are documented by tests wrapped in `XCTExpectFailure`.
+- Tests (see `CLAUDE.md` for commands and conventions):
+  - unit tests `BikePlannerTests` (hosted in the app) — model, parsing, geometry, export, network clients, panels,
+    and integration tests of a real document window (`DocumentWindowTests`);
+  - UI tests `BikePlannerUITests` (XCUITest, base class `BPUITestCase`) — end-to-end scenarios on the running app;
+  - everything offline: `BPStubServer` imitates BRouter and Overpass (in-process `NSURLProtocol` for unit tests,
+    local HTTP server for UI tests) and records requests;
+  - known bugs are documented by tests wrapped in `XCTExpectFailure`.
+  Coverage of the app target (October 2026): 86 % of lines; below 80 %: `AppDelegate` (debug run-loop loggers),
+  `Document` (exception paths), third-party About window code.
+- **Test hooks** — `BPEnvironment` reads endpoints and switches from `NSUserDefaults`, so that launch arguments
+  can override them: `-BPBRouterServer <url>`, `-BPOverpassURL <url>`, `-BPDisableStreetView YES`,
+  `-BPDisableTiles YES`, `-BPInitialRegion lat,lon,span` (region for a plan without route, instead of the user
+  location). Defaults are the production endpoints. The app does not open an untitled document when it hosts unit tests.
+  Accessibility identifiers are set on the map and on the controls created in code.
+- UI test runner entitlements (`BikePlannerUITests/BikePlannerUITests.entitlements`): `network.server` for the stub
+  server, read-write in `/private/tmp/` to exchange files with the app.
 - New source files are added to the project with `scripts/xcode_add_files.py`.
 - macOS deployment target 12.7, ARC on.
 - **Before building**: copy `BikePlanner/Secret.h.example` to `BikePlanner/Secret.h` and set `THUNDERFOREST_API_KEY`
   (the build fails without `Secret.h`).
 - Entitlements: App Sandbox, user-selected files read/write, outgoing network, location.
-- Hard-coded endpoints: see high-level spec §4. They are spread over `MapController.m`, `BikePlan.m`,
-  `BRFProfileEditor.m`, `StreetViewController.m`.
+- Endpoints: BRouter and Overpass come from `BPEnvironment`; the Google Street View and tile URLs are still
+  hard-coded in `StreetViewController.m` and `MapController.m`.
 - Logging: `NSLog` everywhere, quite verbose (e.g. per-segment logs in `bearingAtDistance:`).
 
 ## 9. Technical debt, risks and suspected bugs
@@ -236,9 +250,9 @@ Each item is tracked as a GitHub issue.
 | 2 | H ✅ fixed | `POIAnnotation.h:16`, `POICalloutView.h:14` | `info` / `infodic` are `assign` object properties (= `unsafe_unretained` under ARC) → potential dangling pointer / crash. | [#7](https://github.com/banyanshade-software/BikePlanner/issues/7) |
 | 3 | H ✅ fixed | `MapController.m:523`, `MapController.m:1640` | Adding a custom POI or importing a reference trace does not register undo nor call `updateChangeCount:` → document not marked edited, changes can be lost. | [#8](https://github.com/banyanshade-software/BikePlanner/issues/8) |
 | 4 | M | `MapController.m:750` | Route requests are not cancelled or sequenced: a slow earlier response can overwrite the result of a later one. | [#9](https://github.com/banyanshade-software/BikePlanner/issues/9) |
-| 5 | M | `MapController.m:756` | Routing errors and empty results are only logged; the user gets no feedback. | [#9](https://github.com/banyanshade-software/BikePlanner/issues/9) |
+| 5 | M ✅ | `MapController.m:756` | Routing errors and empty results are only logged; the user gets no feedback. | [#9](https://github.com/banyanshade-software/BikePlanner/issues/9) |
 | 6 | M | `MapController.m:930` | `gpxData` is not persisted: after reopening a document, export is disabled until the route is recomputed. | [#10](https://github.com/banyanshade-software/BikePlanner/issues/10) |
-| 7 | M | `BikePlan.m:325` | Overpass errors are retried every ~2 s forever, without backoff. Query size grows with route length (one clause per 10 points × 2) — long routes may hit Overpass limits. | [#12](https://github.com/banyanshade-software/BikePlanner/issues/12) |
+| 7 | M ✅ | `BikePlan.m:325` | After an Overpass error (or HTTP ≥ 300), the retry is scheduled with `performSelector:afterDelay:` from the NSURLSession completion queue, which has no run loop: **the retry never happens** and POIs stay missing until the next route change (`POIFetchTests.testRetryAfterHTTPError`). Query size also grows with route length (one clause per 10 points × 2) — long routes may hit Overpass limits. | [#12](https://github.com/banyanshade-software/BikePlanner/issues/12) |
 | 8 | M ✅ | `MapController.m:855` | GPX export builds XML with string formatting, without XML escaping; custom POIs have a nil title (`<name>(null)</name>`) and `gpxSymbol` “...”. | [#11](https://github.com/banyanshade-software/BikePlanner/issues/11) |
 | 9 | M | `PlannerWindowController.m:49` | BRF overrides are joined with `&` then escaped with the deprecated `stringByAddingPercentEscapesUsingEncoding:` (does not escape `&`): all but the first override become top-level query parameters. To verify against BRouter's expected format. | [#15](https://github.com/banyanshade-software/BikePlanner/issues/15) |
 | 10 | M | `Document.m:134` | *Revert to Saved* replaces `plan` but the map is not refreshed and `poiAvailableCallback` is not re-installed on the new plan. | [#16](https://github.com/banyanshade-software/BikePlanner/issues/16) |
@@ -259,7 +273,8 @@ Each item is tracked as a GitHub issue.
 - Magic numbers: click modes 0–3, map types 0–4, polyline tags 0–2, pixel tolerances.
 - Profile name `trekking` hard-coded in two places; endpoints hard-coded in four files.
 - Dead code: `#if 0` blocks in `SafeOSMTileOverlay`, `SafeTileRenderer`, `MapController`; empty `BikeMapView`.
-- Unit tests cover the pure parts only (parser, model, geometry, export); no test of networking or UI.
+- No automated test of the real external services (only the stub); the Street View page, tile loading,
+  `MKLocalSearch` and the user location are not tested.
 - `BRouterClient` creates a new `NSURLSession` per request and never invalidates it (leak).
 - No User-Agent on tile requests (OSM tile usage policy requires an identifying one).
 
@@ -267,6 +282,7 @@ Each item is tracked as a GitHub issue.
 
 1. ~~Add a `CLAUDE.md` and a command-line build~~ (done).
 2. ~~Unit tests on pure code~~ (done: `GPXParser`, `BikePlan`, `POILocation`, `Document`, geometry, GPX export, elevation profile).
+2b. ~~Test coverage of all classes, offline test infrastructure, UI tests~~ (done: 86 % line coverage, 132 tests).
 3. Fix the high-severity items of §9 one by one, each with a test where possible.
 4. Then refactor `MapController` incrementally, behind those tests.
 

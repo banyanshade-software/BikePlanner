@@ -21,7 +21,7 @@
 - (void)setUp
 {
     server = [[BPStubServer alloc] init];
-    XCTAssertTrue([server start]);
+    XCTAssertTrue([server startInProcess]);
     client = [[BRouterClient alloc] initWithServerURL:server.baseURL];
 }
 

@@ -10,6 +10,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <MapKit/MapKit.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -25,6 +26,9 @@ NS_ASSUME_NONNULL_BEGIN
 + (BOOL) streetViewDisabled;
 /// YES to not use remote map tiles (OSM / Thunderforest) — key BPDisableTiles
 + (BOOL) tilesDisabled;
+/// Region shown for a plan without route, instead of the user location — key BPInitialRegion, "lat,lon,span"
+/// (span in degrees). Returns NO when not set.
++ (BOOL) getInitialRegion:(MKCoordinateRegion * _Nullable)region;
 /// YES when the app is the host of unit tests (XCTest injected)
 + (BOOL) isUnitTestHost;
 

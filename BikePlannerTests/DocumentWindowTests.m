@@ -70,11 +70,12 @@
 - (void)setUp
 {
     server = [[BPStubServer alloc] init];
-    XCTAssertTrue([server start]);
+    XCTAssertTrue([server startInProcess]);
     BPOverrideDefaults(@{ @"BPBRouterServer": server.baseURL.absoluteString,
                           @"BPOverpassURL": server.overpassURL.absoluteString,
                           @"BPDisableStreetView": @YES,
-                          @"BPDisableTiles": @YES });
+                          @"BPDisableTiles": @YES,
+                          @"BPInitialRegion": @"44.05,0.55,0.2" });
     doc = [[Document alloc] init];
     [self openWindow];
 }
@@ -161,6 +162,7 @@
     XCTAssertEqual(mc.elevationView.delegate, (id)mc);
     XCTAssertEqual(map.delegate, (id)mc);
     XCTAssertFalse(map.showsZoomControls);
+    XCTAssertEqualObjects(map.accessibilityIdentifier, @"map");
     // no tile overlay when tiles are disabled
     for (id o in map.overlays) XCTAssertFalse([o isKindOfClass:[MKTileOverlay class]]);
     // controls created in code
