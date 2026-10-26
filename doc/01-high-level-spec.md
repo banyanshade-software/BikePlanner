@@ -114,7 +114,8 @@ A help text next to the control explains the current mode.
 - F3.5 As soon as there are ≥2 waypoints, any change triggers a new BRouter request; the route is drawn in
   semi-transparent blue.
 - F3.6 The *Info* tab shows route length (km, rounded) and cumulative ascent (m, BRouter “filtered ascend”).
-- F3.7 All waypoint operations (add, insert, move, remove) are **undoable/redoable** (Edit ▸ Undo/Redo).
+- F3.7 All waypoint operations (add, insert, move, remove) are **undoable/redoable** (Edit ▸ Undo/Redo),
+  as well as adding a custom POI and importing a reference trace.
 
 ### F4 — Routing parameters
 - F4.1 Routing uses the BRouter `trekking` profile.

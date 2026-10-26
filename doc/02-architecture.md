@@ -188,7 +188,9 @@ Reverse direction (View mode click on route): `distanceAtCoordinate:` → `eleva
 ### 6.6 Undo / redo
 `undoableWP:desc:` registers `undoAction:` with the **previous waypoint array** on the document's undo manager.
 `undoAction:` registers the current array (for redo), restores the old one via `plan.undoSetWayPt:`,
-then `fullRefresh:NO` and recomputes the route. Only waypoint changes are undoable.
+then `fullRefresh:NO` and recomputes the route.
+Custom POIs (`addCustomPoiAt:` / `undoCustomPoi:`) and the reference trace (`setGpxDisplayed:desc:`) follow the same
+pattern with their own snapshot. Registering an undo action is also what marks the document as edited.
 
 ### 6.7 Save / load
 `dataOfType:` / `readFromData:` archive/unarchive `BikePlan` (see 4.3). After load, the window controller's
@@ -232,7 +234,7 @@ Each item is tracked as a GitHub issue.
 |---|---|---|---|---|
 | 1 | M | `BikePlan.m:215` | `routePoly` tests `!_waypointPoly` instead of `!_routePoly`. Since `waypointPoly` is never used, the route polyline is rebuilt **on every access** and `shouldRequestPOI` is fired each time (every click near the route, every refresh). The throttling in `tryRequestPoi` (≥ 2.8 s between requests, coalescing timer) limits this to one Overpass request every ~3 s while the user interacts, but each one is a redundant full re-fetch. Fixing it naively would break route refresh, because `setRoutePoints:` does not invalidate `_routePoly` (guarded by `BikePlanTests.testRoutePolyFollowsRoutePoints`). | [#6](https://github.com/banyanshade-software/BikePlanner/issues/6) |
 | 2 | H ✅ fixed | `POIAnnotation.h:16`, `POICalloutView.h:14` | `info` / `infodic` are `assign` object properties (= `unsafe_unretained` under ARC) → potential dangling pointer / crash. | [#7](https://github.com/banyanshade-software/BikePlanner/issues/7) |
-| 3 | H | `MapController.m:523`, `MapController.m:1640` | Adding a custom POI or importing a reference trace does not register undo nor call `updateChangeCount:` → document not marked edited, changes can be lost. | [#8](https://github.com/banyanshade-software/BikePlanner/issues/8) |
+| 3 | H ✅ fixed | `MapController.m:523`, `MapController.m:1640` | Adding a custom POI or importing a reference trace does not register undo nor call `updateChangeCount:` → document not marked edited, changes can be lost. | [#8](https://github.com/banyanshade-software/BikePlanner/issues/8) |
 | 4 | M | `MapController.m:750` | Route requests are not cancelled or sequenced: a slow earlier response can overwrite the result of a later one. | [#9](https://github.com/banyanshade-software/BikePlanner/issues/9) |
 | 5 | M | `MapController.m:756` | Routing errors and empty results are only logged; the user gets no feedback. | [#9](https://github.com/banyanshade-software/BikePlanner/issues/9) |
 | 6 | M | `MapController.m:930` | `gpxData` is not persisted: after reopening a document, export is disabled until the route is recomputed. | [#10](https://github.com/banyanshade-software/BikePlanner/issues/10) |

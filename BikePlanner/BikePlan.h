@@ -40,6 +40,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly,nonatomic) NSMutableArray<POILocation *> *customPoiloc;
 @property (nonatomic, copy) void (^poiAvailableCallback)(void);
 - (void) addCustomPoiAt:(CLLocationCoordinate2D)coord;
+- (void) restoreCustomPoi:(NSArray<POILocation *> *)pois; // for undo
 
 // returns old waypointsLocations for undo
 - (NSArray <CLLocation *>*) removeWaypoints NS_WARN_UNUSED_RESULT;

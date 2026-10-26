@@ -449,6 +449,11 @@
     NSAssert([_customPoiloc isKindOfClass:[NSMutableArray class]], @"bad class customPoi");
     [_customPoiloc addObject:loc];
 }
+
+- (void) restoreCustomPoi:(NSArray<POILocation *> *)pois
+{
+    self.customPoiloc = pois ? [pois mutableCopy] : [[NSMutableArray alloc]initWithCapacity:5];
+}
 @end
 
 

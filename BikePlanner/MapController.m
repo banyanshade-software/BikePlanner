@@ -520,8 +520,7 @@
         // Add POI on the track
         CLLocationCoordinate2D rcoord;
         if ([self clickNearPolylineAt:locInView tolerence:50. nearestPoint:&rcoord]) {
-            [self.document.plan addCustomPoiAt:rcoord];
-            [self refreshPOI];
+            [self addCustomPoiAt:rcoord];
         }
         NSLog(@"..");
         return;
@@ -625,6 +624,11 @@
 
 - (void) refreshGpxDisplayed
 {
+    for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
+        if ([ov isKindOfClass:[TaggedPoly class]] && (2 == ((TaggedPoly *)ov).tag)) {
+            [self.mapView removeOverlay:ov];
+        }
+    }
     TaggedPoly *gpxpoly = _document.plan.gpxDisplayedPoly;
     [self.mapView addOverlay:gpxpoly level:MKOverlayLevelAboveLabels];
  
@@ -1637,7 +1641,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
         NSLog(@"parse gpx err : %@", parseError);
         return;
     }
-    _document.plan.gpxDisplayed = points;
+    [self setGpxDisplayed:points desc:@"import trace"];
     /*
     NSUInteger n = points.count;
     CLLocationCoordinate2D *coords = malloc(sizeof(CLLocationCoordinate2D) * n);
@@ -1646,8 +1650,6 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     }
     gpxpoly = [MKPolyline polylineWithCoordinates:coords count:n];
      */
-    TaggedPoly *gpxpoly = _document.plan.gpxDisplayedPoly;
-    [self.mapView addOverlay:gpxpoly level:MKOverlayLevelAboveLabels];
 
     //free(coords);
 }
@@ -1675,5 +1677,43 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     [self fullRefresh:NO];
     [self shouldRecalcRoute];
     //animateDropPins = oa;
+}
+
+// custom POIs and reference trace: undoable (also marks the document as edited)
+
+- (void) addCustomPoiAt:(CLLocationCoordinate2D)coord
+{
+    [self undoableCustomPoi:[_document.plan.customPoiloc copy] desc:@"add POI"];
+    [_document.plan addCustomPoiAt:coord];
+    [self refreshPOI];
+}
+
+- (void) undoableCustomPoi:(NSArray <POILocation *>*)oldpois desc:(NSString *)d
+{
+    NSUndoManager *um = _document.undoManager;
+    [um registerUndoWithTarget:self selector:@selector(undoCustomPoi:) object:oldpois];
+    if (d) [um setActionName:d];
+}
+
+- (void) undoCustomPoi:(NSArray <POILocation *>*)oldpois
+{
+    // register for redo
+    [self undoableCustomPoi:[_document.plan.customPoiloc copy] desc:nil];
+    [_document.plan restoreCustomPoi:oldpois];
+    [self refreshPOI];
+}
+
+- (void) setGpxDisplayed:(NSArray <CLLocation *>*)points desc:(NSString *)d
+{
+    NSUndoManager *um = _document.undoManager;
+    [um registerUndoWithTarget:self selector:@selector(undoGpxDisplayed:) object:_document.plan.gpxDisplayed];
+    if (d) [um setActionName:d];
+    _document.plan.gpxDisplayed = points;
+    [self refreshGpxDisplayed];
+}
+
+- (void) undoGpxDisplayed:(NSArray <CLLocation *>*)oldpoints
+{
+    [self setGpxDisplayed:oldpoints desc:nil];
 }
 @end
