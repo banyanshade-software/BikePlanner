@@ -7,6 +7,7 @@
 
 #import "BikePlan.h"
 #import "POILocation.h"
+#import "BPEnvironment.h"
  
 @interface NSArray (Insertion)
 - (NSArray *)arrayByInsertingObject:(id)object atIndex:(NSUInteger)index;
@@ -334,7 +335,7 @@
     NSString *query = [self overpassQueryForTrack:coords sampleEvery:10 withRadius:1500];
     NSData *bodyData = [query dataUsingEncoding:NSUTF8StringEncoding];
     
-    NSURL *url = [NSURL URLWithString:@"https://overpass-api.de/api/interpreter"];
+    NSURL *url = [BPEnvironment overpassURL]; // https://overpass-api.de/api/interpreter unless overridden
     NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:url];
     req.HTTPMethod = @"POST";
     req.HTTPBody = bodyData;

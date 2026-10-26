@@ -6,6 +6,7 @@
 //
 
 #import "BRFProfileEditor.h"
+#import "BPEnvironment.h"
 
 
 
@@ -63,8 +64,8 @@
 }
 
 - (void) fetchProfile {
-    NSString *urlStr = [NSString stringWithFormat:@"https://brouter.de/brouter/profiles2/%@.brf", self.profileName];
-    NSURL *url = [NSURL URLWithString:urlStr];
+    //NSString *urlStr = [NSString stringWithFormat:@"https://brouter.de/brouter/profiles2/%@.brf", self.profileName];
+    NSURL *url = [BPEnvironment brouterProfileURLForName:self.profileName];
     if (!url) return;
 
     NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {

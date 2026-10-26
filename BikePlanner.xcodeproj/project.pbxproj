@@ -58,6 +58,16 @@
 		B545596D1D195AB2486FD23C /* DocumentTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 70AA76108A189E2760BAD56D /* DocumentTests.m */; };
 		84B107021A36B2F37F446B97 /* POIAnnotationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 06D13EBFC92A658842185C88 /* POIAnnotationTests.m */; };
 		989992611C8A65B7876CBB0C /* UndoTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 244CC0244FCC8D3889B9F536 /* UndoTests.m */; };
+		10E8E2FE271EF99F2D4659B0 /* BPEnvironment.m in Sources */ = {isa = PBXBuildFile; fileRef = AA16AA45F8CA631E7FEBC6B6 /* BPEnvironment.m */; };
+		33CB22EDCD3023CF22B88232 /* BPStubServer.m in Sources */ = {isa = PBXBuildFile; fileRef = F7D83D837338C03FC010F778 /* BPStubServer.m */; };
+		31D2ACEC6E33F240F24DF444 /* BPStubServer.m in Sources */ = {isa = PBXBuildFile; fileRef = F7D83D837338C03FC010F778 /* BPStubServer.m */; };
+		8BFD3901750F58EB1E2BCA09 /* BPEnvironmentTests.m in Sources */ = {isa = PBXBuildFile; fileRef = C57DB5C1EA14875899139882 /* BPEnvironmentTests.m */; };
+		BE614F31BB844070FB569AEE /* BRouterClientTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 71FA7476A170258081B4F073 /* BRouterClientTests.m */; };
+		4A3E03AA7C7112D20A44AD22 /* POIFetchTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 8DCC0F778AAFF7ACDA9A0DC5 /* POIFetchTests.m */; };
+		42DE6907C6854FD04251A656 /* BRFProfileEditorTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D0A28C9D69884AAD90456288 /* BRFProfileEditorTests.m */; };
+		01435B563DFEA2B347713204 /* StreetViewControllerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = AB6A2A3DF8A3B8D215954841 /* StreetViewControllerTests.m */; };
+		921AB6E2925C367358C68CCF /* AppAndPanelsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = C24E7BBF0D5DBFAE7D7C8B3E /* AppAndPanelsTests.m */; };
+		99C7B154189B217AC2F6B951 /* DocumentWindowTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 877818E4CD09D95A03B2BE89 /* DocumentWindowTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -177,6 +187,17 @@
 		70AA76108A189E2760BAD56D /* DocumentTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DocumentTests.m; sourceTree = "<group>"; };
 		06D13EBFC92A658842185C88 /* POIAnnotationTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = POIAnnotationTests.m; sourceTree = "<group>"; };
 		244CC0244FCC8D3889B9F536 /* UndoTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UndoTests.m; sourceTree = "<group>"; };
+		3EFC3CED6D623521D24E1DB4 /* BPEnvironment.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPEnvironment.h; sourceTree = "<group>"; };
+		AA16AA45F8CA631E7FEBC6B6 /* BPEnvironment.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPEnvironment.m; sourceTree = "<group>"; };
+		C72344286F1FE1C59915E771 /* BPStubServer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPStubServer.h; sourceTree = "<group>"; };
+		F7D83D837338C03FC010F778 /* BPStubServer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPStubServer.m; sourceTree = "<group>"; };
+		C57DB5C1EA14875899139882 /* BPEnvironmentTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPEnvironmentTests.m; sourceTree = "<group>"; };
+		71FA7476A170258081B4F073 /* BRouterClientTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BRouterClientTests.m; sourceTree = "<group>"; };
+		8DCC0F778AAFF7ACDA9A0DC5 /* POIFetchTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = POIFetchTests.m; sourceTree = "<group>"; };
+		D0A28C9D69884AAD90456288 /* BRFProfileEditorTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BRFProfileEditorTests.m; sourceTree = "<group>"; };
+		AB6A2A3DF8A3B8D215954841 /* StreetViewControllerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = StreetViewControllerTests.m; sourceTree = "<group>"; };
+		C24E7BBF0D5DBFAE7D7C8B3E /* AppAndPanelsTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppAndPanelsTests.m; sourceTree = "<group>"; };
+		877818E4CD09D95A03B2BE89 /* DocumentWindowTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DocumentWindowTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -368,6 +389,8 @@
 				65F365A12E4F6BE10046B03D /* Info.plist */,
 				65F365A22E4F6BE10046B03D /* main.m */,
 				65F365A42E4F6BE10046B03D /* BikePlanner.entitlements */,
+				3EFC3CED6D623521D24E1DB4 /* BPEnvironment.h */,
+				AA16AA45F8CA631E7FEBC6B6 /* BPEnvironment.m */,
 			);
 			path = BikePlanner;
 			sourceTree = "<group>";
@@ -386,6 +409,15 @@
 				70AA76108A189E2760BAD56D /* DocumentTests.m */,
 				06D13EBFC92A658842185C88 /* POIAnnotationTests.m */,
 				244CC0244FCC8D3889B9F536 /* UndoTests.m */,
+				C72344286F1FE1C59915E771 /* BPStubServer.h */,
+				F7D83D837338C03FC010F778 /* BPStubServer.m */,
+				C57DB5C1EA14875899139882 /* BPEnvironmentTests.m */,
+				71FA7476A170258081B4F073 /* BRouterClientTests.m */,
+				8DCC0F778AAFF7ACDA9A0DC5 /* POIFetchTests.m */,
+				D0A28C9D69884AAD90456288 /* BRFProfileEditorTests.m */,
+				AB6A2A3DF8A3B8D215954841 /* StreetViewControllerTests.m */,
+				C24E7BBF0D5DBFAE7D7C8B3E /* AppAndPanelsTests.m */,
+				877818E4CD09D95A03B2BE89 /* DocumentWindowTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -671,6 +703,7 @@
 				1B53B7C22E51EC3A00C9470F /* POIAnnotation.m in Sources */,
 				65F365CA2E4F73200046B03D /* StreetViewController.m in Sources */,
 				65F365CB2E4F73200046B03D /* BRouterClient.m in Sources */,
+				10E8E2FE271EF99F2D4659B0 /* BPEnvironment.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -688,6 +721,14 @@
 				B545596D1D195AB2486FD23C /* DocumentTests.m in Sources */,
 				84B107021A36B2F37F446B97 /* POIAnnotationTests.m in Sources */,
 				989992611C8A65B7876CBB0C /* UndoTests.m in Sources */,
+				33CB22EDCD3023CF22B88232 /* BPStubServer.m in Sources */,
+				8BFD3901750F58EB1E2BCA09 /* BPEnvironmentTests.m in Sources */,
+				BE614F31BB844070FB569AEE /* BRouterClientTests.m in Sources */,
+				4A3E03AA7C7112D20A44AD22 /* POIFetchTests.m in Sources */,
+				42DE6907C6854FD04251A656 /* BRFProfileEditorTests.m in Sources */,
+				01435B563DFEA2B347713204 /* StreetViewControllerTests.m in Sources */,
+				921AB6E2925C367358C68CCF /* AppAndPanelsTests.m in Sources */,
+				99C7B154189B217AC2F6B951 /* DocumentWindowTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -697,6 +738,7 @@
 			files = (
 				65F365BA2E4F6BE30046B03D /* BikePlannerUITestsLaunchTests.m in Sources */,
 				65F365B82E4F6BE30046B03D /* BikePlannerUITests.m in Sources */,
+				31D2ACEC6E33F240F24DF444 /* BPStubServer.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

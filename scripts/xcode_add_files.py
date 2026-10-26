@@ -9,8 +9,10 @@ Usage:
     scripts/xcode_add_files.py --target BikePlannerTests --anchor BikePlannerTests.m \
         BikePlannerTests/GPXParserTests.m BikePlannerTests/Fixtures.h
 
-Paths are relative to the repository root; files must live in the anchor's directory.
-Files already referenced in the group are skipped, so the script is idempotent.
+Paths are relative to the repository root; new files must live in the anchor's directory.
+A file that is already referenced elsewhere in the project (group whose path is the file's
+directory) is reused and only added to the target's Sources (e.g. a test helper shared by
+BikePlannerTests and BikePlannerUITests). The script is idempotent.
 """
 import argparse
 import os
@@ -37,6 +39,27 @@ def block(text, ident):
         sys.exit("object %s not found" % ident)
     end = text.index("\n\t\t};\n", m.end()) + len("\n\t\t};\n")
     return m.start(), end
+
+
+def add_build_file(text, sources_id, ref, name):
+    bf = new_id(text)
+    text = text.replace(
+        "/* End PBXBuildFile section */",
+        "\t\t%s /* %s in Sources */ = {isa = PBXBuildFile; fileRef = %s /* %s */; };\n"
+        "/* End PBXBuildFile section */" % (bf, name, ref, name), 1)
+    ss, se = block(text, sources_id)
+    sb = text[ss:se].replace("\t\t\t);\n", "\t\t\t\t%s /* %s in Sources */,\n\t\t\t);\n" % (bf, name), 1)
+    return text[:ss] + sb + text[se:]
+
+
+def find_existing_ref(text, name, dirname):
+    """fileRef of `name` in a group whose path is `dirname`, or None"""
+    for ref in re.findall(r"^\t\t(\w{24}) /\* %s \*/ = \{isa = PBXFileReference;" % re.escape(name), text, re.M):
+        for gm in re.finditer(r"^\t\t(\w{24}) /\*[^*]*\*/ = \{\n\t\t\tisa = PBXGroup;", text, re.M):
+            gs, ge = block(text, gm.group(1))
+            if ref in text[gs:ge] and re.search(r"\bpath = %s;" % re.escape(dirname), text[gs:ge]):
+                return ref
+    return None
 
 
 def main():
@@ -85,6 +108,17 @@ def main():
         if "/* %s */" % name in text[gs:ge]:
             print("skip (already in project): %s" % name)
             continue
+        existing = find_existing_ref(text, name, os.path.basename(os.path.dirname(os.path.normpath(path))))
+        if existing:
+            ss, se = block(text, sources_id)
+            in_target = any(re.search(r"%s /\*[^*]*\*/ = \{isa = PBXBuildFile; fileRef = %s" % (b, existing), text)
+                            for b in re.findall(r"(\w{24}) /\* %s in Sources \*/" % re.escape(name), text[ss:se]))
+            if ext == ".h" or in_target:
+                print("skip (already in target): %s" % name)
+                continue
+            text = add_build_file(text, sources_id, existing, name)
+            print("added to target (existing file): %s" % name)
+            continue
         ref = new_id(text)
         text = text.replace(
             "/* End PBXFileReference section */",
@@ -95,14 +129,7 @@ def main():
         grp = grp.replace("\t\t\t);\n", "\t\t\t\t%s /* %s */,\n\t\t\t);\n" % (ref, name), 1)
         text = text[:gs] + grp + text[ge:]
         if ext != ".h":
-            bf = new_id(text)
-            text = text.replace(
-                "/* End PBXBuildFile section */",
-                "\t\t%s /* %s in Sources */ = {isa = PBXBuildFile; fileRef = %s /* %s */; };\n"
-                "/* End PBXBuildFile section */" % (bf, name, ref, name), 1)
-            ss, se = block(text, sources_id)
-            sb = text[ss:se].replace("\t\t\t);\n", "\t\t\t\t%s /* %s in Sources */,\n\t\t\t);\n" % (bf, name), 1)
-            text = text[:ss] + sb + text[se:]
+            text = add_build_file(text, sources_id, ref, name)
         print("added: %s" % name)
 
     open(PBXPROJ, "w").write(text)

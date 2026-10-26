@@ -43,6 +43,30 @@ static NSString * const kType = @"fr.free.daniel.braun.bikeplan";
     XCTAssertNotNil(err);
 }
 
+- (void)testSaveWithoutPlanFails
+{
+    Document *d = [[Document alloc] init];
+    d.plan = nil;
+    NSError *err = nil;
+    XCTAssertNil([d dataOfType:kType error:&err]);
+    XCTAssertNotNil(err);
+}
+
+- (void)testLoadArchiveOfOtherClassFails
+{
+    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:@[@1, @2] requiringSecureCoding:YES error:NULL];
+    Document *d = [[Document alloc] init];
+    NSError *err = nil;
+    XCTAssertFalse([d readFromData:data ofType:kType error:&err]);
+    XCTAssertNotNil(err);
+}
+
+- (void)testDocumentSettings
+{
+    XCTAssertTrue([Document autosavesInPlace]);
+    XCTAssertEqualObjects([[Document alloc] init].windowNibName, @"Document");
+}
+
 - (void)testLoadEmptyDataFails
 {
     Document *d = [[Document alloc] init];

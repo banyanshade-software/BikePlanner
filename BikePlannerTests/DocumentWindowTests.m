@@ -1,0 +1,604 @@
+//
+//  DocumentWindowTests.m
+//  BikePlannerTests
+//
+//  Integration tests: a real document window (Document.xib) with MapController, driven
+//  programmatically, against the local stub server (BRouter + Overpass), without tiles nor Street View.
+//  Map clicks go through the real -handleMapClick: with a fake gesture recognizer.
+//
+
+#import <XCTest/XCTest.h>
+#import <MapKit/MapKit.h>
+#import "Document.h"
+#import "MapController.h"
+#import "BikePlan.h"
+#import "RouteAnnotation.h"
+#import "POIAnnotation.h"
+#import "POIAnnotationView.h"
+#import "TaggedPoly.h"
+#import "ElevationProfileView.h"
+#import "BPStubServer.h"
+#import "BRFProfileEditor.h"
+#import "SafeOSMTileOverlay.h"
+#import "SafeTileRenderer.h"
+#import "TestFixtures.h"
+
+@interface MapController (WindowTesting)
+- (void)handleMapClick:(NSGestureRecognizer *)gesture;
+- (void)changeMapType:(id)sender;
+- (void)changeClickMode:(id)sender;
+- (IBAction)zoomIn:(id)sender;
+- (IBAction)zoomOut:(id)sender;
+- (void)removeWaypointMenuAction:(id)sender;
+- (void)mouseMoved:(NSEvent *)event;
+- (NSData *)exportGpxDataWithPOI:(BOOL)inclPOI trackName:(NSString *)trackName;
+- (void)loadGPXFromURL:(NSURL *)url;
+- (BOOL)gestureRecognizer:(NSGestureRecognizer *)gestureRecognizer shouldAttemptToRecognizeWithEvent:(NSEvent *)event;
+- (CLLocationDistance)distanceAtCoordinate:(CLLocationCoordinate2D)coord segstart:(NSUInteger *)psegstart;
+@end
+
+@interface PlannerWindowController : NSWindowController
+@property (strong, nonatomic) id brfEditor;
+@end
+
+@interface Document (WindowTesting)
+- (IBAction)setClickModeToEdit:(id)sender;
+- (IBAction)setClickModeToInterm:(id)sender;
+- (IBAction)setClickModeToView:(id)sender;
+- (IBAction)setClickModeToAddPoi:(id)sender;
+@end
+
+// Returns a fixed location, in map view coordinates
+@interface BPFakeClick : NSClickGestureRecognizer
+@property (nonatomic) NSPoint point;
+@end
+@implementation BPFakeClick
+- (NSPoint)locationInView:(NSView *)view { return self.point; }
+@end
+
+
+@interface DocumentWindowTests : XCTestCase
+@end
+
+@implementation DocumentWindowTests {
+    BPStubServer *server;
+    Document *doc;
+    MapController *mc;
+    MKMapView *map;
+}
+
+- (void)setUp
+{
+    server = [[BPStubServer alloc] init];
+    XCTAssertTrue([server start]);
+    BPOverrideDefaults(@{ @"BPBRouterServer": server.baseURL.absoluteString,
+                          @"BPOverpassURL": server.overpassURL.absoluteString,
+                          @"BPDisableStreetView": @YES,
+                          @"BPDisableTiles": @YES });
+    doc = [[Document alloc] init];
+    [self openWindow];
+}
+
+- (void)openWindow
+{
+    [doc makeWindowControllers];
+    NSWindow *w = doc.windowControllers.firstObject.window; // loads Document.xib, windowDidLoad
+    XCTAssertNotNil(w);
+    mc = doc.mapController;
+    map = mc.mapView;
+    [map setRegion:MKCoordinateRegionMake(CLLocationCoordinate2DMake(44.05, 0.55), MKCoordinateSpanMake(0.2, 0.2)) animated:NO];
+    BPSpin(0.2);
+}
+
+- (void)tearDown
+{
+    doc.plan.fetchPOI = NO;
+    [doc.undoManager removeAllActions];
+    [doc close];
+    BPSpin(0.2);
+    [server stop];
+    BPRestoreDefaults();
+}
+
+#pragma mark - helpers
+
+- (NSView *)viewWithIdentifier:(NSString *)ident in:(NSView *)root
+{
+    if ([root.accessibilityIdentifier isEqualToString:ident]) return root;
+    for (NSView *v in root.subviews) {
+        NSView *f = [self viewWithIdentifier:ident in:v];
+        if (f) return f;
+    }
+    return nil;
+}
+
+- (NSView *)content { return doc.windowControllers.firstObject.window.contentView; }
+
+- (void)clickAt:(NSPoint)p
+{
+    BPFakeClick *g = [[BPFakeClick alloc] initWithTarget:nil action:nil];
+    g.point = p;
+    [mc handleMapClick:g];
+}
+
+- (void)clickAtCoordinate:(CLLocationCoordinate2D)c
+{
+    [self clickAt:[map convertCoordinate:c toPointToView:map]];
+}
+
+- (NSArray *)annotationsOfClass:(Class)cls
+{
+    return [map.annotations filteredArrayUsingPredicate:
+            [NSPredicate predicateWithBlock:^BOOL(id a, NSDictionary *b) { return [a isKindOfClass:cls]; }]];
+}
+
+- (NSArray<TaggedPoly *> *)polysWithTag:(NSUInteger)tag
+{
+    return [map.overlays filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id o, NSDictionary *b) {
+        return [o isKindOfClass:[TaggedPoly class]] && ((TaggedPoly *)o).tag == tag;
+    }]];
+}
+
+- (BOOL)waitForRouteWithPoints:(NSUInteger)n
+{
+    return BPWaitUntil(5, ^{ return (BOOL)(self->doc.plan.routePoints.count == n); });
+}
+
+// two waypoints at known coordinates, route computed by the stub (11 points)
+- (void)makeRoute
+{
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.5)];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.1, 0.6)];
+    XCTAssertTrue([self waitForRouteWithPoints:11]);
+    BPSpin(0.1);
+}
+
+#pragma mark - window setup
+
+- (void)testWindowSetup
+{
+    XCTAssertNotNil(mc.svCtrl);
+    XCTAssertEqual(mc.elevationView.delegate, (id)mc);
+    XCTAssertEqual(map.delegate, (id)mc);
+    XCTAssertFalse(map.showsZoomControls);
+    // no tile overlay when tiles are disabled
+    for (id o in map.overlays) XCTAssertFalse([o isKindOfClass:[MKTileOverlay class]]);
+    // controls created in code
+    XCTAssertNotNil([self viewWithIdentifier:@"zoomIn" in:self.content]);
+    XCTAssertNotNil([self viewWithIdentifier:@"zoomOut" in:self.content]);
+    XCTAssertNotNil([self viewWithIdentifier:@"userLocation" in:self.content]);
+    XCTAssertNotNil([self viewWithIdentifier:@"mapType" in:self.content]);
+    NSTextField *help = (NSTextField *)[self viewWithIdentifier:@"clickModeHelp" in:self.content];
+    XCTAssertEqualObjects(help.stringValue, @"Click on map to add start and end waypoints");
+    // BRF editor installed in the Params tab, profile fetched from the stub
+    XCTAssertEqual(doc.brfParamsPlaceholder.subviews.count, 1u);
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([self->server requestsWithPath:@"/brouter/profiles2/trekking.brf"].count == 1); }));
+}
+
+- (void)testClickModes
+{
+    NSTextField *help = (NSTextField *)[self viewWithIdentifier:@"clickModeHelp" in:self.content];
+    NSSegmentedControl *seg = (NSSegmentedControl *)[self viewWithIdentifier:@"clickMode" in:self.content];
+
+    [mc setClickModeToInterm:nil];
+    XCTAssertEqual(seg.selectedSegment, 1);
+    XCTAssertEqualObjects(help.stringValue, @"Click on path to add intermediate waypoints");
+    [mc setClickModeToAddPoi:nil];
+    XCTAssertEqual(seg.selectedSegment, 2);
+    XCTAssertEqualObjects(help.stringValue, @"Add POI");
+    [mc setClickModeToView:nil];
+    XCTAssertEqual(seg.selectedSegment, 3);
+    XCTAssertEqualObjects(help.stringValue, @"Drag waypoints");
+    [mc setClickModeToEdit:nil];
+    XCTAssertEqual(seg.selectedSegment, 0);
+
+    // through the segmented control itself
+    seg.selectedSegment = 3;
+    [mc changeClickMode:seg];
+    XCTAssertEqualObjects(help.stringValue, @"Drag waypoints");
+
+    // menu relays in Document
+    [doc setClickModeToInterm:nil];
+    XCTAssertEqual(seg.selectedSegment, 1);
+}
+
+- (void)testMapTypes
+{
+    NSSegmentedControl *seg = (NSSegmentedControl *)[self viewWithIdentifier:@"mapType" in:self.content];
+    seg.selectedSegment = 2; [mc changeMapType:seg];
+    XCTAssertEqual(map.mapType, MKMapTypeStandard);
+    seg.selectedSegment = 3; [mc changeMapType:seg];
+    XCTAssertEqual(map.mapType, MKMapTypeHybrid);
+    seg.selectedSegment = 4; [mc changeMapType:seg];
+    XCTAssertEqual(map.mapType, MKMapTypeSatellite);
+    seg.selectedSegment = 1; [mc changeMapType:seg];
+    seg.selectedSegment = 0; [mc changeMapType:seg];
+    for (id o in map.overlays) XCTAssertFalse([o isKindOfClass:[MKTileOverlay class]]);
+}
+
+- (void)testZoomButtons
+{
+    double span = map.region.span.latitudeDelta;
+    [mc zoomIn:nil];
+    BPSpin(1.0);
+    XCTAssertLessThan(map.region.span.latitudeDelta, span * 0.75);
+    span = map.region.span.latitudeDelta;
+    [mc zoomOut:nil];
+    BPSpin(1.0);
+    XCTAssertGreaterThan(map.region.span.latitudeDelta, span * 1.5);
+}
+
+#pragma mark - route building
+
+- (void)testClickAddsWaypointsAndComputesRoute
+{
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.5)];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 1u);
+    XCTAssertEqual([self annotationsOfClass:[RouteAnnotation class]].count, 1u);
+    XCTAssertEqual([server requestsWithPath:@"/brouter"].count, 0u, @"no route with a single waypoint");
+
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.1, 0.6)];
+    XCTAssertTrue([self waitForRouteWithPoints:11]);
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
+    XCTAssertEqualWithAccuracy(doc.plan.waypointsLocations[1].coordinate.latitude, 44.1, 0.001);
+    XCTAssertEqual([self annotationsOfClass:[RouteAnnotation class]].count, 2u);
+    XCTAssertNotNil(mc.gpxData);
+    XCTAssertGreaterThan(doc.plan.brouterInfo.kmlen, 10);
+    XCTAssertGreaterThan(doc.plan.brouterInfo.mup, 0);
+    XCTAssertEqual(mc.elevationView.distances.count, 11u);
+    XCTAssertEqual([self polysWithTag:0].firstObject.pointCount, 11u);
+    XCTAssertTrue(doc.isDocumentEdited || doc.undoManager.canUndo);
+
+    RouteAnnotation *start = [self annotationsOfClass:[RouteAnnotation class]].firstObject;
+    XCTAssertTrue(([@[@"Start", @"1"] containsObject:start.title]));
+}
+
+- (void)testThirdClickAppendsDestination
+{
+    [self makeRoute];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.65)];
+    XCTAssertTrue([self waitForRouteWithPoints:21]);
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 3u);
+}
+
+- (void)testClickOnRouteInsertsIntermediateWaypoint
+{
+    [self makeRoute];
+    [mc setClickModeToInterm:nil];
+    [self clickAtCoordinate:doc.plan.routePoints[5].coordinate];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 3u);
+    XCTAssertEqualWithAccuracy(doc.plan.waypointsLocations[1].coordinate.latitude, 44.05, 0.002);
+    XCTAssertTrue([self waitForRouteWithPoints:21]);
+    NSArray *titles = [[self annotationsOfClass:[RouteAnnotation class]] valueForKey:@"title"];
+    XCTAssertEqual(titles.count, 3u);
+}
+
+- (void)testClickAwayFromRouteInIntermModeDoesNothing
+{
+    [self makeRoute];
+    [mc setClickModeToInterm:nil];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.6)];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
+}
+
+- (void)testViewModeClickOnRoute
+{
+    [self makeRoute];
+    [mc setClickModeToView:nil];
+    CLLocationCoordinate2D c = doc.plan.routePoints[3].coordinate;
+    [self clickAtCoordinate:c];
+    BPSpin(0.2);
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
+    XCTAssertGreaterThan(mc.elevationView.highlightDistance, 0);
+    XCTAssertEqualWithAccuracy(map.centerCoordinate.latitude, c.latitude, 0.005);
+}
+
+- (void)testAddPOIModeAddsCustomPOI
+{
+    [self makeRoute];
+    doc.plan.fetchPOI = NO;
+    [mc setClickModeToAddPoi:nil];
+    [self clickAtCoordinate:doc.plan.routePoints[4].coordinate];
+    XCTAssertEqual(doc.plan.customPoiloc.count, 1u);
+    XCTAssertGreaterThanOrEqual([self annotationsOfClass:[POIAnnotation class]].count, 1u);
+    // away from the route: nothing
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.6)];
+    XCTAssertEqual(doc.plan.customPoiloc.count, 1u);
+}
+
+#pragma mark - POIs
+
+- (void)waitForPOIs
+{
+    XCTAssertTrue(BPWaitUntil(6, ^{ return (BOOL)(self->doc.plan.poiloc.count == 3); }));
+    BPSpin(0.1);
+}
+
+- (void)testFetchedPOIsAreDisplayed
+{
+    [self makeRoute];
+    [self waitForPOIs];
+    XCTAssertEqual([self annotationsOfClass:[POIAnnotation class]].count, 3u);
+    mc.viewPOI = NO;
+    XCTAssertEqual([self annotationsOfClass:[POIAnnotation class]].count, 0u);
+    mc.viewPOI = YES;
+    XCTAssertEqual([self annotationsOfClass:[POIAnnotation class]].count, 3u);
+}
+
+- (void)testClickNearPOISelectsIt
+{
+    [self makeRoute];
+    [self waitForPOIs];
+    POIAnnotation *poi = [self annotationsOfClass:[POIAnnotation class]].firstObject;
+    [self clickAtCoordinate:poi.coordinate];
+    BPSpin(0.3);
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u, @"a click on a POI does not add a waypoint");
+    XCTAssertTrue([map.selectedAnnotations containsObject:poi]);
+}
+
+- (void)testMouseOverPOIHighlightsIt
+{
+    [self makeRoute];
+    [self waitForPOIs];
+    POIAnnotation *poi = [self annotationsOfClass:[POIAnnotation class]].firstObject;
+    POIAnnotationView *v = (POIAnnotationView *)[mc mapView:map viewForAnnotation:poi];
+    XCTAssertTrue([v isKindOfClass:[POIAnnotationView class]]);
+    NSPoint inMap = [map convertCoordinate:poi.coordinate toPointToView:map];
+    NSPoint inWindow = [map convertPoint:inMap toView:nil];
+    NSEvent *e = [NSEvent mouseEventWithType:NSEventTypeMouseMoved location:inWindow modifierFlags:0 timestamp:0
+                                windowNumber:map.window.windowNumber context:nil eventNumber:0 clickCount:0 pressure:0];
+    XCTAssertNoThrow([mc mouseMoved:e]);
+    NSEvent *away = [NSEvent mouseEventWithType:NSEventTypeMouseMoved location:NSMakePoint(1, 1) modifierFlags:0 timestamp:0
+                                   windowNumber:map.window.windowNumber context:nil eventNumber:0 clickCount:0 pressure:0];
+    XCTAssertNoThrow([mc mouseMoved:away]);
+}
+
+#pragma mark - waypoint editing
+
+- (void)testDragWaypoint
+{
+    [self makeRoute];
+    [server clearRequests];
+    RouteAnnotation *end = nil;
+    for (RouteAnnotation *a in [self annotationsOfClass:[RouteAnnotation class]]) if (a.idx == 1) end = a;
+    XCTAssertNotNil(end);
+    end.coordinate = CLLocationCoordinate2DMake(44.12, 0.62);
+    MKAnnotationView *v = [mc mapView:map viewForAnnotation:end];
+    [mc mapView:map annotationView:v didChangeDragState:MKAnnotationViewDragStateEnding fromOldState:MKAnnotationViewDragStateDragging];
+    XCTAssertEqualWithAccuracy(doc.plan.waypointsLocations[1].coordinate.latitude, 44.12, 1e-6);
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([self->server requestsWithPath:@"/brouter"].count == 1); }));
+    XCTAssertTrue([[server requestsWithPath:@"/brouter"].firstObject.query[@"lonlats"] containsString:@"0.620000,44.120000"]);
+}
+
+- (void)testRemoveWaypointFromMenu
+{
+    [self makeRoute];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.65)];
+    XCTAssertTrue([self waitForRouteWithPoints:21]);
+    RouteAnnotation *middle = nil;
+    for (RouteAnnotation *a in [self annotationsOfClass:[RouteAnnotation class]]) if (a.idx == 1) middle = a;
+    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"Remove Waypoint" action:nil keyEquivalent:@""];
+    item.representedObject = middle;
+    [mc removeWaypointMenuAction:item];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
+    XCTAssertEqual([self annotationsOfClass:[RouteAnnotation class]].count, 2u);
+    XCTAssertEqualWithAccuracy(doc.plan.waypointsLocations[1].coordinate.longitude, 0.65, 0.001);
+}
+
+- (void)testUndoRedoAddWaypoint
+{
+    // in the app each click is a separate event, hence a separate undo group;
+    // nested run loops in tests do not close automatic groups, so group explicitly
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    [um beginUndoGrouping];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.5)];
+    [um endUndoGrouping];
+    [um beginUndoGrouping];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.1, 0.6)];
+    [um endUndoGrouping];
+    XCTAssertTrue([self waitForRouteWithPoints:11]);
+    XCTAssertTrue(um.canUndo);
+    XCTAssertEqualObjects(um.undoActionName, @"add destination");
+    [doc.undoManager undo];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 1u);
+    XCTAssertEqual([self annotationsOfClass:[RouteAnnotation class]].count, 1u);
+    [doc.undoManager redo];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
+    XCTAssertEqual([self annotationsOfClass:[RouteAnnotation class]].count, 2u);
+}
+
+#pragma mark - views, renderers, scrubbing, export
+
+- (void)testAnnotationViews
+{
+    [self makeRoute];
+    RouteAnnotation *ra = [self annotationsOfClass:[RouteAnnotation class]].firstObject;
+    MKAnnotationView *v = [mc mapView:map viewForAnnotation:ra];
+    XCTAssertTrue(v.draggable);
+    XCTAssertEqualObjects(v.menu.itemArray.firstObject.title, @"Remove Waypoint");
+    XCTAssertNil([mc mapView:map viewForAnnotation:[[MKPointAnnotation alloc] init]]);
+}
+
+- (void)testOverlayRenderers
+{
+    [self makeRoute];
+    MKPolylineRenderer *r = (MKPolylineRenderer *)[mc mapView:map rendererForOverlay:doc.plan.routePoly];
+    XCTAssertEqual(r.lineWidth, 8.0);
+    doc.plan.gpxDisplayed = @[BPLoc(44, 0.5), BPLoc(44.1, 0.5)];
+    MKPolylineRenderer *g = (MKPolylineRenderer *)[mc mapView:map rendererForOverlay:doc.plan.gpxDisplayedPoly];
+    XCTAssertEqual(g.lineWidth, 6.0);
+    XCTAssertNotNil([mc mapView:map rendererForOverlay:[[MKTileOverlay alloc] initWithURLTemplate:@"x"]]);
+    XCTAssertNil([mc mapView:map rendererForOverlay:[MKCircle circleWithCenterCoordinate:CLLocationCoordinate2DMake(0, 0) radius:1]]);
+}
+
+- (void)testElevationScrubbingMovesMap
+{
+    [self makeRoute];
+    double total = mc.elevationView.distances.lastObject.doubleValue;
+    [mc elevationProfileView:mc.elevationView didSelectDistance:total / 2];
+    BPSpin(0.2);
+    XCTAssertEqualWithAccuracy(map.centerCoordinate.latitude, 44.05, 0.005);
+}
+
+- (void)testExportAfterRoute
+{
+    [self makeRoute];
+    NSString *gpx = [[NSString alloc] initWithData:[mc exportGpxDataWithPOI:NO trackName:@"t"] encoding:NSUTF8StringEncoding];
+    XCTAssertTrue([gpx containsString:@"<name>t</name>"]);
+}
+
+#pragma mark - documents
+
+- (void)testReopenSavedDocument
+{
+    [self makeRoute];
+    NSInteger km = doc.plan.brouterInfo.kmlen;
+    NSData *data = [doc dataOfType:@"fr.free.daniel.braun.bikeplan" error:NULL];
+    [doc close];
+
+    doc = [[Document alloc] init];
+    XCTAssertTrue([doc readFromData:data ofType:@"fr.free.daniel.braun.bikeplan" error:NULL]);
+    [self openWindow];
+    XCTAssertEqual([self annotationsOfClass:[RouteAnnotation class]].count, 2u);
+    XCTAssertEqual([self polysWithTag:0].firstObject.pointCount, 11u);
+    XCTAssertEqual(mc.elevationView.distances.count, 11u);
+    XCTAssertEqual(doc.plan.brouterInfo.kmlen, km);
+    // known limitation (#10): export needs a recomputed route
+    XCTAssertNil(mc.gpxData);
+}
+
+#pragma mark - more paths
+
+- (void)testMenuRelays
+{
+    NSSegmentedControl *seg = (NSSegmentedControl *)[self viewWithIdentifier:@"clickMode" in:self.content];
+    [doc setClickModeToView:nil];   XCTAssertEqual(seg.selectedSegment, 3);
+    [doc setClickModeToAddPoi:nil]; XCTAssertEqual(seg.selectedSegment, 2);
+    [doc setClickModeToInterm:nil]; XCTAssertEqual(seg.selectedSegment, 1);
+    [doc setClickModeToEdit:nil];   XCTAssertEqual(seg.selectedSegment, 0);
+}
+
+// "Done/Save" in the Params tab: overrides are sent to BRouter as extraParams
+- (void)testBRFOverridesRecomputeRoute
+{
+    [self makeRoute];
+    [server clearRequests];
+    BRFProfileEditor *editor = ((PlannerWindowController *)doc.windowControllers.firstObject).brfEditor;
+    XCTAssertNotNil(editor.completionHandler);
+    editor.completionHandler(@[@"profile:downhillcost=80"]);
+    XCTAssertEqualObjects(mc.extraUrl, @"extraParams=profile:downhillcost=80");
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([self->server requestsWithPath:@"/brouter"].count == 1); }));
+    XCTAssertEqualObjects([server requestsWithPath:@"/brouter"].firstObject.query[@"extraParams"], @"profile:downhillcost=80");
+
+    // no override: nothing happens
+    [server clearRequests];
+    editor.completionHandler(@[]);
+    BPSpin(0.5);
+    XCTAssertEqual([server requestsWithPath:@"/brouter"].count, 0u);
+}
+
+- (void)testRoutingErrorKeepsPreviousRoute
+{
+    [self makeRoute];
+    server.failCount = 1;
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.65)];
+    BPSpin(1.0);
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 3u);
+    XCTAssertEqual(doc.plan.routePoints.count, 11u, @"route unchanged after a failed request");
+}
+
+- (void)testImportReferenceTrace
+{
+    NSURL *url = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-ref.gpx"]];
+    XCTAssertTrue([BPData(kBRouterGPX) writeToURL:url atomically:YES]);
+    [mc loadGPXFromURL:url];
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 3u);
+    XCTAssertEqual([self polysWithTag:2].count, 1u);
+    XCTAssertEqual([self polysWithTag:2].firstObject.pointCount, 3u);
+    // importing again replaces the trace
+    [mc loadGPXFromURL:url];
+    XCTAssertEqual([self polysWithTag:2].count, 1u);
+    [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
+}
+
+- (void)testImportInvalidTraceIsIgnored
+{
+    NSURL *missing = [NSURL fileURLWithPath:@"/nonexistent/bp.gpx"];
+    [mc loadGPXFromURL:missing];
+    NSURL *bad = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-bad.gpx"]];
+    XCTAssertTrue([BPData(@"<gpx><trk>") writeToURL:bad atomically:YES]);
+    [mc loadGPXFromURL:bad];
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 0u);
+    XCTAssertFalse(doc.undoManager.canUndo);
+    [[NSFileManager defaultManager] removeItemAtURL:bad error:NULL];
+}
+
+- (void)testExportOfInvalidGPXReturnsRaw
+{
+    mc.gpxData = BPData(@"<gpx>no end");
+    XCTAssertEqualObjects([mc exportGpxDataWithPOI:YES trackName:nil], mc.gpxData);
+}
+
+- (void)testGestureIgnoredOnOpenCallout
+{
+    NSEvent *e = [NSEvent mouseEventWithType:NSEventTypeLeftMouseDown location:NSMakePoint(5, 5) modifierFlags:0 timestamp:0
+                                windowNumber:map.window.windowNumber context:nil eventNumber:0 clickCount:1 pressure:1];
+    XCTAssertTrue([mc gestureRecognizer:nil shouldAttemptToRecognizeWithEvent:e]);
+    NSView *callout = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 50, 50)];
+    [map.window.contentView addSubview:callout];
+    mc.activeCalloutView = callout;
+    XCTAssertFalse([mc gestureRecognizer:nil shouldAttemptToRecognizeWithEvent:e]);
+    mc.activeCalloutView = nil;
+    [callout removeFromSuperview];
+}
+
+- (void)testSelectDeselectAnnotationTracksCallout
+{
+    [self makeRoute];
+    [self waitForPOIs];
+    POIAnnotation *poi = [self annotationsOfClass:[POIAnnotation class]].firstObject;
+    MKAnnotationView *v = [mc mapView:map viewForAnnotation:poi];
+    [mc mapView:map didSelectAnnotationView:v];
+    XCTAssertEqual(mc.activeCalloutView, v.detailCalloutAccessoryView);
+    [mc mapView:map didDeselectAnnotationView:v];
+    XCTAssertNil(mc.activeCalloutView);
+}
+
+- (void)testSafeTileRenderer
+{
+    SafeOSMTileOverlay *o = [[SafeOSMTileOverlay alloc] initWithURLTemplate:@"http://127.0.0.1:1/{z}/{x}/{y}.png"];
+    XCTAssertTrue([[mc mapView:map rendererForOverlay:o] isKindOfClass:[SafeTileRenderer class]]);
+}
+
+- (void)testDistanceBeyondRouteEnd
+{
+    [self makeRoute];
+    NSUInteger seg = 0;
+    double d = [mc distanceAtCoordinate:CLLocationCoordinate2DMake(45.0, 1.5) segstart:&seg];
+    XCTAssertEqual(seg, 10u);
+    XCTAssertGreaterThan(d, 10000);
+}
+
+- (void)testDragOfNonWaypointIsIgnored
+{
+    MKPointAnnotation *a = [[MKPointAnnotation alloc] init];
+    MKAnnotationView *v = [[MKAnnotationView alloc] initWithAnnotation:a reuseIdentifier:nil];
+    [mc mapView:map annotationView:v didChangeDragState:MKAnnotationViewDragStateEnding fromOldState:MKAnnotationViewDragStateDragging];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
+}
+
+- (void)testSearchWithEmptyQueryDoesNothing
+{
+    NSSearchField *f = [[NSSearchField alloc] init];
+    f.stringValue = @"";
+    XCTAssertNoThrow([mc sendersearchFieldAction:f]);
+}
+
+- (void)testExportWithoutRouteDoesNothing
+{
+    XCTAssertNil(mc.gpxData);
+    XCTAssertNoThrow([mc exportGPX:nil]); // returns before opening the panel
+}
+
+@end

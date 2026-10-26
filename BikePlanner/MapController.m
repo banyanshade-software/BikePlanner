@@ -19,6 +19,7 @@
 #import "POIAnnotationView.h"
 #import "ExportAccessoryViewController.h"
 #import "Secret.h"
+#import "BPEnvironment.h"
 
 // Secret.h is not commited, see Secret.h.example
 
@@ -58,7 +59,7 @@
     NSString *template = @"https://tile.openstreetmap.org/{z}/{x}/{y}.png";
     osmOverlay = [[SafeOSMTileOverlay alloc] initWithURLTemplate:template];
     osmOverlay.canReplaceMapContent = YES; // replace Apple's map
-    [self.mapView addOverlay:osmOverlay level:MKOverlayLevelAboveRoads];
+    if (![BPEnvironment tilesDisabled]) [self.mapView addOverlay:osmOverlay level:MKOverlayLevelAboveRoads];
     mapType = 0;
     
     // thunderforest
@@ -72,8 +73,8 @@
     // BRouter client (default points to local server at port 17777)
     //NSString *brouter=@"http://127.0.0.1:17777";
     //NSString *brouter=@"https://brouter.de/brouter";
-    NSString *brouter=@"https://brouter.de";
-    NSURL *server = [NSURL URLWithString:brouter]; // change if using remote brouter
+    //NSString *brouter=@"https://brouter.de";
+    NSURL *server = [BPEnvironment brouterServerURL]; // https://brouter.de unless overridden (BPEnvironment)
     self.brouter = [[BRouterClient alloc] initWithServerURL:server];
     
     
@@ -200,6 +201,7 @@
     btnZoomOut.bezelStyle = bzstyle;
     btnZoomOut.action = @selector(zoomOut:);
     btnZoomOut.target = self;
+    btnZoomOut.accessibilityIdentifier = @"zoomOut";
     //btnZoomOut.contentTintColor = [NSColor labelColor];
     [content addSubview:btnZoomOut];
     
@@ -213,6 +215,7 @@
     btnZoomIn.bezelColor = [NSColor redColor];
     btnZoomIn.action = @selector(zoomIn:);
     btnZoomIn.target = self;
+    btnZoomIn.accessibilityIdentifier = @"zoomIn";
     [content addSubview:btnZoomIn];
     
   
@@ -225,6 +228,7 @@
     btnCurloc.target = self;
     btnCurloc.action = @selector(centerOnUserLocation:);
     btnCurloc.bezelStyle = bzstyle;
+    btnCurloc.accessibilityIdentifier = @"userLocation";
     
     //btnCurloc.contentTintColor = [NSColor orangeColor];
     [content addSubview:btnCurloc];
@@ -247,12 +251,14 @@
     //maptype.bezelColor = [NSColor redColor];
     maptype.action = @selector(changeMapType:);
     maptype.target = self;
+    maptype.accessibilityIdentifier = @"mapType";
     [content addSubview:maptype];
     
     
     helpTxtField = [[NSTextField alloc] initWithFrame:NSMakeRect(14+230+14, 32, 500, 26)];
     helpTxtField.bezeled = NO; helpTxtField.drawsBackground = NO; helpTxtField.editable = NO; helpTxtField.selectable = NO;
     helpTxtField.stringValue = @"...";
+    helpTxtField.accessibilityIdentifier = @"clickModeHelp";
     [content addSubview:helpTxtField];
     
     clickmode = 0;
@@ -269,6 +275,7 @@
     //clickmode.bezelColor = [NSColor redColor];
     clickmodeseg.action = @selector(changeClickMode:);
     clickmodeseg.target = self;
+    clickmodeseg.accessibilityIdentifier = @"clickMode";
     [content addSubview:clickmodeseg];
     
 }
@@ -404,10 +411,10 @@
     switch (mapType) {
         default: // FALLTHRU
         case 0:
-            [self.mapView addOverlay:osmOverlay level:MKOverlayLevelAboveRoads];
+            if (![BPEnvironment tilesDisabled]) [self.mapView addOverlay:osmOverlay level:MKOverlayLevelAboveRoads];
             break;
         case 1:
-            [self.mapView addOverlay:osmCycleOverlay level:MKOverlayLevelAboveRoads];
+            if (![BPEnvironment tilesDisabled]) [self.mapView addOverlay:osmCycleOverlay level:MKOverlayLevelAboveRoads];
             break;
         case 2:
             self.mapView.mapType = MKMapTypeStandard;

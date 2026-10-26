@@ -7,6 +7,7 @@
 
 #import "AppDelegate.h"
 #import "BSSUI_AboutWindowController.h"
+#import "BPEnvironment.h"
 
 @interface AppDelegate ()
 @property (nonatomic, strong) BSSUI_AboutWindowController *aboutWindowController;
@@ -33,6 +34,8 @@
 
 - (BOOL)applicationShouldOpenUntitledFile:(NSApplication *)sender
 {
+    // no document window when hosting unit tests (avoids network access during tests)
+    if ([BPEnvironment isUnitTestHost]) return NO;
     // Only create a new untitled doc if there are no open windows
     if ([NSApp windows].count == 0) {
         return YES; // make one
