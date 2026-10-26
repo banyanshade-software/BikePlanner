@@ -137,6 +137,15 @@
 }
 
 
+- (BOOL)revertToContentsOfURL:(NSURL *)url ofType:(NSString *)typeName error:(NSError **)outError
+{
+    // readFromData: replaces self.plan, the window is already open (#16)
+    if (![super revertToContentsOfURL:url ofType:typeName error:outError]) return NO;
+    [self.mapController planReplaced];
+    return YES;
+}
+
+
 #pragma mark -
 - (void)windowControllerDidLoadNib:(NSWindowController *)windowController
 {

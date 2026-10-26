@@ -470,6 +470,30 @@
     XCTAssertNil(mc.gpxData);
 }
 
+// Revert to Saved replaces doc.plan while the window is open: the map must show the saved plan
+// and the POI callback must be installed on the new plan (#16).
+- (void)testRevertToSavedRefreshesMap
+{
+    NSString *type = @"fr.free.daniel.braun.bikeplan";
+    [self makeRoute];
+    NSURL *url = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-revert.bikeplan"]];
+    XCTAssertTrue([[doc dataOfType:type error:NULL] writeToURL:url atomically:YES]);
+    doc.fileURL = url;
+    doc.fileType = type;
+
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.7)]; // third waypoint, not saved
+    XCTAssertEqual([self annotationsOfClass:[RouteAnnotation class]].count, 3u);
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->doc.plan.routePoints.count != 11); }));
+
+    NSError *err = nil;
+    XCTAssertTrue([doc revertToContentsOfURL:url ofType:type error:&err], @"%@", err);
+    BPSpin(0.2);
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
+    XCTAssertEqual([self annotationsOfClass:[RouteAnnotation class]].count, 2u);
+    XCTAssertEqual([self polysWithTag:0].firstObject.pointCount, 11u);
+    XCTAssertNotNil(doc.plan.poiAvailableCallback);
+}
+
 #pragma mark - more paths
 
 - (void)testMenuRelays

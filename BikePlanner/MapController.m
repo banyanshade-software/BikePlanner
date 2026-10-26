@@ -93,10 +93,7 @@
     [self.mapView addAnnotation:scrubberMarker];
     self.elevationView.delegate = self;
     
-    _document.plan.poiAvailableCallback = ^() {
-        //NSLog(@"hop");
-        [self refreshPOI];
-    };
+    [self installPlanCallbacks];
     if ((0)) {
         // move to defined place
         // 44.1249234 ,0.4961707,10920
@@ -633,6 +630,20 @@ static NSColor *selectedSegmentColor(void)
       [v]
       }
       }*/
+}
+
+- (void) installPlanCallbacks
+{
+    _document.plan.poiAvailableCallback = ^() {
+        //NSLog(@"hop");
+        [self refreshPOI];
+    };
+}
+
+- (void) planReplaced
+{
+    [self installPlanCallbacks];
+    [self fullRefresh:YES];
 }
 
 - (void) fullRefresh:(BOOL)fromLoad

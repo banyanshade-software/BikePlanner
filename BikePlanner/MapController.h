@@ -41,6 +41,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void) fullRefresh:(BOOL)fromLoad; // called after load
 
 - (void) initializeMapview;
+- (void) planReplaced; // document.plan was replaced (Revert to Saved)
 
 
 - (IBAction) setClickModeToEdit:(id)sender;
