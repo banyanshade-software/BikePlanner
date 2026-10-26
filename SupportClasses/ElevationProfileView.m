@@ -67,7 +67,7 @@
     CGRect plotRect = NSInsetRect(self.bounds, leftMargin, bottomMargin);
 
     // Draw axes
-    [[NSColor blackColor] setStroke];
+    [[NSColor labelColor] setStroke]; // dark in light mode, light in dark mode
     CGContextSetLineWidth(ctx, 1.0);
     CGContextMoveToPoint(ctx, plotRect.origin.x, plotRect.origin.y);
     CGContextAddLineToPoint(ctx, plotRect.origin.x, plotRect.origin.y + plotRect.size.height);
@@ -90,11 +90,11 @@
 
         // Color based on slope
         if (slope > 0.05) { // >5% uphill
-            [[NSColor redColor] setStroke];
+            [[NSColor systemRedColor] setStroke];
         } else if (slope < -0.05) { // < -5% downhill
-            [[NSColor blueColor] setStroke];
+            [[NSColor systemBlueColor] setStroke];
         } else {
-            [[NSColor greenColor] setStroke];
+            [[NSColor systemGreenColor] setStroke];
         }
 
         CGContextSetLineWidth(ctx, 2.0);
@@ -106,7 +106,7 @@
     // Draw highlight line
      if (_highlightDistance > 0 && _highlightDistance <= _maxDist) {
          CGFloat hx = _plotRect.origin.x + (_highlightDistance / _maxDist) * _plotRect.size.width;
-         [[NSColor blackColor] setStroke];
+         [[NSColor labelColor] setStroke];
          CGContextSetLineWidth(ctx, 1.0);
          CGContextMoveToPoint(ctx, hx, _plotRect.origin.y);
          CGContextAddLineToPoint(ctx, hx, _plotRect.origin.y + _plotRect.size.height);

@@ -189,6 +189,16 @@
 
 #pragma  mark - mapview buttons
 
+// selected segment of the map controls: light gray in light mode (original look), dark gray in dark mode
+static NSColor *selectedSegmentColor(void)
+{
+    return [NSColor colorWithName:@"BPSelectedSegment" dynamicProvider:^NSColor *(NSAppearance *appearance) {
+        BOOL dark = [[appearance bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua, NSAppearanceNameDarkAqua]]
+                     isEqualToString:NSAppearanceNameDarkAqua];
+        return dark ? [NSColor darkGrayColor] : [NSColor lightGrayColor];
+    }];
+}
+
 - (void) addMapviewButtonsIn:(NSView *)content
 {
     NSBezelStyle bzstyle = NSBezelStyleRoundRect; // NSBezelStyleRoundRect;
@@ -246,7 +256,7 @@
     [maptype setLabel:@"Apple" forSegment:2];
     [maptype setLabel:@"Sat+Rd" forSegment:3];
     [maptype setLabel:@"Sat" forSegment:4];
-    maptype.selectedSegmentBezelColor = [NSColor lightGrayColor];
+    maptype.selectedSegmentBezelColor = selectedSegmentColor();
     //maptype.backgroundColor = [NSColor grayColor];
     maptype.segmentStyle = NSSegmentStyleRoundRect;
     //maptype.bezelColor = [NSColor redColor];
@@ -257,7 +267,16 @@
     
     
     helpTxtField = [[NSTextField alloc] initWithFrame:NSMakeRect(14+230+14, 32, 500, 26)];
-    helpTxtField.bezeled = NO; helpTxtField.drawsBackground = NO; helpTxtField.editable = NO; helpTxtField.selectable = NO;
+    helpTxtField.bezeled = NO; helpTxtField.editable = NO; helpTxtField.selectable = NO;
+    // drawn over the map (OSM tiles stay light in dark mode): own background to stay readable
+    helpTxtField.drawsBackground = YES;
+    helpTxtField.backgroundColor = [NSColor colorWithName:@"BPHelpBackground" dynamicProvider:^NSColor *(NSAppearance *appearance) {
+        __block NSColor *c = nil;
+        [appearance performAsCurrentDrawingAppearance:^{
+            c = [[[NSColor windowBackgroundColor] colorUsingColorSpace:[NSColorSpace sRGBColorSpace]] colorWithAlphaComponent:0.75];
+        }];
+        return c;
+    }];
     helpTxtField.stringValue = @"...";
     helpTxtField.accessibilityIdentifier = @"clickModeHelp";
     [content addSubview:helpTxtField];
@@ -271,7 +290,7 @@
     [clickmodeseg setLabel:@"Add interm." forSegment:1];
     [clickmodeseg setLabel:@"Add POI" forSegment:2];
     [clickmodeseg setLabel:@"View" forSegment:3];
-    clickmodeseg.selectedSegmentBezelColor = [NSColor lightGrayColor];
+    clickmodeseg.selectedSegmentBezelColor = selectedSegmentColor();
     clickmodeseg.segmentStyle = NSSegmentStyleRoundRect;
     //clickmode.bezelColor = [NSColor redColor];
     clickmodeseg.action = @selector(changeClickMode:);

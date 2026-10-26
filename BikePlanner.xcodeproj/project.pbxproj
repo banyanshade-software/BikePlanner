@@ -69,6 +69,7 @@
 		921AB6E2925C367358C68CCF /* AppAndPanelsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = C24E7BBF0D5DBFAE7D7C8B3E /* AppAndPanelsTests.m */; };
 		99C7B154189B217AC2F6B951 /* DocumentWindowTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 877818E4CD09D95A03B2BE89 /* DocumentWindowTests.m */; };
 		EBE95D8BBF9581EE067F7691 /* BPUITestCase.m in Sources */ = {isa = PBXBuildFile; fileRef = 006448FCD1F51E4F8F46E51E /* BPUITestCase.m */; };
+		9925BDC25A9FBFC0656BD01E /* AppearanceTests.m in Sources */ = {isa = PBXBuildFile; fileRef = B02CDC8B1BCDC5D243D9E139 /* AppearanceTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -201,6 +202,7 @@
 		877818E4CD09D95A03B2BE89 /* DocumentWindowTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DocumentWindowTests.m; sourceTree = "<group>"; };
 		452CB23554E1B857BEAD70E1 /* BPUITestCase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPUITestCase.h; sourceTree = "<group>"; };
 		006448FCD1F51E4F8F46E51E /* BPUITestCase.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPUITestCase.m; sourceTree = "<group>"; };
+		B02CDC8B1BCDC5D243D9E139 /* AppearanceTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppearanceTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -421,6 +423,7 @@
 				AB6A2A3DF8A3B8D215954841 /* StreetViewControllerTests.m */,
 				C24E7BBF0D5DBFAE7D7C8B3E /* AppAndPanelsTests.m */,
 				877818E4CD09D95A03B2BE89 /* DocumentWindowTests.m */,
+				B02CDC8B1BCDC5D243D9E139 /* AppearanceTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -734,6 +737,7 @@
 				01435B563DFEA2B347713204 /* StreetViewControllerTests.m in Sources */,
 				921AB6E2925C367358C68CCF /* AppAndPanelsTests.m in Sources */,
 				99C7B154189B217AC2F6B951 /* DocumentWindowTests.m in Sources */,
+				9925BDC25A9FBFC0656BD01E /* AppearanceTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
