@@ -48,6 +48,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSArray <CLLocation *>*) appendWaypoint:(CLLocation *)loc NS_WARN_UNUSED_RESULT;
 - (NSArray <CLLocation *>*) insertWaypoint:(CLLocation *)loc atIndex:(NSUInteger)idx NS_WARN_UNUSED_RESULT;
 - (NSArray <CLLocation *>*) replaceWaypointAtIndex:(NSUInteger)idx by:(CLLocation *)loc NS_WARN_UNUSED_RESULT;
+- (NSArray <CLLocation *>*) reverseWaypoints NS_WARN_UNUSED_RESULT; // start <-> end
 
 - (void) undoSetWayPt:() wp;
 

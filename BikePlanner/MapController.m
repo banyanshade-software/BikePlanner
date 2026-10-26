@@ -1621,6 +1621,20 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     }
 }
 
+// start <-> end; the route is recomputed (one-way streets, climbs differ in the other direction)
+- (BOOL) canReverseRoute
+{
+    return [_document.plan.waypointsLocations count] >= 2;
+}
+
+- (IBAction) reverseRoute:(id)sender
+{
+    if (![self canReverseRoute]) return;
+    [self undoableWP:[_document.plan reverseWaypoints] desc:@"reverse route"];
+    [self fullRefresh:NO];
+    [self shouldRecalcRoute];
+}
+
 #pragma mark -
 - (IBAction) importGPXTraceForDisplay:(id)sender
 {

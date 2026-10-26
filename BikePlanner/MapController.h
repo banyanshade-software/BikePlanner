@@ -36,6 +36,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (IBAction) exportGPX:(id)sender;
 - (IBAction) importGPXTraceForDisplay:(id)sender;
+- (IBAction) reverseRoute:(id)sender;
+- (BOOL) canReverseRoute;
 - (IBAction) sendersearchFieldAction:(id)sender;
 - (void) shouldRecalcRoute;
 - (void) fullRefresh:(BOOL)fromLoad; // called after load

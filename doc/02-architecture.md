@@ -88,8 +88,9 @@ README.POI.GARMIN.txt        List of Garmin POI types usable in GPX <type>
    controls are created **in code**, added to the map's superview), the click gesture recognizer, the scrubber
    annotation, the mouse tracking area, and sets `plan.poiAvailableCallback`.
 
-Menu actions (*Edit ▸ Mode…*, *Import*, *Export*) go through the responder chain to `Document`, which relays them
-to `MapController`.
+Menu actions (*Edit ▸ Mode…*, *Edit ▸ Reverse Route*, *Import*, *Export*) go through the responder chain to
+`Document`, which relays them to `MapController` (`Document.validateMenuItem:` enables *Reverse Route* with ≥ 2
+waypoints).
 
 ## 4. Data model
 
@@ -157,6 +158,7 @@ NSClickGestureRecognizer → MapController.handleMapClick:
 Insert: `insertionIndexForCoordinate` → `plan.insertWaypoint` → undo → annotation insert + reindex → `requestRoute`.
 Move: `mapView:annotationView:didChangeDragState:` (Ending) → `plan.replaceWaypointAtIndex` → undo → `requestRoute`.
 Remove: context menu → `plan.removeWaypointAtIndex` → undo → reindex → `shouldRecalcRoute`.
+Reverse: *Edit ▸ Reverse Route* → `plan.reverseWaypoints` → undo → `fullRefresh:NO` → `shouldRecalcRoute`.
 
 ### 6.3 POIs
 ```

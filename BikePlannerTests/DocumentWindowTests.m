@@ -46,6 +46,7 @@
 - (IBAction)setClickModeToInterm:(id)sender;
 - (IBAction)setClickModeToView:(id)sender;
 - (IBAction)setClickModeToAddPoi:(id)sender;
+- (IBAction)reverseRoute:(id)sender;
 @end
 
 // Returns a fixed location, in map view coordinates
@@ -408,6 +409,39 @@
     [doc.undoManager redo];
     XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
     XCTAssertEqual([self annotationsOfClass:[RouteAnnotation class]].count, 2u);
+}
+
+// Reverse Route (#25): waypoints reversed, route recomputed by BRouter in the other direction, undoable
+- (void)testReverseRoute
+{
+    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"Reverse Route" action:@selector(reverseRoute:) keyEquivalent:@""];
+    XCTAssertFalse([doc validateMenuItem:item], @"disabled without a route");
+    // nested run loops in tests do not close automatic undo groups: group explicitly (see UndoTests)
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    [um beginUndoGrouping];
+    [self makeRoute];
+    [um endUndoGrouping];
+    XCTAssertTrue([doc validateMenuItem:item]);
+    NSArray *wps = doc.plan.waypointsLocations;
+    [server clearRequests];
+    [doc updateChangeCount:NSChangeCleared];
+
+    [um beginUndoGrouping];
+    [doc reverseRoute:item];
+    [um endUndoGrouping];
+    XCTAssertEqualObjects(doc.plan.waypointsLocations, wps.reverseObjectEnumerator.allObjects);
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([self->server requestsWithPath:@"/brouter"].count == 1); }));
+    XCTAssertEqualObjects([server requestsWithPath:@"/brouter"].firstObject.query[@"lonlats"],
+                          @"0.600000,44.100000|0.500000,44.000000");
+    RouteAnnotation *first = nil;
+    for (RouteAnnotation *a in [self annotationsOfClass:[RouteAnnotation class]]) if (a.idx == 0) first = a;
+    XCTAssertEqualWithAccuracy(first.coordinate.latitude, 44.1, 1e-6, @"start marker is the old end");
+    XCTAssertTrue(doc.isDocumentEdited);
+
+    XCTAssertEqualObjects(um.undoActionName, @"reverse route");
+    [um undo];
+    XCTAssertEqualObjects(doc.plan.waypointsLocations, wps);
 }
 
 #pragma mark - views, renderers, scrubbing, export

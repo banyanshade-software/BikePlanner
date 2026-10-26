@@ -111,6 +111,12 @@
     self.waypointsLocations  = [_waypointsLocations arrayByReplacingObjectAtIndex:idx withObject:loc];
     return old;
 }
+- (NSArray <CLLocation *>*) reverseWaypoints
+{
+    NSArray <CLLocation *>*old = _waypointsLocations;
+    self.waypointsLocations  = _waypointsLocations.reverseObjectEnumerator.allObjects;
+    return old;
+}
 
 - (void) clearWaypointCache
 {

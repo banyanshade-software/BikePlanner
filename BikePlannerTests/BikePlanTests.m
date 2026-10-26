@@ -71,6 +71,15 @@
     XCTAssertEqual(plan.waypointsLocations.count, 0u);
 }
 
+- (void)testReverseWaypoints
+{
+    CLLocation *a = BPLoc(44, 0.5), *b = BPLoc(44.05, 0.55), *c = BPLoc(44.1, 0.6);
+    (void)[plan appendWaypoint:a]; (void)[plan appendWaypoint:b]; (void)[plan appendWaypoint:c];
+    NSArray *old = [plan reverseWaypoints];
+    XCTAssertEqualObjects(old, (@[a, b, c]));
+    XCTAssertEqualObjects(plan.waypointsLocations, (@[c, b, a]));
+}
+
 - (void)testPreviousArrayIsNotMutatedLater
 {
     // undo relies on the returned array being a snapshot

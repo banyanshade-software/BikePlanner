@@ -192,6 +192,17 @@
     [_mapController exportGPX:sender];
 }
 
+- (IBAction) reverseRoute:(id)sender
+{
+    [_mapController reverseRoute:sender];
+}
+
+- (BOOL)validateMenuItem:(NSMenuItem *)item
+{
+    if (item.action == @selector(reverseRoute:)) return [_mapController canReverseRoute];
+    return [super validateMenuItem:item];
+}
+
 
 // BikePlanner/AppDelegate.m:    brfEditor = [[BRFProfileEditor alloc] initWithProfileName:@"trekking"];
 

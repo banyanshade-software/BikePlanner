@@ -178,6 +178,13 @@
                                     <action selector="setClickModeToView:" target="-1" id="5zb-jr-ozD"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="bpR-ev-Sep"/>
+                            <menuItem title="Reverse Route" id="bpR-ev-Rte">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="reverseRoute:" target="-1" id="bpR-ev-Act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="fvz-FL-Ixr"/>
                             <menuItem title="Cut" keyEquivalent="x" id="uRl-iY-unG">
                                 <connections>
