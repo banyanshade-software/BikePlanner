@@ -56,6 +56,7 @@
 		E82885F34E4FF46608A2A4A5 /* GPXExportTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 032F8FF558D3F420EA69C7AF /* GPXExportTests.m */; };
 		806A3A4E1F12941B0C7C44AF /* ElevationProfileViewTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D7C2BF25481046900BD87DF6 /* ElevationProfileViewTests.m */; };
 		B545596D1D195AB2486FD23C /* DocumentTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 70AA76108A189E2760BAD56D /* DocumentTests.m */; };
+		84B107021A36B2F37F446B97 /* POIAnnotationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 06D13EBFC92A658842185C88 /* POIAnnotationTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -173,6 +174,7 @@
 		032F8FF558D3F420EA69C7AF /* GPXExportTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GPXExportTests.m; sourceTree = "<group>"; };
 		D7C2BF25481046900BD87DF6 /* ElevationProfileViewTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ElevationProfileViewTests.m; sourceTree = "<group>"; };
 		70AA76108A189E2760BAD56D /* DocumentTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DocumentTests.m; sourceTree = "<group>"; };
+		06D13EBFC92A658842185C88 /* POIAnnotationTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = POIAnnotationTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -380,6 +382,7 @@
 				032F8FF558D3F420EA69C7AF /* GPXExportTests.m */,
 				D7C2BF25481046900BD87DF6 /* ElevationProfileViewTests.m */,
 				70AA76108A189E2760BAD56D /* DocumentTests.m */,
+				06D13EBFC92A658842185C88 /* POIAnnotationTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -680,6 +683,7 @@
 				E82885F34E4FF46608A2A4A5 /* GPXExportTests.m in Sources */,
 				806A3A4E1F12941B0C7C44AF /* ElevationProfileViewTests.m in Sources */,
 				B545596D1D195AB2486FD23C /* DocumentTests.m in Sources */,
+				84B107021A36B2F37F446B97 /* POIAnnotationTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

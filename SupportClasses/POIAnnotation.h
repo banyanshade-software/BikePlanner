@@ -13,7 +13,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface POIAnnotation : MKPointAnnotation
 //@property (nonatomic, copy) NSString *xxpoiType;
 @property (nonatomic) PoiType_t poiType;
-@property (nonatomic,assign) NSDictionary *info;
+@property (nonatomic,strong) NSDictionary *info;
 
 - (void) configureAnnotViewIcon:(MKMarkerAnnotationView *)view;
 @end
