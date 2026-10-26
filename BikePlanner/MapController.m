@@ -1268,6 +1268,15 @@ static void XYFromLatLon(double lat, double lon, double refLat, double *outX, do
 - (double)projectedDistanceAlongPolyline:(MKPolyline *)polyline
                            forCoordinate:(CLLocationCoordinate2D)coord
 {
+    return [self projectedDistanceAlongPolyline:polyline forCoordinate:coord segment:NULL];
+}
+
+// same, and returns in *psegment the index of the start point of the nearest segment
+- (double)projectedDistanceAlongPolyline:(MKPolyline *)polyline
+                           forCoordinate:(CLLocationCoordinate2D)coord
+                                 segment:(nullable NSUInteger *)psegment
+{
+    if (psegment) *psegment = 0;
     NSUInteger count = polyline.pointCount;
     if (count < 2) return 0.0;
     
@@ -1319,6 +1328,7 @@ static void XYFromLatLon(double lat, double lon, double refLat, double *outX, do
             bestDist = distMeters;
             // projected distance along whole polyline = cumulative distance at segment start + t * segmentLength
             bestProjectionDist = cum[i] + (segLen[i] * t);
+            if (psegment) *psegment = i;
         }
     }
     
@@ -1487,67 +1497,28 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     
     [self.svCtrl viewCoord:coord lookingAt:bearing coalesce:NO];
 }
+// distance along the route of the projection of coord on the NEAREST route segment (#14)
+// *psegstart: index of the start point of that segment, or the last point index if coord is beyond the end
 - (CLLocationDistance)distanceAtCoordinate:(CLLocationCoordinate2D)coord segstart:(NSUInteger *)psegstart
 {
     *psegstart = 0;
     NSArray <CLLocation *>  *lp = _document.plan.routePoints;
     NSUInteger c = lp.count;
-    if (lp.count < 2) return 0;
-    
+    if (c < 2) return 0;
+
+    CLLocationCoordinate2D coords[c];
     CLLocationDistance total = 0.0;
-    CLLocationDistance result = 0.0;
-    
-    //CLLocation *target = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
-    
-    BOOL found = NO;
-    
-    for (NSInteger i = 0; i < c - 1; i++) {
-        //CLLocationCoordinate2D c1 = lp[i].coordinate;
-        //CLLocationCoordinate2D c2 = lp[i+1].coordinate;
-        CLLocation *loc1 = lp[i];
-        CLLocation *loc2 = lp[i+1];
-        
-        
-        CLLocationDistance segLen = [loc1 distanceFromLocation:loc2];
-        
-        // project target onto segment
-        CGPoint a = CGPointMake(loc1.coordinate.longitude, loc1.coordinate.latitude);
-        CGPoint b = CGPointMake(loc2.coordinate.longitude, loc2.coordinate.latitude);
-        CGPoint p = CGPointMake(coord.longitude, coord.latitude);
-        
-        double dx = b.x - a.x;
-        double dy = b.y - a.y;
-        double segLen2 = dx*dx + dy*dy;
-        
-        double t = 0;
-        if (segLen2 > 0) {
-            t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / segLen2;
-        }
-        
-        if (t >= 0.0 && t <= 1.0) {
-            // falls on this segment
-            CLLocationCoordinate2D projCoord = CLLocationCoordinate2DMake(
-                a.y + t * dy,
-                a.x + t * dx
-            );
-            CLLocation *projLoc = [[CLLocation alloc] initWithLatitude:projCoord.latitude
-                                                             longitude:projCoord.longitude];
-            result = total + [loc1 distanceFromLocation:projLoc];
-            NSLog(@"distance %g seg %ld-%lu", result, i, i+1);
-            *psegstart = i;
-            found = YES;
-            break;
-        }
-        
-        total += segLen;
+    for (NSUInteger i = 0; i < c; i++) {
+        coords[i] = lp[i].coordinate;
+        if (i) total += [lp[i] distanceFromLocation:lp[i-1]];
     }
-    
-    if (!found) {
-        // if coord is beyond the end, clamp to full length
-        *psegstart = (c>1) ? c-1 : 0;
-        return total; // MKMetersBetweenMapPoints(polyline.points[0], polyline.points[polyline.pointCount - 1]);
+    MKPolyline *polyline = [MKPolyline polylineWithCoordinates:coords count:c];
+    CLLocationDistance result = [self projectedDistanceAlongPolyline:polyline forCoordinate:coord segment:psegstart];
+    if (result >= total) {
+        // coord is beyond the end
+        *psegstart = c-1;
+        return total;
     }
-    
     return result;
 }
 

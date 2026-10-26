@@ -125,11 +125,10 @@ static MKPolyline *BPPoly(NSArray<CLLocation *> *pts)
     XCTAssertEqualWithAccuracy([mc bearingAtDistance:1e9], 0, 0.1);
 }
 
-// Known bug: distanceAtCoordinate:segstart: picks the FIRST segment on which the point projects
-// (0 <= t <= 1) instead of the NEAREST segment, so a point on segment 2 is reported at the end of segment 1.
+// distanceAtCoordinate:segstart: must use the NEAREST segment, not the FIRST one on which the point projects
+// (0 <= t <= 1): otherwise a point on segment 2 is reported at the end of segment 1 (#14).
 - (void)testDistanceAtCoordinate
 {
-    XCTExpectFailure(@"distanceAtCoordinate picks first projecting segment, not nearest (MapController.m)");
     [self setEastThenNorthRoute];
     double seg1 = [BPLoc(0, 0) distanceFromLocation:BPLoc(0, 0.1)];
     double half2 = [BPLoc(0, 0.1) distanceFromLocation:BPLoc(0.05, 0.1)];
@@ -141,13 +140,23 @@ static MKPolyline *BPPoly(NSArray<CLLocation *> *pts)
 
 - (void)testDistanceAndCoordinateAreInverse
 {
-    XCTExpectFailure(@"distanceAtCoordinate picks first projecting segment, not nearest (MapController.m)");
     [self setEastThenNorthRoute];
     for (double target = 500; target < 20000; target += 2500) {
         CLLocationCoordinate2D c = [mc coordinateAtDistance:target];
         NSUInteger seg = 0;
         XCTAssertEqualWithAccuracy([mc distanceAtCoordinate:c segstart:&seg], target, 5.0, @"target %g", target);
     }
+}
+
+// A point a few meters after a 90° turn also projects at the end of the incoming segment (t = 1):
+// it must be located on the outgoing segment, so that Street View looks along it (#21).
+- (void)testBearingJustAfterTurn
+{
+    [self setEastThenNorthRoute];
+    NSUInteger seg = 99;
+    double d = [mc distanceAtCoordinate:CLLocationCoordinate2DMake(0.0001, 0.1) segstart:&seg]; // ~11 m north of the corner
+    XCTAssertEqual(seg, 1u);
+    XCTAssertEqualWithAccuracy([mc bearingAtDistance:d], 0, 0.1, @"heading north, not east");
 }
 
 @end
