@@ -93,7 +93,9 @@ All panes are separated by resizable split views.
   first result and drops a pin there.
 
 ### F2 — Click modes
-The map has four click modes, selectable with the segmented control or the *Edit* menu:
+The map has four click modes, selectable with the segmented control or the *Edit ▸ Mode* menu items
+(⌘1 Edit, ⌘2 Add interm., ⌘3 Add POI, ⌘4 View; the current mode is checked). On a non-QWERTY layout macOS
+adapts the shortcut to the key carrying the digit (e.g. ⌘& on AZERTY, i.e. ⌘ + the “1” key without Shift):
 
 | Mode | Click on the map | Click near the route |
 |---|---|---|

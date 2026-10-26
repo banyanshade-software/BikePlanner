@@ -36,7 +36,7 @@
     SafeOSMTileOverlay *osmCycleOverlay;
     
     NSTextField *helpTxtField;
-    int clickmode;
+    BPClickMode clickmode;
     NSSegmentedControl *clickmodeseg;
     
     POIAnnotation *_highlightedPOI;
@@ -161,7 +161,7 @@
 #endif
 
 
-#define MOUSE_RADIUS ((clickmode >=3) ? 30. : 36.0)
+#define MOUSE_RADIUS ((clickmode == BPClickModeView) ? 30. : 36.0)
 
 
 - (void)mouseMoved:(NSEvent *)event
@@ -278,15 +278,15 @@ static NSColor *selectedSegmentColor(void)
     helpTxtField.accessibilityIdentifier = @"clickModeHelp";
     [content addSubview:helpTxtField];
     
-    clickmode = 0;
+    clickmode = BPClickModeEdit;
     clickmodeseg = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 38, 230, 26)];
     clickmodeseg.segmentCount = 4;
     clickmodeseg.selectedSegment = clickmode;
     [self setHelpStringForClickMode:clickmode];
-    [clickmodeseg setLabel:@"Edit" forSegment:0];
-    [clickmodeseg setLabel:@"Add interm." forSegment:1];
-    [clickmodeseg setLabel:@"Add POI" forSegment:2];
-    [clickmodeseg setLabel:@"View" forSegment:3];
+    [clickmodeseg setLabel:@"Edit" forSegment:BPClickModeEdit];
+    [clickmodeseg setLabel:@"Add interm." forSegment:BPClickModeInterm];
+    [clickmodeseg setLabel:@"Add POI" forSegment:BPClickModeAddPOI];
+    [clickmodeseg setLabel:@"View" forSegment:BPClickModeView];
     clickmodeseg.selectedSegmentBezelColor = selectedSegmentColor();
     clickmodeseg.segmentStyle = NSSegmentStyleRoundRect;
     //clickmode.bezelColor = [NSColor redColor];
@@ -327,21 +327,21 @@ static NSColor *selectedSegmentColor(void)
 }
 
 
-- (void) setHelpStringForClickMode:(int)mt
+- (void) setHelpStringForClickMode:(BPClickMode)mt
 {
     NSString *hlp;
     switch (mt) {
         default:
-        case 3:
+        case BPClickModeView:
             hlp = NSLocalizedString( @"Drag waypoints", @"CLICK_MODE_3");
             break;
-        case 2:
+        case BPClickModeAddPOI:
             hlp = NSLocalizedString( @"Add POI", @"CLICK_MODE_2");
             break;
-        case 1:
+        case BPClickModeInterm:
             hlp = NSLocalizedString(@"Click on path to add intermediate waypoints", @"CLICK_MODE_1");
             break;
-        case 0:
+        case BPClickModeEdit:
             hlp = NSLocalizedString(@"Click on map to add start and end waypoints",@"CLICK_MODE_0");
             break;
     }
@@ -351,7 +351,7 @@ static NSColor *selectedSegmentColor(void)
 {
     NSAssert([sender isKindOfClass:[NSSegmentedControl class]], @"bad ctrl class");
     NSSegmentedControl *seg = (NSSegmentedControl *) sender;
-    int mt = (int) seg.selectedSegment;
+    BPClickMode mt = (BPClickMode) seg.selectedSegment;
     NSLog(@"cm %d", mt);
     if (mt != clickmode) {
         [self setHelpStringForClickMode:mt];
@@ -363,25 +363,30 @@ static NSColor *selectedSegmentColor(void)
 
 - (IBAction) setClickModeToEdit:(id)sender
 {
-    [self setClickModeTo:0];
+    [self setClickModeTo:BPClickModeEdit];
 }
 
 - (IBAction) setClickModeToInterm:(id)sender
 {
-    [self setClickModeTo:1];
+    [self setClickModeTo:BPClickModeInterm];
 }
 
 - (IBAction) setClickModeToView:(id)sender
 {
-    [self setClickModeTo:3];
+    [self setClickModeTo:BPClickModeView];
 }
 
 - (IBAction) setClickModeToAddPoi:(id)sender
 {
-    [self setClickModeTo:2];
+    [self setClickModeTo:BPClickModeAddPOI];
 }
 
-- (void) setClickModeTo:(int)mt
+- (BPClickMode) clickMode
+{
+    return clickmode;
+}
+
+- (void) setClickModeTo:(BPClickMode)mt
 {
     if (mt != clickmode) {
         [self setHelpStringForClickMode:mt];
@@ -523,9 +528,9 @@ static NSColor *selectedSegmentColor(void)
     CLLocationCoordinate2D coord = [self.mapView convertPoint:locInView toCoordinateFromView:self.mapView];
     CLLocation *loc = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
    
-    if (clickmode == 3) { // TODO use defined/enum !!
+    if (clickmode == BPClickModeView) {
         CLLocationCoordinate2D rcoord;
-        // in clickmode 3, a click on route moves view
+        // in View mode, a click on route moves view
         if ([self clickNearPolylineAt:locInView tolerence:40. nearestPoint:&rcoord]) {
             scrubberMarker.coordinate = rcoord;
             [self.mapView setCenterCoordinate:rcoord animated:NO];
@@ -540,7 +545,7 @@ static NSColor *selectedSegmentColor(void)
         }
         return;
     }
-    if (clickmode == 2) {
+    if (clickmode == BPClickModeAddPOI) {
         // Add POI on the track
         CLLocationCoordinate2D rcoord;
         if ([self clickNearPolylineAt:locInView tolerence:50. nearestPoint:&rcoord]) {
@@ -549,11 +554,11 @@ static NSColor *selectedSegmentColor(void)
         NSLog(@"..");
         return;
     }
-    if (clickmode<2) {
+    if (clickmode == BPClickModeEdit || clickmode == BPClickModeInterm) {
         CLLocationCoordinate2D rcoord;
         CGFloat tolerence = 16.;
-        if (clickmode == 1) tolerence = 50.;
-        // in clickmode 0 and 1, a click on route adds intermediate point
+        if (clickmode == BPClickModeInterm) tolerence = 50.;
+        // in Edit and Interm modes, a click on route adds intermediate point
         if ([self clickNearPolylineAt:locInView tolerence:tolerence nearestPoint:&rcoord]) {
             MKPolyline *poly = [_document.plan routePoly];
             NSUInteger idx = [self insertionIndexForCoordinate:rcoord polyline:poly waypoints:_document.plan.waypointsLocations];
@@ -568,8 +573,8 @@ static NSColor *selectedSegmentColor(void)
             return;
         }
     }
-    if (clickmode < 1) {
-        // in clickmode 0, a click on map adds end point
+    if (clickmode == BPClickModeEdit) {
+        // in Edit mode, a click on map adds end point
         NSString *title = nil;
         NSUInteger  idx = [_document.plan.waypointsLocations count];
         title = [self stringForWaypointIdx:idx];

@@ -200,6 +200,16 @@
 - (BOOL)validateMenuItem:(NSMenuItem *)item
 {
     if (item.action == @selector(reverseRoute:)) return [_mapController canReverseRoute];
+    // Edit ▸ Mode items: check the current mode
+    NSDictionary<NSString *, NSNumber *> *modes = @{ @"setClickModeToEdit:": @(BPClickModeEdit),
+                                                     @"setClickModeToInterm:": @(BPClickModeInterm),
+                                                     @"setClickModeToAddPoi:": @(BPClickModeAddPOI),
+                                                     @"setClickModeToView:": @(BPClickModeView) };
+    NSNumber *mode = modes[NSStringFromSelector(item.action)];
+    if (mode) {
+        item.state = (_mapController.clickMode == mode.intValue) ? NSControlStateValueOn : NSControlStateValueOff;
+        return YES;
+    }
     return [super validateMenuItem:item];
 }
 

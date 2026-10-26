@@ -155,25 +155,22 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="WRV-NI-Exz"/>
-                            <menuItem title="Mode: Edit" id="swb-YX-fr5">
+                            <menuItem title="Mode: Edit" keyEquivalent="1" id="swb-YX-fr5">
                                 <connections>
                                     <action selector="setClickModeToEdit:" target="-1" id="W5k-TV-utp"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Mode: Add intermediate pt" id="WO7-NH-1Hv">
-                                <modifierMask key="keyEquivalentModifierMask"/>
+                            <menuItem title="Mode: Add intermediate pt" keyEquivalent="2" id="WO7-NH-1Hv">
                                 <connections>
                                     <action selector="setClickModeToInterm:" target="-1" id="Uma-Rw-scd"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Mode: Add POI" id="cBR-92-xUs">
-                                <modifierMask key="keyEquivalentModifierMask"/>
+                            <menuItem title="Mode: Add POI" keyEquivalent="3" id="cBR-92-xUs">
                                 <connections>
                                     <action selector="setClickModeToAddPoi:" target="-1" id="4k6-sh-ock"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Mode: View/Drag" id="nxb-FB-hnT">
-                                <modifierMask key="keyEquivalentModifierMask"/>
+                            <menuItem title="Mode: View/Drag" keyEquivalent="4" id="nxb-FB-hnT">
                                 <connections>
                                     <action selector="setClickModeToView:" target="-1" id="5zb-jr-ozD"/>
                                 </connections>

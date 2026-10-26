@@ -13,6 +13,13 @@
 #import "Document.h"
 NS_ASSUME_NONNULL_BEGIN
 
+// what a click on the map does; values are the segment indexes of the clickMode control
+typedef NS_ENUM(int, BPClickMode) {
+    BPClickModeEdit = 0,    // add start/end waypoints, click on route inserts one
+    BPClickModeInterm = 1,  // click on route inserts an intermediate waypoint
+    BPClickModeAddPOI = 2,  // click on route adds a custom POI
+    BPClickModeView = 3,    // click on route moves Street View / elevation cursor
+};
 
 @interface MapController : NSObject <MKMapViewDelegate, ElevationProfileViewDelegate, NSGestureRecognizerDelegate>
 
@@ -32,6 +39,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (strong, nullable) NSData *gpxData;
 @property (nonatomic) BOOL viewPOI;
+@property (readonly, nonatomic) BPClickMode clickMode;
 
 
 - (IBAction) exportGPX:(id)sender;

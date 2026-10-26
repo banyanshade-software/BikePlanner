@@ -205,6 +205,37 @@
     XCTAssertEqual(seg.selectedSegment, 1);
 }
 
+// Edit ▸ Mode items: ⌘1…⌘4 in the main menu, current mode checked, also when changed with the segmented control (#22)
+- (void)testClickModeMenuShortcuts
+{
+    NSArray *actions = @[@"setClickModeToEdit:", @"setClickModeToInterm:", @"setClickModeToAddPoi:", @"setClickModeToView:"];
+    NSMenu *edit = [NSApp.mainMenu itemWithTitle:@"Edit"].submenu;
+    XCTAssertNotNil(edit);
+    NSSegmentedControl *seg = (NSSegmentedControl *)[self viewWithIdentifier:@"clickMode" in:self.content];
+    for (NSUInteger m = 0; m < actions.count; m++) {
+        NSInteger i = [edit indexOfItemWithTarget:nil andAction:NSSelectorFromString(actions[m])];
+        XCTAssertNotEqual(i, -1, @"%@", actions[m]);
+        if (i < 0) continue;
+        NSMenuItem *item = [edit itemAtIndex:i];
+        // macOS localizes key equivalents to the keyboard layout (⌘1 is reported as ⌘& on AZERTY): compare the raw one
+        BOOL loc = item.allowsAutomaticKeyEquivalentLocalization;
+        item.allowsAutomaticKeyEquivalentLocalization = NO;
+        XCTAssertEqualObjects(item.keyEquivalent, ([NSString stringWithFormat:@"%lu", m + 1]), @"%@", actions[m]);
+        item.allowsAutomaticKeyEquivalentLocalization = loc;
+        XCTAssertEqual(item.keyEquivalentModifierMask & NSEventModifierFlagDeviceIndependentFlagsMask,
+                       NSEventModifierFlagCommand, @"%@", actions[m]);
+    }
+    for (NSUInteger m = 0; m < actions.count; m++) {
+        seg.selectedSegment = m;
+        [mc changeClickMode:seg];
+        for (NSUInteger k = 0; k < actions.count; k++) {
+            NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"" action:NSSelectorFromString(actions[k]) keyEquivalent:@""];
+            XCTAssertTrue([doc validateMenuItem:item]);
+            XCTAssertEqual(item.state, (k == m) ? NSControlStateValueOn : NSControlStateValueOff, @"mode %lu, %@", m, actions[k]);
+        }
+    }
+}
+
 - (void)testMapTypes
 {
     NSSegmentedControl *seg = (NSSegmentedControl *)[self viewWithIdentifier:@"mapType" in:self.content];
