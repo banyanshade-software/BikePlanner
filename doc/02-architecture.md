@@ -246,7 +246,7 @@ Each item is tracked as a GitHub issue.
 | 14 | L | `GPXParser.m` | Imported GPX mixes `wpt`, `rtept` and `trkpt` into one point list. | [#18](https://github.com/banyanshade-software/BikePlanner/issues/18) |
 | 15 | L | `BikePlan.m` | `poiUpdateOnProgress` is written from a background thread and read on main. | [#12](https://github.com/banyanshade-software/BikePlanner/issues/12) |
 | 16 | M ✅ | `MapController.m:1454` | `distanceAtCoordinate:segstart:` returns the distance on the **first** segment on which the point projects (0 ≤ t ≤ 1), not on the **nearest** segment → in View mode, clicking on the route can put the elevation cursor at a wrong place when the route turns or comes back. | [#14](https://github.com/banyanshade-software/BikePlanner/issues/14) |
-| 17 | L ✅ | `BikePlan.m` / `POILocation.m` | Overpass is asked for `amenity=grave_yard` nodes, but `poiTypeForAmenity:` does not map `grave_yard` → those POIs get type unknown (no icon, no title). | [#13](https://github.com/banyanshade-software/BikePlanner/issues/13) |
+| 17 | L ✅ fixed | `BikePlan.m` / `POILocation.m` | Overpass is asked for `amenity=grave_yard` nodes, but `poiTypeForAmenity:` does not map `grave_yard` → those POIs get type unknown (no icon, no title). | [#13](https://github.com/banyanshade-software/BikePlanner/issues/13) |
 
 ### Design / maintainability
 - **`MapController` is a god object**: map setup, UI controls built in code, hit testing, geometry, routing,

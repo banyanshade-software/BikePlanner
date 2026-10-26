@@ -21,10 +21,10 @@
     XCTAssertEqual([POILocation poiTypeForAmenity:@"bench"], POI_unknown);
 }
 
-// Overpass returns amenity=grave_yard for nodes; it is currently not mapped.
-- (void)testGraveYardIsUnknown
+// Overpass returns amenity=grave_yard for nodes (landuse=cemetery for areas) — issue #13.
+- (void)testGraveYardIsCemetery
 {
-    XCTAssertEqual([POILocation poiTypeForAmenity:@"grave_yard"], POI_unknown);
+    XCTAssertEqual([POILocation poiTypeForAmenity:@"grave_yard"], POI_cemetery);
 }
 
 - (void)testGarminTypes

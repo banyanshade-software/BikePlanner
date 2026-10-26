@@ -17,7 +17,7 @@
         
     } else if ([s isEqualToString:@"drinking_water"]) {
         return POI_drinking_water;
-    } else if ([s isEqualToString:@"cemetery"]) {
+    } else if ([s isEqualToString:@"cemetery"] || [s isEqualToString:@"grave_yard"]) {
         return POI_cemetery;
     } else if ([s isEqualToString:@"toilets"]) {
         return POI_toilets;
