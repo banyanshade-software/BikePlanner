@@ -33,17 +33,6 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "65B8EE552E47982C001F2966"
-               BuildableName = "BikePlanner_orgTests.xctest"
-               BlueprintName = "BikePlanner_orgTests"
-               ReferencedContainer = "container:BikePlanner.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
                BlueprintIdentifier = "65F365A82E4F6BE30046B03D"
                BuildableName = "BikePlannerTests.xctest"
                BlueprintName = "BikePlannerTests"

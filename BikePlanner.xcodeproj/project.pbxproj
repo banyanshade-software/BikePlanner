@@ -49,6 +49,13 @@
 		65F3660F2E4F7AE50046B03D /* PlannerWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F3660E2E4F7AE50046B03D /* PlannerWindowController.m */; };
 		65F366122E4FA3DF0046B03D /* BikePlan.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F366112E4FA3DF0046B03D /* BikePlan.m */; };
 		65F366152E4FA4F30046B03D /* RouteAnnotation.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F366142E4FA4F30046B03D /* RouteAnnotation.m */; };
+		2ACBF1D0CF88E445AEBBD021 /* GPXParserTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 7397146E0C07834EB91A015D /* GPXParserTests.m */; };
+		6BD6D41BD8D69E2B2ABB774D /* BikePlanTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 1FF8C882CA5E7DF37D6D27CE /* BikePlanTests.m */; };
+		AE4C1416B0DD40361C1D74D0 /* POILocationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 0C6AE7FBFF6A0D69A27C35C0 /* POILocationTests.m */; };
+		FC7A3022D8962D573589EA9E /* MapControllerGeometryTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D660C5CF05AF93C70F05E803 /* MapControllerGeometryTests.m */; };
+		E82885F34E4FF46608A2A4A5 /* GPXExportTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 032F8FF558D3F420EA69C7AF /* GPXExportTests.m */; };
+		806A3A4E1F12941B0C7C44AF /* ElevationProfileViewTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D7C2BF25481046900BD87DF6 /* ElevationProfileViewTests.m */; };
+		B545596D1D195AB2486FD23C /* DocumentTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 70AA76108A189E2760BAD56D /* DocumentTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -158,6 +165,14 @@
 		65F366112E4FA3DF0046B03D /* BikePlan.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikePlan.m; sourceTree = "<group>"; };
 		65F366132E4FA4F30046B03D /* RouteAnnotation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RouteAnnotation.h; sourceTree = "<group>"; };
 		65F366142E4FA4F30046B03D /* RouteAnnotation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RouteAnnotation.m; sourceTree = "<group>"; };
+		16039B744D335B2E4D3249E6 /* TestFixtures.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TestFixtures.h; sourceTree = "<group>"; };
+		7397146E0C07834EB91A015D /* GPXParserTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GPXParserTests.m; sourceTree = "<group>"; };
+		1FF8C882CA5E7DF37D6D27CE /* BikePlanTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BikePlanTests.m; sourceTree = "<group>"; };
+		0C6AE7FBFF6A0D69A27C35C0 /* POILocationTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = POILocationTests.m; sourceTree = "<group>"; };
+		D660C5CF05AF93C70F05E803 /* MapControllerGeometryTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MapControllerGeometryTests.m; sourceTree = "<group>"; };
+		032F8FF558D3F420EA69C7AF /* GPXExportTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GPXExportTests.m; sourceTree = "<group>"; };
+		D7C2BF25481046900BD87DF6 /* ElevationProfileViewTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ElevationProfileViewTests.m; sourceTree = "<group>"; };
+		70AA76108A189E2760BAD56D /* DocumentTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DocumentTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -357,6 +372,14 @@
 			isa = PBXGroup;
 			children = (
 				65F365AD2E4F6BE30046B03D /* BikePlannerTests.m */,
+				16039B744D335B2E4D3249E6 /* TestFixtures.h */,
+				7397146E0C07834EB91A015D /* GPXParserTests.m */,
+				1FF8C882CA5E7DF37D6D27CE /* BikePlanTests.m */,
+				0C6AE7FBFF6A0D69A27C35C0 /* POILocationTests.m */,
+				D660C5CF05AF93C70F05E803 /* MapControllerGeometryTests.m */,
+				032F8FF558D3F420EA69C7AF /* GPXExportTests.m */,
+				D7C2BF25481046900BD87DF6 /* ElevationProfileViewTests.m */,
+				70AA76108A189E2760BAD56D /* DocumentTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -650,6 +673,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				65F365AE2E4F6BE30046B03D /* BikePlannerTests.m in Sources */,
+				2ACBF1D0CF88E445AEBBD021 /* GPXParserTests.m in Sources */,
+				6BD6D41BD8D69E2B2ABB774D /* BikePlanTests.m in Sources */,
+				AE4C1416B0DD40361C1D74D0 /* POILocationTests.m in Sources */,
+				FC7A3022D8962D573589EA9E /* MapControllerGeometryTests.m in Sources */,
+				E82885F34E4FF46608A2A4A5 /* GPXExportTests.m in Sources */,
+				806A3A4E1F12941B0C7C44AF /* ElevationProfileViewTests.m in Sources */,
+				B545596D1D195AB2486FD23C /* DocumentTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
