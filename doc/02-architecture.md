@@ -228,25 +228,25 @@ Findings from reading the code; those marked ✅ are confirmed by a unit test. S
 Each item is tracked as a GitHub issue.
 
 ### Correctness
-| # | Sev | Where | Finding |
-|---|---|---|---|
-| 1 | M | `BikePlan.m:215` | `routePoly` tests `!_waypointPoly` instead of `!_routePoly`. Since `waypointPoly` is never used, the route polyline is rebuilt **on every access** and `shouldRequestPOI` is fired each time (every click near the route, every refresh). The throttling in `tryRequestPoi` (≥ 2.8 s between requests, coalescing timer) limits this to one Overpass request every ~3 s while the user interacts, but each one is a redundant full re-fetch. Fixing it naively would break route refresh, because `setRoutePoints:` does not invalidate `_routePoly` (guarded by `BikePlanTests.testRoutePolyFollowsRoutePoints`). |
-| 2 | H | `POIAnnotation.h:16`, `POICalloutView.h:14` | `info` / `infodic` are `assign` object properties (= `unsafe_unretained` under ARC) → potential dangling pointer / crash. |
-| 3 | H | `MapController.m:523`, `MapController.m:1640` | Adding a custom POI or importing a reference trace does not register undo nor call `updateChangeCount:` → document not marked edited, changes can be lost. |
-| 4 | M | `MapController.m:750` | Route requests are not cancelled or sequenced: a slow earlier response can overwrite the result of a later one. |
-| 5 | M | `MapController.m:756` | Routing errors and empty results are only logged; the user gets no feedback. |
-| 6 | M | `MapController.m:930` | `gpxData` is not persisted: after reopening a document, export is disabled until the route is recomputed. |
-| 7 | M | `BikePlan.m:325` | Overpass errors are retried every ~2 s forever, without backoff. Query size grows with route length (one clause per 10 points × 2) — long routes may hit Overpass limits. |
-| 8 | M ✅ | `MapController.m:855` | GPX export builds XML with string formatting, without XML escaping; custom POIs have a nil title (`<name>(null)</name>`) and `gpxSymbol` “...”. |
-| 9 | M | `PlannerWindowController.m:49` | BRF overrides are joined with `&` then escaped with the deprecated `stringByAddingPercentEscapesUsingEncoding:` (does not escape `&`): all but the first override become top-level query parameters. To verify against BRouter's expected format. |
-| 10 | M | `Document.m:134` | *Revert to Saved* replaces `plan` but the map is not refreshed and `poiAvailableCallback` is not re-installed on the new plan. |
-| 11 | L | `ElevationProfileView.m:87` | Division by zero when the route is flat (`maxElev == minElev`): does not crash (tested) but draws nothing meaningful; axes drawn in black (invisible in dark mode). |
-| 12 | L | `MapController.m:1375` | `excludeControlChanged:` reads a POI pointer from `sender.tag`, which is never set. |
-| 13 | L | `MapController.m:426` | `clearAction:` is unused and would set `scrubberMarker = nil`. |
-| 14 | L | `GPXParser.m` | Imported GPX mixes `wpt`, `rtept` and `trkpt` into one point list. |
-| 15 | L | `BikePlan.m` | `poiUpdateOnProgress` is written from a background thread and read on main. |
-| 16 | M ✅ | `MapController.m:1454` | `distanceAtCoordinate:segstart:` returns the distance on the **first** segment on which the point projects (0 ≤ t ≤ 1), not on the **nearest** segment → in View mode, clicking on the route can put the elevation cursor at a wrong place when the route turns or comes back. |
-| 17 | L ✅ | `BikePlan.m` / `POILocation.m` | Overpass is asked for `amenity=grave_yard` nodes, but `poiTypeForAmenity:` does not map `grave_yard` → those POIs get type unknown (no icon, no title). |
+| # | Sev | Where | Finding | Issue |
+|---|---|---|---|---|
+| 1 | M | `BikePlan.m:215` | `routePoly` tests `!_waypointPoly` instead of `!_routePoly`. Since `waypointPoly` is never used, the route polyline is rebuilt **on every access** and `shouldRequestPOI` is fired each time (every click near the route, every refresh). The throttling in `tryRequestPoi` (≥ 2.8 s between requests, coalescing timer) limits this to one Overpass request every ~3 s while the user interacts, but each one is a redundant full re-fetch. Fixing it naively would break route refresh, because `setRoutePoints:` does not invalidate `_routePoly` (guarded by `BikePlanTests.testRoutePolyFollowsRoutePoints`). | [#6](https://github.com/banyanshade-software/BikePlanner/issues/6) |
+| 2 | H | `POIAnnotation.h:16`, `POICalloutView.h:14` | `info` / `infodic` are `assign` object properties (= `unsafe_unretained` under ARC) → potential dangling pointer / crash. | [#7](https://github.com/banyanshade-software/BikePlanner/issues/7) |
+| 3 | H | `MapController.m:523`, `MapController.m:1640` | Adding a custom POI or importing a reference trace does not register undo nor call `updateChangeCount:` → document not marked edited, changes can be lost. | [#8](https://github.com/banyanshade-software/BikePlanner/issues/8) |
+| 4 | M | `MapController.m:750` | Route requests are not cancelled or sequenced: a slow earlier response can overwrite the result of a later one. | [#9](https://github.com/banyanshade-software/BikePlanner/issues/9) |
+| 5 | M | `MapController.m:756` | Routing errors and empty results are only logged; the user gets no feedback. | [#9](https://github.com/banyanshade-software/BikePlanner/issues/9) |
+| 6 | M | `MapController.m:930` | `gpxData` is not persisted: after reopening a document, export is disabled until the route is recomputed. | [#10](https://github.com/banyanshade-software/BikePlanner/issues/10) |
+| 7 | M | `BikePlan.m:325` | Overpass errors are retried every ~2 s forever, without backoff. Query size grows with route length (one clause per 10 points × 2) — long routes may hit Overpass limits. | [#12](https://github.com/banyanshade-software/BikePlanner/issues/12) |
+| 8 | M ✅ | `MapController.m:855` | GPX export builds XML with string formatting, without XML escaping; custom POIs have a nil title (`<name>(null)</name>`) and `gpxSymbol` “...”. | [#11](https://github.com/banyanshade-software/BikePlanner/issues/11) |
+| 9 | M | `PlannerWindowController.m:49` | BRF overrides are joined with `&` then escaped with the deprecated `stringByAddingPercentEscapesUsingEncoding:` (does not escape `&`): all but the first override become top-level query parameters. To verify against BRouter's expected format. | [#15](https://github.com/banyanshade-software/BikePlanner/issues/15) |
+| 10 | M | `Document.m:134` | *Revert to Saved* replaces `plan` but the map is not refreshed and `poiAvailableCallback` is not re-installed on the new plan. | [#16](https://github.com/banyanshade-software/BikePlanner/issues/16) |
+| 11 | L | `ElevationProfileView.m:87` | Division by zero when the route is flat (`maxElev == minElev`): does not crash (tested) but draws nothing meaningful; axes drawn in black (invisible in dark mode). | [#17](https://github.com/banyanshade-software/BikePlanner/issues/17) |
+| 12 | L | `MapController.m:1375` | `excludeControlChanged:` reads a POI pointer from `sender.tag`, which is never set. | [#5](https://github.com/banyanshade-software/BikePlanner/issues/5) |
+| 13 | L | `MapController.m:426` | `clearAction:` is unused and would set `scrubberMarker = nil`. | [#18](https://github.com/banyanshade-software/BikePlanner/issues/18) |
+| 14 | L | `GPXParser.m` | Imported GPX mixes `wpt`, `rtept` and `trkpt` into one point list. | [#18](https://github.com/banyanshade-software/BikePlanner/issues/18) |
+| 15 | L | `BikePlan.m` | `poiUpdateOnProgress` is written from a background thread and read on main. | [#12](https://github.com/banyanshade-software/BikePlanner/issues/12) |
+| 16 | M ✅ | `MapController.m:1454` | `distanceAtCoordinate:segstart:` returns the distance on the **first** segment on which the point projects (0 ≤ t ≤ 1), not on the **nearest** segment → in View mode, clicking on the route can put the elevation cursor at a wrong place when the route turns or comes back. | [#14](https://github.com/banyanshade-software/BikePlanner/issues/14) |
+| 17 | L ✅ | `BikePlan.m` / `POILocation.m` | Overpass is asked for `amenity=grave_yard` nodes, but `poiTypeForAmenity:` does not map `grave_yard` → those POIs get type unknown (no icon, no title). | [#13](https://github.com/banyanshade-software/BikePlanner/issues/13) |
 
 ### Design / maintainability
 - **`MapController` is a god object**: map setup, UI controls built in code, hit testing, geometry, routing,
