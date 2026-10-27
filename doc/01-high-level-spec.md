@@ -136,6 +136,9 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 ### F5 — Elevation profile
 - F5.1 Shows altitude vs. distance for the computed route; segment color depends on slope:
   red > +5 %, blue < −5 %, green otherwise.
+- F5.3 Scale: altitude labels (m) with light grid lines on the left, distance labels (km) at the bottom. The
+  vertical range is at least 100 m, centered on the route, so small differences do not look steep; it is
+  extended to round values.
 - F5.2 Clicking or dragging in the profile moves a dashed cursor, moves the scrubber marker on the map,
   centers the map there and updates Street View, looking in the direction of travel.
 
