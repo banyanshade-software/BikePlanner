@@ -80,6 +80,33 @@
     XCTAssertEqualObjects(plan.waypointsLocations, (@[c, b, a]));
 }
 
+- (void)testClearRouteKeepsReferenceTraceAndRestores
+{
+    CLLocation *a = BPLoc(44, 0.5), *b = BPLoc(44.1, 0.6);
+    (void)[plan appendWaypoint:a]; (void)[plan appendWaypoint:b];
+    plan.routePoints = @[a, BPLoc(44.05, 0.55), b];
+    plan.brouterInfo.kmlen = 12; plan.brouterInfo.mup = 150;
+    [plan addCustomPoiAt:CLLocationCoordinate2DMake(44.05, 0.55)];
+    plan.gpxDisplayed = @[a, b];
+
+    NSDictionary *old = [plan clearRoute];
+    XCTAssertEqual(plan.waypointsLocations.count, 0u);
+    XCTAssertEqual(plan.routePoints.count, 0u);
+    XCTAssertEqual(plan.brouterInfo.kmlen, 0);
+    XCTAssertEqual(plan.brouterInfo.mup, 0);
+    XCTAssertEqual(plan.customPoiloc.count, 0u);
+    XCTAssertEqual(plan.gpxDisplayed.count, 2u, @"reference trace kept");
+
+    [plan restoreRoute:old];
+    XCTAssertEqualObjects(plan.waypointsLocations, (@[a, b]));
+    XCTAssertEqual(plan.routePoints.count, 3u);
+    XCTAssertEqual(plan.brouterInfo.kmlen, 12);
+    XCTAssertEqual(plan.brouterInfo.mup, 150);
+    XCTAssertEqual(plan.customPoiloc.count, 1u);
+    (void)[plan appendWaypoint:BPLoc(44.2, 0.7)]; // still mutable after restore
+    XCTAssertEqual(plan.waypointsLocations.count, 3u);
+}
+
 - (void)testPreviousArrayIsNotMutatedLater
 {
     // undo relies on the returned array being a snapshot

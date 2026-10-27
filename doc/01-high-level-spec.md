@@ -121,6 +121,9 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   as well as adding a custom POI and importing a reference trace.
 - F3.8 *Edit ▸ Reverse Route* or the toolbar *Reverse* button (enabled with ≥ 2 waypoints) swaps start and end: the waypoint order is reversed
   and the route is **recomputed** by BRouter (one-way streets, climbs differ in the other direction).
+- F3.9 *Edit ▸ Clear Route* or the toolbar *Clear* button (enabled with ≥ 1 waypoint) erases waypoints, route,
+  length/ascent, fetched and custom POIs, but **keeps the reference trace**. Undo restores the route as it was
+  (no new BRouter request).
 
 ### F4 — Routing parameters
 - F4.1 Routing uses the BRouter `trekking` profile.

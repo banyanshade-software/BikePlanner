@@ -159,6 +159,8 @@ Insert: `insertionIndexForCoordinate` → `plan.insertWaypoint` → undo → ann
 Move: `mapView:annotationView:didChangeDragState:` (Ending) → `plan.replaceWaypointAtIndex` → undo → `requestRoute`.
 Remove: context menu → `plan.removeWaypointAtIndex` → undo → reindex → `shouldRecalcRoute`.
 Reverse: *Edit ▸ Reverse Route* → `plan.reverseWaypoints` → undo → `fullRefresh:NO` → `shouldRecalcRoute`.
+Clear: *Edit ▸ Clear Route* → `setRouteState:nil` → `plan.clearRoute` (returns the previous state, + BRouter GPX)
+→ undo registers `undoRouteState:` with it → `fullRefresh:NO`; undo calls `plan.restoreRoute:` (no new request).
 
 ### 6.3 POIs
 ```

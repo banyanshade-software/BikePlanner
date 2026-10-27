@@ -485,21 +485,35 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
 }
 
 
-- (void)clearAction:(id)sender
+// Clear Route (#33): everything but the reference trace; undo restores the route as is (no new BRouter request)
+- (BOOL) canClearRoute
 {
-    [self undoableWP:[_document.plan removeWaypoints] desc:@"clear all"];
-    //self.hasStart = NO; self.hasEnd = NO;
-    self.gpxData = nil;
-    [waypointsRouteAnnotations removeAllObjects];
-    //poly = nil;
-    scrubberMarker = nil;
-    [self.mapView removeAnnotations:self.mapView.annotations];
-    //[self.mapView removeOverlays:self.mapView.overlays];
-    for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
-        if (![ov isKindOfClass:[MKTileOverlay class]]) {
-            [self.mapView removeOverlay:ov];
-        }
-    }
+    return [_document.plan.waypointsLocations count] > 0;
+}
+
+- (IBAction) clearRoute:(id)sender
+{
+    if (![self canClearRoute]) return;
+    [self setRouteState:nil desc:@"clear route"];
+}
+
+// state: from -[BikePlan clearRoute] (+ "gpx": the BRouter GPX for export), nil to clear
+- (void) setRouteState:(nullable NSDictionary *)state desc:(nullable NSString *)d
+{
+    NSMutableDictionary *cur = [[_document.plan clearRoute] mutableCopy];
+    if (self.gpxData) cur[@"gpx"] = self.gpxData;
+    NSUndoManager *um = _document.undoManager;
+    [um registerUndoWithTarget:self selector:@selector(undoRouteState:) object:cur];
+    if (d) [um setActionName:d];
+    if (state) [_document.plan restoreRoute:state];
+    self.gpxData = state[@"gpx"];
+    self.elevationView.highlightDistance = 0;
+    [self fullRefresh:NO];
+}
+
+- (void) undoRouteState:(NSDictionary *)state
+{
+    [self setRouteState:state desc:nil];
 }
 
 - (NSColor *) pinColorForWaypointIdx:(NSUInteger)idx
@@ -1687,6 +1701,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 - (BOOL) validateToolbarItem:(NSToolbarItem *)item
 {
     if (item.action == @selector(reverseRoute:)) return [self canReverseRoute];
+    if (item.action == @selector(clearRoute:)) return [self canClearRoute];
     return YES;
 }
 

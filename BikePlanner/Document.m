@@ -202,9 +202,15 @@
     [_mapController reverseRoute:sender];
 }
 
+- (IBAction) clearRoute:(id)sender
+{
+    [_mapController clearRoute:sender];
+}
+
 - (BOOL)validateMenuItem:(NSMenuItem *)item
 {
     if (item.action == @selector(reverseRoute:)) return [_mapController canReverseRoute];
+    if (item.action == @selector(clearRoute:)) return [_mapController canClearRoute];
     if (item.action == @selector(removeGPXTraceForDisplay:)) return [_mapController canRemoveGPXTraceForDisplay];
     // Edit ▸ Mode items: check the current mode
     NSDictionary<NSString *, NSNumber *> *modes = @{ @"setClickModeToEdit:": @(BPClickModeEdit),

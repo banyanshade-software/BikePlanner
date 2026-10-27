@@ -118,6 +118,32 @@
     return old;
 }
 
+- (NSDictionary *) clearRoute
+{
+    NSDictionary *old = @{ @"waypoints": _waypointsLocations ?: @[],
+                           @"route": _routePoints ?: @[],
+                           @"kmlen": @(_brouterInfo.kmlen), @"mup": @(_brouterInfo.mup),
+                           @"poiloc": _poiloc ?: @[],
+                           @"custom": [_customPoiloc copy] ?: @[] };
+    [self undoSetWayPt:@[]];
+    self.routePoints = @[];
+    self.brouterInfo.kmlen = 0;
+    self.brouterInfo.mup = 0;
+    self.poiloc = @[];
+    [self restoreCustomPoi:nil];
+    return old;
+}
+
+- (void) restoreRoute:(NSDictionary *)state
+{
+    [self undoSetWayPt:state[@"waypoints"]];
+    self.routePoints = state[@"route"];
+    self.brouterInfo.kmlen = [state[@"kmlen"] integerValue];
+    self.brouterInfo.mup = [state[@"mup"] integerValue];
+    self.poiloc = state[@"poiloc"];
+    [self restoreCustomPoi:state[@"custom"]];
+}
+
 - (void) clearWaypointCache
 {
     [self willChangeValueForKey:@"waypointPoly"];

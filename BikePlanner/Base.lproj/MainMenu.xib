@@ -188,6 +188,12 @@
                                     <action selector="reverseRoute:" target="-1" id="bpR-ev-Act"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Clear Route" id="bpC-lr-Itm">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="clearRoute:" target="-1" id="bpC-lr-Act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="fvz-FL-Ixr"/>
                             <menuItem title="Cut" keyEquivalent="x" id="uRl-iY-unG">
                                 <connections>

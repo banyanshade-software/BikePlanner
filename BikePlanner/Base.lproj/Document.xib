@@ -315,6 +315,13 @@
                             <action selector="reverseRoute:" target="A8h-DG-dAb" id="bpR-ev-TbA"/>
                         </connections>
                     </toolbarItem>
+                    <toolbarItem implicitItemIdentifier="236DB825-814B-43F6-A5B6-EE0851DFFA7B" label="Clear" paletteLabel="Clear Route" toolTip="Clear Route (keeps the displayed GPX trace)" tag="-1" image="trash" catalog="system" bordered="YES" id="bpC-lr-Tbr">
+                        <size key="minSize" width="24" height="25"/>
+                        <size key="maxSize" width="24" height="25"/>
+                        <connections>
+                            <action selector="clearRoute:" target="A8h-DG-dAb" id="bpC-lr-TbA"/>
+                        </connections>
+                    </toolbarItem>
                     <toolbarItem implicitItemIdentifier="NSToolbarSpaceItem" id="fDF-kf-KYk"/>
                     <toolbarItem implicitItemIdentifier="NSToolbarFlexibleSpaceItem" id="agb-ne-NJe"/>
                     <toolbarItem implicitItemIdentifier="D259C483-0FC7-4270-BD1F-7B8545263ECE" label="export GPX" paletteLabel="export GPX" tag="-1" image="NSShareTemplate" bordered="YES" autovalidates="NO" id="8r3-PN-gIi">
@@ -350,6 +357,7 @@
                     <toolbarItem reference="DvI-s2-T2h"/>
                     <toolbarItem reference="lbJ-yg-vqB"/>
                     <toolbarItem reference="bpR-ev-Tbr"/>
+                    <toolbarItem reference="bpC-lr-Tbr"/>
                     <toolbarItem reference="8r3-PN-gIi"/>
                     <searchToolbarItem reference="Wia-yV-wit"/>
                 </defaultToolbarItems>
@@ -364,5 +372,6 @@
         <image name="NSShareTemplate" width="16" height="17"/>
         <image name="mappin.slash" catalog="system" width="12" height="16"/>
         <image name="arrow.left.arrow.right" catalog="system" width="16" height="14"/>
+        <image name="trash" catalog="system" width="15" height="17"/>
     </resources>
 </document>

@@ -52,6 +52,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void) undoSetWayPt:() wp;
 
+// erases waypoints, route, length/ascent, fetched and custom POIs; keeps the reference trace (#33).
+// Returns the previous state, to give back to restoreRoute: (undo)
+- (NSDictionary *) clearRoute NS_WARN_UNUSED_RESULT;
+- (void) restoreRoute:(NSDictionary *)state;
+
 @property (readonly,nonatomic) TaggedPoly *routePoly;    // MKPolyLine with a tag, 0
 @property (readonly,nonatomic) TaggedPoly *waypointPoly; // MKPolyLine with a tag, 1
 @property (readonly,nonatomic) TaggedPoly *gpxDisplayedPoly; // MKPolyLine with a tag, 2

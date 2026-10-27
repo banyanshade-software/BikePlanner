@@ -25,6 +25,7 @@
 
 @interface MapController (WindowTesting)
 - (void)handleMapClick:(NSGestureRecognizer *)gesture;
+- (void)addCustomPoiAt:(CLLocationCoordinate2D)coord;
 - (void)changeMapType:(id)sender;
 - (void)changeClickMode:(id)sender;
 - (IBAction)zoomIn:(id)sender;
@@ -48,6 +49,7 @@
 - (IBAction)setClickModeToAddPoi:(id)sender;
 - (IBAction)reverseRoute:(id)sender;
 - (IBAction)removeGPXTraceForDisplay:(id)sender;
+- (IBAction)clearRoute:(id)sender;
 @end
 
 // Returns a fixed location, in map view coordinates
@@ -474,6 +476,70 @@
     XCTAssertEqualObjects(um.undoActionName, @"reverse route");
     [um undo];
     XCTAssertEqualObjects(doc.plan.waypointsLocations, wps);
+}
+
+// Edit ▸ Clear Route and its toolbar button (#33): erases waypoints, route, length/ascent and POIs, keeps the
+// reference trace; undo restores everything without a new BRouter request
+- (void)testClearRoute
+{
+    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"" action:@selector(clearRoute:) keyEquivalent:@""];
+    XCTAssertFalse([doc validateMenuItem:item], @"disabled on an empty plan");
+    NSToolbarItem *button = nil;
+    for (NSToolbarItem *it in doc.windowControllers.firstObject.window.toolbar.items) if (it.action == @selector(clearRoute:)) button = it;
+    XCTAssertNotNil(button, @"Clear button in the default toolbar");
+    XCTAssertFalse([mc validateToolbarItem:button]);
+
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    [um beginUndoGrouping];
+    [self makeRoute];
+    [self waitForPOIs];
+    [mc addCustomPoiAt:CLLocationCoordinate2DMake(44.05, 0.55)];
+    NSURL *url = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-ref-clear.gpx"]];
+    XCTAssertTrue([BPData(kBRouterGPX) writeToURL:url atomically:YES]);
+    [mc loadGPXFromURL:url];
+    [um endUndoGrouping];
+    NSInteger km = doc.plan.brouterInfo.kmlen;
+    XCTAssertGreaterThan(km, 0);
+    XCTAssertGreaterThan(doc.plan.poiloc.count, 0u);
+    XCTAssertTrue([doc validateMenuItem:item]);
+    XCTAssertTrue([mc validateToolbarItem:button]);
+    [server clearRequests];
+
+    [um beginUndoGrouping];
+    [doc clearRoute:item];
+    [um endUndoGrouping];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
+    XCTAssertEqual(doc.plan.routePoints.count, 0u);
+    XCTAssertEqual(doc.plan.brouterInfo.kmlen, 0);
+    XCTAssertEqual(doc.plan.brouterInfo.mup, 0);
+    XCTAssertEqual(doc.plan.poiloc.count, 0u);
+    XCTAssertEqual(doc.plan.customPoiloc.count, 0u);
+    XCTAssertNil(mc.gpxData, @"nothing to export");
+    XCTAssertEqual([self annotationsOfClass:[RouteAnnotation class]].count, 0u);
+    XCTAssertEqual([self annotationsOfClass:[POIAnnotation class]].count, 0u);
+    XCTAssertEqual([self polysWithTag:0].firstObject.pointCount, 0u);
+    XCTAssertEqual(mc.elevationView.distances.count, 0u);
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 3u, @"reference trace kept");
+    XCTAssertEqual([self polysWithTag:2].count, 1u);
+    XCTAssertFalse([doc validateMenuItem:item]);
+
+    XCTAssertEqualObjects(um.undoActionName, @"clear route");
+    [um undo];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
+    XCTAssertEqual(doc.plan.routePoints.count, 11u);
+    XCTAssertEqual(doc.plan.brouterInfo.kmlen, km);
+    XCTAssertEqual(doc.plan.customPoiloc.count, 1u);
+    XCTAssertGreaterThan(doc.plan.poiloc.count, 0u);
+    XCTAssertNotNil(mc.gpxData, @"export available again");
+    XCTAssertEqual([self annotationsOfClass:[RouteAnnotation class]].count, 2u);
+    XCTAssertEqual(mc.elevationView.distances.count, 11u);
+    BPSpin(0.2);
+    XCTAssertEqual([server requestsWithPath:@"/brouter"].count, 0u, @"restored, not recomputed");
+    [um redo];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 3u);
+    [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
 }
 
 // toolbar button for Reverse Route (#25), enabled with >= 2 waypoints
