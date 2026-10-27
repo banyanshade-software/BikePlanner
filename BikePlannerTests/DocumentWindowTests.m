@@ -472,7 +472,7 @@
     RouteAnnotation *first = nil;
     for (RouteAnnotation *a in [self annotationsOfClass:[RouteAnnotation class]]) if (a.idx == 0) first = a;
     XCTAssertEqualWithAccuracy(first.coordinate.latitude, 44.1, 1e-6, @"start marker is the old end");
-    XCTAssertTrue(doc.isDocumentEdited);
+    XCTAssertTrue(BPWaitUntil(2, ^{ return self->doc.isDocumentEdited; }), @"document edited (updated asynchronously by NSDocument)");
 
     XCTAssertEqualObjects(um.undoActionName, @"reverse route");
     [um undo];
@@ -771,7 +771,7 @@
     BPSpin(0.1); // NSDocument updates its edited state asynchronously
     XCTAssertEqual(doc.plan.gpxDisplayed.count, 0u);
     XCTAssertEqual([self polysWithTag:2].count, 0u);
-    XCTAssertTrue(doc.isDocumentEdited);
+    XCTAssertTrue(BPWaitUntil(2, ^{ return self->doc.isDocumentEdited; }), @"document edited (updated asynchronously by NSDocument)");
     XCTAssertFalse([doc validateMenuItem:item]);
 
     XCTAssertEqualObjects(um.undoActionName, @"remove trace");
