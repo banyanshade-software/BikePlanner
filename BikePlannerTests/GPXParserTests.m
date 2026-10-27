@@ -75,18 +75,30 @@
     XCTAssertNotNil(err);
 }
 
-// Current behavior: waypoints and route points are merged with track points
-// into a single list (see doc/02-architecture.md §9, item 14).
-- (void)testWaypointsAreMergedWithTrackPoints
+// The trace is the track; waypoints (e.g. POIs exported by BikePlanner) are kept apart (#28).
+- (void)testWaypointsAreKeptOutOfTheTrack
 {
     NSString *gpx = @"<gpx>"
-                    @"<wpt lat=\"10\" lon=\"10\"><name>w</name></wpt>"
                     @"<trk><trkseg><trkpt lat=\"1\" lon=\"1\"/><trkpt lat=\"2\" lon=\"2\"/></trkseg></trk>"
+                    @"<wpt lat=\"10\" lon=\"10\"><name>w</name></wpt>"
                     @"</gpx>";
     GPXParser *p = [[GPXParser alloc] init];
     NSArray<CLLocation *> *pts = [p parseGPXData:BPData(gpx) error:NULL];
-    XCTAssertEqual(pts.count, 3u);
-    XCTAssertEqualWithAccuracy(pts[0].coordinate.latitude, 10, 1e-9);
+    XCTAssertEqual(pts.count, 2u);
+    XCTAssertEqualWithAccuracy(pts[0].coordinate.latitude, 1, 1e-9);
+    XCTAssertEqualWithAccuracy(pts[1].coordinate.latitude, 2, 1e-9);
+    XCTAssertEqual(p.waypoints.count, 1u);
+    XCTAssertEqualWithAccuracy(p.waypoints[0].coordinate.latitude, 10, 1e-9);
+}
+
+// without a track: the route points, then the waypoints, are the trace
+- (void)testRouteOrWaypointsWhenNoTrack
+{
+    NSString *rte = @"<gpx><wpt lat=\"10\" lon=\"10\"/>"
+                    @"<rte><rtept lat=\"1\" lon=\"1\"/><rtept lat=\"2\" lon=\"2\"/><rtept lat=\"3\" lon=\"3\"/></rte></gpx>";
+    XCTAssertEqual([[[GPXParser alloc] init] parseGPXData:BPData(rte) error:NULL].count, 3u);
+    NSString *wpt = @"<gpx><wpt lat=\"1\" lon=\"1\"/><wpt lat=\"2\" lon=\"2\"/></gpx>";
+    XCTAssertEqual([[[GPXParser alloc] init] parseGPXData:BPData(wpt) error:NULL].count, 2u);
 }
 
 @end

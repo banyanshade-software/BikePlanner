@@ -8,7 +8,9 @@
 #import "GPXParser.h"
 
 @implementation GPXParser {
-    NSMutableArray<CLLocation *> *_points;
+    NSMutableArray<CLLocation *> *_points;     // trkpt
+    NSMutableArray<CLLocation *> *_rtePoints;  // rtept
+    NSMutableArray<CLLocation *> *_wptPoints;  // wpt: kept out of the trace (#28)
     NSString *stringEle;
     CLLocation *curloc;
     NSMutableDictionary<NSString *, NSString *> *brouterInfo;
@@ -21,6 +23,8 @@
     }
 
     _points = [NSMutableArray array];
+    _rtePoints = [NSMutableArray array];
+    _wptPoints = [NSMutableArray array];
 
     NSXMLParser *parser = [[NSXMLParser alloc] initWithData:data];
     parser.delegate = self;
@@ -34,7 +38,14 @@
         return nil;
     }
 
-    return [_points copy];
+    if (_points.count) return [_points copy];
+    if (_rtePoints.count) return [_rtePoints copy];
+    return [_wptPoints copy];
+}
+
+- (NSArray<CLLocation *> *)waypoints
+{
+    return [_wptPoints copy] ?: @[];
 }
 
 #pragma mark - NSXMLParserDelegate
@@ -80,11 +91,17 @@
         curloc = nloc;
 
     }
-    if ([elementName isEqualToString:@"trkpt"] ||
-        [elementName isEqualToString:@"wpt"] ||
-        [elementName isEqualToString:@"rtept"]) {
-        [_points addObject:curloc];
-        curloc = nil;
+    if (curloc) {
+        if ([elementName isEqualToString:@"trkpt"]) {
+            [_points addObject:curloc];
+            curloc = nil;
+        } else if ([elementName isEqualToString:@"rtept"]) {
+            [_rtePoints addObject:curloc];
+            curloc = nil;
+        } else if ([elementName isEqualToString:@"wpt"]) {
+            [_wptPoints addObject:curloc];
+            curloc = nil;
+        }
     }
 }
 

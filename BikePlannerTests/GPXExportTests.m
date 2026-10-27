@@ -3,8 +3,6 @@
 //  BikePlannerTests
 //
 //  -[MapController exportGpxDataWithPOI:trackName:] (private, exposed through a test category).
-//  Tests wrapped in XCTExpectFailure document known bugs (doc/02-architecture.md §9 item 8):
-//  they will start failing once the bug is fixed — then remove the XCTExpectFailure.
 //
 
 #import <XCTest/XCTest.h>
@@ -95,21 +93,41 @@
     XCTAssertTrue([s containsString:@"<type>DANGER</type>"]);
 }
 
-// Known bug: custom POIs have no title, exported as "<name>(null)</name>".
+// custom POIs have no title: they must not be exported as "<name>(null)</name>" (#11)
 - (void)testCustomPOIHasAName
 {
     [doc.plan addCustomPoiAt:CLLocationCoordinate2DMake(44.2, 0.5)];
     NSString *s = [self export:YES name:@"t"];
-    XCTExpectFailure(@"custom POI title is nil (doc/02-architecture.md §9 item 8)");
     XCTAssertFalse([s containsString:@"(null)"]);
+    XCTAssertTrue([s containsString:@"<name>DANGER</name>"]);
 }
 
-// Known bug: text is not XML-escaped.
+// text is XML-escaped (#11)
 - (void)testTrackNameIsXMLEscaped
 {
     NSString *s = [self export:NO name:@"Fish & Chips <3"];
-    XCTExpectFailure(@"track name not XML-escaped (doc/02-architecture.md §9 item 8)");
     XCTAssertTrue([self isWellFormedXML:s]);
+    XCTAssertTrue([s containsString:@"<name>Fish &amp; Chips &lt;3</name>"]);
+}
+
+// A GPX exported with POIs can be imported back as a reference trace: same points as the route,
+// the POIs are waypoints, not trace points (#28)
+- (void)testExportWithPOIsCanBeImportedAsTrace
+{
+    POILocation *w = [[POILocation alloc] initWithLatitude:44.19 longitude:0.49 ofType:POI_drinking_water info:@{} custom:NO];
+    [doc.plan setPoiloc:@[w]];
+    [doc.plan addCustomPoiAt:CLLocationCoordinate2DMake(44.2, 0.5)];
+    NSString *s = [self export:YES name:@"Tour & detours"];
+
+    GPXParser *exported = [[GPXParser alloc] init];
+    NSArray<CLLocation *> *pts = [exported parseGPXData:BPData(s) error:NULL];
+    NSArray<CLLocation *> *route = [[[GPXParser alloc] init] parseGPXData:mc.gpxData error:NULL];
+    XCTAssertEqual(pts.count, route.count);
+    for (NSUInteger i = 0; i < MIN(pts.count, route.count); i++) {
+        XCTAssertEqualWithAccuracy(pts[i].coordinate.latitude, route[i].coordinate.latitude, 1e-9);
+        XCTAssertEqualWithAccuracy(pts[i].coordinate.longitude, route[i].coordinate.longitude, 1e-9);
+    }
+    XCTAssertEqual(exported.waypoints.count, 2u);
 }
 
 @end

@@ -938,6 +938,15 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     }];
 }
 
+static NSString *xmlEscaped(NSString * _Nullable s)
+{
+    if (!s) return @"";
+    s = [s stringByReplacingOccurrencesOfString:@"&" withString:@"&amp;"];
+    s = [s stringByReplacingOccurrencesOfString:@"<" withString:@"&lt;"];
+    s = [s stringByReplacingOccurrencesOfString:@">" withString:@"&gt;"];
+    return [s stringByReplacingOccurrencesOfString:@"\"" withString:@"&quot;"];
+}
+
 - (NSData *) exportGpxDataWithPOI:(BOOL)inclPOI trackName:(NSString *)trackName
 {
     if (0 && !inclPOI) {
@@ -950,7 +959,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     //gpxstr = [gpxstr stringByAppendingString:@"<name>plop</name>"];
     NSRange nameTag = [gpxstr rangeOfString:@"<name>.*</name>" options:NSRegularExpressionSearch|NSCaseInsensitiveSearch];
     if (nameTag.location != NSNotFound) {
-        NSString *nname = [NSString stringWithFormat:@"<name>%@</name>", trackName];
+        NSString *nname = [NSString stringWithFormat:@"<name>%@</name>", xmlEscaped(trackName)];
         gpxstr = [gpxstr stringByReplacingCharactersInRange:nameTag withString:nname];
     }
     
@@ -966,24 +975,24 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     if (inclPOI) {
         for (POILocation *poi in _document.plan.customPoiloc) {
             [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
-            [xml appendFormat:@"  <name>%@</name>\n", poi.title];
+            [xml appendFormat:@"  <name>%@</name>\n", xmlEscaped(poi.title ?: poi.gpxType)]; // custom POIs have no title
             //if (poi.subtitle) {
             //    [xml appendFormat:@"  <desc>%@</desc>\n", poi.subtitle];
             //}
-            [xml appendFormat:@"  <sym>%@</sym>\n", poi.gpxSymbol ?: @"Flag"];
-            [xml appendFormat:@"  <type>%@</type>\n", poi.gpxType ?: @"Flag"];
+            [xml appendFormat:@"  <sym>%@</sym>\n", xmlEscaped(poi.gpxSymbol ?: @"Flag")];
+            [xml appendFormat:@"  <type>%@</type>\n", xmlEscaped(poi.gpxType ?: @"Flag")];
             [xml appendString:@"</wpt>\n"];
         }
     }
     if (inclPOI) {
         for (POILocation *poi in _document.plan.poiloc) {
             [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
-            [xml appendFormat:@"  <name>%@</name>\n", poi.title];
+            [xml appendFormat:@"  <name>%@</name>\n", xmlEscaped(poi.title ?: poi.gpxType)]; // custom POIs have no title
             //if (poi.subtitle) {
             //    [xml appendFormat:@"  <desc>%@</desc>\n", poi.subtitle];
             //}
-            [xml appendFormat:@"  <sym>%@</sym>\n", poi.gpxSymbol ?: @"Flag"];
-            [xml appendFormat:@"  <type>%@</type>\n", poi.gpxType ?: @"Flag"];
+            [xml appendFormat:@"  <sym>%@</sym>\n", xmlEscaped(poi.gpxSymbol ?: @"Flag")];
+            [xml appendFormat:@"  <type>%@</type>\n", xmlEscaped(poi.gpxType ?: @"Flag")];
             [xml appendString:@"</wpt>\n"];
         }
     }
