@@ -53,6 +53,28 @@
     return YES;
 }
 
++ (CLLocationCoordinate2D) defaultPosition
+{
+    NSArray<NSString *> *c = [[[NSUserDefaults standardUserDefaults] stringForKey:@"BPDefaultPosition"]
+                              componentsSeparatedByString:@","];
+    if (c.count == 2) {
+        CLLocationCoordinate2D p = CLLocationCoordinate2DMake([c[0] doubleValue], [c[1] doubleValue]);
+        if (CLLocationCoordinate2DIsValid(p)) return p;
+    }
+    return CLLocationCoordinate2DMake(44.1249234, 0.4961707); // Laplume
+}
+
++ (double) initialRadiusKm
+{
+    double r = [[NSUserDefaults standardUserDefaults] doubleForKey:@"BPInitialRadiusKm"];
+    return (r > 0) ? r : 80;
+}
+
++ (BOOL) locationDisabled
+{
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"BPDisableLocation"];
+}
+
 + (BOOL) isUnitTestHost
 {
     NSDictionary *env = [[NSProcessInfo processInfo] environment];

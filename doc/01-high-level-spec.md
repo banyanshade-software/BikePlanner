@@ -91,6 +91,10 @@ All panes are separated by resizable split views.
 - F1.3 “My location” centers the map on the user's position (asks for location permission the first time).
 - F1.4 The search field (toolbar) performs an Apple place search near the current region, zooms on the
   first result and drops a pin there.
+- F1.5 A plan without route opens on a region of ~80 km radius (defaults key `BPInitialRadiusKm`) around the
+  user location; until the location is known, or if it is refused, around the default position (key
+  `BPDefaultPosition`, “lat,lon”; to be set in the Preferences, #27). The first location recenters the map,
+  unless the user has moved it or started placing waypoints.
 
 ### F2 — Click modes
 The map has four click modes, selectable with the segmented control or the *Edit ▸ Mode* menu items

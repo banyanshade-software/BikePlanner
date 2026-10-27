@@ -29,6 +29,13 @@ NS_ASSUME_NONNULL_BEGIN
 /// Region shown for a plan without route, instead of the user location — key BPInitialRegion, "lat,lon,span"
 /// (span in degrees). Returns NO when not set.
 + (BOOL) getInitialRegion:(MKCoordinateRegion * _Nullable)region;
+/// Center of the initial map region when the user location is unknown or refused — key BPDefaultPosition,
+/// "lat,lon" (default: Laplume, Lot-et-Garonne; to be set in the Preferences, #27)
++ (CLLocationCoordinate2D) defaultPosition;
+/// Radius of the initial map region, km (default 80) — key BPInitialRadiusKm
++ (double) initialRadiusKm;
+/// YES to never ask for / use the user location (tests) — key BPDisableLocation
++ (BOOL) locationDisabled;
 /// YES when the app is the host of unit tests (XCTest injected)
 + (BOOL) isUnitTestHost;
 

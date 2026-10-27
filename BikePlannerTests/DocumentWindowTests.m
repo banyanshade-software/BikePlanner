@@ -26,6 +26,7 @@
 @interface MapController (WindowTesting)
 - (void)handleMapClick:(NSGestureRecognizer *)gesture;
 - (void)addCustomPoiAt:(CLLocationCoordinate2D)coord;
+- (void)userLocationAvailable:(nullable CLLocation *)loc;
 - (void)changeMapType:(id)sender;
 - (void)changeClickMode:(id)sender;
 - (IBAction)zoomIn:(id)sender;
@@ -540,6 +541,60 @@
     XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
     XCTAssertEqual(doc.plan.gpxDisplayed.count, 3u);
     [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
+}
+
+#pragma mark - initial region (#26)
+
+// new document, no test region: ~80 km around the default position, then around the user location when it comes
+- (void)reopenWithoutTestRegion
+{
+    doc.plan.fetchPOI = NO;
+    [doc close];
+    BPOverrideDefaults(@{ @"BPInitialRegion": @"", @"BPDefaultPosition": @"45.0,1.0", @"BPDisableLocation": @YES });
+    doc = [[Document alloc] init];
+    [doc makeWindowControllers];
+    XCTAssertNotNil(doc.windowControllers.firstObject.window);
+    mc = doc.mapController;
+    map = mc.mapView;
+    BPSpin(0.2);
+}
+
+// smaller dimension of the visible region, in km (MapKit widens one dimension to the view aspect)
+- (double)visibleKm
+{
+    MKCoordinateRegion r = map.region;
+    return MIN(r.span.latitudeDelta * 111.0, r.span.longitudeDelta * 111.0 * cos(r.center.latitude * M_PI / 180));
+}
+
+- (void)testInitialRegionAroundDefaultPosition
+{
+    [self reopenWithoutTestRegion];
+    XCTAssertEqualWithAccuracy(map.region.center.latitude, 45.0, 0.05);
+    XCTAssertEqualWithAccuracy(map.region.center.longitude, 1.0, 0.05);
+    XCTAssertTrue([self visibleKm] > 120 && [self visibleKm] < 260, @"~80 km radius, not the whole country (%g km)", [self visibleKm]);
+}
+
+- (void)testInitialRegionFollowsFirstUserLocation
+{
+    [self reopenWithoutTestRegion];
+    [mc userLocationAvailable:[[CLLocation alloc] initWithLatitude:44.5 longitude:0.3]];
+    BPSpin(0.5);
+    XCTAssertEqualWithAccuracy(map.region.center.latitude, 44.5, 0.05);
+    XCTAssertEqualWithAccuracy(map.region.center.longitude, 0.3, 0.05);
+    XCTAssertTrue([self visibleKm] > 120 && [self visibleKm] < 260, @"%g km", [self visibleKm]);
+    // later updates do not move the map
+    [mc userLocationAvailable:[[CLLocation alloc] initWithLatitude:43.0 longitude:2.0]];
+    BPSpin(0.3);
+    XCTAssertEqualWithAccuracy(map.region.center.latitude, 44.5, 0.05);
+}
+
+- (void)testUserLocationDoesNotMoveAMapTheUserMoved
+{
+    [self reopenWithoutTestRegion];
+    [map setCenterCoordinate:CLLocationCoordinate2DMake(46.0, 2.0) animated:NO];
+    [mc userLocationAvailable:[[CLLocation alloc] initWithLatitude:44.5 longitude:0.3]];
+    BPSpin(0.3);
+    XCTAssertEqualWithAccuracy(map.region.center.latitude, 46.0, 0.05);
 }
 
 // toolbar button for Reverse Route (#25), enabled with >= 2 waypoints

@@ -42,6 +42,8 @@
     
     POIAnnotation *_highlightedPOI;
     BOOL animateDropPins;
+    BOOL initialRegionPending;              // new plan: recenter on the first user location (#26)
+    CLLocationCoordinate2D initialCenter;   // center set by showInitialRegion, to detect a map moved by the user
 }
 
 - (void) initializeMapview
@@ -323,6 +325,42 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     [content addSubview:clickmodeseg];
     addBackdropBehind(clickmodeseg, content);
     
+}
+
+// Plan without route (#26): ~80 km around the user location, or around the default position until the
+// location comes (or if it is refused); the first location recenters, unless the user moved the map meanwhile
+- (MKCoordinateRegion) initialRegionAround:(CLLocationCoordinate2D)center
+{
+    double d = 2 * 1000 * [BPEnvironment initialRadiusKm];
+    return MKCoordinateRegionMakeWithDistance(center, d, d);
+}
+
+- (void) showInitialRegion
+{
+    CLLocation *loc = [BPEnvironment locationDisabled] ? nil : self.mapView.userLocation.location;
+    initialRegionPending = (loc == nil);
+    if (initialRegionPending && ![BPEnvironment locationDisabled]) {
+        CLLocationManager *locationManager = [[CLLocationManager alloc] init];
+        [locationManager requestWhenInUseAuthorization];
+        self.mapView.showsUserLocation = YES;
+    }
+    [self.mapView setRegion:[self initialRegionAround:loc ? loc.coordinate : [BPEnvironment defaultPosition]] animated:NO];
+    initialCenter = self.mapView.centerCoordinate;
+}
+
+- (void) userLocationAvailable:(nullable CLLocation *)loc
+{
+    if (!initialRegionPending || !loc) return;
+    initialRegionPending = NO;
+    CLLocationCoordinate2D c = self.mapView.centerCoordinate;
+    BOOL moved = fabs(c.latitude - initialCenter.latitude) > 1e-3 || fabs(c.longitude - initialCenter.longitude) > 1e-3;
+    if (moved || [_document.plan.waypointsLocations count]) return; // keep what the user is looking at
+    [self.mapView setRegion:[self initialRegionAround:loc.coordinate] animated:YES];
+}
+
+- (void)mapView:(MKMapView *)mapView didUpdateUserLocation:(MKUserLocation *)userLocation
+{
+    [self userLocationAvailable:userLocation.location];
 }
 
 - (IBAction)centerOnUserLocation:(id)sender
@@ -829,7 +867,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
             if ([BPEnvironment getInitialRegion:&region]) {
                 [self.mapView setRegion:region animated:NO]; // tests
             } else {
-                [self centerOnUserLocation:nil];
+                [self showInitialRegion];
             }
         }
     }

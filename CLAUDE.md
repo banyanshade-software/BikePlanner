@@ -86,7 +86,7 @@ The targets `BikePlanner_org*` are leftovers from an earlier project: ignore the
   - UI tests: `BPUITestCase` starts a real HTTP server (`[server start]`, needs `network.server`, granted to the UI test
     runner by `BikePlannerUITests.entitlements`) and passes launch arguments to the app.
 - App-side test hooks are in `BPEnvironment` (`BPBRouterServer`, `BPOverpassURL`, `BPDisableStreetView`,
-  `BPDisableTiles`, `BPInitialRegion`); no effect without overrides. When adding an external endpoint, route it
+  `BPDisableTiles`, `BPInitialRegion`, `BPDisableLocation`); no effect without overrides. When adding an external endpoint, route it
   through `BPEnvironment` and teach `BPStubServer` to answer it.
 - Integration tests of the window: `DocumentWindowTests` opens a real document window and drives `MapController`;
   map clicks go through `-handleMapClick:` with a fake gesture recognizer (`BPFakeClick`).

@@ -229,7 +229,8 @@ before `</gpx>` by string manipulation.
 - **Test hooks** — `BPEnvironment` reads endpoints and switches from `NSUserDefaults`, so that launch arguments
   can override them: `-BPBRouterServer <url>`, `-BPOverpassURL <url>`, `-BPDisableStreetView YES`,
   `-BPDisableTiles YES`, `-BPInitialRegion lat,lon,span` (region for a plan without route, instead of the user
-  location). Defaults are the production endpoints. The app does not open an untitled document when it hosts unit tests.
+  location), `-BPDisableLocation YES` (never ask for the user location). Defaults are the production endpoints.
+  `BPEnvironment` also reads two real settings: `BPDefaultPosition` and `BPInitialRadiusKm` (initial region, F1.5). The app does not open an untitled document when it hosts unit tests.
   Accessibility identifiers are set on the map and on the controls created in code.
 - UI test runner entitlements (`BikePlannerUITests/BikePlannerUITests.entitlements`): `network.server` for the stub
   server, read-write in `/private/tmp/` to exchange files with the app.

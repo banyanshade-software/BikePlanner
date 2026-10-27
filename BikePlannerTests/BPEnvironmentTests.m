@@ -67,4 +67,21 @@
     XCTAssertTrue([BPEnvironment isUnitTestHost]);
 }
 
+// #26: default position and radius of the initial map region
+- (void)testDefaultPositionAndRadius
+{
+    BPOverrideDefaults(@{ @"BPDefaultPosition": @"45.5,1.25", @"BPInitialRadiusKm": @"50" });
+    CLLocationCoordinate2D p = [BPEnvironment defaultPosition];
+    XCTAssertEqualWithAccuracy(p.latitude, 45.5, 1e-9);
+    XCTAssertEqualWithAccuracy(p.longitude, 1.25, 1e-9);
+    XCTAssertEqualWithAccuracy([BPEnvironment initialRadiusKm], 50, 1e-9);
+
+    BPOverrideDefaults(@{ @"BPDefaultPosition": @"garbage", @"BPInitialRadiusKm": @"0" });
+    p = [BPEnvironment defaultPosition];
+    XCTAssertTrue(CLLocationCoordinate2DIsValid(p), @"fallback position");
+    XCTAssertEqualWithAccuracy([BPEnvironment initialRadiusKm], 80, 1e-9, @"default radius");
+    BPOverrideDefaults(@{ @"BPDefaultPosition": @"95,0" });
+    XCTAssertNotEqual([BPEnvironment defaultPosition].latitude, 95, @"invalid latitude ignored");
+}
+
 @end
