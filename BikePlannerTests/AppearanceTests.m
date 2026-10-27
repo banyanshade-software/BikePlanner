@@ -112,12 +112,55 @@ static CGFloat BPBrightness(NSColor *c, NSAppearance *appearance)
         XCTAssertLessThan(BPBrightness(sel, BPDark()), 0.4, @"%@ dark", ident);
     }
 
-    // the help text is drawn over the map (OSM tiles are always light): it needs its own background
+    // the help text is drawn over the map (OSM tiles are always light): same translucent backdrop as the
+    // controls (#23), sized to the text, which changes with the mode
     NSTextField *help = (NSTextField *)[self viewWithIdentifier:@"clickModeHelp" in:content];
-    XCTAssertTrue(help.drawsBackground);
-    XCTAssertGreaterThan(help.backgroundColor.alphaComponent, 0.3);
-    XCTAssertGreaterThan(BPBrightness(help.backgroundColor, BPAqua()), 0.6);
-    XCTAssertLessThan(BPBrightness(help.backgroundColor, BPDark()), 0.4);
+    NSView *helpBg = [self viewWithIdentifier:@"clickModeHelpBackdrop" in:content];
+    XCTAssertTrue([helpBg isKindOfClass:[NSVisualEffectView class]]);
+    XCTAssertFalse(help.drawsBackground, @"no opaque background of its own");
+    XCTAssertTrue(NSContainsRect(helpBg.frame, help.frame));
+    [mc setClickModeToEdit:nil];
+    CGFloat longWidth = helpBg.frame.size.width;   // "Click on map to add start and end waypoints"
+    [mc setClickModeToAddPoi:nil];
+    XCTAssertLessThan(helpBg.frame.size.width, longWidth - 50, @"backdrop follows the text width"); // "Add POI"
+    XCTAssertTrue(NSContainsRect(helpBg.frame, help.frame));
+    XCTAssertGreaterThanOrEqual(help.frame.size.width, help.attributedStringValue.size.width, @"text not clipped");
+
+    [doc close];
+    [server stop];
+    BPRestoreDefaults();
+}
+
+// The map type and click mode controls are drawn over the map: a translucent blurred backdrop behind each keeps
+// them readable on any map content, while the map stays visible through it (#23).
+- (void)testMapControlsHaveTranslucentBackdrop
+{
+    BPStubServer *server = [[BPStubServer alloc] init];
+    XCTAssertTrue([server startInProcess]);
+    Document *doc = nil;
+    MapController *mc = [self openWindow:&doc server:server];
+    NSView *content = mc.mapView.superview;
+
+    // control -> its backdrop (the two zoom buttons touch: one backdrop for both)
+    NSDictionary *backdrops = @{ @"clickMode": @"clickModeBackdrop", @"mapType": @"mapTypeBackdrop",
+                                 @"zoomOut": @"zoomBackdrop", @"zoomIn": @"zoomBackdrop",
+                                 @"userLocation": @"userLocationBackdrop" };
+    for (NSString *ident in backdrops) {
+        NSView *ctrl = [self viewWithIdentifier:ident in:content];
+        XCTAssertNotNil(ctrl, @"%@", ident);
+        NSVisualEffectView *bg = (NSVisualEffectView *)[self viewWithIdentifier:backdrops[ident] in:content];
+        XCTAssertTrue([bg isKindOfClass:[NSVisualEffectView class]], @"%@", ident);
+        XCTAssertEqual(bg.superview, ctrl.superview, @"%@", ident);
+        XCTAssertTrue(NSContainsRect(bg.frame, ctrl.frame), @"%@ covered by its backdrop", ident);
+        XCTAssertEqual(bg.blendingMode, NSVisualEffectBlendingModeWithinWindow, @"%@: blurs the map, not the desktop", ident);
+        XCTAssertEqual(bg.state, NSVisualEffectStateActive, @"%@", ident);
+        XCTAssertTrue(bg.alphaValue > 0.5 && bg.alphaValue < 1.0, @"%@: slightly transparent (%g)", ident, bg.alphaValue);
+        NSArray *sub = ctrl.superview.subviews;
+        XCTAssertLessThan([sub indexOfObject:bg], [sub indexOfObject:ctrl], @"%@: backdrop below the control", ident);
+        XCTAssertGreaterThan([sub indexOfObject:bg], [sub indexOfObject:mc.mapView], @"%@: backdrop above the map", ident);
+    }
+    // leftover debug color
+    XCTAssertNil(((NSButton *)[self viewWithIdentifier:@"zoomIn" in:content]).bezelColor, @"zoom in button is not red");
 
     [doc close];
     [server stop];

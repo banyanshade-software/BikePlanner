@@ -105,7 +105,8 @@ adapts the shortcut to the key carrying the digit (e.g. ⌘& on AZERTY, i.e. ⌘
 | **View** (3) | — | (≤40 px) moves the scrubber there, centers the map, updates Street View and the elevation profile cursor |
 
 In every mode, a click within ~30–36 px of a POI selects that POI and shows its callout instead.
-A help text next to the control explains the current mode.
+A help text next to the control explains the current mode. The map type and click mode controls, the help text and
+the zoom / location buttons sit on a translucent blurred backdrop, so they stay readable on any map content while the map remains visible.
 
 ### F3 — Waypoints and route
 - F3.1 Waypoints are shown as pins: start (gray, labeled “Start”), intermediate (yellow, numbered), last (white).

@@ -54,6 +54,13 @@ static __weak BPStubServer *bpInProcessServer = nil;
 - (void) startLoading
 {
     BPStubServer *server = bpInProcessServer;
+    if (!server) {
+        // stopped between canInitWithRequest: and now (request started by the app after the test ended)
+        [self.client URLProtocol:self didFailWithError:[NSError errorWithDomain:NSURLErrorDomain
+                                                                           code:NSURLErrorCannotConnectToHost
+                                                                       userInfo:nil]];
+        return;
+    }
     NSURLComponents *c = [NSURLComponents componentsWithURL:self.request.URL resolvingAgainstBaseURL:NO];
     NSMutableDictionary *q = [NSMutableDictionary dictionary];
     for (NSURLQueryItem *it in c.queryItems) q[it.name] = it.value ?: @"";

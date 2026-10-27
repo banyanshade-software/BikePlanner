@@ -38,6 +38,7 @@
     NSTextField *helpTxtField;
     BPClickMode clickmode;
     NSSegmentedControl *clickmodeseg;
+    NSVisualEffectView *helpBackdrop;
     
     POIAnnotation *_highlightedPOI;
     BOOL animateDropPins;
@@ -196,6 +197,36 @@ static NSColor *selectedSegmentColor(void)
     }];
 }
 
+// controls drawn over the map: a translucent blurred backdrop (follows light/dark) keeps them readable
+// on any map content while the map stays visible through it (#23)
+static const CGFloat kBackdropMargin = 3;
+
+// frame: what it covers (controls frames), inserted below `below`
+static NSVisualEffectView *addBackdrop(NSRect frame, NSString *ident, NSView *below, NSView *content)
+{
+    const CGFloat radius = 8;
+    NSVisualEffectView *bg = [[NSVisualEffectView alloc] initWithFrame:NSInsetRect(frame, -kBackdropMargin, -kBackdropMargin)];
+    bg.material = NSVisualEffectMaterialPopover;
+    bg.blendingMode = NSVisualEffectBlendingModeWithinWindow; // blurs the map, not the desktop
+    bg.state = NSVisualEffectStateActive;
+    bg.alphaValue = 0.7; // a bit more of the map shows through
+    bg.autoresizingMask = below.autoresizingMask;
+    bg.maskImage = [NSImage imageWithSize:NSMakeSize(2*radius+1, 2*radius+1) flipped:NO drawingHandler:^BOOL(NSRect r) {
+        [[NSColor blackColor] setFill];
+        [[NSBezierPath bezierPathWithRoundedRect:r xRadius:radius yRadius:radius] fill];
+        return YES;
+    }];
+    bg.maskImage.capInsets = NSEdgeInsetsMake(radius, radius, radius, radius);
+    bg.accessibilityIdentifier = ident;
+    [content addSubview:bg positioned:NSWindowBelow relativeTo:below];
+    return bg;
+}
+
+static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
+{
+    return addBackdrop(ctrl.frame, [ctrl.accessibilityIdentifier stringByAppendingString:@"Backdrop"], ctrl, content);
+}
+
 - (void) addMapviewButtonsIn:(NSView *)content
 {
     NSBezelStyle bzstyle = NSBezelStyleRoundRect; // NSBezelStyleRoundRect;
@@ -220,11 +251,11 @@ static NSColor *selectedSegmentColor(void)
     btnZoomIn.image = zoomInImage;
     //btnZoomIn.imageScaling = NSImageScaleProportionallyDown;
     btnZoomIn.bezelStyle = bzstyle;
-    btnZoomIn.bezelColor = [NSColor redColor];
     btnZoomIn.action = @selector(zoomIn:);
     btnZoomIn.target = self;
     btnZoomIn.accessibilityIdentifier = @"zoomIn";
     [content addSubview:btnZoomIn];
+    addBackdrop(NSUnionRect(btnZoomOut.frame, btnZoomIn.frame), @"zoomBackdrop", btnZoomOut, content); // they touch: one backdrop
     
   
     
@@ -240,6 +271,7 @@ static NSColor *selectedSegmentColor(void)
     
     //btnCurloc.contentTintColor = [NSColor orangeColor];
     [content addSubview:btnCurloc];
+    addBackdropBehind(btnCurloc, content);
 
     
    
@@ -261,22 +293,17 @@ static NSColor *selectedSegmentColor(void)
     maptype.target = self;
     maptype.accessibilityIdentifier = @"mapType";
     [content addSubview:maptype];
+    addBackdropBehind(maptype, content);
     
     
     helpTxtField = [[NSTextField alloc] initWithFrame:NSMakeRect(14+230+14, 32, 500, 26)];
     helpTxtField.bezeled = NO; helpTxtField.editable = NO; helpTxtField.selectable = NO;
-    // drawn over the map (OSM tiles stay light in dark mode): own background to stay readable
-    helpTxtField.drawsBackground = YES;
-    helpTxtField.backgroundColor = [NSColor colorWithName:@"BPHelpBackground" dynamicProvider:^NSColor *(NSAppearance *appearance) {
-        __block NSColor *c = nil;
-        [appearance performAsCurrentDrawingAppearance:^{
-            c = [[[NSColor windowBackgroundColor] colorUsingColorSpace:[NSColorSpace sRGBColorSpace]] colorWithAlphaComponent:0.75];
-        }];
-        return c;
-    }];
+    // drawn over the map (OSM tiles stay light in dark mode): same backdrop as the controls, sized to the text
+    helpTxtField.drawsBackground = NO;
     helpTxtField.stringValue = @"...";
     helpTxtField.accessibilityIdentifier = @"clickModeHelp";
     [content addSubview:helpTxtField];
+    helpBackdrop = addBackdropBehind(helpTxtField, content);
     
     clickmode = BPClickModeEdit;
     clickmodeseg = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 38, 230, 26)];
@@ -294,6 +321,7 @@ static NSColor *selectedSegmentColor(void)
     clickmodeseg.target = self;
     clickmodeseg.accessibilityIdentifier = @"clickMode";
     [content addSubview:clickmodeseg];
+    addBackdropBehind(clickmodeseg, content);
     
 }
 
@@ -346,6 +374,11 @@ static NSColor *selectedSegmentColor(void)
             break;
     }
     helpTxtField.stringValue = hlp;
+    // the backdrop follows the text width
+    NSRect f = helpTxtField.frame;
+    f.size.width = ceil(helpTxtField.attributedStringValue.size.width) + 8;
+    helpTxtField.frame = f;
+    if (helpBackdrop) helpBackdrop.frame = NSInsetRect(f, -kBackdropMargin, -kBackdropMargin);
 }
 - (void) changeClickMode:(id)sender
 {
