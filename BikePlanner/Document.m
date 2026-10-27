@@ -187,6 +187,11 @@
     [_mapController importGPXTraceForDisplay:sender];
 }
 
+- (IBAction) removeGPXTraceForDisplay:(id)sender
+{
+    [_mapController removeGPXTraceForDisplay:sender];
+}
+
 - (IBAction) exportGPX:(id)sender
 {
     [_mapController exportGPX:sender];
@@ -200,6 +205,7 @@
 - (BOOL)validateMenuItem:(NSMenuItem *)item
 {
     if (item.action == @selector(reverseRoute:)) return [_mapController canReverseRoute];
+    if (item.action == @selector(removeGPXTraceForDisplay:)) return [_mapController canRemoveGPXTraceForDisplay];
     // Edit ▸ Mode items: check the current mode
     NSDictionary<NSString *, NSNumber *> *modes = @{ @"setClickModeToEdit:": @(BPClickModeEdit),
                                                      @"setClickModeToInterm:": @(BPClickModeInterm),

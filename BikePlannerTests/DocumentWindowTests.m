@@ -47,6 +47,7 @@
 - (IBAction)setClickModeToView:(id)sender;
 - (IBAction)setClickModeToAddPoi:(id)sender;
 - (IBAction)reverseRoute:(id)sender;
+- (IBAction)removeGPXTraceForDisplay:(id)sender;
 @end
 
 // Returns a fixed location, in map view coordinates
@@ -622,6 +623,39 @@
     XCTAssertEqual([self polysWithTag:2].firstObject.pointCount, 3u);
     // importing again replaces the trace
     [mc loadGPXFromURL:url];
+    XCTAssertEqual([self polysWithTag:2].count, 1u);
+    [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
+}
+
+// File ▸ Remove Displayed GPX Trace (#24): removes the reference trace, undoable, disabled without a trace
+- (void)testRemoveReferenceTrace
+{
+    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"" action:@selector(removeGPXTraceForDisplay:) keyEquivalent:@""];
+    XCTAssertFalse([doc validateMenuItem:item], @"disabled without a trace");
+    XCTAssertEqual([self polysWithTag:2].count, 0u, @"no empty trace overlay");
+
+    NSURL *url = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-ref-rm.gpx"]];
+    XCTAssertTrue([BPData(kBRouterGPX) writeToURL:url atomically:YES]);
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    [um beginUndoGrouping];
+    [mc loadGPXFromURL:url];
+    [um endUndoGrouping];
+    XCTAssertTrue([doc validateMenuItem:item]);
+    [doc updateChangeCount:NSChangeCleared];
+
+    [um beginUndoGrouping];
+    [doc removeGPXTraceForDisplay:item];
+    [um endUndoGrouping];
+    BPSpin(0.1); // NSDocument updates its edited state asynchronously
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 0u);
+    XCTAssertEqual([self polysWithTag:2].count, 0u);
+    XCTAssertTrue(doc.isDocumentEdited);
+    XCTAssertFalse([doc validateMenuItem:item]);
+
+    XCTAssertEqualObjects(um.undoActionName, @"remove trace");
+    [um undo];
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 3u);
     XCTAssertEqual([self polysWithTag:2].count, 1u);
     [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
 }

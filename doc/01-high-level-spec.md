@@ -159,7 +159,8 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 
 ### F8 — Reference GPX trace
 - F8.1 *File ▸ Import GPX as display* (or toolbar “Import trace”) loads a GPX file and draws it in
-  orange under the route, for reference only (it is not used for routing).
+  orange under the route, for reference only (it is not used for routing). Importing another trace replaces it.
+- F8.2 *File ▸ Remove Displayed GPX Trace* (enabled when a trace is shown) removes it; undoable.
 
 ### F9 — Documents
 - F9.1 A plan is a document of type `.bikeplan` (UTI `fr.free.daniel.braun.bikeplan`), saved with

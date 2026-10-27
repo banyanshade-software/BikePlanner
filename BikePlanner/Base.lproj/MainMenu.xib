@@ -115,6 +115,12 @@
                                     <action selector="importGPXTraceForDisplay:" target="-1" id="lhp-U7-3w1"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Remove Displayed GPX Trace" id="bpR-mT-Itm">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="removeGPXTraceForDisplay:" target="-1" id="bpR-mT-Act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="XrP-Ob-bGp"/>
                             <menuItem title="Export to GPX" id="Til-HT-YnA">
                                 <modifierMask key="keyEquivalentModifierMask"/>

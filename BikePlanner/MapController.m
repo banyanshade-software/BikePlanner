@@ -705,6 +705,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
             [self.mapView removeOverlay:ov];
         }
     }
+    if (![_document.plan.gpxDisplayed count]) return; // no trace: no empty overlay
     TaggedPoly *gpxpoly = _document.plan.gpxDisplayedPoly;
     [self.mapView addOverlay:gpxpoly level:MKOverlayLevelAboveLabels];
  
@@ -1678,6 +1679,18 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 {
     if (item.action == @selector(reverseRoute:)) return [self canReverseRoute];
     return YES;
+}
+
+- (BOOL) canRemoveGPXTraceForDisplay
+{
+    return [_document.plan.gpxDisplayed count] > 0;
+}
+
+// the reference trace is saved with the document: removing it is the only way to get rid of it (#24)
+- (IBAction) removeGPXTraceForDisplay:(id)sender
+{
+    if (![self canRemoveGPXTraceForDisplay]) return;
+    [self setGpxDisplayed:nil desc:@"remove trace"];
 }
 
 #pragma mark -
