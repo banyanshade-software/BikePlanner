@@ -21,7 +21,7 @@ typedef NS_ENUM(int, BPClickMode) {
     BPClickModeView = 3,    // click on route moves Street View / elevation cursor
 };
 
-@interface MapController : NSObject <MKMapViewDelegate, ElevationProfileViewDelegate, NSGestureRecognizerDelegate>
+@interface MapController : NSObject <MKMapViewDelegate, ElevationProfileViewDelegate, NSGestureRecognizerDelegate, NSToolbarItemValidation>
 
 @property (weak) IBOutlet MKMapView *mapView;
 @property (weak) IBOutlet Document *document;

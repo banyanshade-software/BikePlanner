@@ -1673,6 +1673,13 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     [self shouldRecalcRoute];
 }
 
+// toolbar items targeting the map controller (Document.xib)
+- (BOOL) validateToolbarItem:(NSToolbarItem *)item
+{
+    if (item.action == @selector(reverseRoute:)) return [self canReverseRoute];
+    return YES;
+}
+
 #pragma mark -
 - (IBAction) importGPXTraceForDisplay:(id)sender
 {

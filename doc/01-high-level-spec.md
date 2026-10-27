@@ -119,7 +119,7 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F3.6 The *Info* tab shows route length (km, rounded) and cumulative ascent (m, BRouter “filtered ascend”).
 - F3.7 All waypoint operations (add, insert, move, remove, reverse) are **undoable/redoable** (Edit ▸ Undo/Redo),
   as well as adding a custom POI and importing a reference trace.
-- F3.8 *Edit ▸ Reverse Route* (enabled with ≥ 2 waypoints) swaps start and end: the waypoint order is reversed
+- F3.8 *Edit ▸ Reverse Route* or the toolbar *Reverse* button (enabled with ≥ 2 waypoints) swaps start and end: the waypoint order is reversed
   and the route is **recomputed** by BRouter (one-way streets, climbs differ in the other direction).
 
 ### F4 — Routing parameters

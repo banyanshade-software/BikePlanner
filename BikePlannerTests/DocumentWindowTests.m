@@ -475,6 +475,19 @@
     XCTAssertEqualObjects(doc.plan.waypointsLocations, wps);
 }
 
+// toolbar button for Reverse Route (#25), enabled with >= 2 waypoints
+- (void)testReverseRouteToolbarButton
+{
+    NSToolbar *tb = doc.windowControllers.firstObject.window.toolbar;
+    NSToolbarItem *item = nil;
+    for (NSToolbarItem *it in tb.items) if (it.action == @selector(reverseRoute:)) item = it;
+    XCTAssertNotNil(item, @"Reverse button in the default toolbar");
+    XCTAssertEqual(item.target, mc);
+    XCTAssertFalse([mc validateToolbarItem:item], @"disabled without a route");
+    [self makeRoute];
+    XCTAssertTrue([mc validateToolbarItem:item]);
+}
+
 #pragma mark - views, renderers, scrubbing, export
 
 - (void)testAnnotationViews
