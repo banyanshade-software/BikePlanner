@@ -55,6 +55,7 @@ scripts/xcode_add_files.py --target BikePlannerUITests --anchor BikePlannerUITes
 ```
 A file already in the project can be added to another target the same way (e.g. `BikePlannerTests/BPStubServer.m`
 is in both test targets). Removing a file: delete its lines from `project.pbxproj` (grep its name).
+A Run Script phase: `scripts/xcode_add_run_script.py --target … --name … --script …` (see its header).
 New files go in the anchor's group/directory. Use `SupportClasses/` + `--anchor GPXParser.m` for support classes.
 XIB files (`Document.xib`, `MainMenu.xib`, …) should be edited in Xcode by the owner when possible; if a change is
 needed, keep it minimal and say so.

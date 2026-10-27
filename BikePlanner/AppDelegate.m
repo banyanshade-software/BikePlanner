@@ -107,12 +107,24 @@ static void RunLoopLogger(CFRunLoopObserverRef observer, CFRunLoopActivity activ
 - (DCOAboutWindowController *) aboutWindowController {
     if(!_aboutWindowController) {
         _aboutWindowController = [[BSSUI_AboutWindowController alloc] init];
+        _aboutWindowController.appVersion = [AppDelegate versionStringWithInfo:[NSBundle mainBundle].infoDictionary];
     }
     return _aboutWindowController;
 }
 
 
 
+
+// "Version 0.4.0 (Build 123, 5a33d4f-dirty, small-features)": build number and git info are written into the
+// built Info.plist by scripts/set_build_info.sh (#34); without git info: "Version 0.4.0 (Build 1)"
++ (NSString *) versionStringWithInfo:(NSDictionary *)info
+{
+    NSMutableArray *build = [NSMutableArray arrayWithObject:info[@"CFBundleVersion"] ?: @"?"];
+    if ([info[@"BPGitCommit"] length]) [build addObject:info[@"BPGitCommit"]];
+    if ([info[@"BPGitBranch"] length]) [build addObject:info[@"BPGitBranch"]];
+    return [NSString stringWithFormat:NSLocalizedString(@"Version %@ (Build %@)", @"Version %@ (Build %@), displayed in the about window"),
+            info[@"CFBundleShortVersionString"] ?: @"?", [build componentsJoinedByString:@", "]];
+}
 
 - (void)setUseTextView:(BOOL)useTextView {
     

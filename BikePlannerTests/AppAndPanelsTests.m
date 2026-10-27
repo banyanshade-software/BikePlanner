@@ -17,6 +17,7 @@
 @interface AppDelegate (Testing)
 - (NSWindowController *)aboutWindowController;
 - (IBAction)showAboutWindow:(id)sender;
++ (NSString *)versionStringWithInfo:(NSDictionary *)info;
 @end
 
 @interface AppAndPanelsTests : XCTestCase
@@ -48,6 +49,28 @@
     ad.useTextView = YES;
     XCTAssertTrue(ad.useTextView);
     [w close];
+}
+
+// build number and git commit written into the built Info.plist by scripts/set_build_info.sh (#34)
+- (void)testBuildInfoInBundle
+{
+    NSDictionary *info = NSBundle.mainBundle.infoDictionary;
+    XCTAssertGreaterThan([info[@"BPGitCommit"] length], 0u);
+    XCTAssertGreaterThan([info[@"BPGitBranch"] length], 0u);
+    XCTAssertGreaterThan([info[@"CFBundleVersion"] integerValue], 1, @"number of commits");
+}
+
+- (void)testAboutVersionString
+{
+    NSDictionary *info = @{ @"CFBundleShortVersionString": @"0.4.0", @"CFBundleVersion": @"123",
+                            @"BPGitCommit": @"5a33d4f-dirty", @"BPGitBranch": @"small-features" };
+    XCTAssertEqualObjects([AppDelegate versionStringWithInfo:info], @"Version 0.4.0 (Build 123, 5a33d4f-dirty, small-features)");
+    info = @{ @"CFBundleShortVersionString": @"0.4.0", @"CFBundleVersion": @"1" };
+    XCTAssertEqualObjects([AppDelegate versionStringWithInfo:info], @"Version 0.4.0 (Build 1)", @"no git info");
+
+    AppDelegate *ad = (AppDelegate *)NSApp.delegate;
+    NSString *v = [ad.aboutWindowController valueForKey:@"appVersion"];
+    XCTAssertTrue([v containsString:NSBundle.mainBundle.infoDictionary[@"BPGitCommit"]], @"%@", v);
 }
 
 #pragma mark - export accessory
