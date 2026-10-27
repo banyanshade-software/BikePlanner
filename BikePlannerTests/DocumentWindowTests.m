@@ -479,7 +479,7 @@
     XCTAssertEqualObjects(doc.plan.waypointsLocations, wps);
 }
 
-// Edit ▸ Clear Route and its toolbar button (#33): erases waypoints, route, length/ascent and POIs, keeps the
+// Edit ▸ Clear Route and its toolbar button (#33): after confirmation, erases waypoints, route, length/ascent and POIs, keeps the
 // reference trace; undo restores everything without a new BRouter request
 - (void)testClearRoute
 {
@@ -507,8 +507,21 @@
     XCTAssertTrue([mc validateToolbarItem:button]);
     [server clearRequests];
 
-    [um beginUndoGrouping];
+    // a confirmation sheet first (#33): Cancel keeps everything
+    NSWindow *window = doc.windowControllers.firstObject.window;
     [doc clearRoute:item];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet != nil); }), @"confirmation sheet");
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u, @"nothing cleared before confirmation");
+    [window endSheet:window.attachedSheet returnCode:NSAlertSecondButtonReturn];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet == nil); }));
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u, @"cancelled");
+    XCTAssertEqual(doc.plan.customPoiloc.count, 1u);
+
+    [doc clearRoute:item];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet != nil); }));
+    [um beginUndoGrouping];
+    [window endSheet:window.attachedSheet returnCode:NSAlertFirstButtonReturn];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet == nil); }));
     [um endUndoGrouping];
     XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
     XCTAssertEqual(doc.plan.routePoints.count, 0u);

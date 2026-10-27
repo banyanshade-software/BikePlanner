@@ -125,7 +125,7 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   as well as adding a custom POI and importing a reference trace.
 - F3.8 *Edit ▸ Reverse Route* or the toolbar *Reverse* button (enabled with ≥ 2 waypoints) swaps start and end: the waypoint order is reversed
   and the route is **recomputed** by BRouter (one-way streets, climbs differ in the other direction).
-- F3.9 *Edit ▸ Clear Route* or the toolbar *Clear* button (enabled with ≥ 1 waypoint) erases waypoints, route,
+- F3.9 *Edit ▸ Clear Route* or the toolbar *Clear* button (enabled with ≥ 1 waypoint) asks for confirmation (sheet), then erases waypoints, route,
   length/ascent, fetched and custom POIs, but **keeps the reference trace**. Undo restores the route as it was
   (no new BRouter request).
 
@@ -187,7 +187,8 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F10.4 Export is only possible once a route has been computed in the current session.
 
 ### F11 — Misc
-- F11.1 Custom About window (BSSUI / DCOAboutWindow).
+- F11.1 Custom About window (BSSUI / DCOAboutWindow). It shows `Version <MARKETING_VERSION> (Build <commit count>,
+  <short hash>[-dirty], <branch>)`, so a running app tells which code it contains.
 
 ## 7. Non-functional requirements (targets)
 

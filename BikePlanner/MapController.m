@@ -523,7 +523,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
 }
 
 
-// Clear Route (#33): everything but the reference trace; undo restores the route as is (no new BRouter request)
+// Clear Route (#33): after confirmation, everything but the reference trace; undo restores the route as is (no new BRouter request)
 - (BOOL) canClearRoute
 {
     return [_document.plan.waypointsLocations count] > 0;
@@ -532,7 +532,22 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
 - (IBAction) clearRoute:(id)sender
 {
     if (![self canClearRoute]) return;
-    [self setRouteState:nil desc:@"clear route"];
+    NSWindow *window = _mapView.window;
+    if (!window) {
+        [self setRouteState:nil desc:@"clear route"];
+        return;
+    }
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = NSLocalizedString(@"Clear the route?", @"");
+    alert.informativeText = NSLocalizedString(@"Waypoints, route and POIs will be erased; the displayed GPX trace is kept. This can be undone.", @"");
+    [alert addButtonWithTitle:NSLocalizedString(@"Clear", @"")];
+    [alert addButtonWithTitle:NSLocalizedString(@"Cancel", @"")];
+    alert.buttons.firstObject.hasDestructiveAction = YES;
+    [alert beginSheetModalForWindow:window completionHandler:^(NSModalResponse response) {
+        if (response != NSAlertFirstButtonReturn) return;
+        if (![self canClearRoute]) return;
+        [self setRouteState:nil desc:@"clear route"];
+    }];
 }
 
 // state: from -[BikePlan clearRoute] (+ "gpx": the BRouter GPX for export), nil to clear

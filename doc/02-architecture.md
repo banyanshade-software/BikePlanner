@@ -159,7 +159,7 @@ Insert: `insertionIndexForCoordinate` → `plan.insertWaypoint` → undo → ann
 Move: `mapView:annotationView:didChangeDragState:` (Ending) → `plan.replaceWaypointAtIndex` → undo → `requestRoute`.
 Remove: context menu → `plan.removeWaypointAtIndex` → undo → reindex → `shouldRecalcRoute`.
 Reverse: *Edit ▸ Reverse Route* → `plan.reverseWaypoints` → undo → `fullRefresh:NO` → `shouldRecalcRoute`.
-Clear: *Edit ▸ Clear Route* → `setRouteState:nil` → `plan.clearRoute` (returns the previous state, + BRouter GPX)
+Clear: *Edit ▸ Clear Route* → confirmation sheet (`NSAlert`) → `setRouteState:nil` → `plan.clearRoute` (returns the previous state, + BRouter GPX)
 → undo registers `undoRouteState:` with it → `fullRefresh:NO`; undo calls `plan.restoreRoute:` (no new request).
 
 ### 6.3 POIs
@@ -234,7 +234,12 @@ before `</gpx>` by string manipulation.
   Accessibility identifiers are set on the map and on the controls created in code.
 - UI test runner entitlements (`BikePlannerUITests/BikePlannerUITests.entitlements`): `network.server` for the stub
   server, read-write in `/private/tmp/` to exchange files with the app.
-- New source files are added to the project with `scripts/xcode_add_files.py`.
+- New source files are added to the project with `scripts/xcode_add_files.py`, Run Script phases with
+  `scripts/xcode_add_run_script.py`.
+- Build info: the *Set build info* Run Script phase of the app target (`scripts/set_build_info.sh`, runs on every
+  build, after Copy Bundle Resources) writes into the **built** Info.plist `CFBundleVersion` = number of commits,
+  `BPGitCommit` = short hash (+ `-dirty`), `BPGitBranch`; no-op without git. `MARKETING_VERSION` stays manual.
+  `+[AppDelegate versionStringWithInfo:]` formats the About window version.
 - macOS deployment target 12.7, ARC on.
 - **Before building**: copy `BikePlanner/Secret.h.example` to `BikePlanner/Secret.h` and set `THUNDERFOREST_API_KEY`
   (the build fails without `Secret.h`).
