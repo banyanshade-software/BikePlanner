@@ -41,19 +41,14 @@
     self.brfEditor = [[BRFProfileEditor alloc] initWithNibName:@"BRFProfileEditor" bundle:nil]; //initWithProfileName:@"trekking"];
     [_brfEditor loadProfileName:@"trekking"];
     
-    _brfEditor.completionHandler = ^(NSArray * _Nullable overideParams) {
-            if (overideParams && [overideParams count]) {
-                 NSLog(@"User overrides: %@", overideParams);
-                 // append to request as &extraParams=... (remember to percent-encode later)
-                NSString *extraParams = [overideParams componentsJoinedByString:@"&"];
-                extraParams = [extraParams stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
-
-                d.mapController.extraUrl = [@"extraParams=" stringByAppendingString:extraParams];
-                [d.mapController shouldRecalcRoute];
-             } else {
-                 NSLog(@"User cancelled");
-             }
-         };
+    // overrides are sent as profile:<name>=<value> parameters by BRouterClient (#15, #35); none = profile defaults
+    _brfEditor.completionHandler = ^(NSDictionary<NSString *, NSString *> *overrideParams) {
+        NSLog(@"User overrides: %@", overrideParams);
+        NSDictionary *old = d.mapController.profileOverrides ?: @{};
+        if ([old isEqualToDictionary:overrideParams ?: @{}]) return;
+        d.mapController.profileOverrides = overrideParams ?: @{};
+        [d.mapController shouldRecalcRoute];
+    };
     
     _brfEditor.view.frame = d.brfParamsPlaceholder.bounds;
     _brfEditor.view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;

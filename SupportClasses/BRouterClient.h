@@ -21,9 +21,17 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithServerURL:(NSURL *)url;
 
 
+// GET <server>/brouter?lonlats=…&profile=…&alternativeidx=0&format=gpx&profile:<name>=<value>…
+// overrides: profile parameters (name → value, without the "profile:" prefix), one query parameter each,
+// percent-encoded (#15, #35)
++ (nullable NSURL *)routeURLForServer:(NSURL *)server
+                            waypoints:(NSArray <CLLocation *>*)waypoints
+                              profile:(nullable NSString *)profile
+                            overrides:(nullable NSDictionary<NSString *, NSString *> *)overrides;
+
 - (void)routeWithWaypoints:(NSArray <CLLocation *>*)waypoints
           profile:(NSString *)profile
-         extraUrl:(NSString *)extraUrl  
+        overrides:(nullable NSDictionary<NSString *, NSString *> *)overrides
        completion:(void(^)(NSArray<CLLocation *> *points,   // parsed points
                            NSData *gpx,                     // raw gpx file, as received
                            NSDictionary *brouterInfo,       // info brouter found in coments

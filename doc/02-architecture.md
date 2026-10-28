@@ -126,7 +126,7 @@ bicycle_repair_station, cemetery, warning), `info` (raw OSM tags), `userAdded`. 
 No version key: adding/removing fields relies on `decodeObject…` returning nil for missing keys.
 
 ### 4.4 State held outside the model (in `MapController`)
-`gpxData` (raw GPX of last route, used for export), `extraUrl` (BRouter overrides), click mode, map type,
+`gpxData` (raw GPX of last route, used for export), `profileOverrides` (Params tab, name → value), click mode, map type,
 `waypointsRouteAnnotations` (annotation per waypoint, kept in sync manually), `viewPOI`. None of this is persisted.
 
 ## 5. Map layer
@@ -181,8 +181,9 @@ plan.routePoly getter → shouldRequestPOI (tpoineed = now) → tryRequestPoi
 ```
 MapController.requestRoute
   gpxData = nil
-  BRouterClient.routeWithWaypoints:profile:"trekking" extraUrl:
-    GET https://brouter.de/brouter?lonlats=lon,lat|lon,lat…&profile=trekking&alternativeidx=0&format=gpx[&extraParams=…]
+  BRouterClient.routeWithWaypoints:profile:"trekking" overrides:profileOverrides   (URL: +routeURLForServer:…)
+    GET https://brouter.de/brouter?lonlats=lon,lat|lon,lat…&profile=trekking&alternativeidx=0&format=gpx[&profile:<name>=<value>…]
+    (names and values percent-encoded, including & = + |)
     (background) GPXParser → points + brouterInfo (parsed from the GPX comment: track-length, filtered ascend, time, energy)
   completion (background) → error: NSLog only
                           → main queue: plan.brouterInfo.{kmlen,mup,meters,seconds}, gpxData, plan.routePoints,
@@ -275,7 +276,7 @@ Each item is tracked as a GitHub issue.
 | 6 | M | `MapController.m:930` | `gpxData` is not persisted: after reopening a document, export is disabled until the route is recomputed. | [#10](https://github.com/banyanshade-software/BikePlanner/issues/10) |
 | 7 | M ✅ | `BikePlan.m:325` | After an Overpass error (or HTTP ≥ 300), the retry is scheduled with `performSelector:afterDelay:` from the NSURLSession completion queue, which has no run loop: **the retry never happens** and POIs stay missing until the next route change (`POIFetchTests.testRetryAfterHTTPError`). Query size also grows with route length (one clause per 10 points × 2) — long routes may hit Overpass limits. | [#12](https://github.com/banyanshade-software/BikePlanner/issues/12) |
 | 8 | M ✅ fixed | `MapController.m` `exportGpxDataWithPOI:` | GPX export built XML with string formatting, without XML escaping; custom POIs had a nil title (`<name>(null)</name>`). Now escaped (`xmlEscaped`), custom POIs named after their type. Still: custom POIs `gpxSymbol` is “...”. | [#11](https://github.com/banyanshade-software/BikePlanner/issues/11) |
-| 9 | M | `PlannerWindowController.m:49` | BRF overrides are joined with `&` then escaped with the deprecated `stringByAddingPercentEscapesUsingEncoding:` (does not escape `&`): all but the first override become top-level query parameters. To verify against BRouter's expected format. | [#15](https://github.com/banyanshade-software/BikePlanner/issues/15) |
+| 9 | M ✅ fixed | `BRouterClient.m` | BRF overrides were joined with `&` and escaped with the deprecated `stringByAddingPercentEscapesUsingEncoding:` (no `&` escaping) inside an `extraParams=` parameter. Now `+[BRouterClient routeURLForServer:…]` builds one percent-encoded `profile:<name>` query item per override (`BRouterClientTests`). | [#15](https://github.com/banyanshade-software/BikePlanner/issues/15) |
 | 10 | M ✅ fixed | `Document.m` | *Revert to Saved* replaced `plan` but the map was not refreshed and `poiAvailableCallback` was not re-installed on the new plan. Now `revertToContentsOfURL:ofType:error:` calls `-[MapController planReplaced]` (`testRevertToSavedRefreshesMap`). Still open: a route request in flight during the revert writes its result into the reverted plan when it completes. | [#16](https://github.com/banyanshade-software/BikePlanner/issues/16) |
 | 11 | L ✅ fixed | `ElevationProfileView.m` | Division by zero when the route was flat (`maxElev == minElev`): did not crash but drew nothing meaningful. Now the vertical range is at least 100 m (`elevationRangeForMin:max:low:high:`, #32). Axes invisible in dark mode: fixed (`labelColor`). | [#17](https://github.com/banyanshade-software/BikePlanner/issues/17) |
 | 12 | L | `MapController.m:1375` | `excludeControlChanged:` reads a POI pointer from `sender.tag`, which is never set. | [#5](https://github.com/banyanshade-software/BikePlanner/issues/5) |
@@ -287,7 +288,7 @@ Each item is tracked as a GitHub issue.
 | 18 | M ✅ fixed | `MapController.m` `distanceAtCoordinate:segstart:` | Street View heading sometimes wrong shortly after a 90° turn (View-mode click on the route). Cause: #14 (a point just after a corner was located on the incoming segment, so the heading was the incoming one). Fixed with #14, tested (`testBearingJustAfterTurn`), confirmed manually by the owner. | [#21](https://github.com/banyanshade-software/BikePlanner/issues/21) |
 | 19 | M ✅ fixed | `MapController.m` `importGPXTraceForDisplay:` | A reference trace (Import GPX as display) could not be removed: it is saved with the document and only undo (right after import) or importing another trace got rid of it. Now *File ▸ Remove Displayed GPX Trace* (`testRemoveReferenceTrace`). | [#24](https://github.com/banyanshade-software/BikePlanner/issues/24) |
 | 20 | M ✅ fixed | `GPXParser.m`, `MapController.m` `exportGpxDataWithPOI:` | A GPX exported with POIs was unusable as a reference trace: the POIs are written as `<wpt>` and the parser merged them into the trace (item 14); names were not XML-escaped (item 8). `testExportWithPOIsCanBeImportedAsTrace`. | [#28](https://github.com/banyanshade-software/BikePlanner/issues/28) |
-| 21 | M | `PlannerWindowController.m`, `BRouterClient.m` | BRouter parameter overrides (Params tab) seem to have no effect: probably #15 (`extraParams=` wrapper, `&` not escaped); an invalid character in a value gives a nil URL and no route (only logged). To confirm against brouter.de. | [#35](https://github.com/banyanshade-software/BikePlanner/issues/35) |
+| 21 | M ✅ fixed | `PlannerWindowController.m`, `BRouterClient.m` | BRouter parameter overrides (Params tab) had no effect: brouter.de ignores `extraParams=`, so a single override was lost (with several, all but the first applied); unchecking every override did not go back to the defaults. Fixed with #15; `testBRFOverridesRecomputeRoute`. | [#35](https://github.com/banyanshade-software/BikePlanner/issues/35) |
 
 ### Design / maintainability
 - **`MapController` is a god object**: map setup, UI controls built in code, hit testing, geometry, routing,

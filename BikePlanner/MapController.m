@@ -905,7 +905,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     // profile can be changed, e.g. "trekking", "fastbike", etc.
     self.gpxData = nil;
     NSString *profile = @"trekking";
-    [self.brouter routeWithWaypoints:_document.plan.waypointsLocations profile:profile extraUrl:_extraUrl completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *brouterInfo, NSError *error) {
+    [self.brouter routeWithWaypoints:_document.plan.waypointsLocations profile:profile overrides:_profileOverrides completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *brouterInfo, NSError *error) {
         if (error) {
             NSLog(@"BRouter error: %@", error);
             return;

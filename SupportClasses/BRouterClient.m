@@ -10,24 +10,6 @@
 #import "BRouterClient.h"
 #import "GPXParser.h"
 
-@implementation NSURL (Additions)
-// https://stackoverflow.com/questions/6309698/objective-c-how-to-add-query-parameter-to-nsurl
-- (NSURL *)URLByAppendingQueryString:(NSString *)queryString {
-    if (![queryString length]) {
-        return self;
-    }
-
-    NSString *URLString = [[NSString alloc] initWithFormat:@"%@%@%@", [self absoluteString],
-                           [self query] ? @"&" : @"?", queryString];
-    NSURL *theURL = [NSURL URLWithString:URLString];
-    //[URLString release];
-    return theURL;
-}
-
-@end
-
-
-
 @implementation BRouterClient
 
 - (instancetype)initWithServerURL:(NSURL *)url {
@@ -38,15 +20,25 @@
 }
 
 
-- (void)routeWithWaypoints:(NSArray <CLLocation *>*)waypoints
-          profile:(NSString *)profile
-         extraUrl:(NSString *)extraUrl
-       completion:(void(^)(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *brouterInfo, NSError *error))completion
+// query value or name: percent-encode everything but the unreserved characters and ",:" (so "&", "=", "+", "|",
+// spaces… can neither split the query nor make the URL invalid)
+static NSString *BPQueryEncoded(NSString *s)
 {
-    // Build lonlats parameter. BRouter expects lon,lat pairs. 
-    // Use pipe or semicolon separator depending on server.
-    // We'll use the common format: lon,lat;lon,lat
-    
+    static NSCharacterSet *allowed;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        allowed = [NSCharacterSet characterSetWithCharactersInString:
+                   @"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~,:"];
+    });
+    return [s stringByAddingPercentEncodingWithAllowedCharacters:allowed];
+}
+
++ (nullable NSURL *)routeURLForServer:(NSURL *)server
+                            waypoints:(NSArray <CLLocation *>*)waypoints
+                              profile:(nullable NSString *)profile
+                            overrides:(nullable NSDictionary<NSString *, NSString *> *)overrides
+{
+    // BRouter expects lon,lat pairs separated by "|"
     NSString *lonlats = @"";
     BOOL first = YES;
     for (CLLocation *loc in waypoints) {
@@ -56,20 +48,30 @@
                    loc.coordinate.latitude];
         first = NO;
     }
-    // Request GPX output
-    NSURLComponents *components = [NSURLComponents componentsWithURL:self.serverURL resolvingAgainstBaseURL:NO];
-    components.path = @"/brouter";
-    components.queryItems = @[
-        [NSURLQueryItem queryItemWithName:@"lonlats" value:lonlats],
-        [NSURLQueryItem queryItemWithName:@"profile" value:profile ?: @"fastbike"],
-        [NSURLQueryItem queryItemWithName:@"alternativeidx" value:@"0"],
-        [NSURLQueryItem queryItemWithName:@"format" value:@"gpx"] //,
-        //[NSURLQueryItem queryItemWithName:extraUrl value:nil]
-    ];
-    NSURL *url = components.URL;
-    if ([extraUrl length]) {
-        url = [url URLByAppendingQueryString:extraUrl];
+    NSMutableArray<NSURLQueryItem *> *items = [NSMutableArray array];
+    void (^add)(NSString *, NSString *) = ^(NSString *name, NSString *value) {
+        [items addObject:[NSURLQueryItem queryItemWithName:BPQueryEncoded(name) value:BPQueryEncoded(value)]];
+    };
+    add(@"lonlats", lonlats);
+    add(@"profile", profile ?: @"fastbike");
+    add(@"alternativeidx", @"0");
+    add(@"format", @"gpx");
+    // profile parameter overrides: BRouter reads top-level "profile:<name>" parameters ("extraParams" is ignored)
+    for (NSString *name in [overrides.allKeys sortedArrayUsingSelector:@selector(compare:)]) {
+        add([@"profile:" stringByAppendingString:name], overrides[name]);
     }
+    NSURLComponents *components = [NSURLComponents componentsWithURL:server resolvingAgainstBaseURL:NO];
+    components.path = @"/brouter";
+    components.percentEncodedQueryItems = items;
+    return components.URL;
+}
+
+- (void)routeWithWaypoints:(NSArray <CLLocation *>*)waypoints
+          profile:(NSString *)profile
+        overrides:(nullable NSDictionary<NSString *, NSString *> *)overrides
+       completion:(void(^)(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *brouterInfo, NSError *error))completion
+{
+    NSURL *url = [[self class] routeURLForServer:self.serverURL waypoints:waypoints profile:profile overrides:overrides];
     if (!url) {
         if (completion) completion(nil, nil, nil, [NSError errorWithDomain:@"BRouterClient" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"Invalid URL"}]);
         return;

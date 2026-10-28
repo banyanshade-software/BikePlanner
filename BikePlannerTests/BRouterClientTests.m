@@ -30,11 +30,11 @@
     [server stop];
 }
 
-- (void)route:(NSArray<CLLocation *> *)wps extra:(NSString *)extra
+- (void)route:(NSArray<CLLocation *> *)wps overrides:(NSDictionary *)overrides
          then:(void (^)(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *info, NSError *error))check
 {
     XCTestExpectation *done = [self expectationWithDescription:@"route"];
-    [client routeWithWaypoints:wps profile:@"trekking" extraUrl:extra
+    [client routeWithWaypoints:wps profile:@"trekking" overrides:overrides
                     completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *info, NSError *error) {
         check(points, gpx, info, error);
         [done fulfill];
@@ -44,7 +44,7 @@
 
 - (void)testRouteRequestAndResult
 {
-    [self route:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] extra:nil
+    [self route:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] overrides:nil
            then:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *info, NSError *error) {
         XCTAssertNil(error);
         XCTAssertEqual(points.count, 11u);
@@ -62,7 +62,7 @@
 
 - (void)testIntermediateWaypoints
 {
-    [self route:@[BPLoc(44.0, 0.5), BPLoc(44.05, 0.55), BPLoc(44.1, 0.6)] extra:nil
+    [self route:@[BPLoc(44.0, 0.5), BPLoc(44.05, 0.55), BPLoc(44.1, 0.6)] overrides:nil
            then:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *info, NSError *error) {
         XCTAssertEqual(points.count, 21u);
     }];
@@ -70,21 +70,47 @@
                     componentsSeparatedByString:@"|"].count, 3u);
 }
 
-- (void)testExtraParamsAreAppended
+// profile parameter overrides: one top-level "profile:<name>=<value>" parameter each — what BRouter reads
+// ("extraParams=…" is ignored by brouter.de) (#15, #35)
+- (void)testProfileOverridesAreQueryParameters
 {
-    [self route:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] extra:@"extraParams=profile:uphillcost%3D200"
+    [self route:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] overrides:@{ @"uphillcost": @"200", @"avoid_unsafe": @"true" }
            then:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *info, NSError *error) {
         XCTAssertNil(error);
     }];
-    XCTAssertEqualObjects([server requestsWithPath:@"/brouter"].firstObject.query[@"extraParams"],
-                          @"profile:uphillcost=200");
+    NSDictionary *q = [server requestsWithPath:@"/brouter"].firstObject.query;
+    XCTAssertEqualObjects(q[@"profile:uphillcost"], @"200");
+    XCTAssertEqualObjects(q[@"profile:avoid_unsafe"], @"true");
+    XCTAssertNil(q[@"extraParams"]);
+    XCTAssertEqualObjects(q[@"profile"], @"trekking");
+}
+
+// values are percent-encoded: "&", "=", spaces or "|" can neither split the query nor make the URL invalid
+- (void)testOverrideValuesAreEncoded
+{
+    [self route:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] overrides:@{ @"x": @"a b&c=d|e+f" }
+           then:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *info, NSError *error) {
+        XCTAssertNil(error);
+    }];
+    NSDictionary *q = [server requestsWithPath:@"/brouter"].firstObject.query;
+    XCTAssertEqualObjects(q[@"profile:x"], @"a b&c=d|e+f");
+    XCTAssertNil(q[@"c"]);
+}
+
+- (void)testRouteURL
+{
+    NSURL *u = [BRouterClient routeURLForServer:[NSURL URLWithString:@"https://brouter.de"]
+                                      waypoints:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] profile:@"trekking"
+                                      overrides:@{ @"b": @"2", @"a": @"1" }];
+    XCTAssertEqualObjects(u.absoluteString, @"https://brouter.de/brouter?lonlats=0.500000,44.000000%7C0.600000,44.100000"
+                          @"&profile=trekking&alternativeidx=0&format=gpx&profile:a=1&profile:b=2", @"overrides sorted by name");
 }
 
 - (void)testServerUnreachableGivesError
 {
     BRouterClient *c = [[BRouterClient alloc] initWithServerURL:[NSURL URLWithString:@"http://127.0.0.1:1"]];
     XCTestExpectation *done = [self expectationWithDescription:@"route"];
-    [c routeWithWaypoints:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] profile:@"trekking" extraUrl:nil
+    [c routeWithWaypoints:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] profile:@"trekking" overrides:nil
                completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *info, NSError *error) {
         XCTAssertNotNil(error);
         XCTAssertNil(points);
@@ -97,7 +123,7 @@
 - (void)testHTTPErrorGivesError
 {
     server.failCount = 1;
-    [self route:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] extra:nil
+    [self route:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] overrides:nil
            then:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *info, NSError *error) {
         XCTAssertEqual(points.count, 0u);
         XCTExpectFailure(@"HTTP status not checked by BRouterClient (#9)");
@@ -108,7 +134,7 @@
 // Known bug (#9): a BRouter error message (HTTP 400 text) is not reported as an error.
 - (void)testSingleWaypointGivesError
 {
-    [self route:@[BPLoc(44.0, 0.5)] extra:nil
+    [self route:@[BPLoc(44.0, 0.5)] overrides:nil
            then:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *info, NSError *error) {
         XCTAssertEqual(points.count, 0u);
         XCTExpectFailure(@"HTTP status not checked by BRouterClient (#9)");

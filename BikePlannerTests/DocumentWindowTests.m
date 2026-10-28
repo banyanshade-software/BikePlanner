@@ -856,23 +856,29 @@
     [doc setClickModeToEdit:nil];   XCTAssertEqual(seg.selectedSegment, 0);
 }
 
-// "Done/Save" in the Params tab: overrides are sent to BRouter as extraParams
+// "Done/Save" in the Params tab: overrides are sent to BRouter as profile:<name> parameters (#15, #35)
 - (void)testBRFOverridesRecomputeRoute
 {
     [self makeRoute];
     [server clearRequests];
     BRFProfileEditor *editor = ((PlannerWindowController *)doc.windowControllers.firstObject).brfEditor;
     XCTAssertNotNil(editor.completionHandler);
-    editor.completionHandler(@[@"profile:downhillcost=80"]);
-    XCTAssertEqualObjects(mc.extraUrl, @"extraParams=profile:downhillcost=80");
+    editor.completionHandler(@{ @"downhillcost": @"80" });
+    XCTAssertEqualObjects(mc.profileOverrides, @{ @"downhillcost": @"80" });
     XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([self->server requestsWithPath:@"/brouter"].count == 1); }));
-    XCTAssertEqualObjects([server requestsWithPath:@"/brouter"].firstObject.query[@"extraParams"], @"profile:downhillcost=80");
+    XCTAssertEqualObjects([server requestsWithPath:@"/brouter"].firstObject.query[@"profile:downhillcost"], @"80");
 
-    // no override: nothing happens
+    // same overrides again: no new request
     [server clearRequests];
-    editor.completionHandler(@[]);
+    editor.completionHandler(@{ @"downhillcost": @"80" });
     BPSpin(0.5);
     XCTAssertEqual([server requestsWithPath:@"/brouter"].count, 0u);
+
+    // all overrides unchecked: back to the profile defaults
+    editor.completionHandler(@{});
+    XCTAssertEqualObjects(mc.profileOverrides, @{});
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([self->server requestsWithPath:@"/brouter"].count == 1); }));
+    XCTAssertNil([server requestsWithPath:@"/brouter"].firstObject.query[@"profile:downhillcost"]);
 }
 
 - (void)testRoutingErrorKeepsPreviousRoute

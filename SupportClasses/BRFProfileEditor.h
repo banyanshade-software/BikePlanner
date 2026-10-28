@@ -19,8 +19,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface BRFProfileEditor : NSViewController
 
-/// completion will be called on the main thread with the raw extraParams string (e.g. "a=1|b=2") or nil if cancelled
-@property (nonatomic, copy) void (^completionHandler)(NSArray *overrideParams);
+/// called on the main thread by Done/Save with the overridden parameters (name → value, without the "profile:"
+/// prefix); empty when no parameter is overridden
+@property (nonatomic, copy) void (^completionHandler)(NSDictionary<NSString *, NSString *> *overrideParams);
 
 - (void)loadProfileName:(NSString *)profileName;
 //- (void)showEditor;

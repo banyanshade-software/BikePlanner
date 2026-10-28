@@ -148,7 +148,7 @@
 
 - (void)doneClicked:(id)sender
 {
-    NSMutableArray *overrides = [NSMutableArray array];
+    NSMutableDictionary<NSString *, NSString *> *overrides = [NSMutableDictionary dictionary];
     for (NSView *row in self.stackView.arrangedSubviews) {
         if (![row isKindOfClass:[NSStackView class]]) continue;
         NSStackView *rowView = (NSStackView *)row;
@@ -157,8 +157,7 @@
         NSTextField *label = (NSTextField *)rowView.arrangedSubviews[1];
         NSTextField *field = (NSTextField *)rowView.arrangedSubviews[2];
         if (check.state == NSControlStateValueOn) {
-            NSString *key = [self fixProfileKey:label.stringValue];
-            [overrides addObject:[NSString stringWithFormat:@"%@=%@", key, field.stringValue]];
+            overrides[label.stringValue] = field.stringValue; // "profile:" prefix added by BRouterClient
         }
     }
     // NSString *extraParams = [overrides componentsJoinedByString:@"|"];
@@ -167,17 +166,4 @@
     //if ((0))  [self.window close];
 }
 
-- (NSString *) fixProfileKey:(NSString *)k
-{
-    NSString *prefix = nil;
-    if ((1)) {
-        prefix = @"profile";
-    }
-    
-    if (prefix) {
-        return [NSString stringWithFormat:@"%@:%@", prefix, k];
-    } else {
-        return k;
-    }
-}
 @end

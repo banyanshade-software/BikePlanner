@@ -138,7 +138,9 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F4.1 Routing uses the BRouter `trekking` profile.
 - F4.2 The *Params* tab downloads the `trekking.brf` profile and lists every `assign <name> = <value>`
   parameter with an “Override” checkbox and an editable value.
-- F4.3 “Done/Save” recomputes the route with the overridden parameters (sent as `profile:<name>=<value>`).
+- F4.3 “Done/Save” recomputes the route with the overridden parameters, each sent as a top-level
+  `profile:<name>=<value>` query parameter (what BRouter reads; an `extraParams=` wrapper is ignored). Unchecking
+  every override and “Done/Save” goes back to the profile defaults; “Done/Save” without any change sends nothing.
 - F4.4 *(partial)* Overrides are not saved in the document and are lost when the window closes.
 - F4.5 *(planned, mandatory)* The user chooses the BRouter profile (e.g. `trekking`, `fastbike`, `safety`, …);
   the chosen profile and its overrides are saved in the document.

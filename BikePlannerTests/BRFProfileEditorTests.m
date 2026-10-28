@@ -82,8 +82,8 @@
 - (void)testDoneReturnsOnlyOverriddenParams
 {
     [self loadUI];
-    __block NSArray *result = nil;
-    editor.completionHandler = ^(NSArray *overrides) { result = overrides; };
+    __block NSDictionary *result = nil;
+    editor.completionHandler = ^(NSDictionary *overrides) { result = overrides; };
 
     NSStackView *row0 = [self rows][0];
     NSStackView *row2 = [self rows][2];
@@ -92,16 +92,16 @@
     ((NSButton *)row2.arrangedSubviews[0]).state = NSControlStateValueOn;
 
     [editor doneClicked:nil];
-    XCTAssertEqualObjects(result, (@[@"profile:downhillcost=80", @"profile:avoid_unsafe=false"]));
+    XCTAssertEqualObjects(result, (@{ @"downhillcost": @"80", @"avoid_unsafe": @"false" }), @"names without the profile: prefix (added by BRouterClient)");
 }
 
 - (void)testDoneWithoutOverrides
 {
     [self loadUI];
-    __block NSArray *result = nil;
-    editor.completionHandler = ^(NSArray *overrides) { result = overrides; };
+    __block NSDictionary *result = nil;
+    editor.completionHandler = ^(NSDictionary *overrides) { result = overrides; };
     [editor doneClicked:nil];
-    XCTAssertEqualObjects(result, @[]);
+    XCTAssertEqualObjects(result, @{});
 }
 
 - (void)testServerErrorGivesNoRows

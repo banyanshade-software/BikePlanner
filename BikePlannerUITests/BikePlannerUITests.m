@@ -161,8 +161,8 @@ static BOOL BPWaitWindows(XCUIApplication *app, NSUInteger n)
     [override click];
     [self.window.buttons[@"Done/Save"] click];
     XCTAssertTrue([self waitForRequests:@"/brouter" count:2 timeout:10]);
-    NSString *extra = [self.server requestsWithPath:@"/brouter"].lastObject.query[@"extraParams"];
-    XCTAssertEqualObjects(extra, @"profile:downhillcost=60");
+    NSString *value = [self.server requestsWithPath:@"/brouter"].lastObject.query[@"profile:downhillcost"];
+    XCTAssertEqualObjects(value, @"60", @"one profile:<name> parameter per override (#15, #35)");
 }
 
 // "Fetch POI" and "View POI" (Info tab) are displayed as switches
