@@ -19,11 +19,15 @@
 #import "POIAnnotationView.h"
 #import "ExportAccessoryViewController.h"
 #import "BPPOIEditor.h"
+#import "BPPlaceSearch.h"
 #import "Secret.h"
 #import "BPEnvironment.h"
 
 // Secret.h is not commited, see Secret.h.example
 
+
+@implementation BPSearchPinAnnotation
+@end
 
 @implementation MapController {
     //NSMutableArray <CLLocation *>*waypointsLocations;
@@ -38,6 +42,11 @@
     
     NSTextField *helpTxtField;
     BPClickMode clickmode;
+    NSSearchField *searchField;                      // toolbar (#40)
+    MKLocalSearchCompleter *searchCompleter;
+    NSArray<NSString *> *searchCompletionTitles;
+    BPSearchPinAnnotation *searchPin;
+    NSTimer *mapMessageTimer;
     NSSegmentedControl *clickmodeseg;
     NSVisualEffectView *helpBackdrop;
     
@@ -108,6 +117,7 @@
         });
     }
     if ((1)) [self addTrackingAreas];
+    [self installSearchField];
 }
 
 #pragma  mark - tracking area
@@ -979,42 +989,156 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
 
 
 
+#pragma mark - location search (#40)
+
+- (void) installSearchField
+{
+    for (NSToolbarItem *item in self.mapView.window.toolbar.items) {
+        if ([item isKindOfClass:[NSSearchToolbarItem class]]) {
+            searchField = ((NSSearchToolbarItem *)item).searchField;
+            searchField.delegate = self;
+        }
+    }
+}
+
+// Return in the search field (only then, #41): one result is shown, several are proposed in a menu, none or an
+// error gives a message; an empty field removes the search pin
 - (IBAction) sendersearchFieldAction:(id)sender
 {
     NSSearchField *field = (NSSearchField *)sender;
-    NSString *query = field.stringValue;
-    
-    if (query.length == 0) return;
-    
-    MKLocalSearchRequest *request = [[MKLocalSearchRequest alloc] init];
-    request.naturalLanguageQuery = query;
-    request.region = self.mapView.region; // Search near current map
-    
-    MKLocalSearch *search = [[MKLocalSearch alloc] initWithRequest:request];
-    [search startWithCompletionHandler:^(MKLocalSearchResponse * _Nullable response, NSError * _Nullable error) {
+    NSString *query = [field.stringValue stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (query.length == 0) {
+        [self removeSearchPin];
+        return;
+    }
+    CLLocation *center = [[CLLocation alloc] initWithLatitude:self.mapView.centerCoordinate.latitude
+                                                    longitude:self.mapView.centerCoordinate.longitude];
+    [BPPlaceSearch search:query near:self.mapView.region completion:^(NSArray<MKMapItem *> *items, NSError *error) {
         if (error) {
-            NSLog(@"Search error: %@", error.localizedDescription);
-            return;
+            [self showMapMessage:[NSString stringWithFormat:NSLocalizedString(@"Search failed: %@", @"location search"),
+                                  error.localizedDescription]];
+        } else if (items.count == 0) {
+            [self showMapMessage:[NSString stringWithFormat:NSLocalizedString(@"No place found for “%@”", @"location search"), query]];
+        } else if (items.count == 1) {
+            [self showSearchResult:items.firstObject];
+        } else {
+            NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Places"];
+            for (MKMapItem *item in items) {
+                CLLocation *loc = [[CLLocation alloc] initWithLatitude:item.placemark.coordinate.latitude
+                                                             longitude:item.placemark.coordinate.longitude];
+                NSString *title = [NSString stringWithFormat:NSLocalizedString(@"%@ (%.0f km)", @"search result: place (distance)"),
+                                   [BPPlaceSearch titleForItem:item], [loc distanceFromLocation:center] / 1000];
+                NSMenuItem *mi = [menu addItemWithTitle:title action:@selector(searchResultChosen:) keyEquivalent:@""];
+                mi.target = self;
+                mi.representedObject = item;
+            }
+            void (^present)(NSMenu *, NSView *) = self.presentSearchResultsMenu ?: ^(NSMenu *m, NSView *v) {
+                NSPoint p = v.isFlipped ? NSMakePoint(0, NSHeight(v.bounds) + 4) : NSMakePoint(0, -4);
+                [m popUpMenuPositioningItem:nil atLocation:p inView:v];
+            };
+            present(menu, field);
         }
-        
-        if (response.mapItems.count == 0) {
-            NSLog(@"No results found");
-            return;
-        }
-        
-        // Take first result, zoom to it
-        MKMapItem *item = response.mapItems.firstObject;
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(item.placemark.coordinate, 2000, 2000) animated:YES];
-            
-            // Optional: drop a pin
-            MKPointAnnotation *annotation = [[MKPointAnnotation alloc] init];
-            annotation.title = item.name;
-            annotation.coordinate = item.placemark.coordinate;
-            [self.mapView addAnnotation:annotation];
-        });
     }];
+}
+
+- (void) searchResultChosen:(NSMenuItem *)sender
+{
+    [self showSearchResult:sender.representedObject];
+}
+
+- (void) showSearchResult:(MKMapItem *)item
+{
+    [self removeSearchPin];
+    searchPin = [[BPSearchPinAnnotation alloc] init];
+    searchPin.coordinate = item.placemark.coordinate;
+    searchPin.title = item.name;
+    searchPin.subtitle = [BPPlaceSearch subtitleForItem:item];
+    [self.mapView addAnnotation:searchPin];
+    [self.mapView setRegion:[BPPlaceSearch regionForItem:item] animated:YES];
+}
+
+- (void) removeSearchPin
+{
+    if (searchPin) [self.mapView removeAnnotation:searchPin];
+    searchPin = nil;
+}
+
+// temporary message in place of the click mode help (search feedback)
+- (void) showMapMessage:(NSString *)message
+{
+    helpTxtField.stringValue = message;
+    NSRect f = helpTxtField.frame;
+    f.size.width = ceil(helpTxtField.attributedStringValue.size.width) + 8;
+    helpTxtField.frame = f;
+    if (helpBackdrop) helpBackdrop.frame = NSInsetRect(f, -kBackdropMargin, -kBackdropMargin);
+    [mapMessageTimer invalidate];
+    mapMessageTimer = [NSTimer scheduledTimerWithTimeInterval:4 repeats:NO block:^(NSTimer *t) {
+        [self setHelpStringForClickMode:self->clickmode];
+    }];
+}
+
+// completions while typing (MKLocalSearchCompleter), shown by the field editor's completion list
+- (void) controlTextDidChange:(NSNotification *)notification
+{
+    if (notification.object != searchField) return;
+    NSString *text = searchField.stringValue;
+    for (NSString *t in searchCompletionTitles) {
+        if ([t caseInsensitiveCompare:text] == NSOrderedSame) return; // a completion being browsed, not typing
+    }
+    if (text.length < 2) {
+        searchCompletionTitles = @[];
+        return;
+    }
+    if (!searchCompleter) {
+        searchCompleter = [[MKLocalSearchCompleter alloc] init];
+        searchCompleter.delegate = self;
+    }
+    searchCompleter.region = self.mapView.region;
+    searchCompleter.queryFragment = text;
+}
+
+- (void) completerDidUpdateResults:(MKLocalSearchCompleter *)completer
+{
+    NSMutableArray<NSString *> *titles = [NSMutableArray array];
+    for (MKLocalSearchCompletion *c in completer.results) {
+        [titles addObject:c.subtitle.length ? [NSString stringWithFormat:@"%@, %@", c.title, c.subtitle] : c.title];
+    }
+    searchCompletionTitles = titles;
+    NSText *editor = searchField.currentEditor;
+    if (titles.count && [editor isKindOfClass:[NSTextView class]]) [(NSTextView *)editor complete:nil];
+}
+
+- (void) completer:(MKLocalSearchCompleter *)completer didFailWithError:(NSError *)error
+{
+    searchCompletionTitles = @[];
+}
+
+- (void) setSearchCompletionTitles:(NSArray<NSString *> *)titles
+{
+    searchCompletionTitles = [titles copy];
+}
+
+// the field editor replaces the partial word only: give the end of the matching completions from there
+- (NSArray<NSString *> *) completionsForText:(NSString *)text partialWordRange:(NSRange)range
+{
+    if (NSMaxRange(range) > text.length) return @[];
+    NSString *typed = [text substringToIndex:NSMaxRange(range)];
+    NSMutableArray<NSString *> *out = [NSMutableArray array];
+    for (NSString *t in searchCompletionTitles) {
+        if (t.length <= range.location) continue;
+        if ([t rangeOfString:typed options:NSAnchoredSearch | NSCaseInsensitiveSearch | NSDiacriticInsensitiveSearch].location == 0) {
+            [out addObject:[t substringFromIndex:range.location]];
+        }
+    }
+    return out;
+}
+
+- (NSArray<NSString *> *) control:(NSControl *)control textView:(NSTextView *)textView completions:(NSArray<NSString *> *)words
+              forPartialWordRange:(NSRange)charRange indexOfSelectedItem:(NSInteger *)index
+{
+    if (control != searchField) return words;
+    if (index) *index = -1; // nothing preselected: Return keeps what was typed
+    return [self completionsForText:textView.string partialWordRange:charRange];
 }
 
 static NSString *xmlEscaped(NSString * _Nullable s)

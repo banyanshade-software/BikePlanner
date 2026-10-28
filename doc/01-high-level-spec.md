@@ -92,9 +92,12 @@ parameters (Params tab) on the length, time and speed of the route is seen (#43)
   **Apple**, **Sat+Rd** (hybrid), **Sat**.
 - F1.2 Zoom in / zoom out buttons halve / double the visible span.
 - F1.3 “My location” centers the map on the user's position (asks for location permission the first time).
-- F1.4 On Return (not while typing, nor when the field loses the focus), the search field (toolbar) performs an
-  Apple place search near the current region, zooms on the
-  first result and drops a pin there.
+- F1.4 Location search (toolbar field, #40): while typing, place completions (Apple `MKLocalSearchCompleter`) are
+  offered in the field's completion list; the search itself runs on Return only (not when the field loses the
+  focus, #41), near the current map. One result: the map goes there (a few km for an address, ~20 km for a
+  locality). Several: a menu lists them (name, place, distance from the map center) and the chosen one is shown.
+  None, or an error: a message replaces the help text of the map for a few seconds. One search pin at a time:
+  replaced by the next search, removed by clearing the field.
 - F1.5 A plan without route opens on a region of ~80 km radius (defaults key `BPInitialRadiusKm`) around the
   user location; until the location is known, or if it is refused, around the default position (key
   `BPDefaultPosition`, “lat,lon”; set in the Preferences, F12). The first location recenters the map,

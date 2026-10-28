@@ -21,7 +21,12 @@ typedef NS_ENUM(int, BPClickMode) {
     BPClickModeView = 3,    // click on route moves Street View / elevation cursor
 };
 
-@interface MapController : NSObject <MKMapViewDelegate, ElevationProfileViewDelegate, NSGestureRecognizerDelegate, NSToolbarItemValidation>
+// pin of the location search result (one at a time, #40)
+@interface BPSearchPinAnnotation : MKPointAnnotation
+@end
+
+@interface MapController : NSObject <MKMapViewDelegate, ElevationProfileViewDelegate, NSGestureRecognizerDelegate, NSToolbarItemValidation,
+                                     NSSearchFieldDelegate, MKLocalSearchCompleterDelegate>
 
 @property (weak) IBOutlet MKMapView *mapView;
 @property (weak) IBOutlet Document *document;
@@ -39,6 +44,8 @@ typedef NS_ENUM(int, BPClickMode) {
 @property (strong, nullable) NSData *gpxData;
 @property (nonatomic) BOOL viewPOI;
 @property (readonly, nonatomic) BPClickMode clickMode;
+/// shows the menu of search results under the search field (default: pop-up menu; replaced by tests) (#40)
+@property (copy) void (^presentSearchResultsMenu)(NSMenu *menu, NSView *view);
 
 
 - (IBAction) exportGPX:(id)sender;

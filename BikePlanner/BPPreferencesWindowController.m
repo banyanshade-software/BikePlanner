@@ -40,7 +40,8 @@
             return NO;
         };
         _presentResultsMenu = ^(NSMenu *menu, NSView *view) {
-            [menu popUpMenuPositioningItem:nil atLocation:NSMakePoint(0, NSHeight(view.bounds) + 4) inView:view];
+            NSPoint p = view.isFlipped ? NSMakePoint(0, NSHeight(view.bounds) + 4) : NSMakePoint(0, -4);
+            [menu popUpMenuPositioningItem:nil atLocation:p inView:view];
         };
         [self buildContent];
         [self refreshFields];

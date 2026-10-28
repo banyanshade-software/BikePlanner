@@ -24,9 +24,12 @@
 #import "SafeTileRenderer.h"
 #import "StreetViewController.h"
 #import "GPXParser.h"
+#import "BPPlaceSearch.h"
 #import "TestFixtures.h"
 
 @interface MapController (WindowTesting)
+- (void)setSearchCompletionTitles:(NSArray<NSString *> *)titles;
+- (NSArray<NSString *> *)completionsForText:(NSString *)text partialWordRange:(NSRange)range;
 - (void)handleMapClick:(NSGestureRecognizer *)gesture;
 - (void)addCustomPoiAt:(CLLocationCoordinate2D)coord;
 - (void)userLocationAvailable:(nullable CLLocation *)loc;
@@ -1307,6 +1310,94 @@
     MKAnnotationView *v = [[MKAnnotationView alloc] initWithAnnotation:a reuseIdentifier:nil];
     [mc mapView:map annotationView:v didChangeDragState:MKAnnotationViewDragStateEnding fromOldState:MKAnnotationViewDragStateDragging];
     XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
+}
+
+#pragma mark - location search (#40)
+
+- (NSSearchField *)searchField
+{
+    for (NSToolbarItem *item in doc.windowControllers.firstObject.window.toolbar.items) {
+        if ([item isKindOfClass:[NSSearchToolbarItem class]]) return ((NSSearchToolbarItem *)item).searchField;
+    }
+    return nil;
+}
+
+static MKMapItem *BPPlace(NSString *name, double lat, double lon)
+{
+    MKMapItem *item = [[MKMapItem alloc] initWithPlacemark:[[MKPlacemark alloc] initWithCoordinate:CLLocationCoordinate2DMake(lat, lon)]];
+    item.name = name;
+    return item;
+}
+
+- (void)search:(NSString *)query results:(NSArray<MKMapItem *> *)results
+{
+    [BPPlaceSearch setSearchHandlerForTesting:^(NSString *q, MKCoordinateRegion region, BPPlaceSearchCompletion done) {
+        done(results, nil);
+    }];
+    NSSearchField *f = [self searchField];
+    f.stringValue = query;
+    [mc sendersearchFieldAction:f];
+    BPSpin(0.3); // completion on the main queue; the tests then wait for their own effect
+}
+
+- (NSArray<MKPointAnnotation *> *)searchPins
+{
+    return [self annotationsOfClass:[BPSearchPinAnnotation class]];
+}
+
+// one result: the map goes there, with a single pin (replaced by the next search, removed by clearing the field)
+- (void)testSearchSingleResult
+{
+    [self search:@"Agen" results:@[ BPPlace(@"Agen", 44.2033, 0.6163) ]];
+    XCTAssertTrue(BPWaitUntil(3, ^{ return (BOOL)(fabs(self->map.centerCoordinate.latitude - 44.2033) < 0.01); }));
+    XCTAssertEqual([self searchPins].count, 1u);
+    XCTAssertEqualObjects([self searchPins].firstObject.title, @"Agen");
+    [self search:@"Nérac" results:@[ BPPlace(@"Nérac", 44.136, 0.339) ]];
+    XCTAssertEqual([self searchPins].count, 1u, @"one pin at a time");
+    XCTAssertEqualObjects([self searchPins].firstObject.title, @"Nérac");
+    [self search:@"" results:@[]];
+    XCTAssertEqual([self searchPins].count, 0u, @"cleared search field: pin removed");
+    [BPPlaceSearch setSearchHandlerForTesting:nil];
+}
+
+// several results: proposed in a menu (name, place, distance), the chosen one is shown
+- (void)testSearchSeveralResults
+{
+    __block NSMenu *shown = nil;
+    mc.presentSearchResultsMenu = ^(NSMenu *menu, NSView *view) { shown = menu; };
+    [self search:@"Valence" results:@[ BPPlace(@"Valence", 44.93, 4.89), BPPlace(@"Valence", 44.11, 0.89) ]];
+    XCTAssertEqual(shown.itemArray.count, 2u);
+    XCTAssertTrue([shown.itemArray[1].title containsString:@"km"], @"%@", shown.itemArray[1].title);
+    XCTAssertEqual([self searchPins].count, 0u, @"nothing chosen yet");
+    NSMenuItem *choice = shown.itemArray[1];
+    [NSApp sendAction:choice.action to:choice.target from:choice];
+    XCTAssertTrue(BPWaitUntil(3, ^{ return (BOOL)(fabs(self->map.centerCoordinate.longitude - 0.89) < 0.01); }));
+    XCTAssertEqual([self searchPins].count, 1u);
+    [BPPlaceSearch setSearchHandlerForTesting:nil];
+}
+
+// no result / error: a message instead of nothing
+- (void)testSearchNoResultMessage
+{
+    NSTextField *help = (NSTextField *)[self viewWithIdentifier:@"clickModeHelp" in:self.content];
+    NSString *before = help.stringValue;
+    [self search:@"Xyzzy" results:@[]];
+    XCTAssertTrue([help.stringValue containsString:@"Xyzzy"], @"%@", help.stringValue);
+    XCTAssertTrue(BPWaitUntil(6, ^{ return [help.stringValue isEqualToString:before]; }), @"help text back");
+    [BPPlaceSearch setSearchHandlerForTesting:nil];
+}
+
+// completions while typing (MKLocalSearchCompleter results), for the field editor's completion list: they replace
+// the word being typed
+- (void)testSearchCompletions
+{
+    NSSearchField *f = [self searchField];
+    XCTAssertEqual(f.delegate, (id)mc);
+    [mc setSearchCompletionTitles:@[ @"Valence, Drôme, France", @"Valence d'Agen, Tarn-et-Garonne, France", @"Vals-les-Bains, France" ]];
+    NSArray *c = [mc completionsForText:@"Valence" partialWordRange:NSMakeRange(0, 7)];
+    XCTAssertEqualObjects(c, (@[ @"Valence, Drôme, France", @"Valence d'Agen, Tarn-et-Garonne, France" ]));
+    c = [mc completionsForText:@"Valence d" partialWordRange:NSMakeRange(8, 1)];
+    XCTAssertEqualObjects(c, (@[ @"d'Agen, Tarn-et-Garonne, France" ]), @"replaces the partial word only");
 }
 
 - (void)testSearchWithEmptyQueryDoesNothing

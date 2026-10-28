@@ -134,7 +134,8 @@ static MKMapItem *BPItem(NSString *name, double lat, double lon)
     XCTAssertTrue([wc.messageLabel.stringValue containsString:@"No map"]);
 }
 
-- (void)searchFor:(NSString *)query results:(NSArray<MKMapItem *> *)results
+// runs a search answered with results; waits until the result is handled (completion on the main queue)
+- (void)searchFor:(NSString *)query results:(NSArray<MKMapItem *> *)results until:(BOOL (^)(void))handled
 {
     [BPPlaceSearch setSearchHandlerForTesting:^(NSString *q, MKCoordinateRegion region, BPPlaceSearchCompletion done) {
         XCTAssertEqualObjects(q, query);
@@ -142,7 +143,7 @@ static MKMapItem *BPItem(NSString *name, double lat, double lon)
     }];
     wc.searchField.stringValue = query;
     [wc search:wc.searchField];
-    BPSpin(0.1); // completion on the main queue
+    XCTAssertTrue(BPWaitUntil(3, handled), @"search %@ handled", query);
 }
 
 // search: one result is used at once, several are proposed in a menu, none gives a message
@@ -152,19 +153,22 @@ static MKMapItem *BPItem(NSString *name, double lat, double lon)
     __block NSMenu *shown = nil;
     wc.presentResultsMenu = ^(NSMenu *menu, NSView *view) { shown = menu; };
 
-    [self searchFor:@"Agen" results:@[ BPItem(@"Agen", 44.2033, 0.6163) ]];
+    [self searchFor:@"Agen" results:@[ BPItem(@"Agen", 44.2033, 0.6163) ]
+              until:^BOOL{ return fabs(self->prefs.defaultPosition.latitude - 44.2033) < 1e-6; }];
     XCTAssertNil(shown);
     XCTAssertEqualWithAccuracy(prefs.defaultPosition.latitude, 44.2033, 1e-6);
 
     [self searchFor:@"Valence" results:@[ BPItem(@"Valence (Drôme)", 44.93, 4.89), BPItem(@"Valence (Tarn-et-Garonne)", 44.11, 0.89),
-                                          BPItem(@"Valence-d'Albigeois", 44.02, 2.40) ]];
+                                          BPItem(@"Valence-d'Albigeois", 44.02, 2.40) ]
+              until:^BOOL{ return shown != nil; }];
     XCTAssertEqual(shown.itemArray.count, 3u);
     XCTAssertTrue([shown.itemArray[1].title hasPrefix:@"Valence (Tarn-et-Garonne)"]);
     NSMenuItem *choice = shown.itemArray[1];
     [NSApp sendAction:choice.action to:choice.target from:choice];
     XCTAssertEqualWithAccuracy(prefs.defaultPosition.latitude, 44.11, 1e-6);
 
-    [self searchFor:@"Nowhere" results:@[]];
+    [self searchFor:@"Nowhere" results:@[]
+              until:^BOOL{ return [self->wc.messageLabel.stringValue containsString:@"Nowhere"]; }];
     XCTAssertTrue([wc.messageLabel.stringValue containsString:@"Nowhere"]);
     XCTAssertEqualWithAccuracy(prefs.defaultPosition.latitude, 44.11, 1e-6);
 }
