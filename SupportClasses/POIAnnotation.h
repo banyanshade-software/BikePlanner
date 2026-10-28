@@ -14,6 +14,8 @@ NS_ASSUME_NONNULL_BEGIN
 //@property (nonatomic, copy) NSString *xxpoiType;
 @property (nonatomic) PoiType_t poiType;
 @property (nonatomic,strong) NSDictionary *info;
+@property (nonatomic,copy,nullable) NSString *poiKey;   // -[POILocation poiKey]
+@property (nonatomic) BOOL excluded;                    // excluded from the export (#5): greyed
 
 - (void) configureAnnotViewIcon:(MKMarkerAnnotationView *)view;
 @end

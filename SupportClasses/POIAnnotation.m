@@ -61,7 +61,9 @@
         default:
             break;
     }
-    
+    // excluded from the export (#5): greyed (views are reused: always set)
+    if (_excluded) view.markerTintColor = [NSColor systemGrayColor];
+    view.alphaValue = _excluded ? 0.6 : 1.0;
 }
 // <a href="https://www.flaticon.com/free-icons/drinkable" title="drinkable icons">Drinkable icons created by cube29 - Flaticon</a>
 // <a href="https://www.flaticon.com/free-icons/restroom" title="restroom icons">Restroom icons created by monkik - Flaticon</a>

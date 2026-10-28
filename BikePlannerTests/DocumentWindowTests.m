@@ -15,6 +15,7 @@
 #import "RouteAnnotation.h"
 #import "POIAnnotation.h"
 #import "POIAnnotationView.h"
+#import "POICalloutView.h"
 #import "TaggedPoly.h"
 #import "ElevationProfileView.h"
 #import "BPStubServer.h"
@@ -406,6 +407,33 @@
 {
     XCTAssertTrue(BPWaitUntil(6, ^{ return (BOOL)(self->doc.plan.poiloc.count == 3); }));
     BPSpin(0.1);
+}
+
+// Include / Exclude in the POI callout (#5): an excluded POI stays on the map, greyed, is not exported; undoable
+- (void)testExcludePOIFromCallout
+{
+    [self makeRoute];
+    [self waitForPOIs];
+    POIAnnotation *ann = [self annotationsOfClass:[POIAnnotation class]].firstObject;
+    POIAnnotationView *view = (POIAnnotationView *)[mc mapView:map viewForAnnotation:ann];
+    POICalloutView *callout = (POICalloutView *)view.detailCalloutAccessoryView;
+    XCTAssertEqual(callout.excludeControl.selectedSegment, 0, @"included");
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    [um beginUndoGrouping];
+    callout.excludeControl.selectedSegment = 1;
+    [NSApp sendAction:callout.excludeControl.action to:callout.excludeControl.target from:callout.excludeControl];
+    [um endUndoGrouping];
+    XCTAssertEqual(doc.plan.excludedPOIKeys.count, 1u);
+    POIAnnotation *after = nil;
+    for (POIAnnotation *a in [self annotationsOfClass:[POIAnnotation class]]) if ([a.poiKey isEqualToString:ann.poiKey]) after = a;
+    XCTAssertTrue(after.excluded, @"still on the map, marked excluded");
+    POIAnnotationView *v2 = (POIAnnotationView *)[mc mapView:map viewForAnnotation:after];
+    XCTAssertEqualObjects(v2.markerTintColor, [NSColor systemGrayColor], @"greyed");
+    XCTAssertEqual(((POICalloutView *)v2.detailCalloutAccessoryView).excludeControl.selectedSegment, 1);
+    XCTAssertEqualObjects(um.undoActionName, @"exclude POI");
+    [um undo];
+    XCTAssertEqual(doc.plan.excludedPOIKeys.count, 0u);
 }
 
 - (void)testFetchedPOIsAreDisplayed

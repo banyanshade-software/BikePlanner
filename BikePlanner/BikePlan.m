@@ -65,6 +65,7 @@
     self.fetchPOI = YES;
     self.customPoiloc = [[NSMutableArray alloc]initWithCapacity:5];
     self.profileOverrides = @{};
+    self.excludedPOIKeys = nil;
     
     return self;
 }
@@ -364,6 +365,28 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     _routePoly = nil;
 }
 
+- (void) setExcludedPOIKeys:(NSSet<NSString *> *)keys
+{
+    _excludedPOIKeys = [keys copy] ?: [NSSet set];
+}
+
+- (BOOL) isPOIExcluded:(POILocation *)poi
+{
+    return [_excludedPOIKeys containsObject:poi.poiKey];
+}
+
+- (void) setPOI:(POILocation *)poi excluded:(BOOL)excluded
+{
+    [self setPOIKey:poi.poiKey excluded:excluded];
+}
+
+- (void) setPOIKey:(NSString *)key excluded:(BOOL)excluded
+{
+    NSMutableSet *keys = [_excludedPOIKeys mutableCopy];
+    if (excluded) [keys addObject:key]; else [keys removeObject:key];
+    self.excludedPOIKeys = keys;
+}
+
 - (nullable NSData *) exportableGPX
 {
     if (_routeGPX) return _routeGPX;
@@ -438,6 +461,7 @@ static NSString *BPXMLEscaped(NSString *s)
     [coder encodeObject:_customPoiloc forKey:@"customPoiloc"];
     [coder encodeObject:_profileOverrides forKey:@"profileOverrides"];
     [coder encodeObject:_routeGPX forKey:@"routeGPX"];
+    [coder encodeObject:_excludedPOIKeys forKey:@"excludedPOIKeys"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)coder
@@ -452,6 +476,7 @@ static NSString *BPXMLEscaped(NSString *s)
     self.poiloc = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [POILocation class], nil]  forKey:@"poiloc"];
     self.customPoiloc = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [POILocation class], nil]  forKey:@"customPoiloc"];
     self.routeGPX = [coder decodeObjectOfClass:[NSData class] forKey:@"routeGPX"];
+    self.excludedPOIKeys = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSSet class], [NSString class], nil] forKey:@"excludedPOIKeys"];
     self.profileOverrides = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSDictionary class], [NSString class], nil] forKey:@"profileOverrides"];
     if (!_customPoiloc) {
         self.customPoiloc = [[NSMutableArray alloc]initWithCapacity:5];

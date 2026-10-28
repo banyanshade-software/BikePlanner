@@ -823,6 +823,8 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     ann.coordinate = loc.coordinate;
     ann.title = loc.title;
     ann.poiType = loc.poiType;
+    ann.poiKey = loc.poiKey;
+    ann.excluded = [_document.plan isPOIExcluded:loc];
     //ann.xxpoiType = loc.title; // FIXME
     [self.mapView addAnnotation:ann];
 }
@@ -1044,6 +1046,7 @@ static NSString *xmlEscaped(NSString * _Nullable s)
     
     if (inclPOI) {
         for (POILocation *poi in _document.plan.customPoiloc) {
+            if ([_document.plan isPOIExcluded:poi]) continue; // #5
             [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
             [xml appendFormat:@"  <name>%@</name>\n", xmlEscaped(poi.title ?: poi.gpxType)]; // custom POIs have no title
             //if (poi.subtitle) {
@@ -1056,6 +1059,7 @@ static NSString *xmlEscaped(NSString * _Nullable s)
     }
     if (inclPOI) {
         for (POILocation *poi in _document.plan.poiloc) {
+            if ([_document.plan isPOIExcluded:poi]) continue; // #5
             [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
             [xml appendFormat:@"  <name>%@</name>\n", xmlEscaped(poi.title ?: poi.gpxType)]; // custom POIs have no title
             //if (poi.subtitle) {
@@ -1538,6 +1542,7 @@ static const BOOL useMarker = NO;
         POIAnnotation *poi = (POIAnnotation *)annotation;
         [poi configureAnnotViewIcon:view];
         ((POICalloutView *)view.detailCalloutAccessoryView).infodic = poi.info; //XXX TODO
+        ((POICalloutView *)view.detailCalloutAccessoryView).excludeControl.selectedSegment = poi.excluded ? 1 : 0;
         
         return view;
     }
@@ -1545,16 +1550,29 @@ static const BOOL useMarker = NO;
     return nil;
 }
 
+// Include / Exclude in the POI callout (#5): an excluded POI is not exported, and shown greyed
 - (void)excludeControlChanged:(NSSegmentedControl *)sender
 {
-    POIAnnotation *poi = (__bridge POIAnnotation *)(void *)sender.tag;
-    if (sender.selectedSegment == 0) {
-        NSLog(@"Include POI: %@", poi.title);
-        // add to route logic here
-    } else {
-        NSLog(@"Exclude POI: %@", poi.title);
-        // remove from route logic here
-    }
+    NSView *v = sender;
+    while (v && ![v isKindOfClass:[POICalloutView class]]) v = v.superview;
+    id<MKAnnotation> annotation = ((POICalloutView *)v).annotview.annotation;
+    if (![annotation isKindOfClass:[POIAnnotation class]]) return;
+    NSString *key = ((POIAnnotation *)annotation).poiKey;
+    if (!key) return;
+    [self setPOIKey:key excluded:(sender.selectedSegment == 1)];
+}
+
+- (void)setPOIKey:(NSString *)key excluded:(BOOL)excluded
+{
+    BikePlan *plan = _document.plan;
+    if ([plan.excludedPOIKeys containsObject:key] == excluded) return;
+    NSUndoManager *um = _document.undoManager;
+    [um registerUndoWithTarget:self handler:^(MapController *target) {
+        [target setPOIKey:key excluded:!excluded];
+    }];
+    [um setActionName:excluded ? NSLocalizedString(@"exclude POI", @"undo action") : NSLocalizedString(@"include POI", @"undo action")];
+    [plan setPOIKey:key excluded:excluded];
+    [self refreshPOI];
 }
 
 

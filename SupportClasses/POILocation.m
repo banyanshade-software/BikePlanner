@@ -91,6 +91,14 @@
         case POI_warning:               return @"..." ; break;
     }
 }
+- (NSString *) poiKey
+{
+    NSString *pos = [NSString stringWithFormat:@"%.6f,%.6f", self.coordinate.latitude, self.coordinate.longitude];
+    id osmid = info[@"id"];
+    if (osmid) return [NSString stringWithFormat:@"osm:%@@%@", osmid, pos];
+    return [@"custom:" stringByAppendingString:pos];
+}
+
 - (NSString *)gpxType
 {
     switch (poitype) {

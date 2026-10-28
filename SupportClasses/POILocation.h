@@ -30,6 +30,8 @@ typedef NS_ENUM(int, PoiType_t) {
 @property (nonatomic,readonly) NSDictionary *info;
 @property (nonatomic,readonly) NSString *gpxSymbol;
 @property (nonatomic,readonly) NSString *gpxType;
+// stable identity (fetched POIs are re-created at each route change): OSM id + position, or position for custom POIs
+@property (nonatomic,readonly) NSString *poiKey;
 
 
 - (instancetype) initWithLatitude:(CLLocationDegrees)latitude longitude:(CLLocationDegrees)longitude ofType:(PoiType_t)poitype info:(NSDictionary *)info custom:(BOOL)useradded;

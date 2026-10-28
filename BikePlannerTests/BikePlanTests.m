@@ -340,6 +340,32 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     XCTAssertNil(plan.exportableGPX, @"one point is not a route");
 }
 
+// excluded POIs (#5): a stable key per POI (fetched POIs are re-created at each route change), saved
+- (void)testExcludedPOIKeys
+{
+    POILocation *a = [[POILocation alloc] initWithLatitude:44.01 longitude:0.5 ofType:POI_toilets info:@{ @"id": @1001 } custom:NO];
+    POILocation *again = [[POILocation alloc] initWithLatitude:44.01 longitude:0.5 ofType:POI_toilets info:@{ @"id": @1001 } custom:NO];
+    POILocation *other = [[POILocation alloc] initWithLatitude:44.01 longitude:0.5 ofType:POI_toilets info:@{ @"id": @1002 } custom:NO];
+    XCTAssertEqualObjects(a.poiKey, again.poiKey);
+    XCTAssertNotEqualObjects(a.poiKey, other.poiKey);
+    [plan addCustomPoiAt:CLLocationCoordinate2DMake(44.02, 0.52)];
+    POILocation *custom = plan.customPoiloc[0];
+    XCTAssertNotNil(custom.poiKey);
+    XCTAssertNotEqualObjects(custom.poiKey, a.poiKey);
+
+    XCTAssertFalse([plan isPOIExcluded:a]);
+    [plan setPOI:a excluded:YES];
+    [plan setPOI:custom excluded:YES];
+    XCTAssertTrue([plan isPOIExcluded:again], @"same POI fetched again");
+    XCTAssertFalse([plan isPOIExcluded:other]);
+    BikePlan *r = [self roundTrip:plan];
+    XCTAssertTrue([r isPOIExcluded:again]);
+    XCTAssertTrue([r isPOIExcluded:r.customPoiloc[0]]);
+    [plan setPOI:a excluded:NO];
+    XCTAssertFalse([plan isPOIExcluded:a]);
+    XCTAssertEqual(plan.excludedPOIKeys.count, 1u);
+}
+
 - (void)testCustomPoiCanBeAddedAfterLoad
 {
     [plan addCustomPoiAt:CLLocationCoordinate2DMake(44, 0.5)];

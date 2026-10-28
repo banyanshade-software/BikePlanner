@@ -183,8 +183,9 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F7.2 Requests are throttled (≥ ~2.8 s apart). A retry on error is intended but does not work today (#12).
 - F7.3 “View POI” toggles display of fetched POIs. Custom POIs are always shown.
 - F7.4 Each POI type has its own icon and color; the POI under the mouse is highlighted.
-- F7.5 Clicking a POI shows a callout with its raw OSM tags and an Include/Exclude control
-  *(partial: the control has no effect yet)*.
+- F7.5 Clicking a POI shows a callout with its raw OSM tags and an Include/Exclude control. An excluded POI stays
+  on the map, greyed, and is **not exported** to GPX (fetched and custom POIs). Exclusions are saved with the
+  document (by OSM id + position, since fetched POIs are re-created at each route change) and undoable (#5).
 - F7.6 In *Add POI* mode the user adds a custom “warning” POI on the route.
 - F7.7 *(planned)* Custom POIs have a **type** chosen by the user (water, food, danger, viewpoint, …, mapped to
   Garmin types for export), and can be edited and removed.

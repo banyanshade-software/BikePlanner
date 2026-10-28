@@ -130,4 +130,23 @@
     XCTAssertEqual(exported.waypoints.count, 2u);
 }
 
+// excluded POIs are not exported (#5)
+- (void)testExcludedPOIsAreNotExported
+{
+    [doc.plan addCustomPoiAt:CLLocationCoordinate2DMake(44.19, 0.49)];
+    [doc.plan addCustomPoiAt:CLLocationCoordinate2DMake(44.20, 0.50)];
+    POILocation *water = [[POILocation alloc] initWithLatitude:44.1 longitude:0.51 ofType:POI_drinking_water
+                                                          info:@{ @"id": @7 } custom:NO];
+    POILocation *wc = [[POILocation alloc] initWithLatitude:44.3 longitude:0.61 ofType:POI_toilets
+                                                       info:@{ @"id": @8 } custom:NO];
+    [doc.plan setPoiloc:@[water, wc]];
+    [doc.plan setPOI:doc.plan.customPoiloc[0] excluded:YES];
+    [doc.plan setPOI:water excluded:YES];
+    NSString *s = [self export:YES name:@"t"];
+    XCTAssertFalse([s containsString:@"lat=\"44.100000\""], @"excluded fetched POI");
+    XCTAssertTrue([s containsString:@"lat=\"44.300000\""]);
+    XCTAssertFalse([s containsString:@"lat=\"44.190000\""], @"excluded custom POI");
+    XCTAssertTrue([s containsString:@"lat=\"44.200000\""]);
+}
+
 @end

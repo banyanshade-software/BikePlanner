@@ -87,6 +87,12 @@ extern const NSUInteger kBPImportMaxWaypoints;        // before spacing: the tol
 @property (readonly,nonatomic) TaggedPoly *gpxDisplayedPoly; // MKPolyLine with a tag, 2
 
 @property (nonatomic) BOOL fetchPOI;
+
+// POIs excluded by the user (POI callout, #5): shown greyed, not exported; saved with the document
+@property (copy,nonatomic,null_resettable) NSSet<NSString *> *excludedPOIKeys;
+- (BOOL) isPOIExcluded:(POILocation *)poi;
+- (void) setPOI:(POILocation *)poi excluded:(BOOL)excluded;
+- (void) setPOIKey:(NSString *)key excluded:(BOOL)excluded;
 @end
 
 NS_ASSUME_NONNULL_END
