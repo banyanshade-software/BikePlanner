@@ -308,7 +308,7 @@
                                         </subviews>
                                         <holdingPriorities>
                                             <real value="250"/>
-                                            <real value="250"/>
+                                            <real value="260"/>
                                         </holdingPriorities>
                                     </splitView>
                                 </subviews>

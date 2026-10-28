@@ -945,6 +945,49 @@
     XCTAssertEqualObjects(editor.appliedOverrides, @{ @"downhillcost": @"80" });
 }
 
+// switching between the Info and Params tabs must not change the width of the side panel (#43)
+- (void)testSidePanelWidthStableAcrossTabs
+{
+    NSWindow *w = doc.windowControllers.firstObject.window;
+    NSTabView *tabs = [self tabViewIn:self.content];
+    NSView *pane = tabs.superview;
+    while (pane && ![pane.superview isKindOfClass:[NSSplitView class]]) pane = pane.superview;
+    XCTAssertNotNil(pane);
+    BRFProfileEditor *editor = ((PlannerWindowController *)doc.windowControllers.firstObject).brfEditor;
+    [tabs selectTabViewItemAtIndex:0];
+    [w layoutIfNeeded];
+    CGFloat infoWidth = pane.frame.size.width;
+    [tabs selectTabViewItemAtIndex:1];
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([[editor valueForKey:@"parameters"] count] > 0); }));
+    BPSpin(0.3);
+    [w layoutIfNeeded];
+    XCTAssertEqualWithAccuracy(pane.frame.size.width, infoWidth, 0.5, @"Params tab");
+    [tabs selectTabViewItemAtIndex:0];
+    [w layoutIfNeeded];
+    XCTAssertEqualWithAccuracy(pane.frame.size.width, infoWidth, 0.5, @"back to Info");
+
+    // the user's width is kept: divider moved, then tabs switched
+    NSSplitView *split = (NSSplitView *)pane.superview;
+    [split setPosition:NSMaxX(split.subviews[0].frame) - 80 ofDividerAtIndex:0];
+    [w layoutIfNeeded];
+    CGFloat userWidth = pane.frame.size.width;
+    [tabs selectTabViewItemAtIndex:1];
+    [w layoutIfNeeded];
+    XCTAssertEqualWithAccuracy(pane.frame.size.width, userWidth, 0.5, @"Params tab after moving the divider");
+    [tabs selectTabViewItemAtIndex:0];
+    [w layoutIfNeeded];
+    XCTAssertEqualWithAccuracy(pane.frame.size.width, userWidth, 0.5, @"Info tab after moving the divider");
+
+    // a wider window: the map takes the extra space
+    CGFloat mapWidth = split.subviews[0].frame.size.width;
+    NSRect frame = w.frame;
+    frame.size.width += 200;
+    [w setFrame:frame display:NO];
+    [w layoutIfNeeded];
+    XCTAssertEqualWithAccuracy(pane.frame.size.width, userWidth, 0.5, @"window resized");
+    XCTAssertEqualWithAccuracy(split.subviews[0].frame.size.width, mapWidth + 200, 0.5);
+}
+
 - (void)testRoutingErrorKeepsPreviousRoute
 {
     [self makeRoute];
