@@ -21,6 +21,7 @@
 #import "BRFProfileEditor.h"
 #import "SafeOSMTileOverlay.h"
 #import "SafeTileRenderer.h"
+#import "StreetViewController.h"
 #import "TestFixtures.h"
 
 @interface MapController (WindowTesting)
@@ -143,10 +144,13 @@
     return nil;
 }
 
-- (NSView *)tabViewItemViewWithIdentifier:(NSString *)ident
+// a control of the side panel (Info section, Street View / Params tabs) by its XIB accessibility identifier
+- (NSView *)panelControlWithIdentifier:(NSString *)ident
 {
-    for (NSTabViewItem *item in [self tabViewIn:self.content].tabViewItems) {
-        NSView *f = [self controlWithIdentifier:ident in:item.view];
+    NSView *f = [self controlWithIdentifier:ident in:self.content];
+    if (f) return f;
+    for (NSTabViewItem *item in [self tabViewIn:self.content].tabViewItems) { // views of the hidden tabs
+        f = [self controlWithIdentifier:ident in:item.view];
         if (f) return f;
     }
     return nil;
@@ -315,11 +319,11 @@
     XCTAssertNotNil(mc.gpxData);
     XCTAssertGreaterThan(doc.plan.brouterInfo.kmlen, 10);
     XCTAssertGreaterThan(doc.plan.brouterInfo.mup, 0);
-    // riding time from BRouter (stub: time=10m 0s), shown in the Info tab with the average speed (#30)
+    // riding time from BRouter (stub: time=10m 0s), shown in the Info section with the average speed (#30)
     XCTAssertEqual(doc.plan.brouterInfo.seconds, 600);
     XCTAssertGreaterThan(doc.plan.brouterInfo.meters, 10000);
-    NSTextField *time = (NSTextField *)[self tabViewItemViewWithIdentifier:@"routeTime"];
-    NSTextField *speed = (NSTextField *)[self tabViewItemViewWithIdentifier:@"routeSpeed"];
+    NSTextField *time = (NSTextField *)[self panelControlWithIdentifier:@"routeTime"];
+    NSTextField *speed = (NSTextField *)[self panelControlWithIdentifier:@"routeSpeed"];
     XCTAssertNotNil(time);
     XCTAssertNotNil(speed);
     XCTAssertEqualObjects(time.stringValue, @"10 min");
@@ -945,13 +949,29 @@
     XCTAssertEqualObjects(editor.appliedOverrides, @{ @"downhillcost": @"80" });
 }
 
-// switching between the Info and Params tabs must not change the width of the side panel (#43)
+// side panel: the Info section is always visible, the tabs are Street View / Params, so that the effect of new
+// parameters on the route (length, time, speed) can be seen (#43)
+- (void)testInfoAlwaysVisibleAboveStreetViewAndParamsTabs
+{
+    NSTabView *tabs = [self tabViewIn:self.content];
+    XCTAssertEqualObjects([tabs.tabViewItems valueForKey:@"label"], (@[@"Street View", @"Params"]));
+    XCTAssertNotNil(mc.svCtrl.webView);
+    XCTAssertTrue([mc.svCtrl.webView isDescendantOf:tabs.tabViewItems[0].view], @"Street View in the first tab");
+    [tabs selectTabViewItemAtIndex:1];
+    NSView *time = [self controlWithIdentifier:@"routeTime" in:self.content];
+    XCTAssertNotNil(time, @"Info shown with the Params tab");
+    XCTAssertFalse([time isDescendantOf:tabs]);
+    XCTAssertFalse(time.isHiddenOrHasHiddenAncestor);
+    XCTAssertNotNil(time.window);
+}
+
+// switching between the Street View and Params tabs must not change the width of the side panel (#43)
 - (void)testSidePanelWidthStableAcrossTabs
 {
     NSWindow *w = doc.windowControllers.firstObject.window;
     NSTabView *tabs = [self tabViewIn:self.content];
-    NSView *pane = tabs.superview;
-    while (pane && ![pane.superview isKindOfClass:[NSSplitView class]]) pane = pane.superview;
+    NSView *pane = tabs.superview; // side pane of the map | panel split view
+    while (pane && !([pane.superview isKindOfClass:[NSSplitView class]] && ((NSSplitView *)pane.superview).isVertical)) pane = pane.superview;
     XCTAssertNotNil(pane);
     BRFProfileEditor *editor = ((PlannerWindowController *)doc.windowControllers.firstObject).brfEditor;
     [tabs selectTabViewItemAtIndex:0];
@@ -964,7 +984,7 @@
     XCTAssertEqualWithAccuracy(pane.frame.size.width, infoWidth, 0.5, @"Params tab");
     [tabs selectTabViewItemAtIndex:0];
     [w layoutIfNeeded];
-    XCTAssertEqualWithAccuracy(pane.frame.size.width, infoWidth, 0.5, @"back to Info");
+    XCTAssertEqualWithAccuracy(pane.frame.size.width, infoWidth, 0.5, @"back to Street View");
 
     // the user's width is kept: divider moved, then tabs switched
     NSSplitView *split = (NSSplitView *)pane.superview;
@@ -976,7 +996,7 @@
     XCTAssertEqualWithAccuracy(pane.frame.size.width, userWidth, 0.5, @"Params tab after moving the divider");
     [tabs selectTabViewItemAtIndex:0];
     [w layoutIfNeeded];
-    XCTAssertEqualWithAccuracy(pane.frame.size.width, userWidth, 0.5, @"Info tab after moving the divider");
+    XCTAssertEqualWithAccuracy(pane.frame.size.width, userWidth, 0.5, @"Street View tab after moving the divider");
 
     // a wider window: the map takes the extra space
     CGFloat mapWidth = split.subviews[0].frame.size.width;

@@ -66,22 +66,24 @@ One window per document. Layout:
 +-----------------------------------------------------------------------------+
 | Toolbar: [Print] [Import trace]          [Export GPX]        [Search field] |
 +--------------------------------------------+--------------------------------+
-|                                            | Tabs: [Info] [Params]          |
-|                MAP                         |  Info:                         |
-|   (base map, route, waypoints, POIs,       |   - route length (km)          |
-|    reference GPX trace, scrubber marker)   |   - cumulative elevation (m)   |
-|                                            |   - riding time, avg speed     |
+|                                            | Info (always visible):         |
+|                MAP                         |   - route length (km)          |
+|   (base map, route, waypoints, POIs,       |   - cumulative elevation (m)   |
+|    reference GPX trace, scrubber marker)   |   - riding time, avg speed     |
 |                                            |   - [x] Fetch POI  [x] View POI|
-|  overlay controls (bottom-left):           |   - Street View (web view)     |
-|   [zoom-][zoom+] [my location]             |  Params:                       |
-|   [Edit|Add interm.|Add POI|View] + help   |   - BRouter profile parameters |
+|                                            |--------------------------------|
+|  overlay controls (bottom-left):           | Tabs: [Street View] [Params]   |
+|   [zoom-][zoom+] [my location]             |   Street View (web view) or    |
+|   [Edit|Add interm.|Add POI|View] + help   |   BRouter profile parameters   |
 |   [OSM|OSM+cycle|Apple|Sat+Rd|Sat]         |                                |
 +--------------------------------------------+--------------------------------+
 |                     ELEVATION PROFILE                                       |
 +-----------------------------------------------------------------------------+
 ```
 
-All panes are separated by resizable split views.
+All panes are separated by resizable split views. The side panel keeps its width when switching tabs or resizing
+the window (the map takes the extra space). Info stays visible above the tabs, so that the effect of new
+parameters (Params tab) on the length, time and speed of the route is seen (#43).
 
 ## 6. Functional requirements
 
@@ -121,7 +123,7 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   waypoint sequence (based on its distance along the current route).
 - F3.5 As soon as there are ≥2 waypoints, any change triggers a new BRouter request; the route is drawn in
   semi-transparent blue.
-- F3.6 The *Info* tab shows route length (km, rounded), cumulative ascent (m, BRouter “filtered ascend”), and the
+- F3.6 The *Info* section shows route length (km, rounded), cumulative ascent (m, BRouter “filtered ascend”), and the
   riding time and average speed estimated by BRouter (`time=` of the GPX header). BRouter computes the time with
   the kinematic model of the profile (`totalMass` 90 kg, `bikerPower` 100 W, `S_C_x` 0.225, `C_r` 0.01, `maxSpeed`
   45 km/h in `trekking`): continuous power, no stops — optimistic for a loaded touring bike (#30). These parameters

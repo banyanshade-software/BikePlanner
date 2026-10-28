@@ -76,183 +76,183 @@
                                                 <rect key="frame" x="568" y="0.0" width="554" height="452"/>
                                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                 <subviews>
-                                                    <tabView translatesAutoresizingMaskIntoConstraints="NO" id="UXr-Cl-f1d">
-                                                        <rect key="frame" x="-7" y="-10" width="568" height="468"/>
-                                                        <font key="font" metaFont="system"/>
-                                                        <tabViewItems>
-                                                            <tabViewItem label="Info" identifier="1" id="yxa-9u-9fi">
-                                                                <view key="view" id="G9K-XO-4nQ">
-                                                                    <rect key="frame" x="10" y="33" width="548" height="422"/>
-                                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                                                    <subviews>
-                                                                        <splitView arrangesAllSubviews="NO" dividerStyle="paneSplitter" translatesAutoresizingMaskIntoConstraints="NO" id="zIq-zp-sIj">
-                                                                            <rect key="frame" x="0.0" y="0.0" width="548" height="422"/>
-                                                                            <subviews>
-                                                                                <customView fixedFrame="YES" id="Jiz-eL-xvn">
-                                                                                    <rect key="frame" x="0.0" y="0.0" width="548" height="199"/>
-                                                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                                                                    <subviews>
-                                                                                        <box borderType="none" title="Box" titlePosition="noTitle" id="X0m-1R-OGj">
-                                                                                            <rect key="frame" x="1" y="9" width="546" height="181"/>
-                                                                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                                                            <view key="contentView" id="mEt-2g-WER">
-                                                                                                <rect key="frame" x="0.0" y="0.0" width="546" height="181"/>
-                                                                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                                                                                <subviews>
-                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="AjL-z0-k0r">
-                                                                                                        <rect key="frame" x="126" y="89" width="23" height="16"/>
-                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="km" id="0yY-S0-2XT">
-                                                                                                            <font key="font" usesAppearanceFont="YES"/>
-                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                                                                        </textFieldCell>
-                                                                                                    </textField>
-                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rGs-eO-BFo">
-                                                                                                        <rect key="frame" x="18" y="89" width="104" height="16"/>
-                                                                                                        <constraints>
-                                                                                                            <constraint firstAttribute="width" constant="100" id="1C0-46-abf"/>
-                                                                                                        </constraints>
-                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="...." id="hvT-lE-Znz">
-                                                                                                            <font key="font" usesAppearanceFont="YES"/>
-                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                                                                        </textFieldCell>
-                                                                                                        <accessibility identifier="routeLength"/>
-                                                                                                        <connections>
-                                                                                                            <binding destination="-2" name="value" keyPath="plan.brouterInfo.kmlen" id="k5d-MD-JFo"/>
-                                                                                                        </connections>
-                                                                                                    </textField>
-                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="BVA-sR-If1">
-                                                                                                        <rect key="frame" x="126" y="65" width="143" height="16"/>
-                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="m cumulative elevation" id="e15-xQ-5Lr">
-                                                                                                            <font key="font" usesAppearanceFont="YES"/>
-                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                                                                        </textFieldCell>
-                                                                                                    </textField>
-                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="WvJ-rx-Rl4">
-                                                                                                        <rect key="frame" x="18" y="65" width="104" height="16"/>
-                                                                                                        <constraints>
-                                                                                                            <constraint firstAttribute="width" constant="100" id="zr9-nS-K4o"/>
-                                                                                                        </constraints>
-                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="...." id="g9C-ai-Bek">
-                                                                                                            <font key="font" usesAppearanceFont="YES"/>
-                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                                                                        </textFieldCell>
-                                                                                                        <accessibility identifier="routeAscent"/>
-                                                                                                        <connections>
-                                                                                                            <binding destination="-2" name="value" keyPath="plan.brouterInfo.mup" id="p3S-2B-sP3"/>
-                                                                                                        </connections>
-                                                                                                    </textField>
-                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bpT-im-Val">
-                                                                                                        <rect key="frame" x="18" y="41" width="104" height="16"/>
-                                                                                                        <constraints>
-                                                                                                            <constraint firstAttribute="width" constant="100" id="bpT-im-Wid"/>
-                                                                                                        </constraints>
-                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="...." id="bpT-im-Cel">
-                                                                                                            <font key="font" usesAppearanceFont="YES"/>
-                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                                                                        </textFieldCell>
-                                                                                                        <accessibility identifier="routeTime"/>
-                                                                                                        <connections>
-                                                                                                            <binding destination="-2" name="value" keyPath="plan.brouterInfo.durationText" id="bpT-im-Bnd"/>
-                                                                                                        </connections>
-                                                                                                    </textField>
-                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bpT-im-Lbl">
-                                                                                                        <rect key="frame" x="126" y="41" width="240" height="16"/>
-                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="riding time (BRouter estimate)" id="bpT-im-LCl">
-                                                                                                            <font key="font" usesAppearanceFont="YES"/>
-                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                                                                        </textFieldCell>
-                                                                                                    </textField>
-                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bpS-pd-Val">
-                                                                                                        <rect key="frame" x="18" y="17" width="104" height="16"/>
-                                                                                                        <constraints>
-                                                                                                            <constraint firstAttribute="width" constant="100" id="bpS-pd-Wid"/>
-                                                                                                        </constraints>
-                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="...." id="bpS-pd-Cel">
-                                                                                                            <font key="font" usesAppearanceFont="YES"/>
-                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                                                                        </textFieldCell>
-                                                                                                        <accessibility identifier="routeSpeed"/>
-                                                                                                        <connections>
-                                                                                                            <binding destination="-2" name="value" keyPath="plan.brouterInfo.averageSpeedText" id="bpS-pd-Bnd"/>
-                                                                                                        </connections>
-                                                                                                    </textField>
-                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bpS-pd-Lbl">
-                                                                                                        <rect key="frame" x="126" y="17" width="240" height="16"/>
-                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="km/h average" id="bpS-pd-LCl">
-                                                                                                            <font key="font" usesAppearanceFont="YES"/>
-                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                                                                        </textFieldCell>
-                                                                                                    </textField>
-                                                                                                    <switch horizontalHuggingPriority="750" verticalHuggingPriority="750" controlSize="small" baseWritingDirection="leftToRight" alignment="left" translatesAutoresizingMaskIntoConstraints="NO" id="p3e-MY-n66">
-                                                                                                        <rect key="frame" x="18" y="153" width="36" height="21"/>
-                                                                                                        <connections>
-                                                                                                            <binding destination="-2" name="value" keyPath="plan.fetchPOI" id="qUm-RJ-bTO"/>
-                                                                                                        </connections>
-                                                                                                    </switch>
-                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lc8-q4-TL7">
-                                                                                                        <rect key="frame" x="58" y="157" width="64" height="16"/>
-                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="Fetch POI" id="J1y-Mt-gLs">
-                                                                                                            <font key="font" usesAppearanceFont="YES"/>
-                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                                                                        </textFieldCell>
-                                                                                                    </textField>
-                                                                                                    <switch horizontalHuggingPriority="750" verticalHuggingPriority="750" controlSize="small" baseWritingDirection="leftToRight" alignment="left" translatesAutoresizingMaskIntoConstraints="NO" id="phD-JS-Ndx">
-                                                                                                        <rect key="frame" x="18" y="127" width="36" height="21"/>
-                                                                                                        <connections>
-                                                                                                            <binding destination="-2" name="value" keyPath="mapController.viewPOI" id="RBV-EE-91s"/>
-                                                                                                        </connections>
-                                                                                                    </switch>
-                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Chb-mI-ZLw">
-                                                                                                        <rect key="frame" x="58" y="131" width="59" height="16"/>
-                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="View POI" id="pIQ-LV-fHt">
-                                                                                                            <font key="font" usesAppearanceFont="YES"/>
-                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                                                                        </textFieldCell>
-                                                                                                    </textField>
-                                                                                                </subviews>
-                                                                                                <constraints>
-                                                                                                    <constraint firstItem="Chb-mI-ZLw" firstAttribute="leading" secondItem="phD-JS-Ndx" secondAttribute="trailing" constant="8" id="3jp-xd-TS0"/>
-                                                                                                    <constraint firstItem="p3e-MY-n66" firstAttribute="top" secondItem="mEt-2g-WER" secondAttribute="top" constant="8" id="721-mT-PnV"/>
-                                                                                                    <constraint firstItem="phD-JS-Ndx" firstAttribute="top" secondItem="p3e-MY-n66" secondAttribute="bottom" constant="8" id="8mR-3p-aay"/>
-                                                                                                    <constraint firstItem="BVA-sR-If1" firstAttribute="leading" secondItem="WvJ-rx-Rl4" secondAttribute="trailing" constant="8" symbolic="YES" id="8xN-Kt-NYo"/>
-                                                                                                    <constraint firstItem="rGs-eO-BFo" firstAttribute="top" secondItem="phD-JS-Ndx" secondAttribute="bottom" constant="24" id="CSJ-Zu-QgT"/>
-                                                                                                    <constraint firstItem="p3e-MY-n66" firstAttribute="leading" secondItem="mEt-2g-WER" secondAttribute="leading" constant="20" symbolic="YES" id="CkA-3a-sNH"/>
-                                                                                                    <constraint firstItem="BVA-sR-If1" firstAttribute="firstBaseline" secondItem="WvJ-rx-Rl4" secondAttribute="firstBaseline" id="EJm-hM-ZZe"/>
-                                                                                                    <constraint firstItem="lc8-q4-TL7" firstAttribute="leading" secondItem="p3e-MY-n66" secondAttribute="trailing" constant="8" id="EbA-Un-hBb"/>
-                                                                                                    <constraint firstItem="AjL-z0-k0r" firstAttribute="firstBaseline" secondItem="rGs-eO-BFo" secondAttribute="firstBaseline" id="GYG-kq-M9g"/>
-                                                                                                    <constraint firstItem="rGs-eO-BFo" firstAttribute="leading" secondItem="mEt-2g-WER" secondAttribute="leading" constant="20" symbolic="YES" id="Gr4-lF-bkS"/>
-                                                                                                    <constraint firstItem="lc8-q4-TL7" firstAttribute="firstBaseline" secondItem="p3e-MY-n66" secondAttribute="firstBaseline" id="Iux-Qz-Zre"/>
-                                                                                                    <constraint firstItem="AjL-z0-k0r" firstAttribute="leading" secondItem="rGs-eO-BFo" secondAttribute="trailing" constant="8" symbolic="YES" id="Qkh-CJ-Ihv"/>
-                                                                                                    <constraint firstItem="phD-JS-Ndx" firstAttribute="leading" secondItem="p3e-MY-n66" secondAttribute="leading" id="gbQ-Hs-zOH"/>
-                                                                                                    <constraint firstItem="Chb-mI-ZLw" firstAttribute="firstBaseline" secondItem="phD-JS-Ndx" secondAttribute="firstBaseline" id="hvR-KO-jti"/>
-                                                                                                    <constraint firstItem="WvJ-rx-Rl4" firstAttribute="leading" secondItem="rGs-eO-BFo" secondAttribute="leading" id="oTj-aq-1IG"/>
-                                                                                                    <constraint firstItem="WvJ-rx-Rl4" firstAttribute="top" secondItem="rGs-eO-BFo" secondAttribute="bottom" constant="8" symbolic="YES" id="sQ7-1w-hIR"/>
-                                                                                                    <constraint firstItem="bpT-im-Val" firstAttribute="leading" secondItem="rGs-eO-BFo" secondAttribute="leading" id="bpT-im-C01"/>
-                                                                                                    <constraint firstItem="bpT-im-Val" firstAttribute="top" secondItem="WvJ-rx-Rl4" secondAttribute="bottom" constant="8" symbolic="YES" id="bpT-im-C02"/>
-                                                                                                    <constraint firstItem="bpT-im-Lbl" firstAttribute="leading" secondItem="bpT-im-Val" secondAttribute="trailing" constant="8" symbolic="YES" id="bpT-im-C03"/>
-                                                                                                    <constraint firstItem="bpT-im-Lbl" firstAttribute="firstBaseline" secondItem="bpT-im-Val" secondAttribute="firstBaseline" id="bpT-im-C04"/>
-                                                                                                    <constraint firstItem="bpS-pd-Val" firstAttribute="leading" secondItem="rGs-eO-BFo" secondAttribute="leading" id="bpS-pd-C01"/>
-                                                                                                    <constraint firstItem="bpS-pd-Val" firstAttribute="top" secondItem="bpT-im-Val" secondAttribute="bottom" constant="8" symbolic="YES" id="bpS-pd-C02"/>
-                                                                                                    <constraint firstItem="bpS-pd-Lbl" firstAttribute="leading" secondItem="bpS-pd-Val" secondAttribute="trailing" constant="8" symbolic="YES" id="bpS-pd-C03"/>
-                                                                                                    <constraint firstItem="bpS-pd-Lbl" firstAttribute="firstBaseline" secondItem="bpS-pd-Val" secondAttribute="firstBaseline" id="bpS-pd-C04"/>
-                                                                                                </constraints>
-                                                                                            </view>
-                                                                                        </box>
-                                                                                    </subviews>
-                                                                                </customView>
-                                                                                <customView misplaced="YES" id="eZo-bu-FNr">
-                                                                                    <rect key="frame" x="0.0" y="209" width="548" height="213"/>
-                                                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                    <splitView arrangesAllSubviews="NO" dividerStyle="paneSplitter" translatesAutoresizingMaskIntoConstraints="NO" id="zIq-zp-sIj">
+                                                        <rect key="frame" x="0.0" y="0.0" width="554" height="452"/>
+                                                        <subviews>
+                                                        <customView fixedFrame="YES" id="Jiz-eL-xvn">
+                                                            <rect key="frame" x="0.0" y="0.0" width="548" height="199"/>
+                                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                            <subviews>
+                                                                <box borderType="none" title="Box" titlePosition="noTitle" id="X0m-1R-OGj">
+                                                                    <rect key="frame" x="1" y="9" width="546" height="181"/>
+                                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                                                    <view key="contentView" id="mEt-2g-WER">
+                                                                        <rect key="frame" x="0.0" y="0.0" width="546" height="181"/>
+                                                                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                                        <subviews>
+                                                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="AjL-z0-k0r">
+                                                                                <rect key="frame" x="126" y="89" width="23" height="16"/>
+                                                                                <textFieldCell key="cell" lineBreakMode="clipping" title="km" id="0yY-S0-2XT">
+                                                                                    <font key="font" usesAppearanceFont="YES"/>
+                                                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                </textFieldCell>
+                                                                            </textField>
+                                                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rGs-eO-BFo">
+                                                                                <rect key="frame" x="18" y="89" width="104" height="16"/>
+                                                                                <constraints>
+                                                                                    <constraint firstAttribute="width" constant="100" id="1C0-46-abf"/>
+                                                                                </constraints>
+                                                                                <textFieldCell key="cell" lineBreakMode="clipping" title="...." id="hvT-lE-Znz">
+                                                                                    <font key="font" usesAppearanceFont="YES"/>
+                                                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                </textFieldCell>
+                                                                                <accessibility identifier="routeLength"/>
+                                                                                <connections>
+                                                                                    <binding destination="-2" name="value" keyPath="plan.brouterInfo.kmlen" id="k5d-MD-JFo"/>
+                                                                                </connections>
+                                                                            </textField>
+                                                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="BVA-sR-If1">
+                                                                                <rect key="frame" x="126" y="65" width="143" height="16"/>
+                                                                                <textFieldCell key="cell" lineBreakMode="clipping" title="m cumulative elevation" id="e15-xQ-5Lr">
+                                                                                    <font key="font" usesAppearanceFont="YES"/>
+                                                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                </textFieldCell>
+                                                                            </textField>
+                                                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="WvJ-rx-Rl4">
+                                                                                <rect key="frame" x="18" y="65" width="104" height="16"/>
+                                                                                <constraints>
+                                                                                    <constraint firstAttribute="width" constant="100" id="zr9-nS-K4o"/>
+                                                                                </constraints>
+                                                                                <textFieldCell key="cell" lineBreakMode="clipping" title="...." id="g9C-ai-Bek">
+                                                                                    <font key="font" usesAppearanceFont="YES"/>
+                                                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                </textFieldCell>
+                                                                                <accessibility identifier="routeAscent"/>
+                                                                                <connections>
+                                                                                    <binding destination="-2" name="value" keyPath="plan.brouterInfo.mup" id="p3S-2B-sP3"/>
+                                                                                </connections>
+                                                                            </textField>
+                                                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bpT-im-Val">
+                                                                                <rect key="frame" x="18" y="41" width="104" height="16"/>
+                                                                                <constraints>
+                                                                                    <constraint firstAttribute="width" constant="100" id="bpT-im-Wid"/>
+                                                                                </constraints>
+                                                                                <textFieldCell key="cell" lineBreakMode="clipping" title="...." id="bpT-im-Cel">
+                                                                                    <font key="font" usesAppearanceFont="YES"/>
+                                                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                </textFieldCell>
+                                                                                <accessibility identifier="routeTime"/>
+                                                                                <connections>
+                                                                                    <binding destination="-2" name="value" keyPath="plan.brouterInfo.durationText" id="bpT-im-Bnd"/>
+                                                                                </connections>
+                                                                            </textField>
+                                                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bpT-im-Lbl">
+                                                                                <rect key="frame" x="126" y="41" width="240" height="16"/>
+                                                                                <textFieldCell key="cell" lineBreakMode="clipping" title="riding time (BRouter estimate)" id="bpT-im-LCl">
+                                                                                    <font key="font" usesAppearanceFont="YES"/>
+                                                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                </textFieldCell>
+                                                                            </textField>
+                                                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bpS-pd-Val">
+                                                                                <rect key="frame" x="18" y="17" width="104" height="16"/>
+                                                                                <constraints>
+                                                                                    <constraint firstAttribute="width" constant="100" id="bpS-pd-Wid"/>
+                                                                                </constraints>
+                                                                                <textFieldCell key="cell" lineBreakMode="clipping" title="...." id="bpS-pd-Cel">
+                                                                                    <font key="font" usesAppearanceFont="YES"/>
+                                                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                </textFieldCell>
+                                                                                <accessibility identifier="routeSpeed"/>
+                                                                                <connections>
+                                                                                    <binding destination="-2" name="value" keyPath="plan.brouterInfo.averageSpeedText" id="bpS-pd-Bnd"/>
+                                                                                </connections>
+                                                                            </textField>
+                                                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bpS-pd-Lbl">
+                                                                                <rect key="frame" x="126" y="17" width="240" height="16"/>
+                                                                                <textFieldCell key="cell" lineBreakMode="clipping" title="km/h average" id="bpS-pd-LCl">
+                                                                                    <font key="font" usesAppearanceFont="YES"/>
+                                                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                </textFieldCell>
+                                                                            </textField>
+                                                                            <switch horizontalHuggingPriority="750" verticalHuggingPriority="750" controlSize="small" baseWritingDirection="leftToRight" alignment="left" translatesAutoresizingMaskIntoConstraints="NO" id="p3e-MY-n66">
+                                                                                <rect key="frame" x="18" y="153" width="36" height="21"/>
+                                                                                <connections>
+                                                                                    <binding destination="-2" name="value" keyPath="plan.fetchPOI" id="qUm-RJ-bTO"/>
+                                                                                </connections>
+                                                                            </switch>
+                                                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lc8-q4-TL7">
+                                                                                <rect key="frame" x="58" y="157" width="64" height="16"/>
+                                                                                <textFieldCell key="cell" lineBreakMode="clipping" title="Fetch POI" id="J1y-Mt-gLs">
+                                                                                    <font key="font" usesAppearanceFont="YES"/>
+                                                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                </textFieldCell>
+                                                                            </textField>
+                                                                            <switch horizontalHuggingPriority="750" verticalHuggingPriority="750" controlSize="small" baseWritingDirection="leftToRight" alignment="left" translatesAutoresizingMaskIntoConstraints="NO" id="phD-JS-Ndx">
+                                                                                <rect key="frame" x="18" y="127" width="36" height="21"/>
+                                                                                <connections>
+                                                                                    <binding destination="-2" name="value" keyPath="mapController.viewPOI" id="RBV-EE-91s"/>
+                                                                                </connections>
+                                                                            </switch>
+                                                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Chb-mI-ZLw">
+                                                                                <rect key="frame" x="58" y="131" width="59" height="16"/>
+                                                                                <textFieldCell key="cell" lineBreakMode="clipping" title="View POI" id="pIQ-LV-fHt">
+                                                                                    <font key="font" usesAppearanceFont="YES"/>
+                                                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                </textFieldCell>
+                                                                            </textField>
+                                                                        </subviews>
+                                                                        <constraints>
+                                                                            <constraint firstItem="Chb-mI-ZLw" firstAttribute="leading" secondItem="phD-JS-Ndx" secondAttribute="trailing" constant="8" id="3jp-xd-TS0"/>
+                                                                            <constraint firstItem="p3e-MY-n66" firstAttribute="top" secondItem="mEt-2g-WER" secondAttribute="top" constant="8" id="721-mT-PnV"/>
+                                                                            <constraint firstItem="phD-JS-Ndx" firstAttribute="top" secondItem="p3e-MY-n66" secondAttribute="bottom" constant="8" id="8mR-3p-aay"/>
+                                                                            <constraint firstItem="BVA-sR-If1" firstAttribute="leading" secondItem="WvJ-rx-Rl4" secondAttribute="trailing" constant="8" symbolic="YES" id="8xN-Kt-NYo"/>
+                                                                            <constraint firstItem="rGs-eO-BFo" firstAttribute="top" secondItem="phD-JS-Ndx" secondAttribute="bottom" constant="24" id="CSJ-Zu-QgT"/>
+                                                                            <constraint firstItem="p3e-MY-n66" firstAttribute="leading" secondItem="mEt-2g-WER" secondAttribute="leading" constant="20" symbolic="YES" id="CkA-3a-sNH"/>
+                                                                            <constraint firstItem="BVA-sR-If1" firstAttribute="firstBaseline" secondItem="WvJ-rx-Rl4" secondAttribute="firstBaseline" id="EJm-hM-ZZe"/>
+                                                                            <constraint firstItem="lc8-q4-TL7" firstAttribute="leading" secondItem="p3e-MY-n66" secondAttribute="trailing" constant="8" id="EbA-Un-hBb"/>
+                                                                            <constraint firstItem="AjL-z0-k0r" firstAttribute="firstBaseline" secondItem="rGs-eO-BFo" secondAttribute="firstBaseline" id="GYG-kq-M9g"/>
+                                                                            <constraint firstItem="rGs-eO-BFo" firstAttribute="leading" secondItem="mEt-2g-WER" secondAttribute="leading" constant="20" symbolic="YES" id="Gr4-lF-bkS"/>
+                                                                            <constraint firstItem="lc8-q4-TL7" firstAttribute="firstBaseline" secondItem="p3e-MY-n66" secondAttribute="firstBaseline" id="Iux-Qz-Zre"/>
+                                                                            <constraint firstItem="AjL-z0-k0r" firstAttribute="leading" secondItem="rGs-eO-BFo" secondAttribute="trailing" constant="8" symbolic="YES" id="Qkh-CJ-Ihv"/>
+                                                                            <constraint firstItem="phD-JS-Ndx" firstAttribute="leading" secondItem="p3e-MY-n66" secondAttribute="leading" id="gbQ-Hs-zOH"/>
+                                                                            <constraint firstItem="Chb-mI-ZLw" firstAttribute="firstBaseline" secondItem="phD-JS-Ndx" secondAttribute="firstBaseline" id="hvR-KO-jti"/>
+                                                                            <constraint firstItem="WvJ-rx-Rl4" firstAttribute="leading" secondItem="rGs-eO-BFo" secondAttribute="leading" id="oTj-aq-1IG"/>
+                                                                            <constraint firstItem="WvJ-rx-Rl4" firstAttribute="top" secondItem="rGs-eO-BFo" secondAttribute="bottom" constant="8" symbolic="YES" id="sQ7-1w-hIR"/>
+                                                                            <constraint firstItem="bpT-im-Val" firstAttribute="leading" secondItem="rGs-eO-BFo" secondAttribute="leading" id="bpT-im-C01"/>
+                                                                            <constraint firstItem="bpT-im-Val" firstAttribute="top" secondItem="WvJ-rx-Rl4" secondAttribute="bottom" constant="8" symbolic="YES" id="bpT-im-C02"/>
+                                                                            <constraint firstItem="bpT-im-Lbl" firstAttribute="leading" secondItem="bpT-im-Val" secondAttribute="trailing" constant="8" symbolic="YES" id="bpT-im-C03"/>
+                                                                            <constraint firstItem="bpT-im-Lbl" firstAttribute="firstBaseline" secondItem="bpT-im-Val" secondAttribute="firstBaseline" id="bpT-im-C04"/>
+                                                                            <constraint firstItem="bpS-pd-Val" firstAttribute="leading" secondItem="rGs-eO-BFo" secondAttribute="leading" id="bpS-pd-C01"/>
+                                                                            <constraint firstItem="bpS-pd-Val" firstAttribute="top" secondItem="bpT-im-Val" secondAttribute="bottom" constant="8" symbolic="YES" id="bpS-pd-C02"/>
+                                                                            <constraint firstItem="bpS-pd-Lbl" firstAttribute="leading" secondItem="bpS-pd-Val" secondAttribute="trailing" constant="8" symbolic="YES" id="bpS-pd-C03"/>
+                                                                            <constraint firstItem="bpS-pd-Lbl" firstAttribute="firstBaseline" secondItem="bpS-pd-Val" secondAttribute="firstBaseline" id="bpS-pd-C04"/>
+                                                                        </constraints>
+                                                                    </view>
+                                                                </box>
+                                                            </subviews>
+                                                        </customView>
+                                                            <customView id="bpP-nl-Tab">
+                                                                <rect key="frame" x="0.0" y="209" width="554" height="243"/>
+                                                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                                <subviews>
+                                                                    <tabView translatesAutoresizingMaskIntoConstraints="NO" id="UXr-Cl-f1d">
+                                                                        <rect key="frame" x="-7" y="-10" width="568" height="259"/>
+                                                                        <font key="font" metaFont="system"/>
+                                                                        <tabViewItems>
+                                                                            <tabViewItem label="Street View" identifier="1" id="yxa-9u-9fi">
+                                                                                <view key="view" id="eZo-bu-FNr">
+                                                                                    <rect key="frame" x="10" y="33" width="534" height="200"/>
+                                                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                                                     <subviews>
                                                                                         <wkWebView wantsLayer="YES" translatesAutoresizingMaskIntoConstraints="NO" id="024-o5-5MO">
                                                                                             <rect key="frame" x="4" y="4" width="540" height="300"/>
@@ -272,37 +272,37 @@
                                                                                         <constraint firstItem="024-o5-5MO" firstAttribute="top" secondItem="eZo-bu-FNr" secondAttribute="top" constant="4" id="ZTr-0a-hJY"/>
                                                                                         <constraint firstAttribute="bottom" secondItem="024-o5-5MO" secondAttribute="bottom" constant="4" id="bIi-Ut-djG"/>
                                                                                     </constraints>
-                                                                                </customView>
-                                                                            </subviews>
-                                                                            <holdingPriorities>
-                                                                                <real value="250"/>
-                                                                                <real value="250"/>
-                                                                            </holdingPriorities>
-                                                                        </splitView>
-                                                                    </subviews>
-                                                                    <constraints>
-                                                                        <constraint firstItem="zIq-zp-sIj" firstAttribute="top" secondItem="G9K-XO-4nQ" secondAttribute="top" id="UQv-QS-TV0"/>
-                                                                        <constraint firstItem="zIq-zp-sIj" firstAttribute="leading" secondItem="G9K-XO-4nQ" secondAttribute="leading" id="aXo-in-fUe"/>
-                                                                        <constraint firstAttribute="bottom" secondItem="zIq-zp-sIj" secondAttribute="bottom" id="jKT-1H-Kqg"/>
-                                                                        <constraint firstAttribute="trailing" secondItem="zIq-zp-sIj" secondAttribute="trailing" id="jfQ-gE-gHe"/>
-                                                                    </constraints>
-                                                                </view>
-                                                            </tabViewItem>
-                                                            <tabViewItem label="Params" identifier="2" id="Lfe-aP-fN2">
-                                                                <view key="view" id="vVI-p3-yOz">
-                                                                    <rect key="frame" x="10" y="33" width="480" height="326"/>
-                                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                                                </view>
-                                                            </tabViewItem>
-                                                        </tabViewItems>
-                                                    </tabView>
+                                                                                </view>
+                                                                            </tabViewItem>
+                                                                            <tabViewItem label="Params" identifier="2" id="Lfe-aP-fN2">
+                                                                                <view key="view" id="vVI-p3-yOz">
+                                                                                    <rect key="frame" x="10" y="33" width="480" height="326"/>
+                                                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                                                </view>
+                                                                            </tabViewItem>
+                                                                        </tabViewItems>
+                                                                    </tabView>
+                                                                </subviews>
+                                                                <constraints>
+                                                                    <constraint firstItem="UXr-Cl-f1d" firstAttribute="top" secondItem="bpP-nl-Tab" secondAttribute="top" id="bpP-nl-C01"/>
+                                                                    <constraint firstItem="UXr-Cl-f1d" firstAttribute="leading" secondItem="bpP-nl-Tab" secondAttribute="leading" id="bpP-nl-C02"/>
+                                                                    <constraint firstAttribute="trailing" secondItem="UXr-Cl-f1d" secondAttribute="trailing" id="bpP-nl-C03"/>
+                                                                    <constraint firstAttribute="bottom" secondItem="UXr-Cl-f1d" secondAttribute="bottom" id="bpP-nl-C04"/>
+                                                                </constraints>
+                                                            </customView>
+                                                        </subviews>
+                                                        <holdingPriorities>
+                                                            <real value="260"/>
+                                                            <real value="250"/>
+                                                        </holdingPriorities>
+                                                    </splitView>
                                                 </subviews>
                                                 <constraints>
-                                                    <constraint firstAttribute="trailing" secondItem="UXr-Cl-f1d" secondAttribute="trailing" id="0pd-0g-1lP"/>
-                                                    <constraint firstAttribute="bottom" secondItem="UXr-Cl-f1d" secondAttribute="bottom" id="Kfd-fe-brN"/>
+                                                    <constraint firstAttribute="trailing" secondItem="zIq-zp-sIj" secondAttribute="trailing" id="0pd-0g-1lP"/>
+                                                    <constraint firstAttribute="bottom" secondItem="zIq-zp-sIj" secondAttribute="bottom" id="Kfd-fe-brN"/>
                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="200" id="Uvc-df-18V"/>
-                                                    <constraint firstItem="UXr-Cl-f1d" firstAttribute="leading" secondItem="Rvg-JO-ig3" secondAttribute="leading" id="p1e-hO-Ixs"/>
-                                                    <constraint firstItem="UXr-Cl-f1d" firstAttribute="top" secondItem="Rvg-JO-ig3" secondAttribute="top" id="qWY-Au-cHF"/>
+                                                    <constraint firstItem="zIq-zp-sIj" firstAttribute="leading" secondItem="Rvg-JO-ig3" secondAttribute="leading" id="p1e-hO-Ixs"/>
+                                                    <constraint firstItem="zIq-zp-sIj" firstAttribute="top" secondItem="Rvg-JO-ig3" secondAttribute="top" id="qWY-Au-cHF"/>
                                                 </constraints>
                                             </customView>
                                         </subviews>

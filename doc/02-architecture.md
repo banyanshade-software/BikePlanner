@@ -80,7 +80,7 @@ README.POI.GARMIN.txt        List of Garmin POI types usable in GPX <type>
    **with the Document as File's Owner**.
 3. `Document.xib` instantiates as top-level objects: `MapController`, `StreetViewController`, and the views.
    Outlets: `Document.mapController`, `Document.brfParamsPlaceholder`, `MapController.{mapView, document, svCtrl, elevationView}`,
-   `StreetViewController.webView`. Bindings: Info tab labels → `plan.brouterInfo.kmlen` / `plan.brouterInfo.mup` /
+   `StreetViewController.webView`. Bindings: Info section labels → `plan.brouterInfo.kmlen` / `plan.brouterInfo.mup` /
    `plan.brouterInfo.durationText` / `plan.brouterInfo.averageSpeedText`;
    “Fetch POI” → `plan.fetchPOI`; “View POI” → `mapController.viewPOI`; Export toolbar item enabled ↔ `mapController.gpxData`.
 4. `-[PlannerWindowController windowDidLoad]` asserts the wiring, then calls
@@ -295,7 +295,7 @@ Each item is tracked as a GitHub issue.
 | 21 | M ✅ fixed | `PlannerWindowController.m`, `BRouterClient.m` | BRouter parameter overrides (Params tab) had no effect: brouter.de ignores `extraParams=`, so a single override was lost (with several, all but the first applied); unchecking every override did not go back to the defaults. Fixed with #15; `testBRFOverridesRecomputeRoute`. | [#35](https://github.com/banyanshade-software/BikePlanner/issues/35) |
 | 22 | M ✅ fixed | `BRouterClient.m`, `BRFProfileEditor.m` | Boolean overrides were sent as `profile:<name>=true/false`, which brouter.de rejects with HTTP 500 (silent, see #9). Now sent as `1`/`0` (`testBooleanOverridesSentAsNumbers`); the Params tab edits them with switches. | [#38](https://github.com/banyanshade-software/BikePlanner/issues/38) |
 | 23 | M ✅ fixed | `BRFProfileEditor.m` | Params tab: typing the decimal separator cleared it ("0," → "0"): the value of the number field was read with `-stringValue` on each keystroke, which validates the partial text with the field's `NSNumberFormatter` and writes it back. The text being edited is now read from the field editor (`testTypeDecimalNumber`). | [#45](https://github.com/banyanshade-software/BikePlanner/issues/45) |
-| 24 | L ✅ fixed | `Document.xib` | The side panel (Info / Params tabs) shrank when the Params tab was selected: both panes of the map / panel split view had holding priority 250, the same as the default hugging of the Params tab content (stack views, labels). The panel now has holding priority 260: it keeps its width, the map takes the extra space when the window is resized (`testSidePanelWidthStableAcrossTabs`). | [#43](https://github.com/banyanshade-software/BikePlanner/issues/43) |
+| 24 | L ✅ fixed | `Document.xib` | The side panel (Info / Params tabs) shrank when the Params tab was selected: both panes of the map / panel split view had holding priority 250, the same as the default hugging of the Params tab content (stack views, labels). The panel now has holding priority 260: it keeps its width, the map takes the extra space when the window is resized (`testSidePanelWidthStableAcrossTabs`). The panel is now Info (always visible) above a tab view *Street View* / *Params* (`testInfoAlwaysVisibleAboveStreetViewAndParamsTabs`). | [#43](https://github.com/banyanshade-software/BikePlanner/issues/43) |
 
 ### Design / maintainability
 - **`MapController` is a god object**: map setup, UI controls built in code, hit testing, geometry, routing,

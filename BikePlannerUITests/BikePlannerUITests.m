@@ -169,7 +169,7 @@ static BOOL BPWaitWindows(XCUIApplication *app, NSUInteger n)
     XCTAssertEqualObjects(value, @"80", @"one profile:<name> parameter per override (#15, #35)");
 }
 
-// "Fetch POI" and "View POI" (Info tab) are displayed as switches
+// "Fetch POI" and "View POI" (Info section) are displayed as switches
 - (void)testPOISwitches
 {
     XCUIElement *fetch = [self.window.switches elementBoundByIndex:0];
