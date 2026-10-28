@@ -67,6 +67,15 @@
 @interface DocumentWindowTests : XCTestCase
 @end
 
+// counts the actions sent by a control (stands for MapController, so that no Apple search is run)
+@interface BPActionCounter : NSObject
+@property NSInteger count;
+- (void)act:(id)sender;
+@end
+@implementation BPActionCounter
+- (void)act:(id)sender { self.count++; }
+@end
+
 @implementation DocumentWindowTests {
     BPStubServer *server;
     Document *doc;
@@ -1006,6 +1015,40 @@
     [w layoutIfNeeded];
     XCTAssertEqualWithAccuracy(pane.frame.size.width, userWidth, 0.5, @"window resized");
     XCTAssertEqualWithAccuracy(split.subviews[0].frame.size.width, mapWidth + 200, 0.5);
+}
+
+// the location search runs only on Return: neither while typing nor when the search field loses the focus, e.g.
+// when the user then types a value in the Params tab (#41)
+- (void)testLocationSearchOnlyOnReturn
+{
+    NSWindow *w = doc.windowControllers.firstObject.window;
+    NSSearchField *field = nil;
+    for (NSToolbarItem *item in w.toolbar.items) {
+        if ([item isKindOfClass:[NSSearchToolbarItem class]]) field = ((NSSearchToolbarItem *)item).searchField;
+    }
+    XCTAssertNotNil(field);
+    XCTAssertEqual(field.target, mc);
+    XCTAssertEqual(field.action, @selector(sendersearchFieldAction:));
+    BPActionCounter *counter = [BPActionCounter new];
+    field.target = counter;
+    field.action = @selector(act:);
+
+    XCTAssertTrue([w makeFirstResponder:field]);
+    for (NSString *c in @[@"A", @"g", @"e", @"n"]) [field.currentEditor insertText:c];
+    BPSpin(1.0);
+    XCTAssertEqual(counter.count, 0, @"no search while typing");
+    [field.currentEditor insertNewline:nil];
+    XCTAssertEqual(counter.count, 1, @"search on Return");
+
+    // focus back in the search field, then in another field: no new search
+    XCTAssertTrue([w makeFirstResponder:field]);
+    BRFProfileEditor *editor = ((PlannerWindowController *)doc.windowControllers.firstObject).brfEditor;
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([[editor valueForKey:@"parameters"] count] > 0); }));
+    NSControl *param = ((BRFParam *)[[editor valueForKey:@"parameters"] firstObject]).valueControl;
+    [w makeFirstResponder:param];
+    BPSpin(0.3);
+    XCTAssertEqual(counter.count, 1, @"no search when the search field loses the focus");
+    XCTAssertEqualObjects(field.stringValue, @"Agen");
 }
 
 - (void)testRoutingErrorKeepsPreviousRoute
