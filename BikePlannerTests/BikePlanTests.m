@@ -280,6 +280,18 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     XCTAssertEqual(r.customPoiloc[0].poiType, POI_warning);
 }
 
+// BRouter parameters are saved with the document (#44); none = the profile defaults
+- (void)testProfileOverridesArchived
+{
+    XCTAssertEqualObjects(plan.profileOverrides, @{});
+    XCTAssertEqualObjects(plan.profileName, @"trekking");
+    XCTAssertEqualObjects([self roundTrip:plan].profileOverrides, @{}, @"none saved (documents before #44)");
+    plan.profileOverrides = @{ @"bikerPower": @"80", @"avoid_unsafe": @"1" };
+    XCTAssertEqualObjects([self roundTrip:plan].profileOverrides, (@{ @"bikerPower": @"80", @"avoid_unsafe": @"1" }));
+    plan.profileOverrides = nil;
+    XCTAssertEqualObjects(plan.profileOverrides, @{});
+}
+
 - (void)testCustomPoiCanBeAddedAfterLoad
 {
     [plan addCustomPoiAt:CLLocationCoordinate2DMake(44, 0.5)];

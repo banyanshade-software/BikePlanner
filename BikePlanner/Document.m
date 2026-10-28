@@ -24,6 +24,9 @@
     self = [super init];
     if (self) {
         self.plan = [[BikePlan alloc]init];
+        // a new document starts with my default BRouter parameters; readFromData: replaces the plan (#44)
+        self.plan.profileOverrides = [BRFProfileEditor savedOverridesForProfile:self.plan.profileName
+                                                                   userDefaults:[NSUserDefaults standardUserDefaults]];
         if (!self.hasUndoManager) {
             NSLog(@"no undo mgr??");
         }
@@ -142,6 +145,9 @@
     // readFromData: replaces self.plan, the window is already open (#16)
     if (![super revertToContentsOfURL:url ofType:typeName error:outError]) return NO;
     [self.mapController planReplaced];
+    for (NSWindowController *wc in self.windowControllers) {
+        if ([wc isKindOfClass:[PlannerWindowController class]]) [(PlannerWindowController *)wc planReplaced];
+    }
     return YES;
 }
 

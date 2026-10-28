@@ -46,6 +46,10 @@ extern const NSUInteger kBPImportMaxWaypoints;        // before spacing: the tol
 @property (strong,nonatomic) NSArray<CLLocation *> *routePoints;
 @property (strong,nonatomic) NSArray<CLLocation *> *gpxDisplayed;
 @property (strong,nonatomic) BrouterInfo *brouterInfo;
+@property (readonly,nonatomic) NSString *profileName;   // BRouter profile: "trekking" (choice of the profile: #1)
+// BRouter profile parameters (Params tab, name → value, sent as profile:<name>=<value>), saved in the document;
+// empty = the profile defaults (also for documents saved before #44)
+@property (copy,nonatomic,null_resettable) NSDictionary<NSString *, NSString *> *profileOverrides;
 
 @property (readonly,nonatomic) NSArray<POILocation *> *poiloc;
 @property (readonly,nonatomic) NSMutableArray<POILocation *> *customPoiloc;

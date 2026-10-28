@@ -14,6 +14,9 @@ NS_ASSUME_NONNULL_BEGIN
 @interface PlannerWindowController : NSWindowController
 @property (strong, nonatomic) BRFProfileEditor *brfEditor;
 
+// the document's plan was replaced (Revert to Saved): shows its BRouter parameters in the Params tab
+- (void)planReplaced;
+
 @end
 
 NS_ASSUME_NONNULL_END

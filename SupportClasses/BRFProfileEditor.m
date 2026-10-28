@@ -98,13 +98,47 @@ static NSLocale *BRFPosixLocale(void)
 //@property (strong) NSMutableArray<NSDictionary *> *parameters;
 @property (strong) NSMutableArray<BRFParam *> *parameters;
 @property (strong) NSButton *applyButton;
-@property (strong) NSButton *resetAllButton;
-@property (copy) NSDictionary<NSString *, NSString *> *appliedOverrides; // sent by the last Apply
+@property (strong) NSPopUpButton *defaultsMenu;   // Reset to Profile Defaults / Use My Defaults / Save as My Defaults
+@property (strong) NSView *defaultsNotice;        // the document's parameters differ from my defaults (#44)
 @end
+
+static NSString *const BRFDefaultsKey = @"BPProfileOverrides";
 
 
 
 @implementation BRFProfileEditor
+
++ (nullable NSDictionary<NSString *, NSString *> *)savedOverridesForProfile:(NSString *)profile
+                                                               userDefaults:(NSUserDefaults *)userDefaults
+{
+    id saved = [userDefaults dictionaryForKey:BRFDefaultsKey][profile];
+    return [saved isKindOfClass:[NSDictionary class]] ? saved : nil;
+}
+
++ (void)saveOverrides:(NSDictionary<NSString *, NSString *> *)overrides asDefaultsForProfile:(NSString *)profile
+         userDefaults:(NSUserDefaults *)userDefaults
+{
+    NSMutableDictionary *all = [[userDefaults dictionaryForKey:BRFDefaultsKey] mutableCopy] ?: [NSMutableDictionary dictionary];
+    all[profile] = [overrides copy];
+    [userDefaults setObject:all forKey:BRFDefaultsKey];
+}
+
+- (NSUserDefaults *)userDefaults
+{
+    return _userDefaults ?: [NSUserDefaults standardUserDefaults];
+}
+
+- (nullable NSDictionary<NSString *, NSString *> *)savedOverrides
+{
+    return [[self class] savedOverridesForProfile:self.profileName ?: @"" userDefaults:self.userDefaults];
+}
+
+// the document's parameters (initially, after an Apply, an undo or a revert): shown in the controls
+- (void)setAppliedOverrides:(NSDictionary<NSString *,NSString *> *)appliedOverrides
+{
+    _appliedOverrides = [appliedOverrides copy] ?: @{};
+    [self showValues:_appliedOverrides];
+}
 
 
 - (void)loadProfileName:(NSString *)profileName;
@@ -140,14 +174,45 @@ static NSLocale *BRFPosixLocale(void)
     self.scrollView.documentView = documentView;
     [contentView addSubview:self.scrollView];
 
-    self.resetAllButton = [NSButton buttonWithTitle:NSLocalizedString(@"Reset to Defaults", @"Params tab")
-                                             target:self action:@selector(resetAllClicked:)];
+    self.defaultsMenu = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:YES];
+    self.defaultsMenu.accessibilityIdentifier = @"brfDefaults";
+    [self.defaultsMenu addItemWithTitle:NSLocalizedString(@"Defaults", @"Params tab, pull-down menu")];
+    for (NSArray *item in @[ @[NSLocalizedString(@"Reset to Profile Defaults", @"Params tab"), NSStringFromSelector(@selector(resetAllClicked:))],
+                             @[NSLocalizedString(@"Use My Defaults", @"Params tab"), NSStringFromSelector(@selector(useMyDefaults:))],
+                             @[NSLocalizedString(@"Save as My Defaults", @"Params tab"), NSStringFromSelector(@selector(saveAsMyDefaults:))] ]) {
+        NSMenuItem *mi = [self.defaultsMenu.menu addItemWithTitle:item[0] action:NSSelectorFromString(item[1]) keyEquivalent:@""];
+        mi.target = self;
+    }
+    self.defaultsMenu.toolTip = NSLocalizedString(@"My defaults are the parameters of new documents", @"Params tab");
     self.applyButton = [NSButton buttonWithTitle:NSLocalizedString(@"Apply", @"Params tab")
                                           target:self action:@selector(applyClicked:)];
     self.applyButton.toolTip = NSLocalizedString(@"Recompute the route with these parameters", @"Params tab");
-    NSStackView *buttons = [NSStackView stackViewWithViews:@[ self.resetAllButton, [NSView new], self.applyButton ]];
+    NSStackView *buttonRow = [NSStackView stackViewWithViews:@[ self.defaultsMenu, [NSView new], self.applyButton ]];
+
+    // notice shown when the document's parameters differ from my defaults
+    NSImageView *info = [NSImageView imageViewWithImage:[NSImage imageWithSystemSymbolName:@"info.circle" accessibilityDescription:nil]];
+    info.contentTintColor = [NSColor systemBlueColor];
+    NSTextField *noticeText = [NSTextField wrappingLabelWithString:
+                               NSLocalizedString(@"This route's parameters differ from your defaults.", @"Params tab")];
+    noticeText.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    [noticeText setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
+    NSButton *useDefaults = [NSButton buttonWithTitle:NSLocalizedString(@"Use My Defaults", @"Params tab")
+                                               target:self action:@selector(useMyDefaults:)];
+    useDefaults.controlSize = NSControlSizeSmall;
+    useDefaults.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    NSStackView *notice = [NSStackView stackViewWithViews:@[ info, noticeText, useDefaults ]];
+    notice.distribution = NSStackViewDistributionFill;
+    notice.accessibilityIdentifier = @"brfDefaultsNotice";
+    notice.hidden = YES;
+    self.defaultsNotice = notice;
+
+    NSStackView *buttons = [NSStackView stackViewWithViews:@[ notice, buttonRow ]];
+    buttons.orientation = NSUserInterfaceLayoutOrientationVertical;
+    buttons.spacing = 6;
     buttons.translatesAutoresizingMaskIntoConstraints = NO;
     [contentView addSubview:buttons];
+    [notice.widthAnchor constraintEqualToAnchor:buttons.widthAnchor].active = YES;
+    [buttonRow.widthAnchor constraintEqualToAnchor:buttons.widthAnchor].active = YES;
 
     NSClipView *clip = self.scrollView.contentView;
     [NSLayoutConstraint activateConstraints:@[
@@ -328,8 +393,12 @@ static NSLocale *BRFPosixLocale(void)
         case BRFParamChoice:
             return ((NSPopUpButton *)p.valueControl).selectedItem.representedObject ?: [self defaultValueOf:p];
         case BRFParamNumber: {
+            // while the field is being edited, -stringValue would validate the partial text with the formatter and
+            // write it back into the field ("0," -> "0": the decimal separator disappears while typing, #45): read
+            // the field editor's text instead
             NSTextField *field = (NSTextField *)p.valueControl;
-            NSNumber *n = [(NSNumberFormatter *)field.formatter numberFromString:field.stringValue];
+            NSString *text = field.currentEditor ? field.currentEditor.string : field.stringValue;
+            NSNumber *n = [(NSNumberFormatter *)field.formatter numberFromString:text];
             if (!n) return [self defaultValueOf:p]; // being edited, not a number (yet)
             return [[self class] normalizedValue:[n descriptionWithLocale:BRFPosixLocale()] kind:BRFParamNumber];
         }
@@ -353,6 +422,17 @@ static NSLocale *BRFPosixLocale(void)
             ((NSTextField *)p.valueControl).objectValue = [NSDecimalNumber decimalNumberWithString:value locale:BRFPosixLocale()];
             break;
     }
+}
+
+// shows these values (name → value), the profile default for the others
+- (void)showValues:(NSDictionary<NSString *, NSString *> *)values
+{
+    for (BRFParam *p in self.parameters) {
+        if (!p.valueControl) continue;
+        NSString *v = values[p.name];
+        [self setValue:v ? [[self class] normalizedValue:v kind:p.kind] : [self defaultValueOf:p] ofParam:p];
+    }
+    [self updateState];
 }
 
 - (NSString *)displayValue:(NSString *)value ofParam:(BRFParam *)p
@@ -393,8 +473,22 @@ static NSLocale *BRFPosixLocale(void)
                                     : [NSFont systemFontOfSize:NSFont.systemFontSize];
         p.resetButton.hidden = !changed;
     }
-    self.applyButton.enabled = self.parameters.count > 0 && ![overrides isEqualToDictionary:self.appliedOverrides ?: @{}];
-    self.resetAllButton.enabled = overrides.count > 0;
+    BOOL loaded = self.parameters.firstObject.valueControl != nil;
+    self.applyButton.enabled = loaded && ![overrides isEqualToDictionary:self.appliedOverrides];
+    NSDictionary *saved = [self savedOverrides];
+    self.defaultsNotice.hidden = !(loaded && saved && ![saved isEqualToDictionary:self.appliedOverrides]
+                                   && ![saved isEqualToDictionary:overrides]);
+}
+
+- (BOOL)validateMenuItem:(NSMenuItem *)menuItem
+{
+    BOOL loaded = self.parameters.firstObject.valueControl != nil;
+    NSDictionary *overrides = [self currentOverrides];
+    NSDictionary *saved = [self savedOverrides];
+    if (menuItem.action == @selector(resetAllClicked:)) return overrides.count > 0;
+    if (menuItem.action == @selector(useMyDefaults:)) return loaded && saved && ![saved isEqualToDictionary:overrides];
+    if (menuItem.action == @selector(saveAsMyDefaults:)) return loaded && ![overrides isEqualToDictionary:saved ?: @{}];
+    return YES;
 }
 
 #pragma mark - UI
@@ -449,7 +543,7 @@ static NSLocale *BRFPosixLocale(void)
         }
         [self createRowForParam:param index:i];
     }
-    [self updateState];
+    [self showValues:self.appliedOverrides];
 }
 
 - (void)createRowForParam:(BRFParam *)param index:(NSUInteger)index
@@ -560,6 +654,20 @@ static NSLocale *BRFPosixLocale(void)
     for (BRFParam *p in self.parameters) {
         if (p.valueControl) [self setValue:[self defaultValueOf:p] ofParam:p];
     }
+    [self updateState];
+}
+
+// my defaults in the controls (sent by Apply)
+- (void)useMyDefaults:(id)sender
+{
+    NSDictionary *saved = [self savedOverrides];
+    if (saved) [self showValues:saved];
+}
+
+- (void)saveAsMyDefaults:(id)sender
+{
+    [self.view.window makeFirstResponder:nil]; // ends the editing of a number field
+    [[self class] saveOverrides:[self currentOverrides] asDefaultsForProfile:self.profileName ?: @"" userDefaults:self.userDefaults];
     [self updateState];
 }
 

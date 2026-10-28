@@ -36,6 +36,17 @@ typedef NS_ENUM(NSInteger, BRFParamKind) {
 /// prefix): the ones whose value differs from the profile default; empty when there is none
 @property (nonatomic, copy) void (^completionHandler)(NSDictionary<NSString *, NSString *> *overrideParams);
 
+/// parameters of the document (name → value), shown in the controls; Apply is enabled when the values differ
+@property (nonatomic, copy, null_resettable) NSDictionary<NSString *, NSString *> *appliedOverrides;
+/// where "my defaults" are read and saved (key BPProfileOverrides: profile name → overrides); standard by default
+@property (nonatomic, strong, null_resettable) NSUserDefaults *userDefaults;
+
+/// my default parameters for new documents (#44), nil if none was saved
++ (nullable NSDictionary<NSString *, NSString *> *)savedOverridesForProfile:(NSString *)profile
+                                                               userDefaults:(NSUserDefaults *)userDefaults;
++ (void)saveOverrides:(NSDictionary<NSString *, NSString *> *)overrides asDefaultsForProfile:(NSString *)profile
+         userDefaults:(NSUserDefaults *)userDefaults;
+
 - (void)loadProfileName:(NSString *)profileName;
 //- (void)showEditor;
 

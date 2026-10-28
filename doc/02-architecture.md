@@ -54,7 +54,8 @@ BikePlanner/                 App target
 SupportClasses/              Reusable/support components
   BRouterClient.*            HTTP client for BRouter
   GPXParser.*                NSXMLParser-based GPX reader + BRouter comment parser
-  BRFProfileEditor.*         Downloads a .brf profile, parses its annotated parameters, builds the Params tab UI
+  BRFProfileEditor.*         Downloads a .brf profile, parses its annotated parameters, builds the Params tab UI;
+                             "my defaults" (user defaults BPProfileOverrides)
   ElevationProfileView.*     Elevation chart, scrubbing
   StreetViewController.*     Loads Google Street View URLs into a WKWebView
   POILocation.*              Model class for a POI (CLLocation subclass, NSSecureCoding)
@@ -105,6 +106,7 @@ waypoints).
 | `brouterInfo` | `BrouterInfo` (`kmlen`, `mup`, `meters`, `seconds`) | `brouterInfo` | Length (km, m), ascent (m), riding time (s) estimated by BRouter; `meters`/`seconds` are 0 in documents saved before #30 |
 | `poiloc` | `NSArray<POILocation*>` | `poiloc` | Fetched POIs |
 | `customPoiloc` | `NSMutableArray<POILocation*>` | `customPoiloc` | User POIs |
+| `profileOverrides` | `NSDictionary<NSString*,NSString*>` | `profileOverrides` | BRouter parameters (Params tab, name → value); missing in older documents = `@{}` (#44) |
 | `fetchPOI` | `BOOL` | *not persisted* | Enables Overpass fetching |
 | `routePoly`, `waypointPoly`, `gpxDisplayedPoly` | `TaggedPoly` | derived, cached | MapKit overlays built from the arrays |
 | `poiAvailableCallback` | block | — | Called on main thread when POIs arrive |
@@ -126,7 +128,7 @@ bicycle_repair_station, cemetery, warning), `info` (raw OSM tags), `userAdded`. 
 No version key: adding/removing fields relies on `decodeObject…` returning nil for missing keys.
 
 ### 4.4 State held outside the model (in `MapController`)
-`gpxData` (raw GPX of last route, used for export), `profileOverrides` (Params tab, name → value), click mode, map type,
+`gpxData` (raw GPX of last route, used for export), click mode, map type,
 `waypointsRouteAnnotations` (annotation per waypoint, kept in sync manually), `viewPOI`. None of this is persisted.
 
 ## 5. Map layer
@@ -178,10 +180,12 @@ plan.routePoly getter → shouldRequestPOI (tpoineed = now) → tryRequestPoi
 ```
 
 ### 6.4 Route computation
+Params tab Apply → `PlannerWindowController setProfileOverrides:` (undoable; sets `plan.profileOverrides` and
+`brfEditor.appliedOverrides`) → `shouldRecalcRoute`.
 ```
 MapController.requestRoute
   gpxData = nil
-  BRouterClient.routeWithWaypoints:profile:"trekking" overrides:profileOverrides   (URL: +routeURLForServer:…)
+  BRouterClient.routeWithWaypoints:profile:plan.profileName overrides:plan.profileOverrides   (URL: +routeURLForServer:…)
     GET https://brouter.de/brouter?lonlats=lon,lat|lon,lat…&profile=trekking&alternativeidx=0&format=gpx[&profile:<name>=<value>…]
     (names and values percent-encoded, including & = + |; true/false sent as 1/0)
     (background) GPXParser → points + brouterInfo (parsed from the GPX comment: track-length, filtered ascend, time, energy)
@@ -290,6 +294,7 @@ Each item is tracked as a GitHub issue.
 | 20 | M ✅ fixed | `GPXParser.m`, `MapController.m` `exportGpxDataWithPOI:` | A GPX exported with POIs was unusable as a reference trace: the POIs are written as `<wpt>` and the parser merged them into the trace (item 14); names were not XML-escaped (item 8). `testExportWithPOIsCanBeImportedAsTrace`. | [#28](https://github.com/banyanshade-software/BikePlanner/issues/28) |
 | 21 | M ✅ fixed | `PlannerWindowController.m`, `BRouterClient.m` | BRouter parameter overrides (Params tab) had no effect: brouter.de ignores `extraParams=`, so a single override was lost (with several, all but the first applied); unchecking every override did not go back to the defaults. Fixed with #15; `testBRFOverridesRecomputeRoute`. | [#35](https://github.com/banyanshade-software/BikePlanner/issues/35) |
 | 22 | M ✅ fixed | `BRouterClient.m`, `BRFProfileEditor.m` | Boolean overrides were sent as `profile:<name>=true/false`, which brouter.de rejects with HTTP 500 (silent, see #9). Now sent as `1`/`0` (`testBooleanOverridesSentAsNumbers`); the Params tab edits them with switches. | [#38](https://github.com/banyanshade-software/BikePlanner/issues/38) |
+| 23 | M ✅ fixed | `BRFProfileEditor.m` | Params tab: typing the decimal separator cleared it ("0," → "0"): the value of the number field was read with `-stringValue` on each keystroke, which validates the partial text with the field's `NSNumberFormatter` and writes it back. The text being edited is now read from the field editor (`testTypeDecimalNumber`). | [#45](https://github.com/banyanshade-software/BikePlanner/issues/45) |
 
 ### Design / maintainability
 - **`MapController` is a god object**: map setup, UI controls built in code, hit testing, geometry, routing,

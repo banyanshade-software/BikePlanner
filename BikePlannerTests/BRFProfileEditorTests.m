@@ -14,11 +14,14 @@
 @property (strong) NSStackView *stackView;
 @property (strong) NSMutableArray<BRFParam *> *parameters;
 @property (strong) NSButton *applyButton;
-@property (strong) NSButton *resetAllButton;
 - (void)parseProfile:(NSString *)brf;
 - (void)applyClicked:(id)sender;
 - (void)resetAllClicked:(id)sender;
 - (void)resetParam:(NSButton *)sender;
+- (void)useMyDefaults:(id)sender;
+- (void)saveAsMyDefaults:(id)sender;
+- (BOOL)validateMenuItem:(NSMenuItem *)menuItem;
+@property (strong) NSView *defaultsNotice;
 @end
 
 @interface BRFParam (Testing)
@@ -31,6 +34,8 @@
 @implementation BRFProfileEditorTests {
     BPStubServer *server;
     BRFProfileEditor *editor;
+    NSUserDefaults *defaults; // "my defaults" of the tests, not the owner's
+    NSString *suite;
 }
 
 - (void)setUp
@@ -39,11 +44,15 @@
     XCTAssertTrue([server startInProcess]);
     BPOverrideDefaults(@{ @"BPBRouterServer": server.baseURL.absoluteString });
     editor = [[BRFProfileEditor alloc] initWithNibName:@"BRFProfileEditor" bundle:nil];
+    suite = [NSString stringWithFormat:@"BRFProfileEditorTests.%@", NSUUID.UUID.UUIDString];
+    defaults = [[NSUserDefaults alloc] initWithSuiteName:suite];
+    editor.userDefaults = defaults;
     [editor loadProfileName:@"trekking"];
 }
 
 - (void)tearDown
 {
+    [defaults removePersistentDomainForName:suite];
     [server stop];
     BPRestoreDefaults();
 }
@@ -64,6 +73,12 @@
 - (void)changed:(NSControl *)control
 {
     [NSApp sendAction:control.action to:control.target from:control];
+}
+
+- (BOOL)menuEnabled:(SEL)action
+{
+    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"" action:action keyEquivalent:@""];
+    return [editor validateMenuItem:item];
 }
 
 - (NSDictionary *)apply
@@ -155,7 +170,9 @@
     XCTAssertTrue([mode isKindOfClass:[NSPopUpButton class]]);
     XCTAssertEqualObjects(mode.titleOfSelectedItem, @"auto");
     XCTAssertFalse(editor.applyButton.enabled, @"nothing changed");
-    XCTAssertFalse(editor.resetAllButton.enabled);
+    XCTAssertFalse([self menuEnabled:@selector(resetAllClicked:)]);
+    XCTAssertFalse([self menuEnabled:@selector(useMyDefaults:)], @"no saved defaults");
+    XCTAssertFalse([self menuEnabled:@selector(saveAsMyDefaults:)], @"nothing to save");
 }
 
 // overrides = the values that differ from the defaults; booleans as 1/0 (#38); same number = no override
@@ -207,7 +224,7 @@
 
     [editor resetAllClicked:nil];
     XCTAssertEqualObjects(((NSTextField *)mass.valueControl).stringValue, @"90");
-    XCTAssertFalse(editor.resetAllButton.enabled);
+    XCTAssertFalse([self menuEnabled:@selector(resetAllClicked:)]);
     XCTAssertEqualObjects([self apply], @{}, @"back to the profile defaults");
 }
 
@@ -221,6 +238,116 @@
     XCTAssertEqualObjects(message.accessibilityIdentifier, @"brfMessage");
     XCTAssertTrue([message.stringValue containsString:@"HTTP 500"], @"%@", message.stringValue);
     XCTAssertFalse(editor.applyButton.enabled);
+}
+
+#pragma mark - document parameters and my defaults (#44)
+
+// the document's parameters are shown when the profile is loaded
+- (void)testAppliedOverridesShownAfterLoad
+{
+    editor.appliedOverrides = @{ @"downhillcost": @"80", @"avoid_unsafe": @"1" };
+    [self loadUI];
+    XCTAssertEqualObjects(((NSTextField *)[self param:@"downhillcost"].valueControl).stringValue, @"80");
+    XCTAssertEqual(((NSSwitch *)[self param:@"avoid_unsafe"].valueControl).state, NSControlStateValueOn);
+    XCTAssertFalse(editor.applyButton.enabled, @"already applied");
+    XCTAssertFalse([self param:@"downhillcost"].resetButton.hidden);
+}
+
+// undo / revert: new document parameters replace the values being edited
+- (void)testAppliedOverridesSetAfterLoad
+{
+    [self loadUI];
+    ((NSTextField *)[self param:@"totalMass"].valueControl).stringValue = @"120";
+    [self changed:[self param:@"totalMass"].valueControl];
+    editor.appliedOverrides = @{ @"downhillcost": @"80" };
+    XCTAssertEqualObjects(((NSTextField *)[self param:@"downhillcost"].valueControl).stringValue, @"80");
+    XCTAssertEqualObjects(((NSTextField *)[self param:@"totalMass"].valueControl).stringValue, @"90");
+    XCTAssertFalse(editor.applyButton.enabled);
+}
+
+- (void)testSaveAsMyDefaults
+{
+    XCTAssertNil([BRFProfileEditor savedOverridesForProfile:@"trekking" userDefaults:defaults]);
+    [self loadUI];
+    ((NSTextField *)[self param:@"downhillcost"].valueControl).stringValue = @"80";
+    [self changed:[self param:@"downhillcost"].valueControl];
+    XCTAssertTrue([self menuEnabled:@selector(saveAsMyDefaults:)]);
+    [editor saveAsMyDefaults:nil];
+    XCTAssertFalse([self menuEnabled:@selector(saveAsMyDefaults:)], @"saved");
+    XCTAssertEqualObjects([BRFProfileEditor savedOverridesForProfile:@"trekking" userDefaults:defaults],
+                          @{ @"downhillcost": @"80" });
+    XCTAssertEqualObjects([defaults dictionaryForKey:@"BPProfileOverrides"], (@{ @"trekking": @{ @"downhillcost": @"80" } }));
+    XCTAssertTrue(editor.applyButton.enabled, @"saving the defaults does not apply them");
+}
+
+// a document whose parameters differ from my defaults: notice, "Use My Defaults" sets the values, Apply sends them
+- (void)testUseMyDefaults
+{
+    [BRFProfileEditor saveOverrides:@{ @"totalMass": @"110" } asDefaultsForProfile:@"trekking" userDefaults:defaults];
+    editor.appliedOverrides = @{ @"downhillcost": @"80" };
+    [self loadUI];
+    XCTAssertFalse(editor.defaultsNotice.hidden, @"document parameters differ from my defaults");
+    XCTAssertTrue([self menuEnabled:@selector(useMyDefaults:)]);
+
+    [editor useMyDefaults:nil];
+    XCTAssertEqualObjects(((NSTextField *)[self param:@"totalMass"].valueControl).stringValue, @"110");
+    XCTAssertEqualObjects(((NSTextField *)[self param:@"downhillcost"].valueControl).stringValue, @"60");
+    XCTAssertTrue(editor.defaultsNotice.hidden);
+    XCTAssertTrue(editor.applyButton.enabled);
+    XCTAssertEqualObjects([self apply], @{ @"totalMass": @"110" });
+    XCTAssertTrue(editor.defaultsNotice.hidden);
+}
+
+- (void)testNoNoticeWithoutMyDefaultsOrWhenEqual
+{
+    editor.appliedOverrides = @{ @"downhillcost": @"80" };
+    [self loadUI];
+    XCTAssertTrue(editor.defaultsNotice.hidden, @"no saved defaults");
+    [BRFProfileEditor saveOverrides:@{ @"downhillcost": @"80" } asDefaultsForProfile:@"trekking" userDefaults:defaults];
+    editor.appliedOverrides = @{ @"downhillcost": @"80" };
+    XCTAssertTrue(editor.defaultsNotice.hidden, @"same as my defaults");
+}
+
+#pragma mark - typing numbers (#45)
+
+// types into the number field through the field editor, one character at a time, like the user
+- (NSTextField *)type:(NSString *)text into:(NSString *)name window:(NSWindow *)w
+{
+    NSTextField *field = (NSTextField *)[self param:name].valueControl;
+    XCTAssertTrue([w makeFirstResponder:field]);
+    NSText *fieldEditor = field.currentEditor;
+    XCTAssertNotNil(fieldEditor);
+    [fieldEditor selectAll:nil];
+    for (NSUInteger i = 0; i < text.length; i++) {
+        [fieldEditor insertText:[text substringWithRange:NSMakeRange(i, 1)]];
+    }
+    return field;
+}
+
+- (NSWindow *)windowWithEditor
+{
+    NSWindow *w = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 480, 600) styleMask:NSWindowStyleMaskTitled
+                                                backing:NSBackingStoreBuffered defer:NO];
+    w.releasedWhenClosed = NO;
+    editor.view.frame = w.contentView.bounds;
+    [w.contentView addSubview:editor.view];
+    [self loadUI];
+    return w;
+}
+
+// the decimal separator must not disappear while typing (#45): reading the value of the field during the editing
+// made the formatter validate "0," and write "0" back
+- (void)testTypeDecimalNumber
+{
+    NSWindow *w = [self windowWithEditor];
+    NSTextField *field = (NSTextField *)[self param:@"uphillcutoff"].valueControl;
+    NSString *typed = [NSString stringWithFormat:@"0%@3", ((NSNumberFormatter *)field.formatter).decimalSeparator];
+    [self type:typed into:@"uphillcutoff" window:w];
+    XCTAssertEqualObjects(field.currentEditor.string, typed, @"text kept while typing");
+    XCTAssertTrue(editor.applyButton.enabled);
+    XCTAssertEqualObjects([self apply], @{ @"uphillcutoff": @"0.3" }, @"sent with a dot");
+    XCTAssertEqualObjects(field.stringValue, typed);
+    [w close];
 }
 
 @end

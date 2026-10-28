@@ -64,8 +64,19 @@
     self.waypointsLocations = [[NSMutableArray alloc]initWithCapacity:32];
     self.fetchPOI = YES;
     self.customPoiloc = [[NSMutableArray alloc]initWithCapacity:5];
+    self.profileOverrides = @{};
     
     return self;
+}
+
+- (NSString *)profileName
+{
+    return @"trekking";
+}
+
+- (void)setProfileOverrides:(NSDictionary<NSString *,NSString *> *)profileOverrides
+{
+    _profileOverrides = [profileOverrides copy] ?: @{};
 }
 
 #pragma mark -
@@ -380,6 +391,7 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     [coder encodeObject:_brouterInfo forKey:@"brouterInfo"];
     [coder encodeObject:_poiloc forKey:@"poiloc"];
     [coder encodeObject:_customPoiloc forKey:@"customPoiloc"];
+    [coder encodeObject:_profileOverrides forKey:@"profileOverrides"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)coder
@@ -393,6 +405,7 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     if (!_brouterInfo) self.brouterInfo = [[BrouterInfo alloc]init];
     self.poiloc = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [POILocation class], nil]  forKey:@"poiloc"];
     self.customPoiloc = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [POILocation class], nil]  forKey:@"customPoiloc"];
+    self.profileOverrides = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSDictionary class], [NSString class], nil] forKey:@"profileOverrides"];
     if (!_customPoiloc) {
         self.customPoiloc = [[NSMutableArray alloc]initWithCapacity:5];
     }

@@ -34,7 +34,6 @@ typedef NS_ENUM(int, BPClickMode) {
 //@property (assign) CLLocationCoordinate2D endCoord;
 //@property (assign) BOOL hasStart;
 //@property (assign) BOOL hasEnd;
-@property (copy) NSDictionary<NSString *, NSString *> *profileOverrides; // Params tab, sent with each route request
 
 
 @property (strong, nullable) NSData *gpxData;

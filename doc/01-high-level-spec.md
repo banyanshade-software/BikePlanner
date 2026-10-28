@@ -147,9 +147,15 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   parameters, each sent as a top-level `profile:<name>=<value>` query parameter (what BRouter reads; an
   `extraParams=` wrapper is ignored). Booleans are sent as `1`/`0` (brouter.de fails with HTTP 500 on `true`/`false`).
   With no override, the route uses the profile defaults.
-- F4.4 *(partial)* Overrides are not saved in the document and are lost when the window closes.
+- F4.4 The applied parameters are saved in the document (`BikePlan.profileOverrides`) and shown in the
+  *Params* tab when it is opened; Apply is undoable (“change routing parameters”) and Revert to Saved restores them.
+  Documents saved before have none (= profile defaults).
+- F4.4.1 **My defaults**: the “Defaults” pull-down of the *Params* tab offers *Reset to Profile Defaults*,
+  *Use My Defaults* and *Save as My Defaults* (user defaults `BPProfileOverrides`, profile name → parameters). A new
+  document starts with my defaults. When an opened document's parameters differ from my defaults, a notice offers
+  *Use My Defaults* (the values are then sent with Apply).
 - F4.5 *(planned, mandatory)* The user chooses the BRouter profile (e.g. `trekking`, `fastbike`, `safety`, …);
-  the chosen profile and its overrides are saved in the document.
+  the chosen profile is saved in the document (its overrides already are, F4.4).
 - F4.6 *(planned)* The BRouter server is configurable; the target is a **local BRouter server**
   (e.g. `http://127.0.0.1:17777`), `brouter.de` remaining a fallback.
 

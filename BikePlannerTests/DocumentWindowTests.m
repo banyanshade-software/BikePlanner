@@ -81,7 +81,8 @@
                           @"BPOverpassURL": server.overpassURL.absoluteString,
                           @"BPDisableStreetView": @YES,
                           @"BPDisableTiles": @YES,
-                          @"BPInitialRegion": @"44.05,0.55,0.2" });
+                          @"BPInitialRegion": @"44.05,0.55,0.2",
+                          @"BPProfileOverrides": @{} }); // not the owner's default BRouter parameters
     doc = [[Document alloc] init];
     [self openWindow];
 }
@@ -856,7 +857,8 @@
     [doc setClickModeToEdit:nil];   XCTAssertEqual(seg.selectedSegment, 0);
 }
 
-// "Apply" in the Params tab: overrides are sent to BRouter as profile:<name> parameters (#15, #35)
+// "Apply" in the Params tab: overrides are sent to BRouter as profile:<name> parameters (#15, #35), saved in the
+// plan (#44)
 - (void)testBRFOverridesRecomputeRoute
 {
     [self makeRoute];
@@ -864,7 +866,8 @@
     BRFProfileEditor *editor = ((PlannerWindowController *)doc.windowControllers.firstObject).brfEditor;
     XCTAssertNotNil(editor.completionHandler);
     editor.completionHandler(@{ @"downhillcost": @"80" });
-    XCTAssertEqualObjects(mc.profileOverrides, @{ @"downhillcost": @"80" });
+    XCTAssertEqualObjects(doc.plan.profileOverrides, @{ @"downhillcost": @"80" });
+    XCTAssertEqualObjects(editor.appliedOverrides, @{ @"downhillcost": @"80" });
     XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([self->server requestsWithPath:@"/brouter"].count == 1); }));
     XCTAssertEqualObjects([server requestsWithPath:@"/brouter"].firstObject.query[@"profile:downhillcost"], @"80");
 
@@ -874,11 +877,72 @@
     BPSpin(0.5);
     XCTAssertEqual([server requestsWithPath:@"/brouter"].count, 0u);
 
-    // all overrides unchecked: back to the profile defaults
+    // no override: back to the profile defaults
     editor.completionHandler(@{});
-    XCTAssertEqualObjects(mc.profileOverrides, @{});
+    XCTAssertEqualObjects(doc.plan.profileOverrides, @{});
     XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([self->server requestsWithPath:@"/brouter"].count == 1); }));
     XCTAssertNil([server requestsWithPath:@"/brouter"].firstObject.query[@"profile:downhillcost"]);
+}
+
+// Apply is undoable: undo restores the parameters (plan and Params tab) and recomputes the route (#44)
+- (void)testUndoProfileOverrides
+{
+    // nested run loops in tests do not close automatic undo groups: group explicitly (see UndoTests)
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    [um beginUndoGrouping];
+    [self makeRoute];
+    [um endUndoGrouping];
+    [doc updateChangeCount:NSChangeCleared];
+    BRFProfileEditor *editor = ((PlannerWindowController *)doc.windowControllers.firstObject).brfEditor;
+    [server clearRequests];
+    [um beginUndoGrouping];
+    editor.completionHandler(@{ @"downhillcost": @"80" });
+    [um endUndoGrouping];
+    XCTAssertEqualObjects(um.undoActionName, @"change routing parameters");
+    XCTAssertTrue(BPWaitUntil(2, ^{ return self->doc.isDocumentEdited; }), @"document edited (updated asynchronously by NSDocument)");
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([self->server requestsWithPath:@"/brouter"].count == 1); }));
+    [server clearRequests];
+    [um undo];
+    XCTAssertEqualObjects(doc.plan.profileOverrides, @{});
+    XCTAssertEqualObjects(editor.appliedOverrides, @{});
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([self->server requestsWithPath:@"/brouter"].count == 1); }));
+    XCTAssertNil([server requestsWithPath:@"/brouter"].firstObject.query[@"profile:downhillcost"]);
+    [um redo];
+    XCTAssertEqualObjects(doc.plan.profileOverrides, @{ @"downhillcost": @"80" });
+    XCTAssertEqualObjects(editor.appliedOverrides, @{ @"downhillcost": @"80" });
+}
+
+// a new document starts with my default parameters; an opened one keeps its own (#44)
+- (void)testNewDocumentUsesMyDefaults
+{
+    BPOverrideDefaults(@{ @"BPProfileOverrides": @{ @"trekking": @{ @"bikerPower": @"80" } } });
+    Document *d = [[Document alloc] init];
+    XCTAssertEqualObjects(d.plan.profileOverrides, @{ @"bikerPower": @"80" });
+
+    NSString *type = @"fr.free.daniel.braun.bikeplan";
+    NSData *data = [doc dataOfType:type error:NULL]; // saved with no override
+    Document *opened = [[Document alloc] init];
+    XCTAssertTrue([opened readFromData:data ofType:type error:NULL]);
+    XCTAssertEqualObjects(opened.plan.profileOverrides, @{});
+}
+
+// the document's parameters are restored in the Params tab by Revert to Saved (#44)
+- (void)testRevertRestoresProfileOverrides
+{
+    NSString *type = @"fr.free.daniel.braun.bikeplan";
+    BRFProfileEditor *editor = ((PlannerWindowController *)doc.windowControllers.firstObject).brfEditor;
+    editor.completionHandler(@{ @"downhillcost": @"80" });
+    NSURL *url = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-revert-params.bikeplan"]];
+    XCTAssertTrue([[doc dataOfType:type error:NULL] writeToURL:url atomically:YES]);
+    doc.fileURL = url;
+    doc.fileType = type;
+    editor.completionHandler(@{ @"downhillcost": @"100" });
+
+    NSError *err = nil;
+    XCTAssertTrue([doc revertToContentsOfURL:url ofType:type error:&err], @"%@", err);
+    XCTAssertEqualObjects(doc.plan.profileOverrides, @{ @"downhillcost": @"80" });
+    XCTAssertEqualObjects(editor.appliedOverrides, @{ @"downhillcost": @"80" });
 }
 
 - (void)testRoutingErrorKeepsPreviousRoute
