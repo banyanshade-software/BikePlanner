@@ -60,4 +60,40 @@
     XCTAssertEqualWithAccuracy(r.coordinate.latitude, 44.1, 1e-9);
 }
 
+#pragma mark - custom POI types (#3)
+
+- (void)testCustomTypes
+{
+    NSArray<NSNumber *> *types = [POILocation customPoiTypes];
+    XCTAssertEqual(types.count, 11u);
+    XCTAssertEqual(types.firstObject.intValue, POI_warning, @"default type first");
+    NSDictionary *garmin = @{ @(POI_warning): @"DANGER", @(POI_drinking_water): @"WATER", @(POI_food): @"FOOD",
+                              @(POI_toilets): @"TOILET", @(POI_bicycle_repair_station): @"SERVICE",
+                              @(POI_shelter): @"SHELTER", @(POI_viewpoint): @"OVERLOOK", @(POI_campsite): @"CAMPSITE",
+                              @(POI_store): @"STORE", @(POI_info): @"INFO", @(POI_generic): @"GENERIC" };
+    for (NSNumber *t in types) {
+        POILocation *p = [[POILocation alloc] initWithLatitude:1 longitude:2 ofType:t.intValue info:@{} custom:YES];
+        XCTAssertEqualObjects(p.gpxType, garmin[t], @"type %@", t);
+        XCTAssertGreaterThan([POILocation displayNameForType:t.intValue].length, 0u);
+        XCTAssertNotNil(p.title, @"custom POIs always have a title (no <name>(null)</name>)");
+    }
+    // archived values of the existing types do not change
+    XCTAssertEqual(POI_warning, 5);
+}
+
+- (void)testCustomPoiNameIsTitle
+{
+    POILocation *named = [[POILocation alloc] initWithLatitude:1 longitude:2 ofType:POI_drinking_water
+                                                          info:@{ @"name": @"Fontaine du village" } custom:YES];
+    XCTAssertEqualObjects(named.title, @"Fontaine du village");
+    XCTAssertEqualObjects(named.name, @"Fontaine du village");
+    POILocation *unnamed = [[POILocation alloc] initWithLatitude:1 longitude:2 ofType:POI_viewpoint info:@{} custom:YES];
+    XCTAssertEqualObjects(unnamed.title, [POILocation displayNameForType:POI_viewpoint]);
+    XCTAssertNil(unnamed.name);
+    // fetched POIs keep their type title
+    POILocation *fetched = [[POILocation alloc] initWithLatitude:1 longitude:2 ofType:POI_drinking_water
+                                                            info:@{ @"id": @3, @"name": @"OSM name" } custom:NO];
+    XCTAssertEqualObjects(fetched.title, @"water");
+}
+
 @end

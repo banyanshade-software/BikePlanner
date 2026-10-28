@@ -52,8 +52,41 @@
     return poitype;
 }
 
++ (NSArray<NSNumber *> *) customPoiTypes
+{
+    return @[ @(POI_warning), @(POI_drinking_water), @(POI_food), @(POI_toilets), @(POI_bicycle_repair_station),
+              @(POI_shelter), @(POI_viewpoint), @(POI_campsite), @(POI_store), @(POI_info), @(POI_generic) ];
+}
+
++ (NSString *) displayNameForType:(PoiType_t)type
+{
+    switch (type) {
+        case POI_warning:                return NSLocalizedString(@"Danger", @"custom POI type");
+        case POI_drinking_water:         return NSLocalizedString(@"Water", @"custom POI type");
+        case POI_food:                   return NSLocalizedString(@"Food", @"custom POI type");
+        case POI_toilets:                return NSLocalizedString(@"Toilets", @"custom POI type");
+        case POI_bicycle_repair_station: return NSLocalizedString(@"Bike repair", @"custom POI type");
+        case POI_shelter:                return NSLocalizedString(@"Shelter", @"custom POI type");
+        case POI_viewpoint:              return NSLocalizedString(@"Viewpoint", @"custom POI type");
+        case POI_campsite:               return NSLocalizedString(@"Campsite", @"custom POI type");
+        case POI_store:                  return NSLocalizedString(@"Store", @"custom POI type");
+        case POI_info:                   return NSLocalizedString(@"Information", @"custom POI type");
+        case POI_generic:                return NSLocalizedString(@"Other", @"custom POI type");
+        case POI_cemetery:               return NSLocalizedString(@"Cemetery", @"custom POI type");
+        case POI_unknown:                return NSLocalizedString(@"POI", @"custom POI type");
+    }
+    return NSLocalizedString(@"POI", @"custom POI type");
+}
+
+- (nullable NSString *) name
+{
+    NSString *n = userAdded ? info[@"name"] : nil;
+    return n.length ? n : nil;
+}
+
 - (NSString *) title
 {
+    if (userAdded) return self.name ?: [POILocation displayNameForType:poitype]; // #3
     switch (poitype) {
         default:
             return nil;
@@ -89,6 +122,13 @@
         case POI_bicycle_repair_station:return @"bicycle_repair_station"; break;
         case POI_cemetery:              return @"cemetery"; break;
         case POI_warning:               return @"..." ; break;
+        case POI_food:                  return @"Restaurant"; break;
+        case POI_shelter:               return @"Building"; break;
+        case POI_viewpoint:             return @"Scenic Area"; break;
+        case POI_campsite:              return @"Campground"; break;
+        case POI_store:                 return @"Shopping Center"; break;
+        case POI_info:                  return @"Information"; break;
+        case POI_generic:               return @"Flag, Blue"; break;
     }
 }
 - (NSString *) poiKey
@@ -110,6 +150,13 @@
         case POI_bicycle_repair_station:return @"SERVICE"; break;
         case POI_cemetery:              return @"GENERIC"; break;
         case POI_warning:               return @"DANGER"; break;
+        case POI_food:                  return @"FOOD"; break;
+        case POI_shelter:               return @"SHELTER"; break;
+        case POI_viewpoint:             return @"OVERLOOK"; break;
+        case POI_campsite:              return @"CAMPSITE"; break;
+        case POI_store:                 return @"STORE"; break;
+        case POI_info:                  return @"INFO"; break;
+        case POI_generic:               return @"GENERIC"; break;
     }
 }
 /*
@@ -142,6 +189,7 @@
     [super encodeWithCoder:coder];
     [coder encodeInt:poitype forKey:@"poitype"];
     [coder encodeObject:info forKey:@"info"];
+    [coder encodeBool:userAdded forKey:@"custom"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)coder
@@ -150,6 +198,8 @@
     if (!self) return self;
     poitype = [coder decodeIntForKey:@"poitype"];
     info = [coder decodeObjectOfClass:[NSDictionary class] forKey:@"info"];
+    // documents saved before #3 did not store it: custom POIs are the ones without OSM id
+    userAdded = [coder containsValueForKey:@"custom"] ? [coder decodeBoolForKey:@"custom"] : (info[@"id"] == nil);
     return self;
 }
 

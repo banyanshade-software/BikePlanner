@@ -366,6 +366,28 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     XCTAssertEqual(plan.excludedPOIKeys.count, 1u);
 }
 
+// typed custom POIs: add with type and name, edit, remove (#3)
+- (void)testTypedCustomPoi
+{
+    POILocation *p = [plan addCustomPoiAt:CLLocationCoordinate2DMake(44, 0.5) type:POI_drinking_water name:@"Fontaine"];
+    XCTAssertEqual(plan.customPoiloc.count, 1u);
+    XCTAssertEqual(p.poiType, POI_drinking_water);
+    XCTAssertEqualObjects(p.title, @"Fontaine");
+    BikePlan *r = [self roundTrip:plan];
+    XCTAssertEqual(r.customPoiloc[0].poiType, POI_drinking_water);
+    XCTAssertEqualObjects(r.customPoiloc[0].title, @"Fontaine");
+
+    POILocation *edited = [plan replaceCustomPoi:p type:POI_food name:@""];
+    XCTAssertEqual(plan.customPoiloc.count, 1u);
+    XCTAssertEqual(plan.customPoiloc[0].poiType, POI_food);
+    XCTAssertNil(edited.name, @"empty name: none");
+    XCTAssertEqualWithAccuracy(edited.coordinate.latitude, 44, 1e-9);
+    XCTAssertEqualObjects(edited.poiKey, p.poiKey, @"same POI (exclusion kept)");
+
+    [plan removeCustomPoi:edited];
+    XCTAssertEqual(plan.customPoiloc.count, 0u);
+}
+
 - (void)testCustomPoiCanBeAddedAfterLoad
 {
     [plan addCustomPoiAt:CLLocationCoordinate2DMake(44, 0.5)];

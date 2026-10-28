@@ -66,6 +66,7 @@
 		99C7B154189B217AC2F6B951 /* DocumentWindowTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 877818E4CD09D95A03B2BE89 /* DocumentWindowTests.m */; };
 		EBE95D8BBF9581EE067F7691 /* BPUITestCase.m in Sources */ = {isa = PBXBuildFile; fileRef = 006448FCD1F51E4F8F46E51E /* BPUITestCase.m */; };
 		9925BDC25A9FBFC0656BD01E /* AppearanceTests.m in Sources */ = {isa = PBXBuildFile; fileRef = B02CDC8B1BCDC5D243D9E139 /* AppearanceTests.m */; };
+		033078960746587AAF5308E4 /* BPPOIEditor.m in Sources */ = {isa = PBXBuildFile; fileRef = 07D3CE9C5077DF637FC3E9E6 /* BPPOIEditor.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -179,6 +180,8 @@
 		452CB23554E1B857BEAD70E1 /* BPUITestCase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPUITestCase.h; sourceTree = "<group>"; };
 		006448FCD1F51E4F8F46E51E /* BPUITestCase.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPUITestCase.m; sourceTree = "<group>"; };
 		B02CDC8B1BCDC5D243D9E139 /* AppearanceTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppearanceTests.m; sourceTree = "<group>"; };
+		07D3CE9C5077DF637FC3E9E6 /* BPPOIEditor.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPPOIEditor.m; sourceTree = "<group>"; };
+		3ED73D514DDDA82E0C4660B8 /* BPPOIEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPPOIEditor.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -299,6 +302,8 @@
 				1B53B7C72E53B5BA00C9470F /* POILocation.m */,
 				1B53B7CC2E56444100C9470F /* POIAnnotationView.h */,
 				1B53B7CD2E56444100C9470F /* POIAnnotationView.m */,
+				07D3CE9C5077DF637FC3E9E6 /* BPPOIEditor.m */,
+				3ED73D514DDDA82E0C4660B8 /* BPPOIEditor.h */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -556,6 +561,7 @@
 				65F365CA2E4F73200046B03D /* StreetViewController.m in Sources */,
 				65F365CB2E4F73200046B03D /* BRouterClient.m in Sources */,
 				10E8E2FE271EF99F2D4659B0 /* BPEnvironment.m in Sources */,
+				033078960746587AAF5308E4 /* BPPOIEditor.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -16,6 +16,14 @@ typedef NS_ENUM(int, PoiType_t) {
     POI_bicycle_repair_station,
     POI_cemetery,
     POI_warning,
+    // types of custom POIs (#3); appended: archived values of the types above must not change
+    POI_food,
+    POI_shelter,
+    POI_viewpoint,
+    POI_campsite,
+    POI_store,
+    POI_info,
+    POI_generic,
 };
 
 @interface POILocation : CLLocation <NSSecureCoding> {
@@ -26,7 +34,8 @@ typedef NS_ENUM(int, PoiType_t) {
     BOOL userAdded;
 }
 @property (nonatomic,readonly) PoiType_t poiType;
-@property (nonatomic,readonly) NSString *title;
+@property (nonatomic,readonly,nullable) NSString *title;     // custom POI: its name, else its type name
+@property (nonatomic,readonly,nullable) NSString *name;      // custom POI: name given by the user (#3), nil if none
 @property (nonatomic,readonly) NSDictionary *info;
 @property (nonatomic,readonly) NSString *gpxSymbol;
 @property (nonatomic,readonly) NSString *gpxType;
@@ -37,6 +46,9 @@ typedef NS_ENUM(int, PoiType_t) {
 - (instancetype) initWithLatitude:(CLLocationDegrees)latitude longitude:(CLLocationDegrees)longitude ofType:(PoiType_t)poitype info:(NSDictionary *)info custom:(BOOL)useradded;
 
 + (PoiType_t) poiTypeForAmenity:(NSString *)s;
+// types offered for custom POIs, default first (#3)
++ (NSArray<NSNumber *> *) customPoiTypes;
++ (NSString *) displayNameForType:(PoiType_t)type;
 
 @end
 NS_ASSUME_NONNULL_END

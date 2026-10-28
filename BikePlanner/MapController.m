@@ -18,6 +18,7 @@
 #import "POICalloutView.h"
 #import "POIAnnotationView.h"
 #import "ExportAccessoryViewController.h"
+#import "BPPOIEditor.h"
 #import "Secret.h"
 #import "BPEnvironment.h"
 
@@ -648,7 +649,13 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
         // Add POI on the track
         CLLocationCoordinate2D rcoord;
         if ([self clickNearPolylineAt:locInView tolerence:50. nearestPoint:&rcoord]) {
-            [self addCustomPoiAt:rcoord];
+            // type and optional name asked first (#3)
+            [BPPOIEditor editType:POI_warning name:nil
+                            title:NSLocalizedString(@"Add a point of interest", @"custom POI editor")
+                         okButton:NSLocalizedString(@"Add", @"custom POI editor") window:self.mapView.window
+                       completion:^(PoiType_t type, NSString *name) {
+                [self addCustomPoiAt:rcoord type:type name:name];
+            }];
         }
         NSLog(@"..");
         return;
@@ -1543,6 +1550,21 @@ static const BOOL useMarker = NO;
         [poi configureAnnotViewIcon:view];
         ((POICalloutView *)view.detailCalloutAccessoryView).infodic = poi.info; //XXX TODO
         ((POICalloutView *)view.detailCalloutAccessoryView).excludeControl.selectedSegment = poi.excluded ? 1 : 0;
+        // custom POIs: Edit / Remove on right-click (#3); views are reused: always set
+        if ([poi.poiKey hasPrefix:@"custom:"]) {
+            NSMenu *menu = [[NSMenu alloc] initWithTitle:@"POI"];
+            NSMenuItem *edit = [menu addItemWithTitle:NSLocalizedString(@"Edit POI…", @"custom POI menu")
+                                               action:@selector(editCustomPOIMenuAction:) keyEquivalent:@""];
+            NSMenuItem *remove = [menu addItemWithTitle:NSLocalizedString(@"Remove POI", @"custom POI menu")
+                                                 action:@selector(removeCustomPOIMenuAction:) keyEquivalent:@""];
+            for (NSMenuItem *item in @[edit, remove]) {
+                item.target = self;
+                item.representedObject = poi.poiKey;
+            }
+            view.menu = menu;
+        } else {
+            view.menu = nil;
+        }
         
         return view;
     }
@@ -1935,8 +1957,45 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 
 - (void) addCustomPoiAt:(CLLocationCoordinate2D)coord
 {
+    [self addCustomPoiAt:coord type:POI_warning name:nil];
+}
+
+- (void) addCustomPoiAt:(CLLocationCoordinate2D)coord type:(PoiType_t)type name:(nullable NSString *)name
+{
     [self undoableCustomPoi:[_document.plan.customPoiloc copy] desc:@"add POI"];
-    [_document.plan addCustomPoiAt:coord];
+    (void)[_document.plan addCustomPoiAt:coord type:type name:name];
+    [self refreshPOI];
+}
+
+- (nullable POILocation *) customPoiWithKey:(NSString *)key
+{
+    for (POILocation *p in _document.plan.customPoiloc) if ([p.poiKey isEqualToString:key]) return p;
+    return nil;
+}
+
+// right-click menu of a custom POI (#3)
+- (void) editCustomPOIMenuAction:(NSMenuItem *)sender
+{
+    POILocation *poi = [self customPoiWithKey:sender.representedObject];
+    if (!poi) return;
+    [BPPOIEditor editType:poi.poiType name:poi.name
+                    title:NSLocalizedString(@"Edit the point of interest", @"custom POI editor")
+                 okButton:NSLocalizedString(@"OK", @"custom POI editor") window:self.mapView.window
+               completion:^(PoiType_t type, NSString *name) {
+        POILocation *current = [self customPoiWithKey:poi.poiKey];
+        if (!current) return;
+        [self undoableCustomPoi:[self.document.plan.customPoiloc copy] desc:@"edit POI"];
+        (void)[self.document.plan replaceCustomPoi:current type:type name:name];
+        [self refreshPOI];
+    }];
+}
+
+- (void) removeCustomPOIMenuAction:(NSMenuItem *)sender
+{
+    POILocation *poi = [self customPoiWithKey:sender.representedObject];
+    if (!poi) return;
+    [self undoableCustomPoi:[_document.plan.customPoiloc copy] desc:@"remove POI"];
+    [_document.plan removeCustomPoi:poi];
     [self refreshPOI];
 }
 

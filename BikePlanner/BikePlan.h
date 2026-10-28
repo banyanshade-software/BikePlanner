@@ -60,7 +60,11 @@ extern const NSUInteger kBPImportMaxWaypoints;        // before spacing: the tol
 @property (readonly,nonatomic) NSArray<POILocation *> *poiloc;
 @property (readonly,nonatomic) NSMutableArray<POILocation *> *customPoiloc;
 @property (nonatomic, copy) void (^poiAvailableCallback)(void);
-- (void) addCustomPoiAt:(CLLocationCoordinate2D)coord;
+- (void) addCustomPoiAt:(CLLocationCoordinate2D)coord;   // POI_warning, no name
+// typed custom POIs (#3); an empty name is no name
+- (POILocation *) addCustomPoiAt:(CLLocationCoordinate2D)coord type:(PoiType_t)type name:(nullable NSString *)name;
+- (POILocation *) replaceCustomPoi:(POILocation *)poi type:(PoiType_t)type name:(nullable NSString *)name;
+- (void) removeCustomPoi:(POILocation *)poi;
 - (void) restoreCustomPoi:(NSArray<POILocation *> *)pois; // for undo
 
 // returns old waypointsLocations for undo

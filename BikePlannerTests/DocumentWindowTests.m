@@ -388,17 +388,107 @@
     XCTAssertEqualWithAccuracy(map.centerCoordinate.latitude, c.latitude, 0.005);
 }
 
+// a sheet of the window (alert) with its accessory controls
+- (NSWindow *)waitForSheet
+{
+    NSWindow *window = doc.windowControllers.firstObject.window;
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet != nil); }), @"sheet");
+    return window.attachedSheet;
+}
+
+- (void)endSheet:(NSModalResponse)response
+{
+    NSWindow *window = doc.windowControllers.firstObject.window;
+    [window endSheet:window.attachedSheet returnCode:response];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet == nil); }));
+}
+
+// Add POI mode: a click on the route asks the type and an optional name (#3); Cancel adds nothing
 - (void)testAddPOIModeAddsCustomPOI
 {
     [self makeRoute];
     doc.plan.fetchPOI = NO;
     [mc setClickModeToAddPoi:nil];
     [self clickAtCoordinate:doc.plan.routePoints[4].coordinate];
+    NSWindow *sheet = [self waitForSheet];
+    NSPopUpButton *type = (NSPopUpButton *)[self viewWithIdentifier:@"poiType" in:sheet.contentView];
+    NSTextField *name = (NSTextField *)[self viewWithIdentifier:@"poiName" in:sheet.contentView];
+    XCTAssertNotNil(type);
+    XCTAssertNotNil(name);
+    XCTAssertEqual(type.selectedTag, POI_warning, @"default type");
+    [self endSheet:NSAlertSecondButtonReturn]; // Cancel
+    XCTAssertEqual(doc.plan.customPoiloc.count, 0u);
+
+    [self clickAtCoordinate:doc.plan.routePoints[4].coordinate];
+    sheet = [self waitForSheet];
+    type = (NSPopUpButton *)[self viewWithIdentifier:@"poiType" in:sheet.contentView];
+    name = (NSTextField *)[self viewWithIdentifier:@"poiName" in:sheet.contentView];
+    [type selectItemWithTag:POI_drinking_water];
+    name.stringValue = @"Fontaine";
+    [self endSheet:NSAlertFirstButtonReturn];
     XCTAssertEqual(doc.plan.customPoiloc.count, 1u);
+    XCTAssertEqual(doc.plan.customPoiloc[0].poiType, POI_drinking_water);
+    XCTAssertEqualObjects(doc.plan.customPoiloc[0].title, @"Fontaine");
     XCTAssertGreaterThanOrEqual([self annotationsOfClass:[POIAnnotation class]].count, 1u);
     // away from the route: nothing
     [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.6)];
+    BPSpin(0.3);
+    XCTAssertNil(doc.windowControllers.firstObject.window.attachedSheet);
     XCTAssertEqual(doc.plan.customPoiloc.count, 1u);
+}
+
+// right-click menu of a custom POI: Edit POI… and Remove POI, undoable (#3)
+- (void)testEditAndRemoveCustomPOI
+{
+    doc.plan.fetchPOI = NO;
+    // nested run loops in tests do not close automatic undo groups: group explicitly (see UndoTests)
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    [um beginUndoGrouping];
+    [mc addCustomPoiAt:CLLocationCoordinate2DMake(44.05, 0.55)];
+    [um endUndoGrouping];
+    POIAnnotation *ann = [self annotationsOfClass:[POIAnnotation class]].firstObject;
+    MKAnnotationView *view = [mc mapView:map viewForAnnotation:ann];
+    NSArray *titles = [view.menu.itemArray valueForKey:@"title"];
+    XCTAssertEqualObjects(titles, (@[@"Edit POI…", @"Remove POI"]));
+
+    NSMenuItem *edit = view.menu.itemArray[0];
+    [NSApp sendAction:edit.action to:edit.target from:edit];
+    NSWindow *sheet = [self waitForSheet];
+    NSPopUpButton *type = (NSPopUpButton *)[self viewWithIdentifier:@"poiType" in:sheet.contentView];
+    XCTAssertEqual(type.selectedTag, POI_warning, @"current type");
+    [type selectItemWithTag:POI_shelter];
+    ((NSTextField *)[self viewWithIdentifier:@"poiName" in:sheet.contentView]).stringValue = @"Abri";
+    [um beginUndoGrouping];
+    [self endSheet:NSAlertFirstButtonReturn];
+    [um endUndoGrouping];
+    XCTAssertEqual(doc.plan.customPoiloc[0].poiType, POI_shelter);
+    XCTAssertEqualObjects(doc.plan.customPoiloc[0].title, @"Abri");
+    XCTAssertEqualObjects(um.undoActionName, @"edit POI");
+    [um undo];
+    XCTAssertEqual(doc.plan.customPoiloc[0].poiType, POI_warning);
+
+    ann = [self annotationsOfClass:[POIAnnotation class]].firstObject;
+    view = [mc mapView:map viewForAnnotation:ann];
+    NSMenuItem *remove = view.menu.itemArray[1];
+    [um beginUndoGrouping];
+    [NSApp sendAction:remove.action to:remove.target from:remove];
+    [um endUndoGrouping];
+    XCTAssertEqual(doc.plan.customPoiloc.count, 0u);
+    XCTAssertEqual([self annotationsOfClass:[POIAnnotation class]].count, 0u);
+    XCTAssertEqualObjects(um.undoActionName, @"remove POI");
+    [um undo];
+    XCTAssertEqual(doc.plan.customPoiloc.count, 1u);
+}
+
+// fetched (OSM) POIs have no edit menu
+- (void)testFetchedPOIHasNoEditMenu
+{
+    [self makeRoute];
+    XCTAssertTrue(BPWaitUntil(6, ^{ return (BOOL)(self->doc.plan.poiloc.count == 3); }));
+    BPSpin(0.1);
+    POIAnnotation *ann = [self annotationsOfClass:[POIAnnotation class]].firstObject;
+    XCTAssertNil([mc mapView:map viewForAnnotation:ann].menu);
 }
 
 #pragma mark - POIs

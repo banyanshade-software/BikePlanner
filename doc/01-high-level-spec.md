@@ -186,9 +186,13 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F7.5 Clicking a POI shows a callout with its raw OSM tags and an Include/Exclude control. An excluded POI stays
   on the map, greyed, and is **not exported** to GPX (fetched and custom POIs). Exclusions are saved with the
   document (by OSM id + position, since fetched POIs are re-created at each route change) and undoable (#5).
-- F7.6 In *Add POI* mode the user adds a custom “warning” POI on the route.
-- F7.7 *(planned)* Custom POIs have a **type** chosen by the user (water, food, danger, viewpoint, …, mapped to
-  Garmin types for export), and can be edited and removed.
+- F7.6 In *Add POI* mode, a click on the route opens a sheet asking the **type** and an optional **name** of the
+  custom POI; Cancel adds nothing (#3).
+- F7.7 Custom POI types: Danger (default), Water, Food, Toilets, Bike repair, Shelter, Viewpoint, Campsite, Store,
+  Information, Other — exported with the Garmin `<type>` DANGER, WATER, FOOD, TOILET, SERVICE, SHELTER, OVERLOOK,
+  CAMPSITE, STORE, INFO, GENERIC (see `README.POI.GARMIN.txt`). The exported `<name>` is the POI name, else the type
+  name. Right-click on a custom POI: *Edit POI…* (same sheet) and *Remove POI*. Add / edit / remove are undoable and
+  mark the document as edited.
 
 ### F8 — Reference GPX trace
 - F8.1 *File ▸ Import GPX as display* (or toolbar “Import trace”) loads a GPX file and draws it in
@@ -248,7 +252,7 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 Decided (October 2026):
 - **BRouter profiles**: choosing the profile is a mandatory future feature (F4.5).
 - **BRouter server**: must eventually be a local server (F4.6).
-- **Custom POIs**: will have types (F7.7).
+- **Custom POIs**: typed, with an optional name (F7.7).
 - **FIT export**: was intended for Garmin; not implemented (F10.3).
 - **Import GPX as route** (F8.3): fixed simplification (50 m / 3 km), no slider for now; `<rte>` points are used
   directly as waypoints.

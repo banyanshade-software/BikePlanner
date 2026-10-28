@@ -58,6 +58,20 @@
             view.glyphImage = tpl_warning;
             view.markerTintColor = [NSColor orangeColor];
             break;
+        case POI_food:      view.glyphImage = [NSImage imageWithSystemSymbolName:@"fork.knife" accessibilityDescription:nil];
+                            view.markerTintColor = [NSColor systemBrownColor]; break;
+        case POI_shelter:   view.glyphImage = [NSImage imageWithSystemSymbolName:@"house" accessibilityDescription:nil];
+                            view.markerTintColor = [NSColor systemTealColor]; break;
+        case POI_viewpoint: view.glyphImage = [NSImage imageWithSystemSymbolName:@"binoculars" accessibilityDescription:nil];
+                            view.markerTintColor = [NSColor systemPurpleColor]; break;
+        case POI_campsite:  view.glyphImage = [NSImage imageWithSystemSymbolName:@"flame" accessibilityDescription:nil];
+                            view.markerTintColor = [NSColor systemGreenColor]; break;
+        case POI_store:     view.glyphImage = [NSImage imageWithSystemSymbolName:@"cart" accessibilityDescription:nil];
+                            view.markerTintColor = [NSColor systemPinkColor]; break;
+        case POI_info:      view.glyphImage = [NSImage imageWithSystemSymbolName:@"info" accessibilityDescription:nil];
+                            view.markerTintColor = [NSColor systemIndigoColor]; break;
+        case POI_generic:   view.glyphImage = [NSImage imageWithSystemSymbolName:@"mappin" accessibilityDescription:nil];
+                            view.markerTintColor = [NSColor systemGrayColor]; break;
         default:
             break;
     }

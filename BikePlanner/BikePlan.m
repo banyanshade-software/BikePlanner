@@ -642,14 +642,37 @@ static NSString *BPXMLEscaped(NSString *s)
 
 - (void) addCustomPoiAt:(CLLocationCoordinate2D)coord
 {
-    PoiType_t poit = [[POILocation class]poiTypeForAmenity:@"warning"];
-    NSDictionary *info2 =[[NSDictionary alloc]init];
-    POILocation *loc = [[POILocation alloc] initWithLatitude:coord.latitude
-                                                   longitude:coord.longitude
-                                                      ofType:poit
-                                                        info:info2 custom:YES];
+    (void)[self addCustomPoiAt:coord type:POI_warning name:nil];
+}
+
+- (POILocation *) customPoiAt:(CLLocationCoordinate2D)coord type:(PoiType_t)type name:(nullable NSString *)name
+{
+    NSString *n = [name stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    return [[POILocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude ofType:type
+                                            info:(n.length ? @{ @"name": n } : @{}) custom:YES];
+}
+
+- (POILocation *) addCustomPoiAt:(CLLocationCoordinate2D)coord type:(PoiType_t)type name:(nullable NSString *)name
+{
+    POILocation *loc = [self customPoiAt:coord type:type name:name];
     NSAssert([_customPoiloc isKindOfClass:[NSMutableArray class]], @"bad class customPoi");
     [_customPoiloc addObject:loc];
+    return loc;
+}
+
+// POILocation is immutable: the edited POI replaces the old one (same position, so same poiKey)
+- (POILocation *) replaceCustomPoi:(POILocation *)poi type:(PoiType_t)type name:(nullable NSString *)name
+{
+    POILocation *loc = [self customPoiAt:poi.coordinate type:type name:name];
+    NSUInteger i = [_customPoiloc indexOfObjectIdenticalTo:poi];
+    if (i == NSNotFound) [_customPoiloc addObject:loc];
+    else [_customPoiloc replaceObjectAtIndex:i withObject:loc];
+    return loc;
+}
+
+- (void) removeCustomPoi:(POILocation *)poi
+{
+    [_customPoiloc removeObjectIdenticalTo:poi];
 }
 
 - (void) restoreCustomPoi:(NSArray<POILocation *> *)pois

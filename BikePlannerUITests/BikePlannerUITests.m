@@ -131,6 +131,10 @@ static BOOL BPWaitWindows(XCUIApplication *app, NSUInteger n)
     [self buildRoute];
     [self clickSegment:@"Add POI" of:@"clickMode"];
     [self clickMapAt:CGVectorMake(0.50, 0.375)];
+    // the type / name sheet (#3)
+    XCUIElement *add = self.window.sheets.firstMatch.buttons[@"Add"];
+    XCTAssertTrue([add waitForExistenceWithTimeout:5]);
+    [add click];
     XCTAssertTrue([self menu:@"Edit" hasItem:@"Undo add POI"]);
 }
 

@@ -99,7 +99,8 @@
     [doc.plan addCustomPoiAt:CLLocationCoordinate2DMake(44.2, 0.5)];
     NSString *s = [self export:YES name:@"t"];
     XCTAssertFalse([s containsString:@"(null)"]);
-    XCTAssertTrue([s containsString:@"<name>DANGER</name>"]);
+    NSString *danger = [NSString stringWithFormat:@"<name>%@</name>", [POILocation displayNameForType:POI_warning]];
+    XCTAssertTrue([s containsString:danger], @"the type name when the POI has no name (#3)");
 }
 
 // text is XML-escaped (#11)
@@ -147,6 +148,21 @@
     XCTAssertTrue([s containsString:@"lat=\"44.300000\""]);
     XCTAssertFalse([s containsString:@"lat=\"44.190000\""], @"excluded custom POI");
     XCTAssertTrue([s containsString:@"lat=\"44.200000\""]);
+}
+
+// custom POIs are exported with their name, or their type name, and their Garmin type (#3)
+- (void)testTypedCustomPoiExport
+{
+    [doc.plan addCustomPoiAt:CLLocationCoordinate2DMake(44.19, 0.49) type:POI_viewpoint name:@"Vue & panorama"];
+    [doc.plan addCustomPoiAt:CLLocationCoordinate2DMake(44.20, 0.50) type:POI_food name:nil];
+    NSString *s = [self export:YES name:@"t"];
+    XCTAssertTrue([s containsString:@"<name>Vue &amp; panorama</name>"]);
+    XCTAssertTrue([s containsString:@"<type>OVERLOOK</type>"]);
+    NSString *foodName = [NSString stringWithFormat:@"<name>%@</name>", [POILocation displayNameForType:POI_food]];
+    XCTAssertTrue([s containsString:foodName]);
+    XCTAssertTrue([s containsString:@"<type>FOOD</type>"]);
+    XCTAssertFalse([s containsString:@"(null)"]);
+    XCTAssertTrue([self isWellFormedXML:s]);
 }
 
 @end
