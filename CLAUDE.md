@@ -88,7 +88,9 @@ and product; source files are kept).
     runner by `BikePlannerUITests.entitlements`) and passes launch arguments to the app.
 - App-side test hooks are in `BPEnvironment` (`BPBRouterServer`, `BPOverpassURL`, `BPDisableStreetView`,
   `BPDisableTiles`, `BPInitialRegion`, `BPDisableLocation`); no effect without overrides. When adding an external endpoint, route it
-  through `BPEnvironment` and teach `BPStubServer` to answer it.
+  through `BPEnvironment` and teach `BPStubServer` to answer it. The Apple place search goes through `BPPlaceSearch`:
+  tests replace it with `+setSearchHandlerForTesting:`. Tests of the Preferences use a private `NSUserDefaults`
+  suite, never the owner's defaults.
 - Integration tests of the window: `DocumentWindowTests` opens a real document window and drives `MapController`;
   map clicks go through `-handleMapClick:` with a fake gesture recognizer (`BPFakeClick`).
 - Private methods are tested by declaring a category in the test file.

@@ -97,7 +97,7 @@ parameters (Params tab) on the length, time and speed of the route is seen (#43)
   first result and drops a pin there.
 - F1.5 A plan without route opens on a region of ~80 km radius (defaults key `BPInitialRadiusKm`) around the
   user location; until the location is known, or if it is refused, around the default position (key
-  `BPDefaultPosition`, “lat,lon”; to be set in the Preferences, #27). The first location recenters the map,
+  `BPDefaultPosition`, “lat,lon”; set in the Preferences, F12). The first location recenters the map,
   unless the user has moved it or started placing waypoints.
 
 ### F2 — Click modes
@@ -223,6 +223,15 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F11.1 Custom About window (BSSUI / DCOAboutWindow). *Visit the BikePlanner Website* opens the GitHub page
   (Info.plist key `BPWebsiteURL`). It shows `Version <MARKETING_VERSION> (Build <commit count>,
   <short hash>[-dirty], <branch>)`, so a running app tells which code it contains.
+
+### F12 — Preferences
+- F12.1 *BikePlanner ▸ Preferences…* (⌘,) opens a single Preferences window (#27); changes apply immediately.
+- F12.2 **Default position** (F1.5): latitude / longitude fields, *Use Current Map Center* (map of the front document
+  window), or *Find a place* (Apple place search: one result is used directly, several are proposed in a menu, none
+  gives a message). **Initial radius** (km, default 80).
+- F12.3 Stored in the user defaults (`BPDefaultPosition`, `BPInitialRadiusKm`, defaults registered at launch), so
+  that launch-argument overrides (tests) still apply. Later candidates: BRouter server (#2), routing engine,
+  default profile (#1), POI types to fetch.
 
 ## 7. Non-functional requirements (targets)
 

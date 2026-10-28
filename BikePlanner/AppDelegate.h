@@ -11,5 +11,7 @@
 
 @property (nonatomic, assign) BOOL useTextView;
 
+- (IBAction)showPreferences:(id)sender;   // BikePlanner ▸ Preferences… (#27)
+
 @end
 

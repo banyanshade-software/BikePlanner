@@ -67,6 +67,10 @@
 		EBE95D8BBF9581EE067F7691 /* BPUITestCase.m in Sources */ = {isa = PBXBuildFile; fileRef = 006448FCD1F51E4F8F46E51E /* BPUITestCase.m */; };
 		9925BDC25A9FBFC0656BD01E /* AppearanceTests.m in Sources */ = {isa = PBXBuildFile; fileRef = B02CDC8B1BCDC5D243D9E139 /* AppearanceTests.m */; };
 		033078960746587AAF5308E4 /* BPPOIEditor.m in Sources */ = {isa = PBXBuildFile; fileRef = 07D3CE9C5077DF637FC3E9E6 /* BPPOIEditor.m */; };
+		07E0A3D8072F57D64483A2F5 /* BPPlaceSearch.m in Sources */ = {isa = PBXBuildFile; fileRef = C23F861538C5B44632D9DD27 /* BPPlaceSearch.m */; };
+		DA325F7657A9B48AD170EA40 /* BPPreferences.m in Sources */ = {isa = PBXBuildFile; fileRef = 24A28E6673CAD04D5BC22351 /* BPPreferences.m */; };
+		C0BE5B9AE4B26B13D80F5E12 /* BPPreferencesWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = EBC17A6DF0DBCD917A8252B2 /* BPPreferencesWindowController.m */; };
+		9B9B10B1342DF9F8C2F0FB1D /* PreferencesTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D5EDBB5E4D6F8299BEC5C94B /* PreferencesTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -182,6 +186,13 @@
 		B02CDC8B1BCDC5D243D9E139 /* AppearanceTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppearanceTests.m; sourceTree = "<group>"; };
 		07D3CE9C5077DF637FC3E9E6 /* BPPOIEditor.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPPOIEditor.m; sourceTree = "<group>"; };
 		3ED73D514DDDA82E0C4660B8 /* BPPOIEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPPOIEditor.h; sourceTree = "<group>"; };
+		C23F861538C5B44632D9DD27 /* BPPlaceSearch.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPPlaceSearch.m; sourceTree = "<group>"; };
+		E89A1304743D6DA6A51C2AB4 /* BPPlaceSearch.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPPlaceSearch.h; sourceTree = "<group>"; };
+		24A28E6673CAD04D5BC22351 /* BPPreferences.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPPreferences.m; sourceTree = "<group>"; };
+		AF6E8CA5048246FE394A0442 /* BPPreferences.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPPreferences.h; sourceTree = "<group>"; };
+		EBC17A6DF0DBCD917A8252B2 /* BPPreferencesWindowController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPPreferencesWindowController.m; sourceTree = "<group>"; };
+		8C5FB74F8D3F2DAB04F6AC88 /* BPPreferencesWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPPreferencesWindowController.h; sourceTree = "<group>"; };
+		D5EDBB5E4D6F8299BEC5C94B /* PreferencesTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PreferencesTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -304,6 +315,8 @@
 				1B53B7CD2E56444100C9470F /* POIAnnotationView.m */,
 				07D3CE9C5077DF637FC3E9E6 /* BPPOIEditor.m */,
 				3ED73D514DDDA82E0C4660B8 /* BPPOIEditor.h */,
+				C23F861538C5B44632D9DD27 /* BPPlaceSearch.m */,
+				E89A1304743D6DA6A51C2AB4 /* BPPlaceSearch.h */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -333,6 +346,10 @@
 				65F365A42E4F6BE10046B03D /* BikePlanner.entitlements */,
 				3EFC3CED6D623521D24E1DB4 /* BPEnvironment.h */,
 				AA16AA45F8CA631E7FEBC6B6 /* BPEnvironment.m */,
+				24A28E6673CAD04D5BC22351 /* BPPreferences.m */,
+				AF6E8CA5048246FE394A0442 /* BPPreferences.h */,
+				EBC17A6DF0DBCD917A8252B2 /* BPPreferencesWindowController.m */,
+				8C5FB74F8D3F2DAB04F6AC88 /* BPPreferencesWindowController.h */,
 			);
 			path = BikePlanner;
 			sourceTree = "<group>";
@@ -361,6 +378,7 @@
 				C24E7BBF0D5DBFAE7D7C8B3E /* AppAndPanelsTests.m */,
 				877818E4CD09D95A03B2BE89 /* DocumentWindowTests.m */,
 				B02CDC8B1BCDC5D243D9E139 /* AppearanceTests.m */,
+				D5EDBB5E4D6F8299BEC5C94B /* PreferencesTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -562,6 +580,9 @@
 				65F365CB2E4F73200046B03D /* BRouterClient.m in Sources */,
 				10E8E2FE271EF99F2D4659B0 /* BPEnvironment.m in Sources */,
 				033078960746587AAF5308E4 /* BPPOIEditor.m in Sources */,
+				07E0A3D8072F57D64483A2F5 /* BPPlaceSearch.m in Sources */,
+				DA325F7657A9B48AD170EA40 /* BPPreferences.m in Sources */,
+				C0BE5B9AE4B26B13D80F5E12 /* BPPreferencesWindowController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -588,6 +609,7 @@
 				921AB6E2925C367358C68CCF /* AppAndPanelsTests.m in Sources */,
 				99C7B154189B217AC2F6B951 /* DocumentWindowTests.m in Sources */,
 				9925BDC25A9FBFC0656BD01E /* AppearanceTests.m in Sources */,
+				9B9B10B1342DF9F8C2F0FB1D /* PreferencesTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

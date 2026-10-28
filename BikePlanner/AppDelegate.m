@@ -8,13 +8,30 @@
 #import "AppDelegate.h"
 #import "BSSUI_AboutWindowController.h"
 #import "BPEnvironment.h"
+#import "BPPreferences.h"
+#import "BPPreferencesWindowController.h"
 
 @interface AppDelegate ()
 @property (nonatomic, strong) BSSUI_AboutWindowController *aboutWindowController;
+@property (nonatomic, strong) BPPreferencesWindowController *preferencesWindowController;
 
 @end
 
 @implementation AppDelegate
+
++ (void)initialize
+{
+    if (self == [AppDelegate class]) [BPPreferences registerDefaults]; // before any document is created (#27)
+}
+
+// single Preferences window (#27)
+- (IBAction)showPreferences:(id)sender
+{
+    if (!self.preferencesWindowController) {
+        self.preferencesWindowController = [[BPPreferencesWindowController alloc] initWithPreferences:[BPPreferences shared]];
+    }
+    [self.preferencesWindowController showWindow:sender];
+}
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     // Insert code here to initialize your application

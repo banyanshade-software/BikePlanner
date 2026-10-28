@@ -41,7 +41,9 @@ in XIB files. There is no third-party dependency manager: everything uses Apple 
 
 ```
 BikePlanner/                 App target
-  main.m, AppDelegate.*      App entry, About window
+  main.m, AppDelegate.*      App entry, About window, Preferences menu
+  BPPreferences.*            Typed user settings (default position, initial radius; #27)
+  BPPreferencesWindowController.*  Preferences window, built in code
   Document.*                 NSDocument subclass: load/save, menu relays
   PlannerWindowController.*  Window setup, wires MapController / StreetView / BRF editor
   MapController.*            Map interaction, route requests, annotations, export, undo
@@ -54,6 +56,8 @@ BikePlanner/                 App target
 SupportClasses/              Reusable/support components
   BRouterClient.*            HTTP client for BRouter
   GPXParser.*                NSXMLParser-based GPX reader + BRouter comment parser
+  BPPlaceSearch.*            Apple place search (MKLocalSearch), shared by the search field and the Preferences
+  BPPOIEditor.*              Sheet asking the type and name of a custom POI (#3)
   BRFProfileEditor.*         Downloads a .brf profile, parses its annotated parameters, builds the Params tab UI;
                              "my defaults" (user defaults BPProfileOverrides)
   ElevationProfileView.*     Elevation chart, scrubbing
