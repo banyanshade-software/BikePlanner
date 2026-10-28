@@ -47,8 +47,8 @@ https://brouter.de/brouter/segments4/.
 | Following BRouter updates | replace the jar | rebuild native image | manual port | replace the jar |
 | Risk | low | reflection / resources config, BRouter not tested as native image | very high | high |
 
-**Recommendation: A** first (fast, reliable, no fork of BRouter), with the engine behind an interface so that B can
-replace it later if the bundle size or the JIT entitlement becomes a problem. C and D are rejected.
+**Decision: A** (fast, reliable, no fork of BRouter), with the engine behind an interface. B (GraalVM native image)
+is not pursued (owner, 2026-10-29); C and D are rejected.
 
 ### 3.1 Option A in detail
 
@@ -86,16 +86,18 @@ replace it later if the bundle size or the JIT entitlement becomes a problem. C 
 The planet (several GB) cannot be bundled. R2 is read as: **everything needed to run the engine is in the bundle**;
 the map data is per region:
 
-- **Download on demand** (default): when a route needs a tile that is missing (computed from the waypoints'
+Decision (owner, 2026-10-29): **tiles are downloaded on demand and kept in a local cache**; no tile is bundled.
+
+- **Download on demand, cached**: when a route needs a tile that is missing (computed from the waypoints'
   bounding box + margin: 5° tiles), the app downloads it from `https://brouter.de/brouter/segments4/` into
   `~/Library/Containers/<bundle id>/Data/Library/Application Support/BikePlanner/segments4/`, with progress UI,
   resume, checksum/size check, and an update check (tiles are rebuilt weekly; update when older than N weeks,
   user-triggered). The engine is restarted or simply re-reads the directory (BRouter opens segment files on demand).
-- **Optional bundled region** (build option): `BP_BUNDLED_SEGMENTS="W5_N40 E0_N40 E0_N45 …"` copies those tiles
-  into `Contents/Resources/brouter/segments4/` (e.g. the owner's usual area, ≈ 300–800 MB) for a fully offline app;
-  the app then uses a segments directory made of the bundled tiles + the downloaded ones (copy/symlink the bundled
-  ones on first launch, or pass the bundle directory and the container directory — BRouter takes one directory:
-  symlinks in the container directory pointing into the bundle).
+- The cache is kept between launches (Application Support, not Caches: tiles are large and slow to download, the
+  system must not purge them); the user can delete tiles from the routing data panel. Update policy (tiles are
+  rebuilt weekly): to define in phase 4 (e.g. offer an update when a tile is older than a few weeks).
+- *(Not planned)* bundling tiles in the app (`BP_BUNDLED_SEGMENTS` build option) — kept only as an idea for a fully
+  offline build.
 - A "Routing data" panel (Preferences, #27): list of tiles, size, date, delete / update.
 - Missing tile and no network → clear error (#9), and the remote engine can be offered as fallback.
 
@@ -127,7 +129,8 @@ the map data is per region:
   and as an Info.plist key (`BPEmbeddedBRouterAvailable`). With NO, the JRE / jar / profiles are not copied and the
   embedded engine class is compiled out → small app identical to today. Two schemes: `BikePlanner` (remote only)
   and `BikePlanner Embedded` (both engines).
-- **Run time**: user default `BPRoutingEngine` = `remote` | `embedded` (default: `embedded` when available, else
+- **Run time**: user default `BPRoutingEngine` = `remote` | `embedded`. Decision (owner, 2026-10-29): the **local
+  (embedded) engine is the default**; the remote engine is an option (default `embedded` when available, else
   `remote`), settable from Preferences (#27), from a temporary menu item (Debug ▸ Routing Engine) until #27 exists,
   and from the command line / tests like the other `BPEnvironment` keys (`-BPRoutingEngine remote`).
 - Changing the engine recomputes the current route (same as Apply in the Params tab). The engine in use is shown
@@ -164,11 +167,12 @@ the map data is per region:
 
 1. ~~Architectures~~ — **decided**: Intel and Apple Silicon (R4). Default packaging: one universal app with both
    JREs (≈ +90 MB, DMG compressed ≈ +40 MB); two thin apps only if this size is a problem.
-2. Segments: download on demand only, or also a bundled region (which tiles)? Update policy (weekly data)?
-3. Default engine when both are available: embedded (offline, private) or remote (no download)?
-4. Keep the remote engine in the long term (fallback, low-end machines) or remove it once the embedded one works?
-5. `network.server` entitlement (loopback HTTP) acceptable, or stdin/stdout bridge preferred (§3.1)?
-6. Later: GraalVM native image (option B) to drop the JRE and the JIT entitlement — worth a spike after phase 3?
+2. ~~Segments~~ — **decided**: downloaded on demand and kept in a local cache (§4). Update policy: phase 4.
+3. ~~Default engine~~ — **decided**: local (embedded) by default, remote as an option (§5.2).
+4. Keep the remote engine in the long term? Not decided — probably yes (fallback, machines without the data).
+5. `network.server` entitlement (loopback HTTP) or stdin/stdout bridge (§3.1)? To define later, not important now
+   (phase 0 uses loopback HTTP).
+6. ~~GraalVM native image~~ — **decided**: no.
 
 ## 9. Phases
 
