@@ -6,3 +6,4 @@ gyroboard-backups/
 *.lck
 \#auto_saved_files\#
 Secret.h
+build/

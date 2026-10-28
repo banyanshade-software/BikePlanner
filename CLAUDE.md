@@ -102,6 +102,12 @@ The targets `BikePlanner_org*` are leftovers from an earlier project: ignore the
   the bug, remove the `XCTExpectFailure` — the test must then pass.
 - Fix a bug = first a failing test, then the fix. No fix without test coverage of the code involved.
 
+## Packaging
+
+`scripts/make_dmg.sh` builds `build/BikePlanner-<version>.dmg` (see its header). Its Finder layout step uses
+AppleScript, which needs the owner's Automation permission for Finder and does not work from Claude's sandboxed
+shell: let the owner run it (`! scripts/make_dmg.sh`). The DMG embeds the Thunderforest key: don't publish it.
+
 ## Workflow
 
 - Branch `dev` for work, `main` is the default branch for PRs.
