@@ -550,16 +550,15 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     }];
 }
 
-// state: from -[BikePlan clearRoute] (+ "gpx": the BRouter GPX for export), nil to clear
+// state: from -[BikePlan clearRoute] (includes the BRouter GPX for export), nil to clear
 - (void) setRouteState:(nullable NSDictionary *)state desc:(nullable NSString *)d
 {
-    NSMutableDictionary *cur = [[_document.plan clearRoute] mutableCopy];
-    if (self.gpxData) cur[@"gpx"] = self.gpxData;
+    NSDictionary *cur = [_document.plan clearRoute];
     NSUndoManager *um = _document.undoManager;
     [um registerUndoWithTarget:self selector:@selector(undoRouteState:) object:cur];
     if (d) [um setActionName:d];
     if (state) [_document.plan restoreRoute:state];
-    self.gpxData = state[@"gpx"];
+    self.gpxData = _document.plan.exportableGPX;
     self.elevationView.highlightDistance = 0;
     [self fullRefresh:NO];
 }
@@ -758,6 +757,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
             [self.mapView removeOverlay:ov];
         }
     }
+    if (fromLoad) self.gpxData = _document.plan.exportableGPX; // export available after reopening (#10)
     [self refreshAnnot:!fromLoad];
     [self refreshPOI];
     [self refreshPoly:fromLoad]; // change view rect when loading, not when undoing
@@ -925,6 +925,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
                 self.document.plan.brouterInfo.meters = [brouterInfo[@"n-track-length-m"] integerValue];
                 self.document.plan.brouterInfo.seconds = [brouterInfo[@"n-time-seconds"] integerValue];
             }
+            self.document.plan.routeGPX = gpx; // saved with the document (#10)
             self.gpxData = gpx;
             self.document.plan.routePoints = points;
             [self.elevationView setGpxPoints:points];

@@ -106,6 +106,7 @@ waypoints).
 | `brouterInfo` | `BrouterInfo` (`kmlen`, `mup`, `meters`, `seconds`) | `brouterInfo` | Length (km, m), ascent (m), riding time (s) estimated by BRouter; `meters`/`seconds` are 0 in documents saved before #30 |
 | `poiloc` | `NSArray<POILocation*>` | `poiloc` | Fetched POIs |
 | `customPoiloc` | `NSMutableArray<POILocation*>` | `customPoiloc` | User POIs |
+| `routeGPX` | `NSData` | `routeGPX` | Raw BRouter GPX of the route, for the export; missing in older documents (export then generated from `routePoints`) (#10) |
 | `profileOverrides` | `NSDictionary<NSString*,NSString*>` | `profileOverrides` | BRouter parameters (Params tab, name → value); missing in older documents = `@{}` (#44) |
 | `fetchPOI` | `BOOL` | *not persisted* | Enables Overpass fetching |
 | `routePoly`, `waypointPoly`, `gpxDisplayedPoly` | `TaggedPoly` | derived, cached | MapKit overlays built from the arrays |
@@ -128,7 +129,7 @@ bicycle_repair_station, cemetery, warning), `info` (raw OSM tags), `userAdded`. 
 No version key: adding/removing fields relies on `decodeObject…` returning nil for missing keys.
 
 ### 4.4 State held outside the model (in `MapController`)
-`gpxData` (raw GPX of last route, used for export), click mode, map type,
+`gpxData` (GPX to export, bound to the Export toolbar item; kept in sync with `plan.exportableGPX`), click mode, map type,
 `waypointsRouteAnnotations` (annotation per waypoint, kept in sync manually), `viewPOI`. None of this is persisted.
 
 ## 5. Map layer
@@ -277,7 +278,7 @@ Each item is tracked as a GitHub issue.
 | 3 | H ✅ fixed | `MapController.m:523`, `MapController.m:1640` | Adding a custom POI or importing a reference trace does not register undo nor call `updateChangeCount:` → document not marked edited, changes can be lost. | [#8](https://github.com/banyanshade-software/BikePlanner/issues/8) |
 | 4 | M | `MapController.m:750` | Route requests are not cancelled or sequenced: a slow earlier response can overwrite the result of a later one. | [#9](https://github.com/banyanshade-software/BikePlanner/issues/9) |
 | 5 | M ✅ | `MapController.m:756` | Routing errors and empty results are only logged; the user gets no feedback. | [#9](https://github.com/banyanshade-software/BikePlanner/issues/9) |
-| 6 | M | `MapController.m:930` | `gpxData` is not persisted: after reopening a document, export is disabled until the route is recomputed. | [#10](https://github.com/banyanshade-software/BikePlanner/issues/10) |
+| 6 | M ✅ fixed | `BikePlan.m`, `MapController.m` | `gpxData` (raw BRouter GPX used by the export) was not persisted: after reopening a document, export was disabled until the route was recomputed. The GPX is now saved in the plan (`routeGPX`), part of the undoable route state; documents saved before get a GPX generated from `routePoints` (`exportableGPX`; `testRouteGPXArchivedAndInRouteState`, `testReopenOldDocumentCanExport`). | [#10](https://github.com/banyanshade-software/BikePlanner/issues/10) |
 | 7 | M ✅ | `BikePlan.m:325` | After an Overpass error (or HTTP ≥ 300), the retry is scheduled with `performSelector:afterDelay:` from the NSURLSession completion queue, which has no run loop: **the retry never happens** and POIs stay missing until the next route change (`POIFetchTests.testRetryAfterHTTPError`). Query size also grows with route length (one clause per 10 points × 2) — long routes may hit Overpass limits. | [#12](https://github.com/banyanshade-software/BikePlanner/issues/12) |
 | 8 | M ✅ fixed | `MapController.m` `exportGpxDataWithPOI:` | GPX export built XML with string formatting, without XML escaping; custom POIs had a nil title (`<name>(null)</name>`). Now escaped (`xmlEscaped`), custom POIs named after their type. Still: custom POIs `gpxSymbol` is “...”. | [#11](https://github.com/banyanshade-software/BikePlanner/issues/11) |
 | 9 | M ✅ fixed | `BRouterClient.m` | BRF overrides were joined with `&` and escaped with the deprecated `stringByAddingPercentEscapesUsingEncoding:` (no `&` escaping) inside an `extraParams=` parameter. Now `+[BRouterClient routeURLForServer:…]` builds one percent-encoded `profile:<name>` query item per override (`BRouterClientTests`). | [#15](https://github.com/banyanshade-software/BikePlanner/issues/15) |

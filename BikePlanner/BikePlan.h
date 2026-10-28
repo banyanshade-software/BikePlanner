@@ -44,6 +44,12 @@ extern const NSUInteger kBPImportMaxWaypoints;        // before spacing: the tol
 //@property (weak,nonatomic) NSUndoManager *docUndoMgr;
 @property (readonly,nonatomic) NSArray <CLLocation *>*waypointsLocations;
 @property (strong,nonatomic) NSArray<CLLocation *> *routePoints;
+// raw GPX returned by BRouter for routePoints, saved with the document for the export (#10); nil in documents
+// saved before, or without route
+@property (strong,nonatomic,nullable) NSData *routeGPX;
+// GPX to export: routeGPX, else one generated from routePoints (older documents); nil without route
+@property (readonly,nonatomic,nullable) NSData *exportableGPX;
++ (NSData *) gpxDataForPoints:(NSArray<CLLocation *> *)points name:(NSString *)name;
 @property (strong,nonatomic) NSArray<CLLocation *> *gpxDisplayed;
 @property (strong,nonatomic) BrouterInfo *brouterInfo;
 @property (readonly,nonatomic) NSString *profileName;   // BRouter profile: "trekking" (choice of the profile: #1)

@@ -8,6 +8,7 @@
 
 #import <XCTest/XCTest.h>
 #import "BikePlan.h"
+#import "GPXParser.h"
 #import "TaggedPoly.h"
 #import "POILocation.h"
 #import "TestFixtures.h"
@@ -302,6 +303,41 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     XCTAssertEqualObjects([self roundTrip:plan].profileOverrides, (@{ @"bikerPower": @"80", @"avoid_unsafe": @"1" }));
     plan.profileOverrides = nil;
     XCTAssertEqualObjects(plan.profileOverrides, @{});
+}
+
+// the BRouter GPX of the route is saved with the document, so that it can be exported after reopening (#10)
+- (void)testRouteGPXArchivedAndInRouteState
+{
+    NSData *gpx = [@"<gpx><trk><name>brouter</name></trk></gpx>" dataUsingEncoding:NSUTF8StringEncoding];
+    plan.routePoints = @[BPLocAlt(44, 0.5, 100), BPLocAlt(44.1, 0.6, 120)];
+    plan.routeGPX = gpx;
+    XCTAssertEqualObjects([self roundTrip:plan].routeGPX, gpx);
+    XCTAssertEqualObjects(plan.exportableGPX, gpx);
+
+    NSDictionary *state = [plan clearRoute];
+    XCTAssertNil(plan.routeGPX, @"cleared with the route");
+    XCTAssertNil(plan.exportableGPX, @"no route, nothing to export");
+    [plan restoreRoute:state];
+    XCTAssertEqualObjects(plan.routeGPX, gpx, @"restored by undo");
+}
+
+// documents saved before #10 have no GPX: one is generated from the route points, with their elevations
+- (void)testExportableGPXGeneratedFromRoutePoints
+{
+    plan.routePoints = @[BPLocAlt(44, 0.5, 100), BPLocAlt(44.05, 0.55, 110), BPLocAlt(44.1, 0.6, 120.5)];
+    XCTAssertNil(plan.routeGPX);
+    NSData *gpx = plan.exportableGPX;
+    XCTAssertNotNil(gpx);
+    NSString *xml = [[NSString alloc] initWithData:gpx encoding:NSUTF8StringEncoding];
+    XCTAssertTrue([xml containsString:@"<name>"], @"the export replaces the track name");
+    NSError *err = nil;
+    NSArray<CLLocation *> *pts = [[[GPXParser alloc] init] parseGPXData:gpx error:&err];
+    XCTAssertEqual(pts.count, 3u, @"%@", err);
+    XCTAssertEqualWithAccuracy(pts[2].coordinate.longitude, 0.6, 1e-6);
+    XCTAssertEqualWithAccuracy(pts[2].altitude, 120.5, 1e-6);
+
+    plan.routePoints = @[BPLoc(44, 0.5)];
+    XCTAssertNil(plan.exportableGPX, @"one point is not a route");
 }
 
 - (void)testCustomPoiCanBeAddedAfterLoad

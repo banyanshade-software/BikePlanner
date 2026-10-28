@@ -22,6 +22,7 @@
 #import "SafeOSMTileOverlay.h"
 #import "SafeTileRenderer.h"
 #import "StreetViewController.h"
+#import "GPXParser.h"
 #import "TestFixtures.h"
 
 @interface MapController (WindowTesting)
@@ -831,8 +832,24 @@
     XCTAssertEqual([self polysWithTag:0].firstObject.pointCount, 11u);
     XCTAssertEqual(mc.elevationView.distances.count, 11u);
     XCTAssertEqual(doc.plan.brouterInfo.kmlen, km);
-    // known limitation (#10): export needs a recomputed route
-    XCTAssertNil(mc.gpxData);
+    // the BRouter GPX is saved with the document: export available after reopening (#10)
+    XCTAssertNotNil(mc.gpxData);
+    XCTAssertEqualObjects(mc.gpxData, doc.plan.routeGPX);
+}
+
+// a document saved before #10 (route points, no GPX): export available, GPX generated from the route points
+- (void)testReopenOldDocumentCanExport
+{
+    [self makeRoute];
+    doc.plan.routeGPX = nil;
+    NSData *data = [doc dataOfType:@"fr.free.daniel.braun.bikeplan" error:NULL];
+    [doc close];
+    doc = [[Document alloc] init];
+    XCTAssertTrue([doc readFromData:data ofType:@"fr.free.daniel.braun.bikeplan" error:NULL]);
+    [self openWindow];
+    XCTAssertNotNil(mc.gpxData);
+    NSArray *pts = [[[GPXParser alloc] init] parseGPXData:[mc exportGpxDataWithPOI:NO trackName:@"t"] error:NULL];
+    XCTAssertEqual(pts.count, 11u);
 }
 
 // Revert to Saved replaces doc.plan while the window is open: the map must show the saved plan

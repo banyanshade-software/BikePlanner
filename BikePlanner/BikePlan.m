@@ -137,8 +137,14 @@
                            @"meters": @(_brouterInfo.meters), @"seconds": @(_brouterInfo.seconds),
                            @"poiloc": _poiloc ?: @[],
                            @"custom": [_customPoiloc copy] ?: @[] };
+    if (_routeGPX) {
+        NSMutableDictionary *withGPX = [old mutableCopy];
+        withGPX[@"gpx"] = _routeGPX;
+        old = withGPX;
+    }
     [self undoSetWayPt:@[]];
     self.routePoints = @[];
+    self.routeGPX = nil;
     self.brouterInfo.kmlen = 0;
     self.brouterInfo.mup = 0;
     self.brouterInfo.meters = 0;
@@ -152,6 +158,7 @@
 {
     [self undoSetWayPt:state[@"waypoints"]];
     self.routePoints = state[@"route"];
+    self.routeGPX = state[@"gpx"];
     self.brouterInfo.kmlen = [state[@"kmlen"] integerValue];
     self.brouterInfo.mup = [state[@"mup"] integerValue];
     self.brouterInfo.meters = [state[@"meters"] integerValue];
@@ -356,6 +363,36 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     _routePoints = routePoints;
     _routePoly = nil;
 }
+
+- (nullable NSData *) exportableGPX
+{
+    if (_routeGPX) return _routeGPX;
+    if (_routePoints.count < 2) return nil;
+    return [BikePlan gpxDataForPoints:_routePoints name:@"route"];
+}
+
+static NSString *BPXMLEscaped(NSString *s)
+{
+    s = [s stringByReplacingOccurrencesOfString:@"&" withString:@"&amp;"];
+    s = [s stringByReplacingOccurrencesOfString:@"<" withString:@"&lt;"];
+    s = [s stringByReplacingOccurrencesOfString:@">" withString:@"&gt;"];
+    return [s stringByReplacingOccurrencesOfString:@"\"" withString:@"&quot;"];
+}
+
+// minimal GPX 1.1 track with elevations, for documents saved without the BRouter GPX (#10)
++ (NSData *) gpxDataForPoints:(NSArray<CLLocation *> *)points name:(NSString *)name
+{
+    NSMutableString *xml = [NSMutableString stringWithString:
+        @"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        @"<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"BikePlanner\" version=\"1.1\">\n"];
+    [xml appendFormat:@" <trk>\n  <name>%@</name>\n  <trkseg>\n", BPXMLEscaped(name)];
+    for (CLLocation *p in points) {
+        [xml appendFormat:@"   <trkpt lat=\"%.6f\" lon=\"%.6f\">", p.coordinate.latitude, p.coordinate.longitude];
+        [xml appendFormat:@"<ele>%.2f</ele></trkpt>\n", p.altitude]; // route points from BRouter all have one
+    }
+    [xml appendString:@"  </trkseg>\n </trk>\n</gpx>\n"];
+    return [xml dataUsingEncoding:NSUTF8StringEncoding];
+}
 - (TaggedPoly *) buildPolyWith :(NSArray <CLLocation *> *)points
 {
     // Build polyline
@@ -400,6 +437,7 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     [coder encodeObject:_poiloc forKey:@"poiloc"];
     [coder encodeObject:_customPoiloc forKey:@"customPoiloc"];
     [coder encodeObject:_profileOverrides forKey:@"profileOverrides"];
+    [coder encodeObject:_routeGPX forKey:@"routeGPX"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)coder
@@ -413,6 +451,7 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     if (!_brouterInfo) self.brouterInfo = [[BrouterInfo alloc]init];
     self.poiloc = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [POILocation class], nil]  forKey:@"poiloc"];
     self.customPoiloc = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [POILocation class], nil]  forKey:@"customPoiloc"];
+    self.routeGPX = [coder decodeObjectOfClass:[NSData class] forKey:@"routeGPX"];
     self.profileOverrides = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSDictionary class], [NSString class], nil] forKey:@"profileOverrides"];
     if (!_customPoiloc) {
         self.customPoiloc = [[NSMutableArray alloc]initWithCapacity:5];
