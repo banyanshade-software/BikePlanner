@@ -51,6 +51,15 @@
     [w close];
 }
 
+// "Visit the BikePlanner Website" opens the GitHub page, from the BPWebsiteURL Info.plist key (#36)
+- (void)testAboutWebsiteURL
+{
+    AppDelegate *ad = (AppDelegate *)NSApp.delegate;
+    NSURL *url = [ad.aboutWindowController valueForKey:@"appWebsiteURL"];
+    XCTAssertEqualObjects(url.absoluteString, @"https://github.com/banyanshade-software/BikePlanner");
+    XCTAssertEqualObjects(NSBundle.mainBundle.infoDictionary[@"BPWebsiteURL"], url.absoluteString);
+}
+
 // build number and git commit written into the built Info.plist by scripts/set_build_info.sh (#34)
 - (void)testBuildInfoInBundle
 {

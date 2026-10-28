@@ -108,6 +108,8 @@ static void RunLoopLogger(CFRunLoopObserverRef observer, CFRunLoopActivity activ
     if(!_aboutWindowController) {
         _aboutWindowController = [[BSSUI_AboutWindowController alloc] init];
         _aboutWindowController.appVersion = [AppDelegate versionStringWithInfo:[NSBundle mainBundle].infoDictionary];
+        NSString *website = [NSBundle mainBundle].infoDictionary[@"BPWebsiteURL"]; // #36
+        if (website) _aboutWindowController.appWebsiteURL = [NSURL URLWithString:website];
     }
     return _aboutWindowController;
 }

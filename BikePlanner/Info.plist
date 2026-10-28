@@ -75,6 +75,8 @@
 			</dict>
 		</dict>
 	</array>
+	<key>BPWebsiteURL</key>
+	<string>https://github.com/banyanshade-software/BikePlanner</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>1</string>
 </dict>
