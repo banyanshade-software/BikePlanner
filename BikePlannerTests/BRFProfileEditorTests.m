@@ -15,6 +15,7 @@
 @property (strong) NSMutableArray<BRFParam *> *parameters;
 @property (strong) NSButton *applyButton;
 - (void)parseProfile:(NSString *)brf;
+- (void)buildUI;
 - (void)applyClicked:(id)sender;
 - (void)resetAllClicked:(id)sender;
 - (void)resetParam:(NSButton *)sender;
@@ -347,6 +348,37 @@
     XCTAssertTrue(editor.applyButton.enabled);
     XCTAssertEqualObjects([self apply], @{ @"uphillcutoff": @"0.3" }, @"sent with a dot");
     XCTAssertEqualObjects(field.stringValue, typed);
+    [w close];
+}
+
+// a control keeps its size and place when its parameter changes (title in bold): switches moved left
+- (void)testControlsStayInPlaceWhenChanged
+{
+    NSWindow *w = [self windowWithEditor];
+    // narrow panel (as in the document window) and a long label that no longer fits once in bold
+    [w setContentSize:NSMakeSize(230, 600)];
+    editor.view.frame = w.contentView.bounds;
+    [editor parseProfile:@"assign avoid_unsafe = false # %avoid_unsafe% | Avoid | boolean\n"
+                         @"assign use_proposed_cycleroutes_and_more = false # %use_proposed_cycleroutes_and_more% | Long | boolean\n"
+                         @"assign mode = 1 # %mode% | Mode | [0=none, 1=auto, 2=other]\n"];
+    [editor buildUI];
+    [w layoutIfNeeded];
+    NSSwitch *avoid = (NSSwitch *)[self param:@"use_proposed_cycleroutes_and_more"].valueControl;
+    NSRect before = [avoid convertRect:avoid.bounds toView:nil];
+    XCTAssertEqualWithAccuracy(before.size.width, avoid.intrinsicContentSize.width, 0.5, @"not stretched");
+    avoid.state = NSControlStateValueOn;
+    [self changed:avoid];
+    [w layoutIfNeeded];
+    NSRect after = [avoid convertRect:avoid.bounds toView:nil];
+    XCTAssertTrue(NSEqualRects(before, after), @"%@ -> %@", NSStringFromRect(before), NSStringFromRect(after));
+    XCTAssertEqualWithAccuracy(after.size.width, avoid.intrinsicContentSize.width, 0.5, @"not stretched");
+
+    NSPopUpButton *mode = (NSPopUpButton *)[self param:@"mode"].valueControl;
+    before = [mode convertRect:mode.bounds toView:nil];
+    [mode selectItemWithTitle:@"other"];
+    [self changed:mode];
+    [w layoutIfNeeded];
+    XCTAssertEqualWithAccuracy(NSMaxX([mode convertRect:mode.bounds toView:nil]), NSMaxX(before), 0.5, @"right-aligned");
     [w close];
 }
 
