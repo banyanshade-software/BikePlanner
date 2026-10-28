@@ -142,4 +142,12 @@
     XCTAssertTrue([label.stringValue containsString:@"toilets"]);
 }
 
+// the location permission prompt shows a real explanation, not "1" (#18)
+- (void)testLocationUsageDescription
+{
+    NSString *d = [NSBundle mainBundle].infoDictionary[@"NSLocationWhenInUseUsageDescription"];
+    XCTAssertGreaterThan(d.length, 20u, @"%@", d);
+    XCTAssertTrue([d containsString:@"map"], @"%@", d);
+}
+
 @end

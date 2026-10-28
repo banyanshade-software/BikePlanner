@@ -43,11 +43,14 @@
     BPRestoreDefaults();
 }
 
+// the initial page is the panorama at the default position, not a hard-coded Google Maps URL (#18)
 - (void)testInitialPage
 {
+    BPOverrideDefaults(@{ @"BPDefaultPosition": @"45.5,1.25" });
     [sv initializeStreetView];
     XCTAssertEqual(web.loaded.count, 1u);
-    XCTAssertEqualObjects(web.loaded[0].host, @"www.google.com");
+    XCTAssertEqualObjects(web.loaded[0].absoluteString,
+        @"https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=45.500000,1.250000&heading=0.000000");
 }
 
 - (void)testViewCoordURL

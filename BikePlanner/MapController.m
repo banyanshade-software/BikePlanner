@@ -1680,10 +1680,10 @@ didChangeDragState:(MKAnnotationViewDragState)newState
         CLLocation *p2 = _document.plan.routePoints[i];
         double segDist = [p2 distanceFromLocation:p1];
         
-        NSLog(@"segdist %d-%d  : %g (tot %g, target %g)", i-1, i,  segDist, cumDist+segDist, distanceAlongRoute);
+        if ((0)) NSLog(@"segdist %lu-%lu  : %g (tot %g, target %g)", (unsigned long)i-1, (unsigned long)i,  segDist, cumDist+segDist, distanceAlongRoute); // one line per segment: too verbose (#18)
         if (cumDist + segDist >= distanceAlongRoute) {
             double b = [self bearingFrom:p1.coordinate to:p2.coordinate];
-            NSLog(@"  bearing b=%g", b);
+            if ((0)) NSLog(@"  bearing b=%g", b);
             return b;
         }
         cumDist += segDist;

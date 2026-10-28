@@ -225,9 +225,8 @@ before `</gpx>` by string manipulation.
 
 ## 8. Build & configuration
 
-- Xcode project `BikePlanner.xcodeproj`, scheme `BikePlanner`, targets: app, unit tests, UI tests.
-  The project also contains three leftover targets `BikePlanner_org`, `BikePlanner_orgTests`, `BikePlanne_orgrUITests`
-  (empty app from an earlier project); they are not in the scheme and should be deleted.
+- Xcode project `BikePlanner.xcodeproj`, scheme `BikePlanner`, targets: app, unit tests, UI tests (the leftover
+  `BikePlanner_org*` targets of an earlier project were removed, #18).
 - DMG: `scripts/make_dmg.sh` (Release build, ad hoc signed, or `--app <path>`) → `build/BikePlanner-<version>.dmg`
   (`build/` is git-ignored). The Finder window shows a background drawn at packaging time by
   `packaging/dmg/make_background.swift` with the app's version (1x + 2x PNG merged into a multi-resolution TIFF;
@@ -285,7 +284,7 @@ Each item is tracked as a GitHub issue.
 | 10 | M ✅ fixed | `Document.m` | *Revert to Saved* replaced `plan` but the map was not refreshed and `poiAvailableCallback` was not re-installed on the new plan. Now `revertToContentsOfURL:ofType:error:` calls `-[MapController planReplaced]` (`testRevertToSavedRefreshesMap`). Still open: a route request in flight during the revert writes its result into the reverted plan when it completes. | [#16](https://github.com/banyanshade-software/BikePlanner/issues/16) |
 | 11 | L ✅ fixed | `ElevationProfileView.m` | Division by zero when the route was flat (`maxElev == minElev`): did not crash but drew nothing meaningful. Now the vertical range is at least 100 m (`elevationRangeForMin:max:low:high:`, #32). Axes invisible in dark mode: fixed (`labelColor`). | [#17](https://github.com/banyanshade-software/BikePlanner/issues/17) |
 | 12 | L | `MapController.m:1375` | `excludeControlChanged:` reads a POI pointer from `sender.tag`, which is never set. | [#5](https://github.com/banyanshade-software/BikePlanner/issues/5) |
-| 13 | L | `MapController.m:426` | `clearAction:` is unused and would set `scrubberMarker = nil`. | [#18](https://github.com/banyanshade-software/BikePlanner/issues/18) |
+| 13 | L ✅ fixed | `MapController.m` | `clearAction:` was unused and would have set `scrubberMarker = nil`: removed. | [#18](https://github.com/banyanshade-software/BikePlanner/issues/18) |
 | 14 | L ✅ fixed | `GPXParser.m` | Imported GPX mixed `wpt`, `rtept` and `trkpt` into one point list. Now the trace is the track (else the route, else the waypoints); `wpt` are available apart (`waypoints`). | [#18](https://github.com/banyanshade-software/BikePlanner/issues/18) |
 | 15 | L | `BikePlan.m` | `poiUpdateOnProgress` is written from a background thread and read on main. | [#12](https://github.com/banyanshade-software/BikePlanner/issues/12) |
 | 16 | M ✅ fixed | `MapController.m` | `distanceAtCoordinate:segstart:` returned the distance on the **first** segment on which the point projects (0 ≤ t ≤ 1), not on the **nearest** segment → in View mode, clicking on the route could put the elevation cursor at a wrong place when the route turns or comes back. Now reuses the nearest-segment projection of `projectedDistanceAlongPolyline:forCoordinate:segment:`. | [#14](https://github.com/banyanshade-software/BikePlanner/issues/14) |

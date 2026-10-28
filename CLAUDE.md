@@ -59,8 +59,8 @@ A Run Script phase: `scripts/xcode_add_run_script.py --target … --name … --s
 New files go in the anchor's group/directory. Use `SupportClasses/` + `--anchor GPXParser.m` for support classes.
 XIB files (`Document.xib`, `MainMenu.xib`, …) should be edited in Xcode by the owner when possible; if a change is
 needed, keep it minimal and say so.
-
-The targets `BikePlanner_org*` are leftovers from an earlier project: ignore them.
+A target is removed with `scripts/xcode_remove_target.py <target name>…` (its phases, configurations, dependencies
+and product; source files are kept).
 
 ## Code conventions
 
