@@ -56,9 +56,13 @@ static NSString *BPQueryEncoded(NSString *s)
     add(@"profile", profile ?: @"fastbike");
     add(@"alternativeidx", @"0");
     add(@"format", @"gpx");
-    // profile parameter overrides: BRouter reads top-level "profile:<name>" parameters ("extraParams" is ignored)
+    // profile parameter overrides: BRouter reads top-level "profile:<name>" parameters ("extraParams" is ignored);
+    // booleans must be 1/0: "true"/"false" make brouter.de fail with HTTP 500 (#38)
     for (NSString *name in [overrides.allKeys sortedArrayUsingSelector:@selector(compare:)]) {
-        add([@"profile:" stringByAppendingString:name], overrides[name]);
+        NSString *value = overrides[name];
+        if ([value caseInsensitiveCompare:@"true"] == NSOrderedSame) value = @"1";
+        else if ([value caseInsensitiveCompare:@"false"] == NSOrderedSame) value = @"0";
+        add([@"profile:" stringByAppendingString:name], value);
     }
     NSURLComponents *components = [NSURLComponents componentsWithURL:server resolvingAgainstBaseURL:NO];
     components.path = @"/brouter";

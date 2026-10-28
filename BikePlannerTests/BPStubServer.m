@@ -310,11 +310,21 @@ static __weak BPStubServer *bpInProcessServer = nil;
             body = [[self class] gpxForLonLats:lonlats];
         }
     } else if ([req.path hasPrefix:@"/brouter/profiles2/"]) {
-        body = @"# stub profile\n"
+        // annotated like the brouter.de profiles: "# %name% | description | type" (#39)
+        body = @"# *** stub profile\n"
                @"---context:global\n"
-               @"assign   downhillcost     = 60\n"
-               @"assign   uphillcutoff     = 1.5\n"
-               @"assign   avoid_unsafe     = false\n";
+               @"assign validForBikes = true\n"
+               @"# Elevation\n"
+               @"assign   downhillcost     = 60     # %downhillcost% | Cost for going downhill | number\n"
+               @"assign   uphillcutoff     = 1.5    # %uphillcutoff% | Gradients below this value in percents are not counted. | number\n"
+               @"assign   avoid_unsafe     = false  # %avoid_unsafe% | Set true to avoid standard highways | boolean\n"
+               @"# Kinematic model\n"
+               @"assign   totalMass        = 90     # %totalMass% | Mass (in kg) of the bike + biker | number\n"
+               @"assign   mode             = 1      # %mode% | Mode | [0=none, 1=auto, 2=other]\n"
+               @"assign   turnInstructionMode = 1   # %turnInstructionMode% | Mode for the generated turn instructions | [0=none, 1=auto-choose]\n"
+               @"assign   downhillcost     = if avoid_unsafe then 0 else downhillcost\n"
+               @"---context:way\n"
+               @"assign   classifier_none  = 1      # %classifier_none% | internal | number\n";
     } else if ([req.path isEqualToString:@"/api/interpreter"]) {
         ctype = @"application/json";
         body = [self overpassJSONForQuery:req.body];

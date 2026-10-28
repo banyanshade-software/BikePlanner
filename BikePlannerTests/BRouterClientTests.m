@@ -80,9 +80,18 @@
     }];
     NSDictionary *q = [server requestsWithPath:@"/brouter"].firstObject.query;
     XCTAssertEqualObjects(q[@"profile:uphillcost"], @"200");
-    XCTAssertEqualObjects(q[@"profile:avoid_unsafe"], @"true");
+    XCTAssertEqualObjects(q[@"profile:avoid_unsafe"], @"1");
     XCTAssertNil(q[@"extraParams"]);
     XCTAssertEqualObjects(q[@"profile"], @"trekking");
+}
+
+// booleans are sent as 1/0: brouter.de answers HTTP 500 to profile:<name>=true/false (#38)
+- (void)testBooleanOverridesSentAsNumbers
+{
+    NSURL *u = [BRouterClient routeURLForServer:[NSURL URLWithString:@"https://brouter.de"]
+                                      waypoints:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] profile:@"trekking"
+                                      overrides:@{ @"a": @"true", @"b": @"false", @"c": @"TRUE", @"d": @"truex" }];
+    XCTAssertTrue([u.query hasSuffix:@"&profile:a=1&profile:b=0&profile:c=1&profile:d=truex"], @"%@", u.query);
 }
 
 // values are percent-encoded: "&", "=", spaces or "|" can neither split the query nor make the URL invalid

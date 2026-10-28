@@ -856,7 +856,7 @@
     [doc setClickModeToEdit:nil];   XCTAssertEqual(seg.selectedSegment, 0);
 }
 
-// "Done/Save" in the Params tab: overrides are sent to BRouter as profile:<name> parameters (#15, #35)
+// "Apply" in the Params tab: overrides are sent to BRouter as profile:<name> parameters (#15, #35)
 - (void)testBRFOverridesRecomputeRoute
 {
     [self makeRoute];

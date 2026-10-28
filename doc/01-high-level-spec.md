@@ -136,11 +136,17 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 
 ### F4 — Routing parameters
 - F4.1 Routing uses the BRouter `trekking` profile.
-- F4.2 The *Params* tab downloads the `trekking.brf` profile and lists every `assign <name> = <value>`
-  parameter with an “Override” checkbox and an editable value.
-- F4.3 “Done/Save” recomputes the route with the overridden parameters, each sent as a top-level
-  `profile:<name>=<value>` query parameter (what BRouter reads; an `extraParams=` wrapper is ignored). Unchecking
-  every override and “Done/Save” goes back to the profile defaults; “Done/Save” without any change sends nothing.
+- F4.2 The *Params* tab downloads the `trekking.brf` profile and shows its user parameters: the ones annotated
+  `# %<name>% | <description> | boolean|number|[0=…, 1=…]` (the brouter-web format), in the global context, grouped
+  by the profile's section comments (all simple `assign <name> = <value>` when the profile has no annotation).
+  BRouter output options (turn instructions, `processUnusedTags`) are hidden. Each parameter has a readable label
+  (with the unit from the description), its description and default value, and a control: switch (boolean),
+  number field, or pop-up menu (list). A parameter is overridden when its value differs from the default: its label
+  is in bold, with a reset button; “Reset to Defaults” resets them all.
+- F4.3 “Apply” (enabled when the values differ from the last Apply) recomputes the route with the overridden
+  parameters, each sent as a top-level `profile:<name>=<value>` query parameter (what BRouter reads; an
+  `extraParams=` wrapper is ignored). Booleans are sent as `1`/`0` (brouter.de fails with HTTP 500 on `true`/`false`).
+  With no override, the route uses the profile defaults.
 - F4.4 *(partial)* Overrides are not saved in the document and are lost when the window closes.
 - F4.5 *(planned, mandatory)* The user chooses the BRouter profile (e.g. `trekking`, `fastbike`, `safety`, …);
   the chosen profile and its overrides are saved in the document.

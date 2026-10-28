@@ -54,7 +54,7 @@ BikePlanner/                 App target
 SupportClasses/              Reusable/support components
   BRouterClient.*            HTTP client for BRouter
   GPXParser.*                NSXMLParser-based GPX reader + BRouter comment parser
-  BRFProfileEditor.*         Downloads a .brf profile and builds a parameter-override UI
+  BRFProfileEditor.*         Downloads a .brf profile, parses its annotated parameters, builds the Params tab UI
   ElevationProfileView.*     Elevation chart, scrubbing
   StreetViewController.*     Loads Google Street View URLs into a WKWebView
   POILocation.*              Model class for a POI (CLLocation subclass, NSSecureCoding)
@@ -183,7 +183,7 @@ MapController.requestRoute
   gpxData = nil
   BRouterClient.routeWithWaypoints:profile:"trekking" overrides:profileOverrides   (URL: +routeURLForServer:…)
     GET https://brouter.de/brouter?lonlats=lon,lat|lon,lat…&profile=trekking&alternativeidx=0&format=gpx[&profile:<name>=<value>…]
-    (names and values percent-encoded, including & = + |)
+    (names and values percent-encoded, including & = + |; true/false sent as 1/0)
     (background) GPXParser → points + brouterInfo (parsed from the GPX comment: track-length, filtered ascend, time, energy)
   completion (background) → error: NSLog only
                           → main queue: plan.brouterInfo.{kmlen,mup,meters,seconds}, gpxData, plan.routePoints,
@@ -289,6 +289,7 @@ Each item is tracked as a GitHub issue.
 | 19 | M ✅ fixed | `MapController.m` `importGPXTraceForDisplay:` | A reference trace (Import GPX as display) could not be removed: it is saved with the document and only undo (right after import) or importing another trace got rid of it. Now *File ▸ Remove Displayed GPX Trace* (`testRemoveReferenceTrace`). | [#24](https://github.com/banyanshade-software/BikePlanner/issues/24) |
 | 20 | M ✅ fixed | `GPXParser.m`, `MapController.m` `exportGpxDataWithPOI:` | A GPX exported with POIs was unusable as a reference trace: the POIs are written as `<wpt>` and the parser merged them into the trace (item 14); names were not XML-escaped (item 8). `testExportWithPOIsCanBeImportedAsTrace`. | [#28](https://github.com/banyanshade-software/BikePlanner/issues/28) |
 | 21 | M ✅ fixed | `PlannerWindowController.m`, `BRouterClient.m` | BRouter parameter overrides (Params tab) had no effect: brouter.de ignores `extraParams=`, so a single override was lost (with several, all but the first applied); unchecking every override did not go back to the defaults. Fixed with #15; `testBRFOverridesRecomputeRoute`. | [#35](https://github.com/banyanshade-software/BikePlanner/issues/35) |
+| 22 | M ✅ fixed | `BRouterClient.m`, `BRFProfileEditor.m` | Boolean overrides were sent as `profile:<name>=true/false`, which brouter.de rejects with HTTP 500 (silent, see #9). Now sent as `1`/`0` (`testBooleanOverridesSentAsNumbers`); the Params tab edits them with switches. | [#38](https://github.com/banyanshade-software/BikePlanner/issues/38) |
 
 ### Design / maintainability
 - **`MapController` is a god object**: map setup, UI controls built in code, hit testing, geometry, routing,

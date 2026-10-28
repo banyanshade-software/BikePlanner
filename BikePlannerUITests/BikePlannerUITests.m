@@ -156,13 +156,17 @@ static BOOL BPWaitWindows(XCUIApplication *app, NSUInteger n)
 {
     [self buildRoute];
     [self.window.tabs[@"Params"] click];
-    XCUIElement *override = self.window.checkBoxes[@"Override"].firstMatch;
-    XCTAssertTrue([override waitForExistenceWithTimeout:5]);
-    [override click];
-    [self.window.buttons[@"Done/Save"] click];
+    XCUIElement *cost = self.window.textFields[@"brf.downhillcost"];
+    XCTAssertTrue([cost waitForExistenceWithTimeout:5]);
+    XCUIElement *apply = self.window.buttons[@"Apply"];
+    XCTAssertFalse(apply.isEnabled, @"nothing changed yet (#39)");
+    [cost doubleClick];
+    [cost typeKey:@"a" modifierFlags:XCUIKeyModifierCommand];
+    [cost typeText:@"80"];
+    [apply click];
     XCTAssertTrue([self waitForRequests:@"/brouter" count:2 timeout:10]);
     NSString *value = [self.server requestsWithPath:@"/brouter"].lastObject.query[@"profile:downhillcost"];
-    XCTAssertEqualObjects(value, @"60", @"one profile:<name> parameter per override (#15, #35)");
+    XCTAssertEqualObjects(value, @"80", @"one profile:<name> parameter per override (#15, #35)");
 }
 
 // "Fetch POI" and "View POI" (Info tab) are displayed as switches
