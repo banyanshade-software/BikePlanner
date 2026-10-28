@@ -110,8 +110,12 @@
 // tryRequestPoi: at most one request every ~2.8 s, later needs are coalesced by a timer
 - (void)testThrottling
 {
-    plan.routePoints = [self route];
-    for (int i = 0; i < 5; i++) (void)plan.routePoly;
+    // a burst of route changes (reading routePoly again without a change asks nothing: cached, #6)
+    for (int i = 0; i < 5; i++) {
+        plan.routePoints = [self route];
+        (void)plan.routePoly;
+        (void)plan.routePoly;
+    }
     XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->callbacks > 0); }));
     BPSpin(1.0);
     XCTAssertEqual([self overpassRequests].count, 1u, @"burst must give a single request");

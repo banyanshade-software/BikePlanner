@@ -8,6 +8,7 @@
 
 #import <XCTest/XCTest.h>
 #import "BikePlan.h"
+#import "TaggedPoly.h"
 #import "POILocation.h"
 #import "TestFixtures.h"
 
@@ -231,6 +232,17 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     XCTAssertEqual(plan.routePoly.pointCount, 2u);
     plan.routePoints = @[BPLoc(1, 1), BPLoc(2, 2), BPLoc(3, 3), BPLoc(4, 4)];
     XCTAssertEqual(plan.routePoly.pointCount, 4u);
+}
+
+// the route polyline is cached (built once per route, which also asks for the POIs once) (#6)
+- (void)testRoutePolyIsCached
+{
+    plan.routePoints = @[BPLoc(1, 1), BPLoc(2, 2)];
+    TaggedPoly *poly = plan.routePoly;
+    XCTAssertEqual(plan.routePoly, poly, @"same object while the route does not change");
+    plan.routePoints = @[BPLoc(1, 1), BPLoc(3, 3)];
+    XCTAssertNotEqual(plan.routePoly, poly, @"rebuilt after a route change");
+    XCTAssertEqual(plan.routePoly.tag, 0);
 }
 
 - (void)testGpxDisplayedPolyFollowsGpxDisplayed

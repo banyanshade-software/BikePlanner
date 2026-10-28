@@ -338,15 +338,23 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     }
     [self fetchPOIsNearRoute:_routePoints];
 }
+// built once per route (the cache tested _waypointPoly, so the poly was rebuilt and the POIs re-requested at each
+// access, #6); invalidated by setRoutePoints:
 - (TaggedPoly *) routePoly
 {
-    if (!_waypointPoly) {
+    if (!_routePoly) {
         _routePoly = [self buildPolyWith:_routePoints];
         _routePoly.tag = 0;
         [self shouldRequestPOI];
         //[self fetchPOIsNearRoute:_routePoints];
     }
     return _routePoly;
+}
+
+- (void) setRoutePoints:(NSArray<CLLocation *> *)routePoints
+{
+    _routePoints = routePoints;
+    _routePoly = nil;
 }
 - (TaggedPoly *) buildPolyWith :(NSArray <CLLocation *> *)points
 {
