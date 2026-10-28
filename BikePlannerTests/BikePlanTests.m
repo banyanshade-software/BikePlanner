@@ -86,6 +86,7 @@
     (void)[plan appendWaypoint:a]; (void)[plan appendWaypoint:b];
     plan.routePoints = @[a, BPLoc(44.05, 0.55), b];
     plan.brouterInfo.kmlen = 12; plan.brouterInfo.mup = 150;
+    plan.brouterInfo.meters = 12345; plan.brouterInfo.seconds = 2400;
     [plan addCustomPoiAt:CLLocationCoordinate2DMake(44.05, 0.55)];
     plan.gpxDisplayed = @[a, b];
 
@@ -94,6 +95,8 @@
     XCTAssertEqual(plan.routePoints.count, 0u);
     XCTAssertEqual(plan.brouterInfo.kmlen, 0);
     XCTAssertEqual(plan.brouterInfo.mup, 0);
+    XCTAssertEqual(plan.brouterInfo.seconds, 0);
+    XCTAssertEqual(plan.brouterInfo.meters, 0);
     XCTAssertEqual(plan.customPoiloc.count, 0u);
     XCTAssertEqual(plan.gpxDisplayed.count, 2u, @"reference trace kept");
 
@@ -102,9 +105,41 @@
     XCTAssertEqual(plan.routePoints.count, 3u);
     XCTAssertEqual(plan.brouterInfo.kmlen, 12);
     XCTAssertEqual(plan.brouterInfo.mup, 150);
+    XCTAssertEqual(plan.brouterInfo.seconds, 2400);
+    XCTAssertEqual(plan.brouterInfo.meters, 12345);
     XCTAssertEqual(plan.customPoiloc.count, 1u);
     (void)[plan appendWaypoint:BPLoc(44.2, 0.7)]; // still mutable after restore
     XCTAssertEqual(plan.waypointsLocations.count, 3u);
+}
+
+#pragma mark - riding time and average speed (#30)
+
+- (void)testRidingTimeAndAverageSpeed
+{
+    BrouterInfo *bi = [[BrouterInfo alloc] init];
+    XCTAssertEqualObjects(bi.durationText, @"–", @"no route");
+    XCTAssertEqualObjects(bi.averageSpeedText, @"–");
+    // real brouter.de answer, trekking profile: track-length = 48798 … time=2h 38m 43s
+    bi.meters = 48798;
+    bi.seconds = 2 * 3600 + 38 * 60 + 43;
+    XCTAssertEqualObjects(bi.durationText, @"2 h 39");
+    XCTAssertEqualWithAccuracy(bi.averageSpeed, 18.45, 0.01);
+    NSNumberFormatter *f = [[NSNumberFormatter alloc] init];
+    f.minimumFractionDigits = f.maximumFractionDigits = 1;
+    XCTAssertEqualObjects(bi.averageSpeedText, [f stringFromNumber:@18.4]);
+    bi.seconds = 45 * 60 + 20;
+    XCTAssertEqualObjects(bi.durationText, @"45 min");
+    bi.seconds = 3600 + 5 * 60;
+    XCTAssertEqualObjects(bi.durationText, @"1 h 05");
+}
+
+// documents saved before #30 have no length in meters: the speed uses the length in km
+- (void)testAverageSpeedWithoutMeters
+{
+    BrouterInfo *bi = [[BrouterInfo alloc] init];
+    bi.kmlen = 30;
+    bi.seconds = 7200;
+    XCTAssertEqualWithAccuracy(bi.averageSpeed, 15, 1e-9);
 }
 
 #pragma mark - import GPX as route (#29)
@@ -227,6 +262,8 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     plan.gpxDisplayed = @[BPLoc(45, 1), BPLoc(45.1, 1.1)];
     plan.brouterInfo.kmlen = 15;
     plan.brouterInfo.mup = 168;
+    plan.brouterInfo.meters = 14994;
+    plan.brouterInfo.seconds = 3435;
     [plan addCustomPoiAt:CLLocationCoordinate2DMake(44.02, 0.52)];
 
     BikePlan *r = [self roundTrip:plan];
@@ -237,6 +274,8 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     XCTAssertEqual(r.gpxDisplayed.count, 2u);
     XCTAssertEqual(r.brouterInfo.kmlen, 15);
     XCTAssertEqual(r.brouterInfo.mup, 168);
+    XCTAssertEqual(r.brouterInfo.meters, 14994);
+    XCTAssertEqual(r.brouterInfo.seconds, 3435);
     XCTAssertEqual(r.customPoiloc.count, 1u);
     XCTAssertEqual(r.customPoiloc[0].poiType, POI_warning);
 }

@@ -123,12 +123,15 @@
     NSDictionary *old = @{ @"waypoints": _waypointsLocations ?: @[],
                            @"route": _routePoints ?: @[],
                            @"kmlen": @(_brouterInfo.kmlen), @"mup": @(_brouterInfo.mup),
+                           @"meters": @(_brouterInfo.meters), @"seconds": @(_brouterInfo.seconds),
                            @"poiloc": _poiloc ?: @[],
                            @"custom": [_customPoiloc copy] ?: @[] };
     [self undoSetWayPt:@[]];
     self.routePoints = @[];
     self.brouterInfo.kmlen = 0;
     self.brouterInfo.mup = 0;
+    self.brouterInfo.meters = 0;
+    self.brouterInfo.seconds = 0;
     self.poiloc = @[];
     [self restoreCustomPoi:nil];
     return old;
@@ -140,6 +143,8 @@
     self.routePoints = state[@"route"];
     self.brouterInfo.kmlen = [state[@"kmlen"] integerValue];
     self.brouterInfo.mup = [state[@"mup"] integerValue];
+    self.brouterInfo.meters = [state[@"meters"] integerValue];
+    self.brouterInfo.seconds = [state[@"seconds"] integerValue];
     self.poiloc = state[@"poiloc"];
     [self restoreCustomPoi:state[@"custom"]];
 }
@@ -590,10 +595,51 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
 }
 
 
+- (double) averageSpeed
+{
+    double m = _meters ?: _kmlen * 1000.0;
+    if (_seconds <= 0 || m <= 0) return 0;
+    return m / 1000.0 / (_seconds / 3600.0);
+}
+
+- (NSString *) durationText
+{
+    if (_seconds <= 0) return @"–";
+    NSInteger min = (_seconds + 30) / 60;
+    if (min < 60) return [NSString stringWithFormat:NSLocalizedString(@"%ld min", @"riding time < 1 h"), (long)min];
+    return [NSString stringWithFormat:NSLocalizedString(@"%ld h %02ld", @"riding time, hours and minutes"), (long)(min / 60), (long)(min % 60)];
+}
+
+- (NSString *) averageSpeedText
+{
+    double v = self.averageSpeed;
+    if (v <= 0) return @"–";
+    NSNumberFormatter *f = [[NSNumberFormatter alloc] init];
+    f.minimumFractionDigits = f.maximumFractionDigits = 1;
+    return [f stringFromNumber:@(v)];
+}
+
++ (NSSet<NSString *> *) keyPathsForValuesAffectingAverageSpeed
+{
+    return [NSSet setWithObjects:@"meters", @"kmlen", @"seconds", nil];
+}
+
++ (NSSet<NSString *> *) keyPathsForValuesAffectingAverageSpeedText
+{
+    return [NSSet setWithObject:@"averageSpeed"];
+}
+
++ (NSSet<NSString *> *) keyPathsForValuesAffectingDurationText
+{
+    return [NSSet setWithObject:@"seconds"];
+}
+
 - (void)encodeWithCoder:(NSCoder *)coder
 {
     [coder encodeInteger:_kmlen forKey:@"kmlen"];
     [coder encodeInteger:_mup forKey:@"mup"];
+    [coder encodeInteger:_meters forKey:@"meters"];
+    [coder encodeInteger:_seconds forKey:@"seconds"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)coder
@@ -602,6 +648,8 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     if (!self) return self;
     self.kmlen = [coder decodeIntegerForKey:@"kmlen"];
     self.mup = [coder decodeIntegerForKey:@"mup"];
+    self.meters = [coder decodeIntegerForKey:@"meters"];
+    self.seconds = [coder decodeIntegerForKey:@"seconds"];
     return self;
 }
 @end

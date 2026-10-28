@@ -23,6 +23,13 @@ extern const NSUInteger kBPImportMaxWaypoints;        // before spacing: the tol
 
 @property NSInteger kmlen;
 @property NSInteger mup;
+@property NSInteger meters;   // route length, 0 in documents saved before #30 (kmlen is then used)
+@property NSInteger seconds;  // riding time estimated by BRouter (kinematic model of the profile), 0 if unknown
+
+// for the Info tab (#30)
+@property (readonly) double averageSpeed;           // km/h, 0 if unknown
+@property (readonly) NSString *durationText;        // "2 h 39", "45 min", "–"
+@property (readonly) NSString *averageSpeedText;    // "18.4" (localized), "–"
 
 @end
 

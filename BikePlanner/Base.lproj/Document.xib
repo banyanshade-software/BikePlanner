@@ -145,6 +145,52 @@
                                                                                                             <binding destination="-2" name="value" keyPath="plan.brouterInfo.mup" id="p3S-2B-sP3"/>
                                                                                                         </connections>
                                                                                                     </textField>
+                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bpT-im-Val">
+                                                                                                        <rect key="frame" x="18" y="41" width="104" height="16"/>
+                                                                                                        <constraints>
+                                                                                                            <constraint firstAttribute="width" constant="100" id="bpT-im-Wid"/>
+                                                                                                        </constraints>
+                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="...." id="bpT-im-Cel">
+                                                                                                            <font key="font" usesAppearanceFont="YES"/>
+                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                                        </textFieldCell>
+                                                                                                        <accessibility identifier="routeTime"/>
+                                                                                                        <connections>
+                                                                                                            <binding destination="-2" name="value" keyPath="plan.brouterInfo.durationText" id="bpT-im-Bnd"/>
+                                                                                                        </connections>
+                                                                                                    </textField>
+                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bpT-im-Lbl">
+                                                                                                        <rect key="frame" x="126" y="41" width="240" height="16"/>
+                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="riding time (BRouter estimate)" id="bpT-im-LCl">
+                                                                                                            <font key="font" usesAppearanceFont="YES"/>
+                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                                        </textFieldCell>
+                                                                                                    </textField>
+                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bpS-pd-Val">
+                                                                                                        <rect key="frame" x="18" y="17" width="104" height="16"/>
+                                                                                                        <constraints>
+                                                                                                            <constraint firstAttribute="width" constant="100" id="bpS-pd-Wid"/>
+                                                                                                        </constraints>
+                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="...." id="bpS-pd-Cel">
+                                                                                                            <font key="font" usesAppearanceFont="YES"/>
+                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                                        </textFieldCell>
+                                                                                                        <accessibility identifier="routeSpeed"/>
+                                                                                                        <connections>
+                                                                                                            <binding destination="-2" name="value" keyPath="plan.brouterInfo.averageSpeedText" id="bpS-pd-Bnd"/>
+                                                                                                        </connections>
+                                                                                                    </textField>
+                                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bpS-pd-Lbl">
+                                                                                                        <rect key="frame" x="126" y="17" width="240" height="16"/>
+                                                                                                        <textFieldCell key="cell" lineBreakMode="clipping" title="km/h average" id="bpS-pd-LCl">
+                                                                                                            <font key="font" usesAppearanceFont="YES"/>
+                                                                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                                        </textFieldCell>
+                                                                                                    </textField>
                                                                                                     <switch horizontalHuggingPriority="750" verticalHuggingPriority="750" controlSize="small" baseWritingDirection="leftToRight" alignment="left" translatesAutoresizingMaskIntoConstraints="NO" id="p3e-MY-n66">
                                                                                                         <rect key="frame" x="18" y="153" width="36" height="21"/>
                                                                                                         <connections>
@@ -191,6 +237,14 @@
                                                                                                     <constraint firstItem="Chb-mI-ZLw" firstAttribute="firstBaseline" secondItem="phD-JS-Ndx" secondAttribute="firstBaseline" id="hvR-KO-jti"/>
                                                                                                     <constraint firstItem="WvJ-rx-Rl4" firstAttribute="leading" secondItem="rGs-eO-BFo" secondAttribute="leading" id="oTj-aq-1IG"/>
                                                                                                     <constraint firstItem="WvJ-rx-Rl4" firstAttribute="top" secondItem="rGs-eO-BFo" secondAttribute="bottom" constant="8" symbolic="YES" id="sQ7-1w-hIR"/>
+                                                                                                    <constraint firstItem="bpT-im-Val" firstAttribute="leading" secondItem="rGs-eO-BFo" secondAttribute="leading" id="bpT-im-C01"/>
+                                                                                                    <constraint firstItem="bpT-im-Val" firstAttribute="top" secondItem="WvJ-rx-Rl4" secondAttribute="bottom" constant="8" symbolic="YES" id="bpT-im-C02"/>
+                                                                                                    <constraint firstItem="bpT-im-Lbl" firstAttribute="leading" secondItem="bpT-im-Val" secondAttribute="trailing" constant="8" symbolic="YES" id="bpT-im-C03"/>
+                                                                                                    <constraint firstItem="bpT-im-Lbl" firstAttribute="firstBaseline" secondItem="bpT-im-Val" secondAttribute="firstBaseline" id="bpT-im-C04"/>
+                                                                                                    <constraint firstItem="bpS-pd-Val" firstAttribute="leading" secondItem="rGs-eO-BFo" secondAttribute="leading" id="bpS-pd-C01"/>
+                                                                                                    <constraint firstItem="bpS-pd-Val" firstAttribute="top" secondItem="bpT-im-Val" secondAttribute="bottom" constant="8" symbolic="YES" id="bpS-pd-C02"/>
+                                                                                                    <constraint firstItem="bpS-pd-Lbl" firstAttribute="leading" secondItem="bpS-pd-Val" secondAttribute="trailing" constant="8" symbolic="YES" id="bpS-pd-C03"/>
+                                                                                                    <constraint firstItem="bpS-pd-Lbl" firstAttribute="firstBaseline" secondItem="bpS-pd-Val" secondAttribute="firstBaseline" id="bpS-pd-C04"/>
                                                                                                 </constraints>
                                                                                             </view>
                                                                                         </box>

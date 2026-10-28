@@ -79,7 +79,8 @@ README.POI.GARMIN.txt        List of Garmin POI types usable in GPX <type>
    **with the Document as File's Owner**.
 3. `Document.xib` instantiates as top-level objects: `MapController`, `StreetViewController`, and the views.
    Outlets: `Document.mapController`, `Document.brfParamsPlaceholder`, `MapController.{mapView, document, svCtrl, elevationView}`,
-   `StreetViewController.webView`. Bindings: Info tab labels → `plan.brouterInfo.kmlen` / `plan.brouterInfo.mup`;
+   `StreetViewController.webView`. Bindings: Info tab labels → `plan.brouterInfo.kmlen` / `plan.brouterInfo.mup` /
+   `plan.brouterInfo.durationText` / `plan.brouterInfo.averageSpeedText`;
    “Fetch POI” → `plan.fetchPOI`; “View POI” → `mapController.viewPOI`; Export toolbar item enabled ↔ `mapController.gpxData`.
 4. `-[PlannerWindowController windowDidLoad]` asserts the wiring, then calls
    `-[MapController initializeMapview]`, `-[StreetViewController initializeStreetView]`,
@@ -101,7 +102,7 @@ waypoints).
 | `waypointsLocations` | `NSArray<CLLocation*>` (immutable, replaced on each change) | `waypointsLocations` | User waypoints, ordered |
 | `routePoints` | `NSArray<CLLocation*>` | `routePoints` | Route returned by BRouter, with altitude |
 | `gpxDisplayed` | `NSArray<CLLocation*>` | `gpxDisplayed` | Reference trace |
-| `brouterInfo` | `BrouterInfo` (`kmlen`, `mup`) | `brouterInfo` | Length (km) and ascent (m) |
+| `brouterInfo` | `BrouterInfo` (`kmlen`, `mup`, `meters`, `seconds`) | `brouterInfo` | Length (km, m), ascent (m), riding time (s) estimated by BRouter; `meters`/`seconds` are 0 in documents saved before #30 |
 | `poiloc` | `NSArray<POILocation*>` | `poiloc` | Fetched POIs |
 | `customPoiloc` | `NSMutableArray<POILocation*>` | `customPoiloc` | User POIs |
 | `fetchPOI` | `BOOL` | *not persisted* | Enables Overpass fetching |
@@ -184,7 +185,7 @@ MapController.requestRoute
     GET https://brouter.de/brouter?lonlats=lon,lat|lon,lat…&profile=trekking&alternativeidx=0&format=gpx[&extraParams=…]
     (background) GPXParser → points + brouterInfo (parsed from the GPX comment: track-length, filtered ascend, time, energy)
   completion (background) → error: NSLog only
-                          → main queue: plan.brouterInfo.{kmlen,mup}, gpxData, plan.routePoints,
+                          → main queue: plan.brouterInfo.{kmlen,mup,meters,seconds}, gpxData, plan.routePoints,
                             elevationView.setGpxPoints, refreshPoly:NO (→ routePoly → POI flow 6.3)
 ```
 

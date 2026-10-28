@@ -121,6 +121,36 @@
 
 - (NSView *)content { return doc.windowControllers.firstObject.window.contentView; }
 
+- (NSTabView *)tabViewIn:(NSView *)root
+{
+    if ([root isKindOfClass:[NSTabView class]]) return (NSTabView *)root;
+    for (NSView *v in root.subviews) {
+        NSTabView *t = [self tabViewIn:v];
+        if (t) return t;
+    }
+    return nil;
+}
+
+// a control of the Info/Params tabs, by the accessibility identifier set in the XIB (on the control's cell)
+- (NSView *)controlWithIdentifier:(NSString *)ident in:(NSView *)root
+{
+    if ([root isKindOfClass:[NSControl class]] && [[((NSControl *)root).cell accessibilityIdentifier] isEqualToString:ident]) return root;
+    for (NSView *v in root.subviews) {
+        NSView *f = [self controlWithIdentifier:ident in:v];
+        if (f) return f;
+    }
+    return nil;
+}
+
+- (NSView *)tabViewItemViewWithIdentifier:(NSString *)ident
+{
+    for (NSTabViewItem *item in [self tabViewIn:self.content].tabViewItems) {
+        NSView *f = [self controlWithIdentifier:ident in:item.view];
+        if (f) return f;
+    }
+    return nil;
+}
+
 - (void)clickAt:(NSPoint)p
 {
     BPFakeClick *g = [[BPFakeClick alloc] initWithTarget:nil action:nil];
@@ -284,6 +314,16 @@
     XCTAssertNotNil(mc.gpxData);
     XCTAssertGreaterThan(doc.plan.brouterInfo.kmlen, 10);
     XCTAssertGreaterThan(doc.plan.brouterInfo.mup, 0);
+    // riding time from BRouter (stub: time=10m 0s), shown in the Info tab with the average speed (#30)
+    XCTAssertEqual(doc.plan.brouterInfo.seconds, 600);
+    XCTAssertGreaterThan(doc.plan.brouterInfo.meters, 10000);
+    NSTextField *time = (NSTextField *)[self tabViewItemViewWithIdentifier:@"routeTime"];
+    NSTextField *speed = (NSTextField *)[self tabViewItemViewWithIdentifier:@"routeSpeed"];
+    XCTAssertNotNil(time);
+    XCTAssertNotNil(speed);
+    XCTAssertEqualObjects(time.stringValue, @"10 min");
+    XCTAssertEqualObjects(speed.stringValue, doc.plan.brouterInfo.averageSpeedText);
+    XCTAssertGreaterThan(doc.plan.brouterInfo.averageSpeed, 60, @"stub: > 10 km in 10 min");
     XCTAssertEqual(mc.elevationView.distances.count, 11u);
     XCTAssertEqual([self polysWithTag:0].firstObject.pointCount, 11u);
     XCTAssertTrue(doc.isDocumentEdited || doc.undoManager.canUndo);

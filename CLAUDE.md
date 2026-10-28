@@ -95,7 +95,8 @@ The targets `BikePlanner_org*` are leftovers from an earlier project: ignore the
 - Undo: in tests, the undo manager does not close its automatic groups in nested run loops — set
   `groupsByEvent = NO` and group explicitly (see `UndoTests`).
 - UI tests: controls created in code have `accessibilityIdentifier`s (`map`, `clickMode`, `mapType`, `clickModeHelp`,
-  `zoomIn`…, `routeLength`/`routeAscent` in the XIB). POI markers and callouts are not exposed to accessibility:
+  `zoomIn`…, `routeLength`/`routeAscent`/`routeTime`/`routeSpeed` in the XIB — on the cell: unit tests find them with
+  `-[DocumentWindowTests tabViewItemViewWithIdentifier:]`). POI markers and callouts are not exposed to accessibility:
   check POI behavior through its effects (stub requests, undo menu items). Files exchanged with the app go in
   `/private/tmp/bp-uitests/`.
 - A known, not-yet-fixed bug is documented with a test wrapped in `XCTExpectFailure(@"… (#issue)")`. When fixing

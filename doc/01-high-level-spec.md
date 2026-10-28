@@ -70,6 +70,7 @@ One window per document. Layout:
 |                MAP                         |  Info:                         |
 |   (base map, route, waypoints, POIs,       |   - route length (km)          |
 |    reference GPX trace, scrubber marker)   |   - cumulative elevation (m)   |
+|                                            |   - riding time, avg speed     |
 |                                            |   - [x] Fetch POI  [x] View POI|
 |  overlay controls (bottom-left):           |   - Street View (web view)     |
 |   [zoom-][zoom+] [my location]             |  Params:                       |
@@ -120,7 +121,11 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   waypoint sequence (based on its distance along the current route).
 - F3.5 As soon as there are ≥2 waypoints, any change triggers a new BRouter request; the route is drawn in
   semi-transparent blue.
-- F3.6 The *Info* tab shows route length (km, rounded) and cumulative ascent (m, BRouter “filtered ascend”).
+- F3.6 The *Info* tab shows route length (km, rounded), cumulative ascent (m, BRouter “filtered ascend”), and the
+  riding time and average speed estimated by BRouter (`time=` of the GPX header). BRouter computes the time with
+  the kinematic model of the profile (`totalMass` 90 kg, `bikerPower` 100 W, `S_C_x` 0.225, `C_r` 0.01, `maxSpeed`
+  45 km/h in `trekking`): continuous power, no stops — optimistic for a loaded touring bike (#30). These parameters
+  can be overridden per request (`profile:<name>=<value>`, see F4).
 - F3.7 All waypoint operations (add, insert, move, remove, reverse) are **undoable/redoable** (Edit ▸ Undo/Redo),
   as well as adding a custom POI and importing a reference trace.
 - F3.8 *Edit ▸ Reverse Route* or the toolbar *Reverse* button (enabled with ≥ 2 waypoints) swaps start and end: the waypoint order is reversed
@@ -182,7 +187,7 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F9.1 A plan is a document of type `.bikeplan` (UTI `fr.free.daniel.braun.bikeplan`), saved with
   macOS autosave-in-place, versions, Revert, Open Recent.
 - F9.2 A document stores: waypoints, computed route points (with altitude), the reference GPX trace,
-  route length & ascent, fetched POIs, custom POIs.
+  route length & ascent, riding time, fetched POIs, custom POIs.
 - F9.3 On open, the map zooms to the route (or to the user's location if there is no route).
 
 ### F10 — Export

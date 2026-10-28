@@ -922,6 +922,8 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
                 self.document.plan.brouterInfo.kmlen = kmlen;
                 int mup = [brouterInfo[@"filtered-ascend"] intValue];
                 self.document.plan.brouterInfo.mup = mup;
+                self.document.plan.brouterInfo.meters = [brouterInfo[@"n-track-length-m"] integerValue];
+                self.document.plan.brouterInfo.seconds = [brouterInfo[@"n-time-seconds"] integerValue];
             }
             self.gpxData = gpx;
             self.document.plan.routePoints = points;
