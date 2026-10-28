@@ -15,6 +15,8 @@ NS_ASSUME_NONNULL_BEGIN
 // returns the trace: the track points (trkpt), else the route points (rtept), else the waypoints (wpt)
 - (nullable NSArray<CLLocation *> *)parseGPXData:(NSData *)data error:(NSError * _Nullable *)error;
 @property (readonly, nonatomic) NSArray<CLLocation *> *waypoints; // wpt of the last parsed file (e.g. POIs)
+@property (readonly, nonatomic) NSArray<NSString *> *waypointTypes; // <type> of each wpt, @"" when none
+@property (readonly, nonatomic) NSString *traceSource; // what the trace is made of: @"trk", @"rte" or @"wpt"
 - (NSDictionary *)brouterInfo;
 @end
 

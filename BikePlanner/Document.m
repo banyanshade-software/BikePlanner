@@ -187,6 +187,11 @@
     [_mapController importGPXTraceForDisplay:sender];
 }
 
+- (IBAction) importGPXAsRoute:(id)sender
+{
+    [_mapController importGPXAsRoute:sender];
+}
+
 - (IBAction) removeGPXTraceForDisplay:(id)sender
 {
     [_mapController removeGPXTraceForDisplay:sender];

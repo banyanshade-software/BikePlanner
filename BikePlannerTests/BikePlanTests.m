@@ -107,6 +107,55 @@
     XCTAssertEqual(plan.waypointsLocations.count, 3u);
 }
 
+#pragma mark - import GPX as route (#29)
+
+static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordinate2D b, NSUInteger n)
+{
+    NSMutableArray *pts = [NSMutableArray array];
+    for (NSUInteger i = 0; i < n; i++) {
+        double t = (double)i / (n - 1);
+        [pts addObject:[[CLLocation alloc] initWithLatitude:a.latitude + t * (b.latitude - a.latitude)
+                                                  longitude:a.longitude + t * (b.longitude - a.longitude)]];
+    }
+    return pts;
+}
+
+// a straight 10 km track: first and last points, plus points so that no gap exceeds the maximum spacing
+- (void)testWaypointsForStraightTrace
+{
+    NSArray *trace = BPLine(CLLocationCoordinate2DMake(44.0, 0.5), CLLocationCoordinate2DMake(44.0, 0.625), 1001);
+    NSArray<CLLocation *> *wps = [BikePlan waypointsForTrace:trace];
+    XCTAssertEqualObjects(wps.firstObject, trace.firstObject);
+    XCTAssertEqualObjects(wps.lastObject, trace.lastObject);
+    XCTAssertGreaterThanOrEqual(wps.count, 5u);
+    XCTAssertLessThanOrEqual(wps.count, 6u);
+    for (NSUInteger i = 1; i < wps.count; i++) {
+        XCTAssertLessThanOrEqual([wps[i] distanceFromLocation:wps[i-1]], kBPImportMaxSpacing + 10);
+    }
+}
+
+// the corner of an L-shaped track is kept, the points on the straight parts are dropped
+- (void)testWaypointsForTraceKeepCorner
+{
+    CLLocationCoordinate2D a = CLLocationCoordinate2DMake(44.0, 0.5), c = CLLocationCoordinate2DMake(44.0, 0.52),
+                           b = CLLocationCoordinate2DMake(44.015, 0.52);
+    NSMutableArray *trace = [BPLine(a, c, 100) mutableCopy];
+    [trace addObjectsFromArray:[BPLine(c, b, 100) subarrayWithRange:NSMakeRange(1, 99)]];
+    NSArray<CLLocation *> *wps = [BikePlan waypointsForTrace:trace];
+    XCTAssertEqual(wps.count, 3u);
+    XCTAssertEqualWithAccuracy(wps[1].coordinate.longitude, 0.52, 1e-9);
+    XCTAssertEqualWithAccuracy(wps[1].coordinate.latitude, 44.0, 1e-9);
+}
+
+- (void)testWaypointsForShortTrace
+{
+    XCTAssertEqual([BikePlan waypointsForTrace:@[]].count, 0u);
+    NSArray *one = @[ BPLoc(44, 0.5) ];
+    XCTAssertEqualObjects([BikePlan waypointsForTrace:one], one);
+    NSArray *two = @[ BPLoc(44, 0.5), BPLoc(44.001, 0.5) ];
+    XCTAssertEqualObjects([BikePlan waypointsForTrace:two], two);
+}
+
 - (void)testPreviousArrayIsNotMutatedLater
 {
     // undo relies on the returned array being a snapshot

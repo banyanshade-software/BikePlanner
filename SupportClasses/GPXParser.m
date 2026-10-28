@@ -11,7 +11,11 @@
     NSMutableArray<CLLocation *> *_points;     // trkpt
     NSMutableArray<CLLocation *> *_rtePoints;  // rtept
     NSMutableArray<CLLocation *> *_wptPoints;  // wpt: kept out of the trace (#28)
+    NSMutableArray<NSString *> *_wptTypes;     // <type> of each wpt, @"" when none
     NSString *stringEle;
+    NSString *stringType;                      // text of <type>, inside a wpt
+    NSString *curType;
+    BOOL inWpt;
     CLLocation *curloc;
     NSMutableDictionary<NSString *, NSString *> *brouterInfo;
 }
@@ -25,6 +29,8 @@
     _points = [NSMutableArray array];
     _rtePoints = [NSMutableArray array];
     _wptPoints = [NSMutableArray array];
+    _wptTypes = [NSMutableArray array];
+    inWpt = NO;
 
     NSXMLParser *parser = [[NSXMLParser alloc] initWithData:data];
     parser.delegate = self;
@@ -43,6 +49,18 @@
     return [_wptPoints copy];
 }
 
+- (NSString *)traceSource
+{
+    if (_points.count) return @"trk";
+    if (_rtePoints.count) return @"rte";
+    return @"wpt";
+}
+
+- (NSArray<NSString *> *)waypointTypes
+{
+    return [_wptTypes copy] ?: @[];
+}
+
 - (NSArray<CLLocation *> *)waypoints
 {
     return [_wptPoints copy] ?: @[];
@@ -58,6 +76,8 @@
     //    <trkpt lon="0.491229" lat="44.193329"><ele>140.25</ele></trkpt>
     if ([elementName isEqualToString:@"ele"]) {
         stringEle = @"";
+    } else if (inWpt && [elementName isEqualToString:@"type"]) {
+        stringType = @"";
     } else if ([elementName isEqualToString:@"trkpt"] ||
         [elementName isEqualToString:@"wpt"] ||
         [elementName isEqualToString:@"rtept"]) {
@@ -69,6 +89,8 @@
             CLLocationDegrees lon = [lonS doubleValue];
             curloc = [[CLLocation alloc] initWithLatitude:lat longitude:lon];
         }
+        inWpt = [elementName isEqualToString:@"wpt"];
+        curType = nil;
     }
 }
 
@@ -76,6 +98,9 @@
 {
     if (stringEle) {
         stringEle = [stringEle stringByAppendingString:string];
+    }
+    if (stringType) {
+        stringType = [stringType stringByAppendingString:string];
     }
 }
 - (void)parser:(NSXMLParser *)parser didEndElement:(nonnull NSString *)elementName namespaceURI:(nullable NSString *)namespaceURI qualifiedName:(nullable NSString *)qName
@@ -91,6 +116,11 @@
         curloc = nloc;
 
     }
+    if (stringType && [elementName isEqualToString:@"type"]) {
+        curType = [stringType stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        stringType = nil;
+    }
+    if ([elementName isEqualToString:@"wpt"]) inWpt = NO;
     if (curloc) {
         if ([elementName isEqualToString:@"trkpt"]) {
             [_points addObject:curloc];
@@ -100,6 +130,7 @@
             curloc = nil;
         } else if ([elementName isEqualToString:@"wpt"]) {
             [_wptPoints addObject:curloc];
+            [_wptTypes addObject:curType ?: @""];
             curloc = nil;
         }
     }

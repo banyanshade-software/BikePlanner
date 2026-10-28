@@ -35,6 +35,7 @@
 - (void)mouseMoved:(NSEvent *)event;
 - (NSData *)exportGpxDataWithPOI:(BOOL)inclPOI trackName:(NSString *)trackName;
 - (void)loadGPXFromURL:(NSURL *)url;
+- (void)loadGPXAsRouteFromURL:(NSURL *)url;
 - (BOOL)gestureRecognizer:(NSGestureRecognizer *)gestureRecognizer shouldAttemptToRecognizeWithEvent:(NSEvent *)event;
 - (CLLocationDistance)distanceAtCoordinate:(CLLocationCoordinate2D)coord segstart:(NSUInteger *)psegstart;
 @end
@@ -554,6 +555,103 @@
     XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
     XCTAssertEqual(doc.plan.gpxDisplayed.count, 3u);
     [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
+}
+
+#pragma mark - import GPX as route (#29)
+
+// a track from (44.02, 0.52) to (44.08, 0.58) with 3 waypoints: a custom POI (DANGER), a fetched POI (WATER,
+// fetched again along the new route) and an untyped one (custom)
+- (NSURL *)writeTrackToImport
+{
+    NSMutableString *gpx = [NSMutableString stringWithString:@"<gpx><trk><trkseg>"];
+    for (int i = 0; i <= 20; i++) [gpx appendFormat:@"<trkpt lat=\"%f\" lon=\"%f\"/>", 44.02 + i * 0.003, 0.52 + i * 0.003];
+    [gpx appendString:@"</trkseg></trk>"
+                      @"<wpt lat=\"44.05\" lon=\"0.55\"><name>DANGER</name><type>DANGER</type></wpt>"
+                      @"<wpt lat=\"44.06\" lon=\"0.56\"><name>water</name><type>WATER</type></wpt>"
+                      @"<wpt lat=\"44.07\" lon=\"0.57\"><name>mine</name></wpt></gpx>"];
+    NSURL *url = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-import-route.gpx"]];
+    XCTAssertTrue([[gpx dataUsingEncoding:NSUTF8StringEncoding] writeToURL:url atomically:YES]);
+    return url;
+}
+
+- (void)testImportGPXAsRoute
+{
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    NSURL *url = [self writeTrackToImport];
+    [um beginUndoGrouping];
+    [mc loadGPXAsRouteFromURL:url];
+    [um endUndoGrouping];
+    NSWindow *window = doc.windowControllers.firstObject.window;
+    XCTAssertNil(window.attachedSheet, @"empty plan: no confirmation");
+
+    NSArray<CLLocation *> *wps = doc.plan.waypointsLocations;
+    XCTAssertGreaterThanOrEqual(wps.count, 2u);
+    XCTAssertEqualWithAccuracy(wps.firstObject.coordinate.latitude, 44.02, 1e-6);
+    XCTAssertEqualWithAccuracy(wps.lastObject.coordinate.longitude, 0.58, 1e-6);
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 21u, @"original track kept as the reference trace");
+    XCTAssertEqual(doc.plan.customPoiloc.count, 2u, @"DANGER and untyped waypoints become custom POIs");
+    XCTAssertTrue([self waitForRouteWithPoints:10 * (wps.count - 1) + 1], @"route requested from BRouter (stub: 10 steps per leg)");
+    XCTAssertTrue([[server requestsWithPath:@"/brouter"].lastObject.query[@"lonlats"] hasPrefix:@"0.520000,44.020000|"]);
+    XCTAssertEqualObjects(um.undoActionName, @"import GPX as route");
+
+    [um undo];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
+    XCTAssertEqual(doc.plan.routePoints.count, 0u);
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 0u);
+    XCTAssertEqual(doc.plan.customPoiloc.count, 0u);
+    [um redo];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, wps.count);
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 21u);
+    XCTAssertEqual(doc.plan.customPoiloc.count, 2u);
+    [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
+}
+
+// the current route is replaced only after confirmation, and comes back with undo
+- (void)testImportGPXAsRouteReplacesCurrentPlan
+{
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    [um beginUndoGrouping];
+    [self makeRoute];
+    [um endUndoGrouping];
+    NSArray *old = doc.plan.waypointsLocations;
+    NSURL *url = [self writeTrackToImport];
+    NSWindow *window = doc.windowControllers.firstObject.window;
+
+    [mc loadGPXAsRouteFromURL:url];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet != nil); }), @"confirmation sheet");
+    [window endSheet:window.attachedSheet returnCode:NSAlertSecondButtonReturn];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet == nil); }));
+    XCTAssertEqualObjects(doc.plan.waypointsLocations, old, @"cancelled");
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 0u);
+
+    [mc loadGPXAsRouteFromURL:url];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet != nil); }));
+    [um beginUndoGrouping];
+    [window endSheet:window.attachedSheet returnCode:NSAlertFirstButtonReturn];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet == nil); }));
+    [um endUndoGrouping];
+    XCTAssertEqualWithAccuracy(doc.plan.waypointsLocations.firstObject.coordinate.latitude, 44.02, 1e-6);
+    XCTAssertTrue([self waitForRouteWithPoints:10 * (doc.plan.waypointsLocations.count - 1) + 1]);
+
+    [um undo];
+    XCTAssertEqualObjects(doc.plan.waypointsLocations, old);
+    XCTAssertEqual(doc.plan.routePoints.count, 11u);
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 0u);
+    [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
+}
+
+// unreadable file or empty trace: nothing changes
+- (void)testImportGPXAsRouteBadFile
+{
+    NSURL *bad = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-import-bad.gpx"]];
+    XCTAssertTrue([BPData(@"<gpx></gpx>") writeToURL:bad atomically:YES]);
+    [mc loadGPXAsRouteFromURL:bad];
+    [mc loadGPXAsRouteFromURL:[NSURL fileURLWithPath:@"/nonexistent/x.gpx"]];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
+    XCTAssertFalse(doc.undoManager.canUndo);
+    [[NSFileManager defaultManager] removeItemAtURL:bad error:NULL];
 }
 
 #pragma mark - initial region (#26)

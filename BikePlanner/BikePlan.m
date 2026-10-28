@@ -144,6 +144,85 @@
     [self restoreCustomPoi:state[@"custom"]];
 }
 
+#pragma mark - import GPX as route (#29)
+
+const CLLocationDistance kBPImportTolerance = 50;
+const CLLocationDistance kBPImportMaxSpacing = 3000;
+const NSUInteger kBPImportMaxWaypoints = 150;
+
+// Douglas–Peucker on points projected in meters (local equirectangular projection)
+static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUInteger last, double tol, BOOL *keep)
+{
+    NSMutableArray<NSValue *> *stack = [NSMutableArray arrayWithObject:[NSValue valueWithRange:NSMakeRange(first, last - first)]];
+    while (stack.count) {
+        NSRange r = stack.lastObject.rangeValue;
+        [stack removeLastObject];
+        NSUInteger a = r.location, b = NSMaxRange(r);
+        if (b <= a + 1) continue;
+        double dx = x[b] - x[a], dy = y[b] - y[a], len2 = dx * dx + dy * dy;
+        double dmax = -1;
+        NSUInteger imax = a;
+        for (NSUInteger i = a + 1; i < b; i++) {
+            double t = len2 > 0 ? ((x[i] - x[a]) * dx + (y[i] - y[a]) * dy) / len2 : 0;
+            t = MAX(0, MIN(1, t));
+            double ex = x[a] + t * dx - x[i], ey = y[a] + t * dy - y[i];
+            double d = sqrt(ex * ex + ey * ey);
+            if (d > dmax) { dmax = d; imax = i; }
+        }
+        if (dmax > tol) {
+            keep[imax] = YES;
+            [stack addObject:[NSValue valueWithRange:NSMakeRange(a, imax - a)]];
+            [stack addObject:[NSValue valueWithRange:NSMakeRange(imax, b - imax)]];
+        }
+    }
+}
+
++ (NSArray <CLLocation *>*) waypointsForTrace:(NSArray <CLLocation *>*)trace
+{
+    NSUInteger n = trace.count;
+    if (n <= 2) return [trace copy];
+    double *x = malloc(n * sizeof(double)), *y = malloc(n * sizeof(double)), *along = malloc(n * sizeof(double));
+    BOOL *keep = malloc(n * sizeof(BOOL));
+    CLLocationCoordinate2D c0 = trace[0].coordinate;
+    double kx = 111320.0 * cos(c0.latitude * M_PI / 180.0), ky = 110540.0;
+    for (NSUInteger i = 0; i < n; i++) {
+        CLLocationCoordinate2D c = trace[i].coordinate;
+        x[i] = (c.longitude - c0.longitude) * kx;
+        y[i] = (c.latitude - c0.latitude) * ky;
+        along[i] = i ? along[i-1] + [trace[i] distanceFromLocation:trace[i-1]] : 0;
+    }
+    NSUInteger count;
+    for (double tol = kBPImportTolerance; ; tol *= 2) {
+        memset(keep, 0, n * sizeof(BOOL));
+        keep[0] = keep[n-1] = YES;
+        BPSimplify(x, y, 0, n - 1, tol, keep);
+        count = 0;
+        for (NSUInteger i = 0; i < n; i++) if (keep[i]) count++;
+        if (count <= kBPImportMaxWaypoints) break;
+    }
+    NSMutableArray <CLLocation *>*wps = [NSMutableArray arrayWithObject:trace[0]];
+    NSUInteger a = 0;
+    for (NSUInteger b = 1; b < n; b++) {
+        if (!keep[b]) continue;
+        double gap = along[b] - along[a];
+        if (gap > kBPImportMaxSpacing) {
+            NSUInteger parts = (NSUInteger)ceil(gap / kBPImportMaxSpacing);
+            NSUInteger i = a + 1;
+            for (NSUInteger j = 1; j < parts; j++) {
+                double target = along[a] + j * gap / parts;
+                while (i < b && along[i] < target) i++;
+                if (i >= b) break;
+                [wps addObject:trace[i]];
+                i++;
+            }
+        }
+        [wps addObject:trace[b]];
+        a = b;
+    }
+    free(x); free(y); free(along); free(keep);
+    return wps;
+}
+
 - (void) clearWaypointCache
 {
     [self willChangeValueForKey:@"waypointPoly"];

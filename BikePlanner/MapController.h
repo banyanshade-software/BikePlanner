@@ -44,6 +44,7 @@ typedef NS_ENUM(int, BPClickMode) {
 
 - (IBAction) exportGPX:(id)sender;
 - (IBAction) importGPXTraceForDisplay:(id)sender;
+- (IBAction) importGPXAsRoute:(id)sender;
 - (IBAction) removeGPXTraceForDisplay:(id)sender;
 - (BOOL) canRemoveGPXTraceForDisplay;
 - (IBAction) reverseRoute:(id)sender;

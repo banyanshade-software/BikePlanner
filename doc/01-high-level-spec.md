@@ -171,6 +171,12 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F8.1 *File ▸ Import GPX as display* (or toolbar “Import trace”) loads a GPX file and draws it in
   orange under the route, for reference only (it is not used for routing). Importing another trace replaces it.
 - F8.2 *File ▸ Remove Displayed GPX Trace* (enabled when a trace is shown) removes it; undoable.
+- F8.3 *File ▸ Import GPX as Route…* converts a GPX into an editable plan: a track (`<trk>`) is simplified into
+  waypoints (Douglas–Peucker, 50 m tolerance, at most 3 km between two waypoints along the track, first/last points
+  kept), route points (`<rte>`) or a file of `<wpt>` only are used as waypoints as is; then the route is requested
+  from BRouter. The original GPX becomes the reference trace (F8.1) to compare with the computed route. `<wpt>`
+  become custom POIs, except those with a fetched-POI type (WATER, TOILET, SERVICE, GENERIC), fetched again along
+  the new route. If the plan is not empty, a confirmation sheet asks before replacing it. One undoable action.
 
 ### F9 — Documents
 - F9.1 A plan is a document of type `.bikeplan` (UTI `fr.free.daniel.braun.bikeplan`), saved with
@@ -187,7 +193,8 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F10.4 Export is only possible once a route has been computed in the current session.
 
 ### F11 — Misc
-- F11.1 Custom About window (BSSUI / DCOAboutWindow). It shows `Version <MARKETING_VERSION> (Build <commit count>,
+- F11.1 Custom About window (BSSUI / DCOAboutWindow). *Visit the BikePlanner Website* opens the GitHub page
+  (Info.plist key `BPWebsiteURL`). It shows `Version <MARKETING_VERSION> (Build <commit count>,
   <short hash>[-dirty], <branch>)`, so a running app tells which code it contains.
 
 ## 7. Non-functional requirements (targets)
@@ -220,6 +227,8 @@ Decided (October 2026):
 - **BRouter server**: must eventually be a local server (F4.6).
 - **Custom POIs**: will have types (F7.7).
 - **FIT export**: was intended for Garmin; not implemented (F10.3).
+- **Import GPX as route** (F8.3): fixed simplification (50 m / 3 km), no slider for now; `<rte>` points are used
+  directly as waypoints.
 - **Distribution**: personal use for now. Constraints for a wider distribution are listed in
   [03-distribution-constraints.md](03-distribution-constraints.md).
 

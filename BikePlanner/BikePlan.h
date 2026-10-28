@@ -14,6 +14,10 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+extern const CLLocationDistance kBPImportTolerance;   // m, distance to the track below which a point is dropped
+extern const CLLocationDistance kBPImportMaxSpacing;  // m, along the track
+extern const NSUInteger kBPImportMaxWaypoints;        // before spacing: the tolerance grows to stay below
+
 @interface BrouterInfo : NSObject <NSSecureCoding> {
 }
 
@@ -56,6 +60,10 @@ NS_ASSUME_NONNULL_BEGIN
 // Returns the previous state, to give back to restoreRoute: (undo)
 - (NSDictionary *) clearRoute NS_WARN_UNUSED_RESULT;
 - (void) restoreRoute:(NSDictionary *)state;
+
+// Import GPX as route (#29): waypoints for a track, simplified (Douglas–Peucker, kBPImportTolerance) and with at
+// most kBPImportMaxSpacing between two waypoints along the track, so BRouter follows it. First/last points kept.
++ (NSArray <CLLocation *>*) waypointsForTrace:(NSArray <CLLocation *>*)trace;
 
 @property (readonly,nonatomic) TaggedPoly *routePoly;    // MKPolyLine with a tag, 0
 @property (readonly,nonatomic) TaggedPoly *waypointPoly; // MKPolyLine with a tag, 1

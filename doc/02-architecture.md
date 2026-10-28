@@ -161,6 +161,10 @@ Remove: context menu → `plan.removeWaypointAtIndex` → undo → reindex → `
 Reverse: *Edit ▸ Reverse Route* → `plan.reverseWaypoints` → undo → `fullRefresh:NO` → `shouldRecalcRoute`.
 Clear: *Edit ▸ Clear Route* → confirmation sheet (`NSAlert`) → `setRouteState:nil` → `plan.clearRoute` (returns the previous state, + BRouter GPX)
 → undo registers `undoRouteState:` with it → `fullRefresh:NO`; undo calls `plan.restoreRoute:` (no new request).
+Import GPX as route: *File ▸ Import GPX as Route…* → `loadGPXAsRouteFromURL:` → `GPXParser` (`traceSource`,
+`waypointTypes`) → `+[BikePlan waypointsForTrace:]` (track only) → confirmation sheet if the plan is not empty →
+`setRouteFromTrace:…` in one undo group: `setRouteState:nil` (undo restores the previous route), waypoints, custom
+POIs, `setGpxDisplayed:` (reference trace) → `shouldRecalcRoute`.
 
 ### 6.3 POIs
 ```

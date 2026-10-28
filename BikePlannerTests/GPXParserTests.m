@@ -101,4 +101,25 @@
     XCTAssertEqual([[[GPXParser alloc] init] parseGPXData:BPData(wpt) error:NULL].count, 2u);
 }
 
+// what the trace is made of, and the <type> of the waypoints (import as route, #29)
+- (void)testTraceSourceAndWaypointTypes
+{
+    NSString *gpx = @"<gpx><trk><trkseg><trkpt lat=\"1\" lon=\"1\"/><trkpt lat=\"2\" lon=\"2\"/></trkseg></trk>"
+                    @"<wpt lat=\"10\" lon=\"10\"><name>a</name><type>DANGER</type></wpt>"
+                    @"<wpt lat=\"11\" lon=\"11\"><ele>12</ele><name>b</name></wpt></gpx>";
+    GPXParser *p = [[GPXParser alloc] init];
+    [p parseGPXData:BPData(gpx) error:NULL];
+    XCTAssertEqualObjects(p.traceSource, @"trk");
+    XCTAssertEqualObjects(p.waypointTypes, (@[ @"DANGER", @"" ]));
+    XCTAssertEqualWithAccuracy(p.waypoints[1].altitude, 12, 1e-9);
+
+    p = [[GPXParser alloc] init];
+    [p parseGPXData:BPData(@"<gpx><rte><rtept lat=\"1\" lon=\"1\"><type>X</type></rtept></rte></gpx>") error:NULL];
+    XCTAssertEqualObjects(p.traceSource, @"rte");
+    XCTAssertEqual(p.waypointTypes.count, 0u, @"only wpt types");
+    p = [[GPXParser alloc] init];
+    [p parseGPXData:BPData(@"<gpx><wpt lat=\"1\" lon=\"1\"/></gpx>") error:NULL];
+    XCTAssertEqualObjects(p.traceSource, @"wpt");
+}
+
 @end

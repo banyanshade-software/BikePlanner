@@ -115,6 +115,12 @@
                                     <action selector="importGPXTraceForDisplay:" target="-1" id="lhp-U7-3w1"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Import GPX as Route…" id="bpI-mR-Itm">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="importGPXAsRoute:" target="-1" id="bpI-mR-Act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Remove Displayed GPX Trace" id="bpR-mT-Itm">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
