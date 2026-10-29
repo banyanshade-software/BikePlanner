@@ -837,7 +837,9 @@
 {
     doc.plan.fetchPOI = NO;
     [doc close];
-    BPOverrideDefaults(@{ @"BPInitialRegion": @"", @"BPDefaultPosition": @"45.0,1.0", @"BPDisableLocation": @YES });
+    // all the settings involved, so that the owner's Preferences (#27) do not change the result
+    BPOverrideDefaults(@{ @"BPInitialRegion": @"", @"BPDefaultPosition": @"45.0,1.0", @"BPInitialRadiusKm": @80,
+                          @"BPDisableLocation": @YES });
     doc = [[Document alloc] init];
     [doc makeWindowControllers];
     XCTAssertNotNil(doc.windowControllers.firstObject.window);
