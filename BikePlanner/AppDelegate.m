@@ -53,11 +53,15 @@
 {
     // no document window when hosting unit tests (avoids network access during tests)
     if ([BPEnvironment isUnitTestHost]) return NO;
-    // Only create a new untitled doc if there are no open windows
-    if ([NSApp windows].count == 0) {
-        return YES; // make one
-    }
-    return NO; // don’t
+    NSArray<NSDocument *> *docs = NSDocumentController.sharedDocumentController.documents;
+    return [self shouldOpenUntitledFileWithDocuments:docs];
+}
+
+// a new untitled document when no document is open or restored (#46): the number of windows was used, but the app
+// may have other windows (About, Preferences, panels…)
+- (BOOL)shouldOpenUntitledFileWithDocuments:(NSArray<NSDocument *> *)documents
+{
+    return documents.count == 0;
 }
 
 #pragma mark -

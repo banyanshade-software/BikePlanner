@@ -6,6 +6,7 @@
 //
 
 #import <XCTest/XCTest.h>
+#import "Document.h"
 #import <MapKit/MapKit.h>
 #import "AppDelegate.h"
 #import "ExportAccessoryViewController.h"
@@ -15,6 +16,7 @@
 #import "TestFixtures.h"
 
 @interface AppDelegate (Testing)
+- (BOOL)shouldOpenUntitledFileWithDocuments:(NSArray<NSDocument *> *)documents;
 - (NSWindowController *)aboutWindowController;
 - (IBAction)showAboutWindow:(id)sender;
 + (NSString *)versionStringWithInfo:(NSDictionary *)info;
@@ -148,6 +150,17 @@
     NSString *d = [NSBundle mainBundle].infoDictionary[@"NSLocationWhenInUseUsageDescription"];
     XCTAssertGreaterThan(d.length, 20u, @"%@", d);
     XCTAssertTrue([d containsString:@"map"], @"%@", d);
+}
+
+// a new untitled document at launch when no document is open (or restored), whatever other windows the app has
+// (#46: NSApp.windows was never empty at launch, so no window was shown)
+- (void)testUntitledDocumentWhenNoDocumentIsOpen
+{
+    AppDelegate *app = (AppDelegate *)NSApp.delegate;
+    XCTAssertTrue([app shouldOpenUntitledFileWithDocuments:@[]]);
+    Document *doc = [[Document alloc] init];
+    XCTAssertFalse([app shouldOpenUntitledFileWithDocuments:@[doc]]);
+    XCTAssertFalse([app applicationShouldOpenUntitledFile:NSApp], @"never when hosting unit tests");
 }
 
 @end
