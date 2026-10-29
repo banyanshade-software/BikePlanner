@@ -140,6 +140,33 @@
     XCTAssertEqualObjects(mode.choices, (@[@[@"0", @"none"], @[@"1", @"auto"], @[@"2", @"other"]]));
 }
 
+// profiles mixing annotated and commented parameters, and the "assign name value" syntax (mtb.brf) (#52)
+- (void)testParseMixedProfile
+{
+    [editor parseProfile:@"---context:global\n"
+                         @"assign validForBikes = true\n"
+                         @"# Use the following switches to change behaviour\n"
+                         @"  assign   add_beeline            false  # %add_beeline% | Enable beeline on distant start/end points | boolean\n"
+                         @"  assign   iswet                  0 # 0 as default, *) flag for weather conditions\n"
+                         @"  assign   smallpaved_factor      -0.5 # default 0.0, *)\n"
+                         @"  assign   isbike_for_mainroads   true # default=true / if false then bike friendly tag hints are ignored\n"
+                         @"  assign   valley_nonflat_multiplier = 2.0\n"
+                         @"  assign   turnInstructionMode  = 1 # 0=none, 1=auto-choose\n"
+                         @"---context:way\n"
+                         @"assign   other 1 # way context\n"];
+    NSArray *names = [editor.parameters valueForKey:@"name"];
+    XCTAssertEqualObjects(names, (@[@"add_beeline", @"iswet", @"smallpaved_factor", @"isbike_for_mainroads"]),
+                          @"annotated + commented; not the internal (no comment) nor the hidden ones");
+    BRFParam *wet = [self param:@"iswet"];
+    XCTAssertEqualObjects(wet.defaultValue, @"0");
+    XCTAssertEqual(wet.kind, BRFParamNumber, @"no type information: a number");
+    XCTAssertEqualObjects(wet.help, @"0 as default, *) flag for weather conditions");
+    XCTAssertEqualObjects(wet.section, @"Use the following switches to change behaviour");
+    XCTAssertEqualObjects([self param:@"smallpaved_factor"].defaultValue, @"-0.5");
+    XCTAssertEqual([self param:@"isbike_for_mainroads"].kind, BRFParamBoolean);
+    XCTAssertEqual([self param:@"add_beeline"].kind, BRFParamBoolean);
+}
+
 - (void)testLabels
 {
     BRFParam *p = [BRFParam new];

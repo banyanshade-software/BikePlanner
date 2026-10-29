@@ -264,13 +264,14 @@ static NSString *const BRFDefaultsKey = @"BPProfileOverrides";
 }
 
 #if 1
-// user parameters of the global context: "assign <name> = <number|true|false> [# %<name>% | <help> | <type>]";
-// when the profile has annotations, only the annotated parameters are kept (the others are internal variables)
+// user parameters of the global context: "assign <name> [=] <number|true|false> [# %<name>% | <help> | <type>]"
+// (BRouter accepts the assignment without "=", #52); when the profile has annotations, the annotated parameters and
+// the commented ones (comment = description) are kept, the others are internal variables
 - (void)parseProfile:(NSString *)brf
 {
     [self.parameters removeAllObjects];
     NSRegularExpression *assignRx = [NSRegularExpression regularExpressionWithPattern:
-                                     @"^\\s*assign\\s+(\\w+)\\s*=\\s*([\\d\\.\\-]+|true|false)\\s*(?:#(.*))?$"
+                                     @"^\\s*assign\\s+(\\w+)\\s*(?:=\\s*)?([\\d\\.\\-]+|true|false)\\s*(?:#(.*))?$"
                                                                               options:NSRegularExpressionCaseInsensitive
                                                                                 error:nil];
     NSRegularExpression *annotationRx = [NSRegularExpression regularExpressionWithPattern:
@@ -320,12 +321,15 @@ static NSString *const BRFDefaultsKey = @"BPProfileOverrides";
                 } else if ([type caseInsensitiveCompare:@"boolean"] == NSOrderedSame) {
                     p.kind = BRFParamBoolean;
                 }
+            } else {
+                NSString *help = [comment stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+                p.help = help.length ? help : nil; // commented parameter, without type information (#52)
             }
         }
         [self.parameters addObject:p];
     }];
     if (annotations) {
-        [self.parameters filterUsingPredicate:[NSPredicate predicateWithFormat:@"annotated == YES"]];
+        [self.parameters filterUsingPredicate:[NSPredicate predicateWithFormat:@"annotated == YES OR help != nil"]];
     }
     [self.parameters filterUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(BRFParam *p, NSDictionary *b) {
         return ![BRFHiddenParams() containsObject:p.name];
