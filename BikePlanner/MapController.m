@@ -20,7 +20,7 @@
 #import "ExportAccessoryViewController.h"
 #import "BPPOIEditor.h"
 #import "BPPlaceSearch.h"
-#import "Secret.h"
+#import "BPSecrets.h"
 #import "BPEnvironment.h"
 
 // Secret.h is not commited, see Secret.h.example
@@ -78,7 +78,7 @@
     
     // thunderforest
     // https://manage.thunderforest.com/dashboard
-    NSString *ctemplate = @"https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=" THUNDERFOREST_API_KEY;
+    NSString *ctemplate = [BPSecrets thunderforestTileURLTemplate]; // key obfuscated in the binary (#51)
 
     osmCycleOverlay =  [[SafeOSMTileOverlay alloc] initWithURLTemplate:ctemplate];
     osmCycleOverlay.canReplaceMapContent = YES; // replace Apple's map

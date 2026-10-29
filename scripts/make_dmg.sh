@@ -34,6 +34,21 @@ if [ -z "$APP" ]; then
 fi
 [ -d "$APP" ] || { echo "no app at $APP" >&2; exit 1; }
 
+# the Thunderforest key of Secret.h must not be in clear in the binaries (#51); the key is never printed
+if [ -f "$ROOT/BikePlanner/Secret.h" ]; then
+    if ! python3 - "$ROOT/BikePlanner/Secret.h" "$APP/Contents/MacOS" <<'PYEOF'
+import re, sys, os
+m = re.search(r'#define\s+THUNDERFOREST_API_KEY\s+"([^"]*)"', open(sys.argv[1]).read())
+key = m.group(1).encode() if m else b""
+if len(key) < 8: sys.exit(0)   # example key
+for f in os.listdir(sys.argv[2]):
+    if key in open(os.path.join(sys.argv[2], f), "rb").read():
+        print(f"Thunderforest key in clear in {f}: not packaged (#51)", file=sys.stderr)
+        sys.exit(1)
+PYEOF
+    then exit 1; fi
+fi
+
 INFO="$APP/Contents/Info.plist"
 VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO")
 BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO")

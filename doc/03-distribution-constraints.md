@@ -30,7 +30,9 @@ provider's current terms at the time of distribution.
 
 ### 1.3 Thunderforest (OpenCycleMap)
 - Requires an API key; the free “Hobby Project” tier has a monthly tile limit and is for non-commercial use.
-- A key embedded in a distributed binary can be extracted and abused (it is billed to the owner).
+- A key embedded in a distributed binary can be extracted and abused (it is billed to the owner). Since #51 it is
+  stored obfuscated (`BPSecrets`, XOR at compile time; not visible with `strings`): this stops a casual look only —
+  the key is sent in clear in every tile request and can be read by anyone debugging the app.
 - Attribution: “Maps © Thunderforest, Data © OpenStreetMap contributors”.
 - **To do**: pick the right plan, display the attribution; consider letting each user enter their own key
   (stored in the Keychain) instead of compiling it in `Secret.h`.

@@ -71,6 +71,8 @@
 		DA325F7657A9B48AD170EA40 /* BPPreferences.m in Sources */ = {isa = PBXBuildFile; fileRef = 24A28E6673CAD04D5BC22351 /* BPPreferences.m */; };
 		C0BE5B9AE4B26B13D80F5E12 /* BPPreferencesWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = EBC17A6DF0DBCD917A8252B2 /* BPPreferencesWindowController.m */; };
 		9B9B10B1342DF9F8C2F0FB1D /* PreferencesTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D5EDBB5E4D6F8299BEC5C94B /* PreferencesTests.m */; };
+		C85D91D5D5C5955832DE3936 /* SecretsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = ECBF9870ED7DC9BB75B9F399 /* SecretsTests.m */; };
+		BEC262829054999E9B9115A7 /* BPSecrets.m in Sources */ = {isa = PBXBuildFile; fileRef = 6BE71F1D096ACB6884574632 /* BPSecrets.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -193,6 +195,9 @@
 		EBC17A6DF0DBCD917A8252B2 /* BPPreferencesWindowController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPPreferencesWindowController.m; sourceTree = "<group>"; };
 		8C5FB74F8D3F2DAB04F6AC88 /* BPPreferencesWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPPreferencesWindowController.h; sourceTree = "<group>"; };
 		D5EDBB5E4D6F8299BEC5C94B /* PreferencesTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PreferencesTests.m; sourceTree = "<group>"; };
+		ECBF9870ED7DC9BB75B9F399 /* SecretsTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SecretsTests.m; sourceTree = "<group>"; };
+		6BE71F1D096ACB6884574632 /* BPSecrets.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPSecrets.m; sourceTree = "<group>"; };
+		7A8DF1A16B04B617120AB1D9 /* BPSecrets.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPSecrets.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -350,6 +355,8 @@
 				AF6E8CA5048246FE394A0442 /* BPPreferences.h */,
 				EBC17A6DF0DBCD917A8252B2 /* BPPreferencesWindowController.m */,
 				8C5FB74F8D3F2DAB04F6AC88 /* BPPreferencesWindowController.h */,
+				6BE71F1D096ACB6884574632 /* BPSecrets.m */,
+				7A8DF1A16B04B617120AB1D9 /* BPSecrets.h */,
 			);
 			path = BikePlanner;
 			sourceTree = "<group>";
@@ -379,6 +386,7 @@
 				877818E4CD09D95A03B2BE89 /* DocumentWindowTests.m */,
 				B02CDC8B1BCDC5D243D9E139 /* AppearanceTests.m */,
 				D5EDBB5E4D6F8299BEC5C94B /* PreferencesTests.m */,
+				ECBF9870ED7DC9BB75B9F399 /* SecretsTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -583,6 +591,7 @@
 				07E0A3D8072F57D64483A2F5 /* BPPlaceSearch.m in Sources */,
 				DA325F7657A9B48AD170EA40 /* BPPreferences.m in Sources */,
 				C0BE5B9AE4B26B13D80F5E12 /* BPPreferencesWindowController.m in Sources */,
+				BEC262829054999E9B9115A7 /* BPSecrets.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -610,6 +619,7 @@
 				99C7B154189B217AC2F6B951 /* DocumentWindowTests.m in Sources */,
 				9925BDC25A9FBFC0656BD01E /* AppearanceTests.m in Sources */,
 				9B9B10B1342DF9F8C2F0FB1D /* PreferencesTests.m in Sources */,
+				C85D91D5D5C5955832DE3936 /* SecretsTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

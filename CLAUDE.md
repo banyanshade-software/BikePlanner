@@ -13,7 +13,8 @@ Work items are tracked as GitHub issues on `banyanshade-software/BikePlanner`.
 ## Build & test
 
 One-time setup: `cp BikePlanner/Secret.h.example BikePlanner/Secret.h` (git-ignored; the build fails without it;
-put a real Thunderforest key in it for the OSM+cycle map).
+put a real Thunderforest key in it for the OSM+cycle map). Only `BPSecrets.m` includes `Secret.h`: it stores the key
+obfuscated (#51); use `+[BPSecrets thunderforestAPIKey]`, never the macro, and never log the key.
 UI tests also need macOS Automation Mode, enabled once by the owner in Terminal.app:
 `sudo automationmodetool enable-automationmode-without-authentication` (`automationmodetool` shows the status).
 
@@ -109,7 +110,8 @@ and product; source files are kept).
 
 `scripts/make_dmg.sh` builds `build/BikePlanner-<version>.dmg` (see its header). Its Finder layout step uses
 AppleScript, which needs the owner's Automation permission for Finder and does not work from Claude's sandboxed
-shell: let the owner run it (`! scripts/make_dmg.sh`). The DMG embeds the Thunderforest key: don't publish it.
+shell: let the owner run it (`! scripts/make_dmg.sh`). The DMG embeds the Thunderforest key (obfuscated, #51: the script refuses an app containing it in clear): don't
+publish it.
 
 ## Workflow
 
