@@ -144,7 +144,8 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F4.1 Routing uses the BRouter `trekking` profile.
 - F4.2 The *Params* tab downloads the `trekking.brf` profile and shows its user parameters: the ones annotated
   `# %<name>% | <description> | boolean|number|[0=…, 1=…]` (the brouter-web format), in the global context, grouped
-  by the profile's section comments (all simple `assign <name> = <value>` when the profile has no annotation).
+  by the profile's section comments, plus the unannotated parameters that have a comment (used as description); all
+  simple `assign <name> [=] <value>` when the profile has no annotation (#52).
   BRouter output options (turn instructions, `processUnusedTags`) are hidden. Each parameter has a readable label
   (with the unit from the description), its description and default value, and a control: switch (boolean),
   number field, or pop-up menu (list). A parameter is overridden when its value differs from the default: its label
