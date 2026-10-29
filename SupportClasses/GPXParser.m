@@ -258,4 +258,27 @@
     NSLog(@"GPX parse error: %@", parseError);
 }
 
+static NSString *BPXMLEscaped(NSString *s)
+{
+    s = [s stringByReplacingOccurrencesOfString:@"&" withString:@"&amp;"];
+    s = [s stringByReplacingOccurrencesOfString:@"<" withString:@"&lt;"];
+    s = [s stringByReplacingOccurrencesOfString:@">" withString:@"&gt;"];
+    return [s stringByReplacingOccurrencesOfString:@"\"" withString:@"&quot;"];
+}
+
+// minimal GPX 1.1 track with elevations (route points from BRouter all have one)
++ (NSData *)gpxDataForPoints:(NSArray<CLLocation *> *)points name:(NSString *)name comment:(nullable NSString *)comment
+{
+    NSMutableString *xml = [NSMutableString stringWithString:@"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"];
+    if (comment.length) [xml appendFormat:@"<!-- %@ -->\n", [comment stringByReplacingOccurrencesOfString:@"--" withString:@"- -"]];
+    [xml appendString:@"<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"BikePlanner\" version=\"1.1\">\n"];
+    [xml appendFormat:@" <trk>\n  <name>%@</name>\n  <trkseg>\n", BPXMLEscaped(name)];
+    for (CLLocation *p in points) {
+        [xml appendFormat:@"   <trkpt lat=\"%.6f\" lon=\"%.6f\"><ele>%.2f</ele></trkpt>\n",
+                          p.coordinate.latitude, p.coordinate.longitude, p.altitude];
+    }
+    [xml appendString:@"  </trkseg>\n </trk>\n</gpx>\n"];
+    return [xml dataUsingEncoding:NSUTF8StringEncoding];
+}
+
 @end

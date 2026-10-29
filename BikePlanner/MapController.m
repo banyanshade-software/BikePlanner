@@ -943,6 +943,8 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
                 self.document.plan.brouterInfo.mup = mup;
                 self.document.plan.brouterInfo.meters = [brouterInfo[@"n-track-length-m"] integerValue];
                 self.document.plan.brouterInfo.seconds = [brouterInfo[@"n-time-seconds"] integerValue];
+                self.document.plan.brouterInfo.roadStats = brouterInfo[@"road-stats"];       // #53
+                self.document.plan.brouterInfo.surfaceStats = brouterInfo[@"surface-stats"];
             }
             self.document.plan.routeGPX = gpx; // saved with the document (#10)
             self.gpxData = gpx;

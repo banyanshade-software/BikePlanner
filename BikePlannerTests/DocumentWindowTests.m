@@ -1192,6 +1192,23 @@
     XCTAssertEqualObjects(field.stringValue, @"Agen");
 }
 
+// Info section: in a scroll view (it grows), with the distance by road type of the route (#53)
+- (void)testInfoShowsDistanceByRoadType
+{
+    NSTextField *roads = (NSTextField *)[self viewWithIdentifier:@"routeRoadTypes" in:self.content];
+    XCTAssertNotNil(roads);
+    NSView *length = [self panelControlWithIdentifier:@"routeLength"];
+    XCTAssertNotNil(roads.enclosingScrollView, @"Info section in a scroll view");
+    XCTAssertEqual(length.enclosingScrollView, roads.enclosingScrollView, @"existing Info fields in the same scroll view");
+    XCTAssertEqualObjects(roads.stringValue, @"", @"no route");
+    [self makeRoute];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(roads.stringValue.length > 0); }));
+    // stub route: half tertiary / asphalt, half track / gravel
+    XCTAssertTrue([roads.stringValue containsString:NSLocalizedString(@"Tertiary roads", nil)], @"%@", roads.stringValue);
+    XCTAssertTrue([roads.stringValue containsString:NSLocalizedString(@"Tracks", nil)], @"%@", roads.stringValue);
+    XCTAssertTrue([roads.stringValue containsString:@"km"]);
+}
+
 - (void)testRoutingErrorKeepsPreviousRoute
 {
     [self makeRoute];

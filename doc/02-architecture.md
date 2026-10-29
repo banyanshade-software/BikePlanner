@@ -56,7 +56,8 @@ BikePlanner/                 App target
   Assets.xcassets            App icon, POI icons (SVG from mapbox/maki)
 SupportClasses/              Reusable/support components
   BRouterClient.*            HTTP client for BRouter
-  GPXParser.*                NSXMLParser-based GPX reader + BRouter comment parser
+  GPXParser.*                NSXMLParser-based GPX reader + BRouter comment parser; minimal GPX writer
+  BRouterGeoJSON.*           BRouter route in GeoJSON: points, statistics, distance by road / surface class (#53)
   BPPlaceSearch.*            Apple place search (MKLocalSearch), shared by the search field and the Preferences
   BPPOIEditor.*              Sheet asking the type and name of a custom POI (#3)
   BRFProfileEditor.*         Downloads a .brf profile, parses its annotated parameters, builds the Params tab UI;
@@ -193,11 +194,13 @@ Params tab Apply → `PlannerWindowController setProfileOverrides:` (undoable; s
 MapController.requestRoute
   gpxData = nil
   BRouterClient.routeWithWaypoints:profile:plan.profileName overrides:plan.profileOverrides   (URL: +routeURLForServer:…)
-    GET https://brouter.de/brouter?lonlats=lon,lat|lon,lat…&profile=trekking&alternativeidx=0&format=gpx[&profile:<name>=<value>…]
+    GET https://brouter.de/brouter?lonlats=lon,lat|lon,lat…&profile=trekking&alternativeidx=0&format=geojson[&profile:<name>=<value>…]
     (names and values percent-encoded, including & = + |; true/false sent as 1/0)
-    (background) GPXParser → points + brouterInfo (parsed from the GPX comment: track-length, filtered ascend, time, energy)
+    (background) BRouterGeoJSON → points + brouterInfo (track-length, filtered ascend, total-time) + distance by road /
+                 surface class (properties.messages: Distance + WayTags) (#53); the GPX for the export is generated
+                 from the points (+[GPXParser gpxDataForPoints:name:comment:], BRouter statistics in the comment)
   completion (background) → error: NSLog only
-                          → main queue: plan.brouterInfo.{kmlen,mup,meters,seconds}, gpxData, plan.routePoints,
+                          → main queue: plan.brouterInfo.{kmlen,mup,meters,seconds,roadStats,surfaceStats}, gpxData, plan.routePoints,
                             elevationView.setGpxPoints, refreshPoly:NO (→ routePoly → POI flow 6.3)
 ```
 

@@ -306,8 +306,13 @@ static __weak BPStubServer *bpInProcessServer = nil;
             status = 400;
             body = @"lonlats must contain at least 2 points";
         } else {
-            ctype = @"application/gpx+xml";
-            body = [[self class] gpxForLonLats:lonlats];
+            if ([req.query[@"format"] isEqualToString:@"geojson"]) {   // used by the app since #53
+                ctype = @"application/vnd.geo+json";
+                body = [[self class] geojsonForLonLats:lonlats];
+            } else {
+                ctype = @"application/gpx+xml";
+                body = [[self class] gpxForLonLats:lonlats];
+            }
         }
     } else if ([req.path hasPrefix:@"/brouter/profiles2/"]) {
         // annotated like the brouter.de profiles: "# %name% | description | type" (#39)
@@ -405,6 +410,52 @@ static double BPDistance(double lat1, double lon1, double lat2, double lon2)
             @"<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"BPStubServer\" version=\"1.1\">\n"
             @" <trk>\n  <name>brouter_stub_0</name>\n  <trkseg>\n%@  </trkseg>\n </trk>\n</gpx>\n",
             len, ascend, len, pts];
+}
+
+// same points as gpxForLonLats:, as BRouter GeoJSON; way tags: first half tertiary/asphalt, second half track/gravel
++ (NSString *) geojsonForLonLats:(NSString *)lonlats
+{
+    NSMutableArray<NSArray<NSNumber *> *> *wps = [NSMutableArray array];
+    for (NSString *p in [lonlats componentsSeparatedByString:@"|"]) {
+        NSArray *c = [p componentsSeparatedByString:@","];
+        if (c.count == 2) [wps addObject:@[@([c[1] doubleValue]), @([c[0] doubleValue])]]; // lat, lon
+    }
+    const int steps = 10;
+    NSMutableArray<NSArray<NSNumber *> *> *pts = [NSMutableArray array]; // lon, lat, ele
+    int n = 0;
+    for (NSUInteger i = 0; i + 1 < wps.count; i++) {
+        for (int k = (i == 0 ? 0 : 1); k <= steps; k++) {
+            double t = (double)k / steps;
+            double lat = wps[i][0].doubleValue + t * (wps[i + 1][0].doubleValue - wps[i][0].doubleValue);
+            double lon = wps[i][1].doubleValue + t * (wps[i + 1][1].doubleValue - wps[i][1].doubleValue);
+            [pts addObject:@[@(lon), @(lat), @(100.0 + 50.0 * sin(n / 5.0))]];
+            n++;
+        }
+    }
+    NSMutableArray *messages = [NSMutableArray arrayWithObject:@[@"Longitude", @"Latitude", @"Elevation", @"Distance",
+        @"CostPerKm", @"ElevCost", @"TurnCost", @"NodeCost", @"InitialCost", @"WayTags", @"NodeTags", @"Time", @"Energy"]];
+    long len = 0;
+    double ascend = 0;
+    for (NSUInteger i = 1; i < pts.count; i++) {
+        long d = lround(BPDistance(pts[i - 1][1].doubleValue, pts[i - 1][0].doubleValue, pts[i][1].doubleValue, pts[i][0].doubleValue));
+        len += d;
+        if (pts[i][2].doubleValue > pts[i - 1][2].doubleValue) ascend += pts[i][2].doubleValue - pts[i - 1][2].doubleValue;
+        NSString *tags = (i <= pts.count / 2) ? @"highway=tertiary surface=asphalt" : @"highway=track surface=gravel";
+        [messages addObject:@[ [NSString stringWithFormat:@"%ld", lround(pts[i][0].doubleValue * 1e6)],
+                               [NSString stringWithFormat:@"%ld", lround(pts[i][1].doubleValue * 1e6)],
+                               [NSString stringWithFormat:@"%.0f", pts[i][2].doubleValue],
+                               [NSString stringWithFormat:@"%ld", d], @"1000", @"0", @"0", @"0", @"0", tags, @"", @"0", @"0" ]];
+    }
+    NSDictionary *geo = @{ @"type": @"FeatureCollection", @"features": @[ @{
+        @"type": @"Feature",
+        @"properties": @{ @"creator": @"BPStubServer", @"name": @"brouter_stub_0",
+                          @"track-length": [NSString stringWithFormat:@"%ld", len],
+                          @"filtered ascend": [NSString stringWithFormat:@"%.0f", ascend],
+                          @"plain-ascend": @"0", @"total-time": @"600", @"total-energy": @"360000",
+                          @"cost": [NSString stringWithFormat:@"%ld", len], @"messages": messages },
+        @"geometry": @{ @"type": @"LineString", @"coordinates": pts } } ] };
+    return [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:geo options:0 error:NULL]
+                                 encoding:NSUTF8StringEncoding];
 }
 
 - (NSString *) overpassJSONForQuery:(NSString *)q

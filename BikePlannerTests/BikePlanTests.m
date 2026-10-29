@@ -388,6 +388,29 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     XCTAssertEqual(plan.customPoiloc.count, 0u);
 }
 
+// distance by road / surface class (#53): saved, part of the route state, shown as text
+- (void)testRoadStats
+{
+    plan.brouterInfo.roadStats = @{ @"tertiary": @11200, @"small": @18000, @"track": @4000, @"cycleway": @3100, @"primary": @0 };
+    plan.brouterInfo.surfaceStats = @{ @"paved": @30000, @"unpaved": @5300, @"unknown": @1000 };
+    NSString *t = plan.brouterInfo.roadTypesText;
+    NSArray<NSString *> *lines = [t componentsSeparatedByString:@"\n"];
+    XCTAssertEqual(lines.count, 5u, @"4 road classes (not the empty one) + surface: %@", t);
+    XCTAssertTrue([lines[0] hasPrefix:NSLocalizedString(@"Small roads", nil)], @"longest first: %@", lines[0]);
+    XCTAssertTrue([lines[0] containsString:@"18"] && [lines[0] containsString:@"50 %"], @"%@", lines[0]);
+    XCTAssertTrue([lines[4] containsString:@"83 %"] && [lines[4] containsString:@"15 %"], @"surface line: %@", lines[4]);
+
+    BikePlan *r = [self roundTrip:plan];
+    XCTAssertEqualObjects(r.brouterInfo.roadStats, plan.brouterInfo.roadStats);
+    XCTAssertEqualObjects(r.brouterInfo.surfaceStats, plan.brouterInfo.surfaceStats);
+
+    NSDictionary *state = [plan clearRoute];
+    XCTAssertNil(plan.brouterInfo.roadStats);
+    XCTAssertEqualObjects(plan.brouterInfo.roadTypesText, @"");
+    [plan restoreRoute:state];
+    XCTAssertEqualObjects(plan.brouterInfo.roadStats[@"track"], @4000, @"restored by undo");
+}
+
 - (void)testCustomPoiCanBeAddedAfterLoad
 {
     [plan addCustomPoiAt:CLLocationCoordinate2DMake(44, 0.5)];

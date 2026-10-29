@@ -7,6 +7,7 @@
 
 #import <XCTest/XCTest.h>
 #import "BRouterClient.h"
+#import "GPXParser.h"
 #import "BPStubServer.h"
 #import "TestFixtures.h"
 
@@ -51,13 +52,23 @@
         XCTAssertNotNil(gpx);
         XCTAssertNotNil(info[@"n-track-length-m"]);
         XCTAssertGreaterThan([info[@"n-track-length-m"] doubleValue], 10000);
+        // distance by road / surface class (#53): the stub gives half tertiary/asphalt, half track/gravel
+        NSDictionary *roads = info[@"road-stats"];
+        XCTAssertGreaterThan([roads[@"tertiary"] doubleValue], 0);
+        XCTAssertGreaterThan([roads[@"track"] doubleValue], 0);
+        XCTAssertEqualWithAccuracy([[roads.allValues valueForKeyPath:@"@sum.doubleValue"] doubleValue],
+                                   [info[@"n-track-length-m"] doubleValue], 1);
+        XCTAssertGreaterThan([info[@"surface-stats"][@"unpaved"] doubleValue], 0);
+        // GPX for the export, built from the points
+        NSArray *gpxPoints = [[[GPXParser alloc] init] parseGPXData:gpx error:NULL];
+        XCTAssertEqual(gpxPoints.count, 11u);
     }];
     BPStubRequest *r = [server requestsWithPath:@"/brouter"].firstObject;
     XCTAssertEqualObjects(r.method, @"GET");
     XCTAssertEqualObjects(r.query[@"lonlats"], @"0.500000,44.000000|0.600000,44.100000");
     XCTAssertEqualObjects(r.query[@"profile"], @"trekking");
     XCTAssertEqualObjects(r.query[@"alternativeidx"], @"0");
-    XCTAssertEqualObjects(r.query[@"format"], @"gpx");
+    XCTAssertEqualObjects(r.query[@"format"], @"geojson", @"way tags for the road types (#53)");
 }
 
 - (void)testIntermediateWaypoints
@@ -112,7 +123,7 @@
                                       waypoints:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] profile:@"trekking"
                                       overrides:@{ @"b": @"2", @"a": @"1" }];
     XCTAssertEqualObjects(u.absoluteString, @"https://brouter.de/brouter?lonlats=0.500000,44.000000%7C0.600000,44.100000"
-                          @"&profile=trekking&alternativeidx=0&format=gpx&profile:a=1&profile:b=2", @"overrides sorted by name");
+                          @"&profile=trekking&alternativeidx=0&format=geojson&profile:a=1&profile:b=2", @"overrides sorted by name");
 }
 
 - (void)testServerUnreachableGivesError

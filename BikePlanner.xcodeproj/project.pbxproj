@@ -73,6 +73,8 @@
 		9B9B10B1342DF9F8C2F0FB1D /* PreferencesTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D5EDBB5E4D6F8299BEC5C94B /* PreferencesTests.m */; };
 		C85D91D5D5C5955832DE3936 /* SecretsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = ECBF9870ED7DC9BB75B9F399 /* SecretsTests.m */; };
 		BEC262829054999E9B9115A7 /* BPSecrets.m in Sources */ = {isa = PBXBuildFile; fileRef = 6BE71F1D096ACB6884574632 /* BPSecrets.m */; };
+		A146C78EBDFEBE3B5F048C37 /* BRouterGeoJSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 89125B9A98FFE575BE6A66EC /* BRouterGeoJSON.m */; };
+		04E8FE91159AC178E5EF30EF /* BRouterGeoJSONTests.m in Sources */ = {isa = PBXBuildFile; fileRef = B6E717394B6A8172F6C038F5 /* BRouterGeoJSONTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -198,6 +200,9 @@
 		ECBF9870ED7DC9BB75B9F399 /* SecretsTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SecretsTests.m; sourceTree = "<group>"; };
 		6BE71F1D096ACB6884574632 /* BPSecrets.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPSecrets.m; sourceTree = "<group>"; };
 		7A8DF1A16B04B617120AB1D9 /* BPSecrets.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPSecrets.h; sourceTree = "<group>"; };
+		89125B9A98FFE575BE6A66EC /* BRouterGeoJSON.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BRouterGeoJSON.m; sourceTree = "<group>"; };
+		5BC720DD72F72937C575B9DC /* BRouterGeoJSON.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRouterGeoJSON.h; sourceTree = "<group>"; };
+		B6E717394B6A8172F6C038F5 /* BRouterGeoJSONTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BRouterGeoJSONTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -322,6 +327,8 @@
 				3ED73D514DDDA82E0C4660B8 /* BPPOIEditor.h */,
 				C23F861538C5B44632D9DD27 /* BPPlaceSearch.m */,
 				E89A1304743D6DA6A51C2AB4 /* BPPlaceSearch.h */,
+				89125B9A98FFE575BE6A66EC /* BRouterGeoJSON.m */,
+				5BC720DD72F72937C575B9DC /* BRouterGeoJSON.h */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -387,6 +394,7 @@
 				B02CDC8B1BCDC5D243D9E139 /* AppearanceTests.m */,
 				D5EDBB5E4D6F8299BEC5C94B /* PreferencesTests.m */,
 				ECBF9870ED7DC9BB75B9F399 /* SecretsTests.m */,
+				B6E717394B6A8172F6C038F5 /* BRouterGeoJSONTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -592,6 +600,7 @@
 				DA325F7657A9B48AD170EA40 /* BPPreferences.m in Sources */,
 				C0BE5B9AE4B26B13D80F5E12 /* BPPreferencesWindowController.m in Sources */,
 				BEC262829054999E9B9115A7 /* BPSecrets.m in Sources */,
+				A146C78EBDFEBE3B5F048C37 /* BRouterGeoJSON.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -620,6 +629,7 @@
 				9925BDC25A9FBFC0656BD01E /* AppearanceTests.m in Sources */,
 				9B9B10B1342DF9F8C2F0FB1D /* PreferencesTests.m in Sources */,
 				C85D91D5D5C5955832DE3936 /* SecretsTests.m in Sources */,
+				04E8FE91159AC178E5EF30EF /* BRouterGeoJSONTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

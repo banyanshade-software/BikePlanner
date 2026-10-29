@@ -128,10 +128,13 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F3.5 As soon as there are ≥2 waypoints, any change triggers a new BRouter request; the route is drawn in
   semi-transparent blue.
 - F3.6 The *Info* section shows route length (km, rounded), cumulative ascent (m, BRouter “filtered ascend”), and the
-  riding time and average speed estimated by BRouter (`time=` of the GPX header). BRouter computes the time with
+  riding time and average speed estimated by BRouter (`total-time` of its GeoJSON answer). BRouter computes the time with
   the kinematic model of the profile (`totalMass` 90 kg, `bikerPower` 100 W, `S_C_x` 0.225, `C_r` 0.01, `maxSpeed`
   45 km/h in `trekking`): continuous power, no stops — optimistic for a loaded touring bike (#30). These parameters
   can be overridden per request (`profile:<name>=<value>`, see F4).
+  Below, the **distance by road type** (cycleways, paths, tracks, small roads, tertiary, secondary, main roads,
+  other: km and %, longest first) and the share paved / unpaved / unknown surface, from the way tags of the
+  BRouter answer; saved with the document. The Info section is in a scroll view (#53).
 - F3.7 All waypoint operations (add, insert, move, remove, reverse) are **undoable/redoable** (Edit ▸ Undo/Redo),
   as well as adding a custom POI and importing a reference trace.
 - F3.8 *Edit ▸ Reverse Route* or the toolbar *Reverse* button (enabled with ≥ 2 waypoints) swaps start and end: the waypoint order is reversed

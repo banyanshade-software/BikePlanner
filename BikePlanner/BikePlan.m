@@ -6,6 +6,7 @@
 //
 
 #import "BikePlan.h"
+#import "GPXParser.h"
 #import "POILocation.h"
 #import "BPEnvironment.h"
  
@@ -136,6 +137,7 @@
                            @"route": _routePoints ?: @[],
                            @"kmlen": @(_brouterInfo.kmlen), @"mup": @(_brouterInfo.mup),
                            @"meters": @(_brouterInfo.meters), @"seconds": @(_brouterInfo.seconds),
+                           @"roadStats": _brouterInfo.roadStats ?: @{}, @"surfaceStats": _brouterInfo.surfaceStats ?: @{},
                            @"poiloc": _poiloc ?: @[],
                            @"custom": [_customPoiloc copy] ?: @[] };
     if (_routeGPX) {
@@ -150,6 +152,8 @@
     self.brouterInfo.mup = 0;
     self.brouterInfo.meters = 0;
     self.brouterInfo.seconds = 0;
+    self.brouterInfo.roadStats = nil;
+    self.brouterInfo.surfaceStats = nil;
     self.poiloc = @[];
     [self restoreCustomPoi:nil];
     return old;
@@ -164,6 +168,8 @@
     self.brouterInfo.mup = [state[@"mup"] integerValue];
     self.brouterInfo.meters = [state[@"meters"] integerValue];
     self.brouterInfo.seconds = [state[@"seconds"] integerValue];
+    self.brouterInfo.roadStats = [state[@"roadStats"] count] ? state[@"roadStats"] : nil;
+    self.brouterInfo.surfaceStats = [state[@"surfaceStats"] count] ? state[@"surfaceStats"] : nil;
     self.poiloc = state[@"poiloc"];
     [self restoreCustomPoi:state[@"custom"]];
 }
@@ -394,27 +400,10 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     return [BikePlan gpxDataForPoints:_routePoints name:@"route"];
 }
 
-static NSString *BPXMLEscaped(NSString *s)
-{
-    s = [s stringByReplacingOccurrencesOfString:@"&" withString:@"&amp;"];
-    s = [s stringByReplacingOccurrencesOfString:@"<" withString:@"&lt;"];
-    s = [s stringByReplacingOccurrencesOfString:@">" withString:@"&gt;"];
-    return [s stringByReplacingOccurrencesOfString:@"\"" withString:@"&quot;"];
-}
-
-// minimal GPX 1.1 track with elevations, for documents saved without the BRouter GPX (#10)
+// GPX of the route points (documents saved before #10); the writer is in GPXParser (also used for BRouter, #53)
 + (NSData *) gpxDataForPoints:(NSArray<CLLocation *> *)points name:(NSString *)name
 {
-    NSMutableString *xml = [NSMutableString stringWithString:
-        @"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-        @"<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"BikePlanner\" version=\"1.1\">\n"];
-    [xml appendFormat:@" <trk>\n  <name>%@</name>\n  <trkseg>\n", BPXMLEscaped(name)];
-    for (CLLocation *p in points) {
-        [xml appendFormat:@"   <trkpt lat=\"%.6f\" lon=\"%.6f\">", p.coordinate.latitude, p.coordinate.longitude];
-        [xml appendFormat:@"<ele>%.2f</ele></trkpt>\n", p.altitude]; // route points from BRouter all have one
-    }
-    [xml appendString:@"  </trkseg>\n </trk>\n</gpx>\n"];
-    return [xml dataUsingEncoding:NSUTF8StringEncoding];
+    return [GPXParser gpxDataForPoints:points name:name comment:nil];
 }
 - (TaggedPoly *) buildPolyWith :(NSArray <CLLocation *> *)points
 {
@@ -742,12 +731,80 @@ static NSString *BPXMLEscaped(NSString *s)
     return [NSSet setWithObject:@"seconds"];
 }
 
++ (NSString *) displayNameForRoadClass:(NSString *)c
+{
+    NSDictionary *names = @{ @"cycleway": NSLocalizedString(@"Cycleways", @"road class"),
+                             @"path": NSLocalizedString(@"Paths", @"road class"),
+                             @"track": NSLocalizedString(@"Tracks", @"road class"),
+                             @"small": NSLocalizedString(@"Small roads", @"road class"),
+                             @"tertiary": NSLocalizedString(@"Tertiary roads", @"road class"),
+                             @"secondary": NSLocalizedString(@"Secondary roads", @"road class"),
+                             @"primary": NSLocalizedString(@"Main roads", @"road class"),
+                             @"other": NSLocalizedString(@"Other", @"road class") };
+    return names[c] ?: c;
+}
+
+- (NSString *) roadTypesText
+{
+    double total = [[_roadStats.allValues valueForKeyPath:@"@sum.doubleValue"] doubleValue];
+    if (total <= 0) return @"";
+    NSNumberFormatter *km = [[NSNumberFormatter alloc] init];
+    km.numberStyle = NSNumberFormatterDecimalStyle;
+    km.minimumFractionDigits = km.maximumFractionDigits = 1;
+    NSMutableArray<NSString *> *lines = [NSMutableArray array];
+    NSArray *classes = [_roadStats keysSortedByValueUsingComparator:^NSComparisonResult(NSNumber *a, NSNumber *b) {
+        return [b compare:a];
+    }];
+    for (NSString *c in classes) {
+        double m = _roadStats[c].doubleValue;
+        if (m <= 0) continue;
+        [lines addObject:[NSString stringWithFormat:@"%@\t%@ km\t%.0f %%", [BrouterInfo displayNameForRoadClass:c],
+                          [km stringFromNumber:@(m / 1000)], 100 * m / total]];
+    }
+    double stotal = [[_surfaceStats.allValues valueForKeyPath:@"@sum.doubleValue"] doubleValue];
+    if (stotal > 0) {
+        [lines addObject:[NSString stringWithFormat:NSLocalizedString(@"Paved %.0f %% · unpaved %.0f %% · unknown %.0f %%", @"surface line"),
+                          100 * _surfaceStats[@"paved"].doubleValue / stotal, 100 * _surfaceStats[@"unpaved"].doubleValue / stotal,
+                          100 * _surfaceStats[@"unknown"].doubleValue / stotal]];
+    }
+    return [lines componentsJoinedByString:@"\n"];
+}
+
++ (NSSet<NSString *> *) keyPathsForValuesAffectingRoadTypesText
+{
+    return [NSSet setWithObjects:@"roadStats", @"surfaceStats", nil];
+}
+
+- (NSAttributedString *) roadTypesAttributedText
+{
+    NSString *text = self.roadTypesText;
+    if (!text.length) return [[NSAttributedString alloc] initWithString:@""];
+    NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
+    style.tabStops = @[ [[NSTextTab alloc] initWithTextAlignment:NSTextAlignmentRight location:170 options:@{}],
+                        [[NSTextTab alloc] initWithTextAlignment:NSTextAlignmentRight location:215 options:@{}] ];
+    NSFont *font = [NSFont monospacedDigitSystemFontOfSize:NSFont.smallSystemFontSize weight:NSFontWeightRegular];
+    NSMutableAttributedString *s = [[NSMutableAttributedString alloc]
+        initWithString:[NSLocalizedString(@"Distance by road type", @"Info section") stringByAppendingString:@"\n"]
+            attributes:@{ NSFontAttributeName: [NSFont boldSystemFontOfSize:NSFont.smallSystemFontSize],
+                          NSForegroundColorAttributeName: [NSColor labelColor] }];
+    [s appendAttributedString:[[NSAttributedString alloc] initWithString:text attributes:@{
+        NSFontAttributeName: font, NSParagraphStyleAttributeName: style, NSForegroundColorAttributeName: [NSColor labelColor] }]];
+    return s;
+}
+
++ (NSSet<NSString *> *) keyPathsForValuesAffectingRoadTypesAttributedText
+{
+    return [NSSet setWithObject:@"roadTypesText"];
+}
+
 - (void)encodeWithCoder:(NSCoder *)coder
 {
     [coder encodeInteger:_kmlen forKey:@"kmlen"];
     [coder encodeInteger:_mup forKey:@"mup"];
     [coder encodeInteger:_meters forKey:@"meters"];
     [coder encodeInteger:_seconds forKey:@"seconds"];
+    [coder encodeObject:_roadStats forKey:@"roadStats"];
+    [coder encodeObject:_surfaceStats forKey:@"surfaceStats"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)coder
@@ -758,6 +815,9 @@ static NSString *BPXMLEscaped(NSString *s)
     self.mup = [coder decodeIntegerForKey:@"mup"];
     self.meters = [coder decodeIntegerForKey:@"meters"];
     self.seconds = [coder decodeIntegerForKey:@"seconds"];
+    NSSet *classes = [NSSet setWithObjects:[NSDictionary class], [NSString class], [NSNumber class], nil];
+    self.roadStats = [coder decodeObjectOfClasses:classes forKey:@"roadStats"];
+    self.surfaceStats = [coder decodeObjectOfClasses:classes forKey:@"surfaceStats"];
     return self;
 }
 @end

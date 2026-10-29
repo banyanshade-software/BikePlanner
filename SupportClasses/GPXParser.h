@@ -18,6 +18,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly, nonatomic) NSArray<NSString *> *waypointTypes; // <type> of each wpt, @"" when none
 @property (readonly, nonatomic) NSString *traceSource; // what the trace is made of: @"trk", @"rte" or @"wpt"
 - (NSDictionary *)brouterInfo;
+/// minimal GPX 1.1 track with elevations (export of a route, #10, #53); comment: XML comment after the declaration
++ (NSData *)gpxDataForPoints:(NSArray<CLLocation *> *)points name:(NSString *)name comment:(nullable NSString *)comment;
+
 @end
 
 NS_ASSUME_NONNULL_END

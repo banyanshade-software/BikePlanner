@@ -31,6 +31,15 @@ extern const NSUInteger kBPImportMaxWaypoints;        // before spacing: the tol
 @property (readonly) NSString *durationText;        // "2 h 39", "45 min", "–"
 @property (readonly) NSString *averageSpeedText;    // "18.4" (localized), "–"
 
+// distance (m) by road class / surface class, from the BRouter way tags (#53; keys: see BRouterGeoJSON.h)
+@property (copy, nullable) NSDictionary<NSString *, NSNumber *> *roadStats;
+@property (copy, nullable) NSDictionary<NSString *, NSNumber *> *surfaceStats;
+/// Info section: one line per road class, longest first ("Small roads  18.0 km  50 %"), then the surface line;
+/// "" without statistics
+@property (readonly) NSString *roadTypesText;
+/// same, with a title and aligned columns, bound to the Info section label
+@property (readonly) NSAttributedString *roadTypesAttributedText;
+
 @end
 
 

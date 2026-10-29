@@ -9,6 +9,7 @@
 #import <MapKit/MapKit.h>
 #import "BRouterClient.h"
 #import "GPXParser.h"
+#import "BRouterGeoJSON.h"
 
 @implementation BRouterClient
 
@@ -55,7 +56,7 @@ static NSString *BPQueryEncoded(NSString *s)
     add(@"lonlats", lonlats);
     add(@"profile", profile ?: @"fastbike");
     add(@"alternativeidx", @"0");
-    add(@"format", @"gpx");
+    add(@"format", @"geojson"); // way tags for the distance by road type (#53); the GPX for export is built from the points
     // profile parameter overrides: BRouter reads top-level "profile:<name>" parameters ("extraParams" is ignored);
     // booleans must be 1/0: "true"/"false" make brouter.de fail with HTTP 500 (#38)
     for (NSString *name in [overrides.allKeys sortedArrayUsingSelector:@selector(compare:)]) {
@@ -102,14 +103,21 @@ static NSString *BPQueryEncoded(NSString *s)
 
         
         
-        GPXParser *pgpx = [[GPXParser alloc]init];
-        NSError *parseError = nil;
-        NSArray<CLLocation *> *points = [pgpx parseGPXData:data error:&parseError];
-
-        if (completion) {
-            NSDictionary *bi = [pgpx brouterInfo];
-            completion(points, data, bi, nil);
+        // GeoJSON (#53). Not a route (BRouter error text): no points and no error, as before (#9)
+        BRouterGeoJSON *route = [BRouterGeoJSON routeWithData:data error:NULL];
+        if (!route) {
+            if (completion) completion(@[], nil, nil, nil);
+            return;
         }
+        NSMutableDictionary *bi = [route.info mutableCopy];
+        bi[@"road-stats"] = route.roadStats;
+        bi[@"surface-stats"] = route.surfaceStats;
+        // GPX for the export, with BRouter's statistics as comment (as in BRouter's own GPX)
+        NSString *comment = [NSString stringWithFormat:@"track-length = %@ filtered ascend = %@ time=%@s (BRouter, %@)",
+                             route.info[@"n-track-length-m"] ?: @"?", route.info[@"filtered-ascend"] ?: @"?",
+                             route.info[@"n-time-seconds"] ?: @"?", profile];
+        NSData *gpx = [GPXParser gpxDataForPoints:route.points name:[@"brouter_" stringByAppendingString:profile] comment:comment];
+        if (completion) completion(route.points, gpx, bi, nil);
 
     }];
     [task resume];
