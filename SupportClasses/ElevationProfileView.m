@@ -92,6 +92,59 @@ static const double kMinElevationRange = 100; // m: small differences must not l
     //[self setNeedsLayout:YES];
 }
 
+#pragma mark - slope at the selected point (#48)
+
+static const double kBPSlopeHalfWindow = 50; // m
+
+- (double) elevationAtDistance:(double)distance
+{
+    NSUInteger n = self.distances.count;
+    if (n == 0) return 0;
+    if (distance <= self.distances[0].doubleValue) return self.elevations[0].doubleValue;
+    for (NSUInteger i = 1; i < n; i++) {
+        double d2 = self.distances[i].doubleValue;
+        if (distance <= d2) {
+            double d1 = self.distances[i - 1].doubleValue;
+            double e1 = self.elevations[i - 1].doubleValue, e2 = self.elevations[i].doubleValue;
+            return d2 > d1 ? e1 + (e2 - e1) * (distance - d1) / (d2 - d1) : e2;
+        }
+    }
+    return self.elevations[n - 1].doubleValue;
+}
+
+- (nullable NSNumber *) slopeAtDistance:(double)distance
+{
+    if (self.distances.count < 2) return nil;
+    double total = self.distances.lastObject.doubleValue;
+    double a = distance - kBPSlopeHalfWindow, b = distance + kBPSlopeHalfWindow;
+    // full window at the ends of the route
+    if (a < 0) { b -= a; a = 0; }
+    if (b > total) { a -= b - total; b = total; }
+    a = fmax(0, a);
+    if (b - a < 1) return nil;
+    return @(100 * ([self elevationAtDistance:b] - [self elevationAtDistance:a]) / (b - a));
+}
+
+- (nullable NSString *) highlightText
+{
+    if (_highlightDistance <= 0 || self.distances.count < 2) return nil;
+    static NSNumberFormatter *km, *slope;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        km = [[NSNumberFormatter alloc] init];
+        km.numberStyle = NSNumberFormatterDecimalStyle;
+        km.minimumFractionDigits = 1;
+        km.maximumFractionDigits = 1;
+        slope = [km copy];
+        slope.positivePrefix = @"+";
+    });
+    NSString *s = [NSString stringWithFormat:@"%@ km · %.0f m", [km stringFromNumber:@(_highlightDistance / 1000)],
+                   [self elevationAtDistance:_highlightDistance]];
+    NSNumber *p = [self slopeAtDistance:_highlightDistance];
+    if (p) s = [s stringByAppendingFormat:@" · %@ %%", [slope stringFromNumber:p]];
+    return s;
+}
+
 - (void)drawRect:(NSRect)dirtyRect
 {
     //NSLog(@"[%@] drawRect called", [NSDate date]);
@@ -182,6 +235,20 @@ static const double kMinElevationRange = 100; // m: small differences must not l
          CGContextSetLineDash(ctx, 0, dash, 2);
          CGContextStrokePath(ctx);
          CGContextSetLineDash(ctx, 0, NULL, 0);
+
+         // distance, elevation and slope at the cursor (#48), on the side with room
+         NSString *text = self.highlightText;
+         if (text) {
+             NSDictionary *attrs = @{ NSFontAttributeName: [NSFont monospacedDigitSystemFontOfSize:11 weight:NSFontWeightMedium],
+                                      NSForegroundColorAttributeName: [NSColor labelColor] };
+             NSSize sz = [text sizeWithAttributes:attrs];
+             CGFloat tx = hx + 6;
+             if (tx + sz.width + 4 > NSMaxX(_plotRect)) tx = hx - 6 - sz.width;
+             NSRect box = NSMakeRect(tx - 3, NSMaxY(_plotRect) - sz.height - 4, sz.width + 6, sz.height + 2);
+             [[[NSColor windowBackgroundColor] colorWithAlphaComponent:0.85] setFill];
+             [[NSBezierPath bezierPathWithRoundedRect:box xRadius:3 yRadius:3] fill];
+             [text drawAtPoint:NSMakePoint(tx, NSMinY(box) + 1) withAttributes:attrs];
+         }
      }
 }
 

@@ -174,6 +174,9 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   extended to round values.
 - F5.2 Clicking or dragging in the profile moves a dashed cursor, moves the scrubber marker on the map,
   centers the map there and updates Street View, looking in the direction of travel.
+- F5.3 Next to the cursor (profile scrubbed, or route clicked in *View* mode), the profile shows the distance from
+  the start, the elevation and the **slope** at that point (“12.3 km · 145 m · +6.5 %”, positive uphill in the
+  direction of the route). The slope is computed over ±50 m around the point (raw elevations are noisy) (#48).
 
 ### F6 — Street View
 - F6.1 The Street View pane shows Google Street View at a given coordinate and heading.

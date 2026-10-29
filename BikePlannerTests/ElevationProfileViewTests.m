@@ -173,4 +173,46 @@
     XCTAssertGreaterThan([self inkIn:NSMakeRect(40, 0, 320, 28) of:v], 0.005, @"distance labels in the bottom margin");
 }
 
+#pragma mark - slope at the selected point (#48)
+
+// points every 10 m going north, elevation from f(distance in m)
+- (ElevationProfileView *)profileOver:(double)length elevation:(double (^)(double d))f
+{
+    NSMutableArray<CLLocation *> *pts = [NSMutableArray array];
+    for (double d = 0; d <= length + 0.1; d += 10) pts[pts.count] = BPLocAlt(44.0 + d / 111195.0, 0.5, f(d));
+    ElevationProfileView *v = [[ElevationProfileView alloc] initWithFrame:NSMakeRect(0, 0, 400, 150)];
+    [v setGpxPoints:pts];
+    return v;
+}
+
+- (void)testSlopeAtDistance
+{
+    ElevationProfileView *flat = [self profileOver:2000 elevation:^double(double d) { return 100; }];
+    XCTAssertEqualWithAccuracy([flat slopeAtDistance:1000].doubleValue, 0, 0.05);
+    ElevationProfileView *up = [self profileOver:2000 elevation:^double(double d) { return 100 + 0.05 * d; }];
+    XCTAssertEqualWithAccuracy([up slopeAtDistance:1000].doubleValue, 5.0, 0.1, @"5 %");
+    XCTAssertEqualWithAccuracy([up slopeAtDistance:0].doubleValue, 5.0, 0.1, @"at the start");
+    XCTAssertEqualWithAccuracy([up slopeAtDistance:2000].doubleValue, 5.0, 0.1, @"at the end");
+    ElevationProfileView *down = [self profileOver:2000 elevation:^double(double d) { return 300 - 0.08 * d; }];
+    XCTAssertEqualWithAccuracy([down slopeAtDistance:500].doubleValue, -8.0, 0.1, @"downhill, in the route direction");
+    // noisy elevations (±2 m every 10 m): the slope over ±50 m stays readable (a point-to-point slope would be ±40 %)
+    ElevationProfileView *noisy = [self profileOver:2000 elevation:^double(double d) {
+        return 100 + 0.03 * d + ((int)(d / 10) % 2 ? 2 : -2); }];
+    XCTAssertEqualWithAccuracy([noisy slopeAtDistance:1005].doubleValue, 3.0, 4.1);
+    // no route
+    ElevationProfileView *empty = [[ElevationProfileView alloc] initWithFrame:NSMakeRect(0, 0, 400, 150)];
+    XCTAssertNil([empty slopeAtDistance:10]);
+}
+
+- (void)testHighlightTextShowsDistanceElevationSlope
+{
+    ElevationProfileView *up = [self profileOver:2000 elevation:^double(double d) { return 100 + 0.065 * d; }];
+    XCTAssertNil(up.highlightText, @"no point selected");
+    up.highlightDistance = 1200;
+    NSString *t = up.highlightText;
+    XCTAssertTrue([t containsString:@"+6"] && [t containsString:@"%"], @"%@", t);
+    XCTAssertTrue([t containsString:@"km"], @"%@", t);
+    XCTAssertTrue([t containsString:@"178 m"], @"elevation at 1.2 km: %@", t);
+}
+
 @end

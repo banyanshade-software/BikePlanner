@@ -388,6 +388,7 @@
     BPSpin(0.2);
     XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
     XCTAssertGreaterThan(mc.elevationView.highlightDistance, 0);
+    XCTAssertTrue([mc.elevationView.highlightText containsString:@"%"], @"slope shown at the selected point (#48): %@", mc.elevationView.highlightText);
     XCTAssertEqualWithAccuracy(map.centerCoordinate.latitude, c.latitude, 0.005);
 }
 
