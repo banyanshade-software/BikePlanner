@@ -4,9 +4,10 @@ Native macOS app (Objective-C, AppKit, XIB) to plan bicycle routes: MapKit + OSM
 brouter.de for routing, Overpass for POIs, Google Street View in a `WKWebView`.
 
 Read first:
-- `doc/01-high-level-spec.md` — what the app does (functional requirements F1–F11, decisions, open questions)
+- `doc/01-high-level-spec.md` — what the app does (functional requirements F1–F12, decisions, open questions)
 - `doc/02-architecture.md` — how it is built, key flows, **known bugs and tech debt (§9)**
 - `doc/03-distribution-constraints.md` — third-party service constraints (app is personal for now)
+- `doc/04-embedded-brouter.md` (on branch `brouter` only) — plan for a BRouter engine embedded in the app
 
 Work items are tracked as GitHub issues on `banyanshade-software/BikePlanner`.
 
@@ -80,7 +81,7 @@ and product; source files are kept).
 - Unit tests: `BikePlannerTests/`, hosted in the app; shared data/helpers in `TestFixtures.h`
   (`BPOverrideDefaults`, `BPWaitUntil`, `BPSpin`, `BPLoc`…). UI tests: `BikePlannerUITests/`, base class `BPUITestCase`.
 - **Everything runs offline.** External services are replaced by `BPStubServer` (in `BikePlannerTests/`, compiled
-  into both test targets), which imitates BRouter (route GPX, `.brf` profiles) and Overpass (3 POIs ~1 km from the
+  into both test targets), which imitates BRouter (routes in GeoJSON — the app requests `format=geojson` since #53 — or GPX, `.brf` profiles) and Overpass (3 POIs ~1 km from the
   route start) and records every request — use the request log as the oracle.
   - unit tests: `[server startInProcess]` (NSURLProtocol, no socket — the sandboxed host app cannot listen), then
     point the app to it with `BPOverrideDefaults(@{ @"BPBRouterServer": server.baseURL.absoluteString, … })` and
@@ -91,14 +92,21 @@ and product; source files are kept).
   `BPDisableTiles`, `BPInitialRegion`, `BPDisableLocation`); no effect without overrides. When adding an external endpoint, route it
   through `BPEnvironment` and teach `BPStubServer` to answer it. The Apple place search goes through `BPPlaceSearch`:
   tests replace it with `+setSearchHandlerForTesting:`. Tests of the Preferences use a private `NSUserDefaults`
-  suite, never the owner's defaults.
+  suite, never the owner's defaults. The test host reads the owner's real user defaults (Preferences, my default
+  BRouter parameters): a test that depends on `BPDefaultPosition`, `BPInitialRadiusKm`, `BPProfileOverrides`… must
+  override it with `BPOverrideDefaults`.
+- `Secret.h` is not in the Xcode project: a test that needs it imports `"../BikePlanner/Secret.h"` and never prints
+  the key (`SecretsTests`).
+- XCTest macros: a comma inside a message send (`[NSString stringWithFormat:@"%@", x]`) splits the macro arguments —
+  compute the value in a variable first.
 - Integration tests of the window: `DocumentWindowTests` opens a real document window and drives `MapController`;
   map clicks go through `-handleMapClick:` with a fake gesture recognizer (`BPFakeClick`).
 - Private methods are tested by declaring a category in the test file.
 - Undo: in tests, the undo manager does not close its automatic groups in nested run loops — set
   `groupsByEvent = NO` and group explicitly (see `UndoTests`).
 - UI tests: controls created in code have `accessibilityIdentifier`s (`map`, `clickMode`, `mapType`, `clickModeHelp`,
-  `zoomIn`…, `brf.<parameter>` in the Params tab, `routeLength`/`routeAscent`/`routeTime`/`routeSpeed` in the XIB — on the cell: unit tests find them with
+  `zoomIn`…, `brf.<parameter>` in the Params tab, `routeRoadTypes` (Info section), `poiType`/`poiName` (custom POI
+  sheet), `prefLatitude`/`prefLongitude`/`prefRadius`/`prefSearch` (Preferences), `routeLength`/`routeAscent`/`routeTime`/`routeSpeed` in the XIB — on the cell: unit tests find them with
   `-[DocumentWindowTests panelControlWithIdentifier:]`). POI markers and callouts are not exposed to accessibility:
   check POI behavior through its effects (stub requests, undo menu items). Files exchanged with the app go in
   `/private/tmp/bp-uitests/`.
@@ -113,9 +121,23 @@ AppleScript, which needs the owner's Automation permission for Finder and does n
 shell: let the owner run it (`! scripts/make_dmg.sh`). The DMG embeds the Thunderforest key (obfuscated, #51: the script refuses an app containing it in clear): don't
 publish it.
 
+## Running the app
+
+The owner launches the app (`! open ".../Build/Products/Debug/BikePlanner.app"`); Claude's shell may not kill or
+relaunch it. `open` on a running instance only brings it to the front: quit it first (⌘Q) to run a new build.
+Diagnostics of a run: temporary `NSLog(@"DIAGxx …")`, then `/usr/bin/log show --last 5m --style compact
+--predicate 'process == "BikePlanner" AND eventMessage CONTAINS "DIAGxx"'` (read-only; remove the logs before
+committing). The Debug build is `~/Library/Developer/Xcode/DerivedData/BikePlanner-*/Build/Products/Debug/`.
+
 ## Workflow
 
-- Branch `dev` for work, `main` is the default branch for PRs.
+- Branch `dev` for work, `main` is the default branch for PRs. A batch of issues may get its own branch (e.g. `v08`),
+  merged into `dev` (then `main`) when the owner asks — usually a fast-forward. Branch `brouter`: embedded BRouter
+  engine (long-running).
+- The owner tests at the end of a batch; commit when the unit tests pass (if asked), push / close issues only when
+  asked, with a closing comment giving the commit. Read the issue comments first (`gh issue view N --comments`).
+- Version: `MARKETING_VERSION` (2 lines of `project.pbxproj`, app target), bumped by the owner's request; the build
+  number and commit are set at build time (`scripts/set_build_info.sh`).
 - Docs, code comments, commit messages and issues are in **English**; the owner talks in French.
 - Don't commit, push or create issues/PRs without being asked. Ask when in doubt about intended behavior —
   the spec's "open questions" list is the place to record it.
