@@ -14,8 +14,9 @@ Work items are tracked as GitHub issues on `banyanshade-software/BikePlanner`.
 ## Build & test
 
 One-time setup: `cp BikePlanner/Secret.h.example BikePlanner/Secret.h` (git-ignored; the build fails without it;
-put a real Thunderforest key in it for the OSM+cycle map). Only `BPSecrets.m` includes `Secret.h`: it stores the key
-obfuscated (#51); use `+[BPSecrets thunderforestAPIKey]`, never the macro, and never log the key.
+put a real Thunderforest key in it for the OSM+cycle map, optionally a Google Maps Embed API key for Street View, #49).
+Only `BPSecrets.m` includes `Secret.h`: it stores the keys obfuscated (#51); use `+[BPSecrets thunderforestAPIKey]` /
+`+googleMapsAPIKey`, never the macros, and never log a key.
 UI tests also need macOS Automation Mode, enabled once by the owner in Terminal.app:
 `sudo automationmodetool enable-automationmode-without-authentication` (`automationmodetool` shows the status).
 

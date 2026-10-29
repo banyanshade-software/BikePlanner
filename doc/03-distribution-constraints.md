@@ -10,13 +10,15 @@ provider's current terms at the time of distribution.
 ## 1. Third-party services
 
 ### 1.1 Google Street View
-- **Today**: the app loads `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=…&heading=…` (and an
-  initial hard-coded Google Maps URL) in a `WKWebView`.
+- **Today** (#49): with `GOOGLE_MAPS_API_KEY` in `Secret.h`, the app shows the **Maps Embed API**
+  (`https://www.google.com/maps/embed/v1/streetview?key=…&location=…&heading=…`) in an iframe of a local page;
+  without a key, it still loads the Google Maps web app (`https://www.google.com/maps/@?api=1&map_action=pano&…`).
 - **Constraint**: the Google Maps URL scheme is meant to *open Google Maps*; embedding the Google Maps web
   application inside a third-party app is generally not covered by Google's terms. The supported ways to embed
   Street View are the **Maps Embed API** (iframe, API key, free tier) or the **Maps JavaScript API** (API key, billing account).
-- **To do before distributing**: switch to the Maps Embed API (`https://www.google.com/maps/embed/v1/streetview?key=…&location=…&heading=…`)
-  or the JavaScript API; manage the API key (restrictions by referrer/app, quotas); show Google attribution.
+- **To do before distributing**: require the Maps Embed API (drop the fallback to the Google Maps web app); manage
+  the API key (restricted to the Maps Embed API and the referrer `https://bikeplanner.invalid/*`; it is obfuscated in
+  the binary like the Thunderforest key, but sent in clear in the iframe URL); quotas (the Embed API is free).
 - Alternatives without Google: Mapillary (CC-BY-SA imagery, API key), Panoramax (open).
 
 ### 1.2 OpenStreetMap tiles (`tile.openstreetmap.org`)

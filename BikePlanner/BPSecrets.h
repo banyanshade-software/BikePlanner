@@ -15,6 +15,8 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSString *)thunderforestAPIKey;
 /// OSM+cycle tiles (Thunderforest), with the key
 + (NSString *)thunderforestTileURLTemplate;
+/// Maps Embed API key for Street View (#49); empty when Secret.h has no GOOGLE_MAPS_API_KEY
++ (NSString *)googleMapsAPIKey;
 
 @end
 

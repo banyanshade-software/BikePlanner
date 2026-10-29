@@ -11,7 +11,7 @@
 # The Finder layout is set with AppleScript: the first run asks to allow Terminal to control Finder.
 # The window geometry must match packaging/dmg/make_background.swift (660 x 480, 100 pt icons at (165,165) /
 # (495,165), read-me files at (270,360) / (390,360)).
-# The app embeds Secret.h (Thunderforest key) and is not notarized: see doc/03-distribution-constraints.md.
+# The app embeds Secret.h (Thunderforest and Google Maps keys) and is not notarized: see doc/03-distribution-constraints.md.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -36,17 +36,20 @@ if [ -z "$APP" ]; then
 fi
 [ -d "$APP" ] || { echo "no app at $APP" >&2; exit 1; }
 
-# the Thunderforest key of Secret.h must not be in clear in the binaries (#51); the key is never printed
+# the API keys of Secret.h (Thunderforest, Google Maps #49) must not be in clear in the binaries (#51); keys are
+# never printed
 if [ -f "$ROOT/BikePlanner/Secret.h" ]; then
     if ! python3 - "$ROOT/BikePlanner/Secret.h" "$APP/Contents/MacOS" <<'PYEOF'
 import re, sys, os
-m = re.search(r'#define\s+THUNDERFOREST_API_KEY\s+"([^"]*)"', open(sys.argv[1]).read())
-key = m.group(1).encode() if m else b""
-if len(key) < 8: sys.exit(0)   # example key
-for f in os.listdir(sys.argv[2]):
-    if key in open(os.path.join(sys.argv[2], f), "rb").read():
-        print(f"Thunderforest key in clear in {f}: not packaged (#51)", file=sys.stderr)
-        sys.exit(1)
+src = open(sys.argv[1]).read()
+for name in ("THUNDERFOREST_API_KEY", "GOOGLE_MAPS_API_KEY"):
+    m = re.search(r'#define\s+' + name + r'\s+"([^"]*)"', src)
+    key = m.group(1).encode() if m else b""
+    if len(key) < 8: continue   # example key, or no key
+    for f in os.listdir(sys.argv[2]):
+        if key in open(os.path.join(sys.argv[2], f), "rb").read():
+            print(f"{name} in clear in {f}: not packaged (#51)", file=sys.stderr)
+            sys.exit(1)
 PYEOF
     then exit 1; fi
 fi

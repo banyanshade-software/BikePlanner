@@ -56,7 +56,7 @@ the track to a GPS device.
 | **Thunderforest OpenCycleMap** (`tile.thunderforest.com/cycle`) | “OSM+cycle” base map | Needs an API key, provided at build time in `BikePlanner/Secret.h` (not committed, see `Secret.h.example`). |
 | **Apple MapKit** | Apple standard / hybrid / satellite maps, place search, user location | |
 | **Overpass API** (`overpass-api.de`) | Fetch POIs along the route | |
-| **Google Maps Street View** (web page in a `WKWebView`) | Street-level preview | Uses the public `google.com/maps/@?api=1&map_action=pano` URL, no API key. |
+| **Google Maps Street View** (web page in a `WKWebView`) | Street-level preview | Maps Embed API in an iframe when `Secret.h` has `GOOGLE_MAPS_API_KEY` (free, minimal UI, #49); otherwise the public `google.com/maps/@?api=1&map_action=pano` URL (Google Maps web app, large info box over the panorama). |
 
 ## 5. Main window
 
@@ -182,7 +182,8 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   direction of the route). The slope is computed over ±50 m around the point (raw elevations are noisy) (#48).
 
 ### F6 — Street View
-- F6.1 The Street View pane shows Google Street View at a given coordinate and heading.
+- F6.1 The Street View pane shows Google Street View at a given coordinate and heading, filling the pane with as
+  little Google UI as possible (Maps Embed API: a small address chip only, #49).
 - F6.2 It is updated when a destination waypoint is added, when the user clicks on the route in View mode,
   and when the user scrubs the elevation profile.
 

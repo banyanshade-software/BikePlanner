@@ -51,7 +51,7 @@ BikePlanner/                 App target
   ExportAccessoryView*       Accessory view of the GPX save panel ("include POI" checkbox)
   Base.lproj/Document.xib    Document window (split views, map, tabs, profile, toolbar)
   Base.lproj/MainMenu.xib    Menus
-  Secret.h.example           Template for Secret.h (Thunderforest API key, git-ignored)
+  Secret.h.example           Template for Secret.h (Thunderforest and optional Google Maps API keys, git-ignored)
   BPSecrets.*                The only includer of Secret.h: keys XOR-ed at compile time, decoded at run time (#51)
   Assets.xcassets            App icon, POI icons (SVG from mapbox/maki)
 SupportClasses/              Reusable/support components
@@ -63,7 +63,7 @@ SupportClasses/              Reusable/support components
   BRFProfileEditor.*         Downloads a .brf profile, parses its annotated parameters, builds the Params tab UI;
                              "my defaults" (user defaults BPProfileOverrides)
   ElevationProfileView.*     Elevation chart, scrubbing
-  StreetViewController.*     Loads Google Street View URLs into a WKWebView
+  StreetViewController.*     Google Street View in a WKWebView: Maps Embed API iframe (key) or Google Maps URL (#49)
   POILocation.*              Model class for a POI (CLLocation subclass, NSSecureCoding)
   POIAnnotation.*            MKPointAnnotation for POIs, icon configuration
   POIAnnotationView.*        MKMarkerAnnotationView subclass (highlight color)
@@ -207,6 +207,10 @@ MapController.requestRoute
 ### 6.5 Scrubbing (profile ↔ map ↔ Street View)
 `ElevationProfileView` mouse down/drag → delegate `elevationProfileView:didSelectDistance:` →
 `coordinateAtDistance:` + `bearingAtDistance:` → scrubber marker, map center, `svCtrl viewCoord:lookingAt:`.
+Each Street View update reloads the page: with a Google Maps key, a local HTML page (base URL
+`https://bikeplanner.invalid/`, the referrer seen by Google) holding a Maps Embed API iframe
+(`…/maps/embed/v1/streetview?key=…&location=…&heading=…&pitch=0&fov=90`, #49); without a key, the Google Maps URL.
+Moving the panorama without reloading would need the Maps JavaScript API (billed; option 2 of #49).
 Reverse direction (View mode click on route): `distanceAtCoordinate:` → `elevationView.highlightDistance`.
 
 ### 6.6 Undo / redo
@@ -244,8 +248,8 @@ before `</gpx>` by string manipulation.
   since it is not notarized (macOS 15+: System Settings ▸ Privacy & Security ▸ Open Anyway; macOS 12–14:
   Control-click ▸ Open; or `xattr -dr com.apple.quarantine`). The volume and the
   `.dmg` file get the app icon. The layout is set with AppleScript (Finder automation permission needed; it
-  does not work from a sandboxed shell). Not notarized, and it embeds the Thunderforest key of `Secret.h`
-  (obfuscated; the script stops if the key is found in clear in the binaries).
+  does not work from a sandboxed shell). Not notarized, and it embeds the Thunderforest and Google Maps keys of
+  `Secret.h` (obfuscated; the script stops if a key is found in clear in the binaries).
 - Tests (see `CLAUDE.md` for commands and conventions):
   - unit tests `BikePlannerTests` (hosted in the app) — model, parsing, geometry, export, network clients, panels,
     and integration tests of a real document window (`DocumentWindowTests`);
@@ -271,7 +275,9 @@ before `</gpx>` by string manipulation.
   `+[AppDelegate versionStringWithInfo:]` formats the About window version.
 - macOS deployment target 12.7, ARC on.
 - **Before building**: copy `BikePlanner/Secret.h.example` to `BikePlanner/Secret.h` and set `THUNDERFOREST_API_KEY`
-  (the build fails without `Secret.h`).
+  (the build fails without `Secret.h`), and optionally `GOOGLE_MAPS_API_KEY` (Maps Embed API, for Street View, #49:
+  restrict it to that API and to the referrer `https://bikeplanner.invalid/*`, the base URL of the local page that
+  holds the iframe; without it, the Google Maps web app is shown).
 - Entitlements: App Sandbox, user-selected files read/write, outgoing network, location.
 - Endpoints: BRouter and Overpass come from `BPEnvironment`; the Google Street View and tile URLs are still
   hard-coded in `StreetViewController.m` and `MapController.m`.
