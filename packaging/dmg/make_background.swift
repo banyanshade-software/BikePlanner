@@ -1,14 +1,15 @@
 // Draws the background of the BikePlanner DMG window (#37): background.png (1x) and background@2x.png.
 //   swift packaging/dmg/make_background.swift <output dir> [version]
 // Called by scripts/make_dmg.sh with the app's CFBundleShortVersionString (MARKETING_VERSION), shown in the title.
-// The layout must match scripts/make_dmg.sh: window 660 x 400 points, 128 pt icons centered at
-// (165, 190) for the app and (495, 190) for the Applications link (Finder coordinates, origin top left).
+// The layout must match scripts/make_dmg.sh: window 660 x 480 points, 100 pt icons centered at
+// (165, 165) for the app, (495, 165) for the Applications link, and (270, 360) / (390, 360) for the
+// "Read Me" / "Lisez-moi" files (Finder coordinates, origin top left).
 
 import AppKit
 
-let width: CGFloat = 660, height: CGFloat = 400
-let appCenter = CGPoint(x: 165, y: height - 190)       // drawing coordinates, origin bottom left
-let appsCenter = CGPoint(x: 495, y: height - 190)
+let width: CGFloat = 660, height: CGFloat = 480
+let appCenter = CGPoint(x: 165, y: height - 165)       // drawing coordinates, origin bottom left
+let appsCenter = CGPoint(x: 495, y: height - 165)
 let version = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : ""
 
 func color(_ hex: UInt32, _ alpha: CGFloat = 1) -> NSColor {
@@ -40,6 +41,7 @@ func drawBackground() {
     route.curve(to: CGPoint(x: 430, y: 48), controlPoint1: CGPoint(x: 320, y: 100), controlPoint2: CGPoint(x: 370, y: 10))
     route.curve(to: CGPoint(x: 620, y: 70), controlPoint1: CGPoint(x: 500, y: 90), controlPoint2: CGPoint(x: 560, y: 30))
     route.lineCapStyle = .round
+    route.transform(using: AffineTransform(scaleByX: 1, byY: 0.45))   // a low band: the read-me icons are above
     let trace = route.copy() as! NSBezierPath
     trace.transform(using: AffineTransform(translationByX: 0, byY: -5))
     trace.lineWidth = 5
@@ -48,8 +50,8 @@ func drawBackground() {
     route.lineWidth = 3
     color(0x2F7BD9, 0.55).setStroke()
     route.stroke()
-    for (pt, fill) in [(CGPoint(x: 40, y: 38), color(0x8E8E93)), (CGPoint(x: 250, y: 62), color(0xF2C230)),
-                       (CGPoint(x: 430, y: 48), color(0xF2C230)), (CGPoint(x: 620, y: 70), color(0xFFFFFF))] {
+    for (pt, fill) in [(CGPoint(x: 40, y: 38 * 0.45), color(0x8E8E93)), (CGPoint(x: 250, y: 62 * 0.45), color(0xF2C230)),
+                       (CGPoint(x: 430, y: 48 * 0.45), color(0xF2C230)), (CGPoint(x: 620, y: 70 * 0.45), color(0xFFFFFF))] {
         let dot = NSBezierPath(ovalIn: NSRect(x: pt.x - 5, y: pt.y - 5, width: 10, height: 10))
         fill.setFill()
         dot.fill()
@@ -70,8 +72,8 @@ func drawBackground() {
 
     // arrow from the app to the Applications folder; the line stops at the base of the head (opaque colors, so
     // nothing shows through where they meet)
-    let start = CGPoint(x: appCenter.x + 88, y: appCenter.y + 4)
-    let end = CGPoint(x: appsCenter.x - 92, y: appsCenter.y + 4)
+    let start = CGPoint(x: appCenter.x + 72, y: appCenter.y + 4)
+    let end = CGPoint(x: appsCenter.x - 76, y: appsCenter.y + 4)
     let c2 = CGPoint(x: end.x - 50, y: end.y + 34)
     let angle = atan2(end.y - c2.y, end.x - c2.x) // end tangent
     let len: CGFloat = 26, spread: CGFloat = .pi / 6
@@ -102,7 +104,12 @@ func drawBackground() {
     style.alignment = .center
     let hint = NSAttributedString(string: "Drag BikePlanner onto the Applications folder to install it", attributes: [
         .font: NSFont.systemFont(ofSize: 13), .foregroundColor: color(0x4A5A48), .paragraphStyle: style])
-    hint.draw(in: NSRect(x: 0, y: 92, width: width, height: 20))
+    hint.draw(in: NSRect(x: 0, y: height - 262, width: width, height: 20))
+
+    // first launch: see the read-me files below (the app is not notarized)
+    let readme = NSAttributedString(string: "First launch: read me — Premier lancement : lisez-moi", attributes: [
+        .font: NSFont.systemFont(ofSize: 12, weight: .medium), .foregroundColor: color(0x8A5A12), .paragraphStyle: style])
+    readme.draw(in: NSRect(x: 0, y: height - 300, width: width, height: 18))
 }
 
 func render(scale: CGFloat, to url: URL) throws {

@@ -1,0 +1,48 @@
+BikePlanner @VERSION@ — installation and first launch
+=====================================================
+
+BikePlanner is not distributed through the App Store and is not notarized by Apple: it is
+signed "ad hoc", not with an Apple Developer ID. The first time, macOS refuses to open it
+with a message such as:
+  "BikePlanner can't be opened because Apple cannot check it for malicious software"
+  or "Apple could not verify 'BikePlanner' is free of malware…"
+This is expected. The steps below are needed only once.
+
+
+1. Install
+----------
+Drag BikePlanner onto the Applications folder in this window, then eject the disk image
+("BikePlanner @VERSION@" in the Finder sidebar).
+
+
+2. First launch — macOS 15 (Sequoia) and later
+----------------------------------------------
+a. Open the Applications folder and double-click BikePlanner.
+   macOS shows a warning: click "Done" (do NOT click "Move to Bin").
+b. Open System Settings ▸ Privacy & Security, and scroll down to the "Security" section:
+   it says that BikePlanner was blocked. Click "Open Anyway" and enter your password.
+c. Double-click BikePlanner again, and click "Open Anyway" in the dialog.
+
+
+2. First launch — macOS 12 (Monterey) to 14 (Sonoma)
+----------------------------------------------------
+a. Open the Applications folder.
+b. Control-click (or right-click) BikePlanner and choose "Open".
+c. Click "Open" in the dialog.
+
+
+3. Alternative, with the Terminal (all versions)
+------------------------------------------------
+Copy BikePlanner to Applications, then run in Terminal:
+  xattr -dr com.apple.quarantine /Applications/BikePlanner.app
+and open BikePlanner normally.
+
+
+After that, BikePlanner opens normally with a double-click.
+
+On first launch, BikePlanner asks for permission to use your location (only to center the
+map). It needs an Internet connection: maps (OpenStreetMap, Thunderforest, Apple), routing
+(brouter.de), points of interest (OpenStreetMap / Overpass) and Google Street View.
+
+BikePlanner runs on macOS 12.7 or later, on Intel and Apple Silicon Macs.
+https://github.com/banyanshade-software/BikePlanner

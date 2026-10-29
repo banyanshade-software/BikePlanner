@@ -1,0 +1,54 @@
+BikePlanner @VERSION@ — installation et premier lancement
+=========================================================
+
+BikePlanner n'est pas distribué par l'App Store et n'est pas notarisé par Apple : il est
+signé « ad hoc », pas avec un identifiant de développeur Apple. La première fois, macOS
+refuse donc de l'ouvrir, avec un message du genre :
+  « Impossible d'ouvrir BikePlanner, car Apple ne peut pas vérifier qu'il ne contient pas
+    de logiciel malveillant »
+  ou « Apple n'a pas pu confirmer que BikePlanner ne contenait pas de logiciel malveillant… »
+C'est normal. Les étapes ci-dessous ne sont à faire qu'une seule fois.
+
+
+1. Installation
+---------------
+Faites glisser BikePlanner sur le dossier Applications dans cette fenêtre, puis éjectez
+l'image disque (« BikePlanner @VERSION@ » dans la barre latérale du Finder).
+
+
+2. Premier lancement — macOS 15 (Sequoia) et suivants
+-----------------------------------------------------
+a. Ouvrez le dossier Applications et double-cliquez sur BikePlanner.
+   macOS affiche un avertissement : cliquez sur « Terminé » (et surtout PAS sur
+   « Placer dans la corbeille »).
+b. Ouvrez Réglages Système ▸ Confidentialité et sécurité, et descendez jusqu'à la section
+   « Sécurité » : elle indique que BikePlanner a été bloqué. Cliquez sur « Ouvrir quand
+   même » et saisissez votre mot de passe.
+c. Double-cliquez à nouveau sur BikePlanner, puis cliquez sur « Ouvrir quand même » dans
+   la fenêtre qui s'affiche.
+
+
+2. Premier lancement — macOS 12 (Monterey) à 14 (Sonoma)
+--------------------------------------------------------
+a. Ouvrez le dossier Applications.
+b. Cliquez sur BikePlanner en maintenant la touche Contrôle (ou clic droit), puis
+   choisissez « Ouvrir ».
+c. Cliquez sur « Ouvrir » dans la fenêtre qui s'affiche.
+
+
+3. Autre méthode, avec le Terminal (toutes versions)
+----------------------------------------------------
+Copiez BikePlanner dans Applications, puis tapez dans le Terminal :
+  xattr -dr com.apple.quarantine /Applications/BikePlanner.app
+et ouvrez BikePlanner normalement.
+
+
+Ensuite, BikePlanner s'ouvre normalement par un double-clic.
+
+Au premier lancement, BikePlanner demande l'autorisation d'utiliser votre position
+(uniquement pour centrer la carte). Il a besoin d'une connexion Internet : cartes
+(OpenStreetMap, Thunderforest, Apple), calcul d'itinéraire (brouter.de), points d'intérêt
+(OpenStreetMap / Overpass) et Google Street View.
+
+BikePlanner fonctionne sur macOS 12.7 ou plus récent, sur les Mac Intel et Apple Silicon.
+https://github.com/banyanshade-software/BikePlanner

@@ -1,14 +1,16 @@
 #!/bin/bash
 # Builds BikePlanner-<version>.dmg (#37, universal app): the Finder window shows a background image with the version
 # (drawn by packaging/dmg/make_background.swift), the app,
-# a link to /Applications and an arrow inviting to drag the app onto it.
+# a link to /Applications and an arrow inviting to drag the app onto it, and "Read Me.txt" / "Lisez-moi.txt"
+# (packaging/dmg/, @VERSION@ replaced): how to open the app the first time (not notarized).
 #
 #   scripts/make_dmg.sh                 # Release build (ad hoc signed), DMG in build/
 #   scripts/make_dmg.sh --app <path>    # package an already built app
 #   scripts/make_dmg.sh --no-layout     # skip the Finder layout (no AppleScript, e.g. headless): plain window
 #
 # The Finder layout is set with AppleScript: the first run asks to allow Terminal to control Finder.
-# The window geometry must match packaging/dmg/make_background.swift (660 x 400, icons at (165,190) / (495,190)).
+# The window geometry must match packaging/dmg/make_background.swift (660 x 480, 100 pt icons at (165,165) /
+# (495,165), read-me files at (270,360) / (390,360)).
 # The app embeds Secret.h (Thunderforest key) and is not notarized: see doc/03-distribution-constraints.md.
 set -euo pipefail
 
@@ -69,6 +71,9 @@ trap cleanup EXIT
 
 ditto "$APP" "$STAGE/BikePlanner.app"
 ln -s /Applications "$STAGE/Applications"
+for f in "Read Me.txt" "Lisez-moi.txt"; do
+    sed "s/@VERSION@/$VERSION/g" "$ROOT/packaging/dmg/$f" > "$STAGE/$f"
+done
 mkdir "$STAGE/.background" "$STAGE.bg"
 # background with the version, 1x + 2x in one multi-resolution TIFF, so it is sharp on Retina screens
 swift "$ROOT/packaging/dmg/make_background.swift" "$STAGE.bg" "$VERSION" >/dev/null
@@ -91,14 +96,16 @@ tell application "Finder"
         set current view of container window to icon view
         set toolbar visible of container window to false
         set statusbar visible of container window to false
-        set the bounds of container window to {200, 120, 860, 520}
+        set the bounds of container window to {200, 120, 860, 600}
         set opts to the icon view options of container window
         set arrangement of opts to not arranged
-        set icon size of opts to 128
+        set icon size of opts to 100
         set text size of opts to 13
         set background picture of opts to file ".background:background.tiff"
-        set position of item "BikePlanner.app" of container window to {165, 190}
-        set position of item "Applications" of container window to {495, 190}
+        set position of item "BikePlanner.app" of container window to {165, 165}
+        set position of item "Applications" of container window to {495, 165}
+        set position of item "Read Me.txt" of container window to {270, 360}
+        set position of item "Lisez-moi.txt" of container window to {390, 360}
         update without registering applications
         delay 1
         close

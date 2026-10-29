@@ -239,7 +239,10 @@ before `</gpx>` by string manipulation.
 - DMG: `scripts/make_dmg.sh` (Release build, ad hoc signed, or `--app <path>`) → `build/BikePlanner-<version>.dmg`
   (`build/` is git-ignored). The Finder window shows a background drawn at packaging time by
   `packaging/dmg/make_background.swift` with the app's version (1x + 2x PNG merged into a multi-resolution TIFF;
-  the script also defines the icon positions), the app, a link to `/Applications` and an arrow. The volume and the
+  the script also defines the icon positions), the app, a link to `/Applications` and an arrow, and two read-me
+  files, `Read Me.txt` / `Lisez-moi.txt` (`packaging/dmg/`, version inserted): how to open the app the first time,
+  since it is not notarized (macOS 15+: System Settings ▸ Privacy & Security ▸ Open Anyway; macOS 12–14:
+  Control-click ▸ Open; or `xattr -dr com.apple.quarantine`). The volume and the
   `.dmg` file get the app icon. The layout is set with AppleScript (Finder automation permission needed; it
   does not work from a sandboxed shell). Not notarized, and it embeds the Thunderforest key of `Secret.h`
   (obfuscated; the script stops if the key is found in clear in the binaries).

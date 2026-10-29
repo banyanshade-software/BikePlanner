@@ -91,7 +91,7 @@ static NSLocale *BRFPosixLocale(void)
 
 @end
 
-@interface BRFProfileEditor () <NSTextFieldDelegate>
+@interface BRFProfileEditor () <NSTextFieldDelegate, NSMenuItemValidation>
 @property (strong) NSStackView *stackView;
 @property (strong) NSScrollView *scrollView;
 @property (copy) NSString *profileName;

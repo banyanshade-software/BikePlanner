@@ -162,7 +162,7 @@
 
 - (void)useMapCenter:(id)sender
 {
-    CLLocationCoordinate2D c;
+    CLLocationCoordinate2D c = kCLLocationCoordinate2DInvalid;
     if (self.mapCenterProvider && self.mapCenterProvider(&c)) {
         self.preferences.defaultPosition = c;
         [self refreshFields];
