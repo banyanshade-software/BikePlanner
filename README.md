@@ -26,12 +26,13 @@ BikePlanner is a **personal project**, not distributed yet (see
 
 - macOS 12.7 or later, an Internet connection (routing, maps, POIs, Street View).
 - To build: Xcode, and a [Thunderforest](https://www.thunderforest.com) API key for the OpenCycleMap base map
-  (the free *Hobby Project* tier is enough).
+  (the free *Hobby Project* tier is enough). Optionally, a Google Maps Embed API key for a cleaner Street View pane
+  ([how to get it](doc/get_google_api_key.md)).
 
 ## Build
 
 ```sh
-cp BikePlanner/Secret.h.example BikePlanner/Secret.h   # git-ignored; put your Thunderforest key in it
+cp BikePlanner/Secret.h.example BikePlanner/Secret.h   # git-ignored; put your API keys in it
 open BikePlanner.xcodeproj                             # then Run (⌘R) / Test (⌘U)
 ```
 
