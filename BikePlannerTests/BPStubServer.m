@@ -69,6 +69,7 @@ static __weak BPStubServer *bpInProcessServer = nil;
     req.path = c.path.length ? c.path : @"/";
     req.query = q;
     req.body = [[NSString alloc] initWithData:[[self class] bodyOf:self.request] encoding:NSUTF8StringEncoding] ?: @"";
+    req.referer = [self.request valueForHTTPHeaderField:@"Referer"];
 
     NSString *ctype = nil;
     NSData *body = nil;
@@ -203,6 +204,11 @@ static __weak BPStubServer *bpInProcessServer = nil;
     return [self.baseURL URLByAppendingPathComponent:@"api/interpreter"];
 }
 
+- (NSURL *) googleMapsEmbedURL
+{
+    return [NSURL URLWithString:[self.baseURL.absoluteString stringByAppendingString:@"/maps/embed/v1/"]];
+}
+
 #pragma mark - requests log
 
 - (NSArray<BPStubRequest *> *) requests
@@ -263,9 +269,12 @@ static __weak BPStubServer *bpInProcessServer = nil;
                                            encoding:NSUTF8StringEncoding];
     NSArray<NSString *> *lines = [head componentsSeparatedByString:@"\r\n"];
     NSUInteger contentLength = 0;
+    NSString *referer = nil;
     for (NSString *l in lines) {
         if ([[l lowercaseString] hasPrefix:@"content-length:"]) {
             contentLength = (NSUInteger)[[l substringFromIndex:15] integerValue];
+        } else if ([[l lowercaseString] hasPrefix:@"referer:"]) {
+            referer = [[l substringFromIndex:8] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
         }
     }
     NSUInteger bodyStart = NSMaxRange(r);
@@ -283,6 +292,7 @@ static __weak BPStubServer *bpInProcessServer = nil;
     req.query = q;
     req.body = [[NSString alloc] initWithData:[buf subdataWithRange:NSMakeRange(bodyStart, contentLength)]
                                      encoding:NSUTF8StringEncoding] ?: @"";
+    req.referer = referer;
     return req;
 }
 
@@ -333,6 +343,16 @@ static __weak BPStubServer *bpInProcessServer = nil;
     } else if ([req.path isEqualToString:@"/api/interpreter"]) {
         ctype = @"application/json";
         body = [self overpassJSONForQuery:req.body];
+    } else if ([req.path isEqualToString:@"/maps/embed/v1/streetview"]) {
+        // like Google: HTTP 403 and an error message for a rejected key
+        NSString *key = req.query[@"key"] ?: @"";
+        ctype = @"text/html";
+        if (!key.length || [key hasPrefix:@"invalid"]) {
+            status = 403;
+            body = @"Google Maps Platform rejected your request. The provided API key is invalid.";
+        } else {
+            body = @"<!DOCTYPE html><html><body>stub Street View</body></html>";
+        }
     } else {
         status = 404;
         body = @"not found";

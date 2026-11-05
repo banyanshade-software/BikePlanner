@@ -42,7 +42,7 @@ if [ -f "$ROOT/BikePlanner/Secret.h" ]; then
     if ! python3 - "$ROOT/BikePlanner/Secret.h" "$APP/Contents/MacOS" <<'PYEOF'
 import re, sys, os
 src = open(sys.argv[1]).read()
-for name in ("THUNDERFOREST_API_KEY", "GOOGLE_MAPS_API_KEY"):
+for name in ("THUNDERFOREST_API_KEY", "GOOGLE_MAPS_API_KEY", "GOOGLE_API_KEY"):
     m = re.search(r'#define\s+' + name + r'\s+"([^"]*)"', src)
     key = m.group(1).encode() if m else b""
     if len(key) < 8: continue   # example key, or no key

@@ -18,7 +18,9 @@ With a key, it shows the Maps Embed API (small address chip only). About 5 minut
    ```c
    #define GOOGLE_MAPS_API_KEY "AIza…"
    ```
-   Rebuild, quit the running app (⌘Q) and relaunch it.
+   (`GOOGLE_API_KEY` is accepted too.) Rebuild, quit the running app (⌘Q) and relaunch it. The app checks the key
+   with Google at the first Street View: if Google rejects it, the pane shows the Google Maps web app, and the log
+   says `Street View: Google Maps key rejected (HTTP …)`.
 
 Troubleshooting: if the pane shows a Google error such as `RefererNotAllowedMapError`, or the console does not accept
 the `.invalid` referrer, set *Application restrictions* to **None** temporarily to check that the key works, then

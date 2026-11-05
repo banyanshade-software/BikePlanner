@@ -29,6 +29,11 @@
     return [NSURL URLWithString:[self stringForKey:@"BPOverpassURL" default:@"https://overpass-api.de/api/interpreter"]];
 }
 
++ (NSURL *) googleMapsEmbedURL
+{
+    return [NSURL URLWithString:[self stringForKey:@"BPGoogleMapsEmbedURL" default:@"https://www.google.com/maps/embed/v1/"]];
+}
+
 + (BOOL) streetViewDisabled
 {
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"BPDisableStreetView"];

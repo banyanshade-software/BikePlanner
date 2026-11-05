@@ -210,6 +210,11 @@ MapController.requestRoute
 Each Street View update reloads the page: with a Google Maps key, a local HTML page (base URL
 `https://bikeplanner.invalid/`, the referrer seen by Google) holding a Maps Embed API iframe
 (`…/maps/embed/v1/streetview?key=…&location=…&heading=…&pitch=0&fov=90`, #49); without a key, the Google Maps URL.
+The key is checked once per window, at the first view: a GET of the Embed URL with `Referer: https://bikeplanner.invalid/`
+(`NSURLSession`, so that Google applies the referrer restriction as for the iframe). HTTP 200 → Embed API; other 4xx
+(Google answers 403 for an invalid key, a key without the Maps Embed API or restricted to other websites) → Google
+Maps URL until the app is relaunched; no answer, 429 or 5xx → Google Maps URL for this view, checked again at the
+next one. Nothing is loaded while the check runs; the last requested view is shown when it ends.
 Moving the panorama without reloading would need the Maps JavaScript API (billed; option 2 of #49).
 Reverse direction (View mode click on route): `distanceAtCoordinate:` → `elevationView.highlightDistance`.
 
@@ -254,13 +259,13 @@ before `</gpx>` by string manipulation.
   - unit tests `BikePlannerTests` (hosted in the app) — model, parsing, geometry, export, network clients, panels,
     and integration tests of a real document window (`DocumentWindowTests`);
   - UI tests `BikePlannerUITests` (XCUITest, base class `BPUITestCase`) — end-to-end scenarios on the running app;
-  - everything offline: `BPStubServer` imitates BRouter and Overpass (in-process `NSURLProtocol` for unit tests,
+  - everything offline: `BPStubServer` imitates BRouter, Overpass and the Maps Embed API key check (in-process `NSURLProtocol` for unit tests,
     local HTTP server for UI tests) and records requests;
   - known bugs are documented by tests wrapped in `XCTExpectFailure`.
   Coverage of the app target (October 2026): 86 % of lines; below 80 %: `AppDelegate` (debug run-loop loggers),
   `Document` (exception paths), third-party About window code.
 - **Test hooks** — `BPEnvironment` reads endpoints and switches from `NSUserDefaults`, so that launch arguments
-  can override them: `-BPBRouterServer <url>`, `-BPOverpassURL <url>`, `-BPDisableStreetView YES`,
+  can override them: `-BPBRouterServer <url>`, `-BPOverpassURL <url>`, `-BPGoogleMapsEmbedURL <url>`, `-BPDisableStreetView YES`,
   `-BPDisableTiles YES`, `-BPInitialRegion lat,lon,span` (region for a plan without route, instead of the user
   location), `-BPDisableLocation YES` (never ask for the user location). Defaults are the production endpoints.
   `BPEnvironment` also reads two real settings: `BPDefaultPosition` and `BPInitialRadiusKm` (initial region, F1.5). The app does not open an untitled document when it hosts unit tests.

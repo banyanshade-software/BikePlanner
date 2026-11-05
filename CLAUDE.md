@@ -83,13 +83,13 @@ and product; source files are kept).
   (`BPOverrideDefaults`, `BPWaitUntil`, `BPSpin`, `BPLoc`…). UI tests: `BikePlannerUITests/`, base class `BPUITestCase`.
 - **Everything runs offline.** External services are replaced by `BPStubServer` (in `BikePlannerTests/`, compiled
   into both test targets), which imitates BRouter (routes in GeoJSON — the app requests `format=geojson` since #53 — or GPX, `.brf` profiles) and Overpass (3 POIs ~1 km from the
-  route start) and records every request — use the request log as the oracle.
+  route start) and the Maps Embed API (HTTP 403 for a key starting with `invalid`, like Google for a rejected key) and records every request — use the request log as the oracle.
   - unit tests: `[server startInProcess]` (NSURLProtocol, no socket — the sandboxed host app cannot listen), then
     point the app to it with `BPOverrideDefaults(@{ @"BPBRouterServer": server.baseURL.absoluteString, … })` and
     `BPRestoreDefaults()` in tearDown;
   - UI tests: `BPUITestCase` starts a real HTTP server (`[server start]`, needs `network.server`, granted to the UI test
     runner by `BikePlannerUITests.entitlements`) and passes launch arguments to the app.
-- App-side test hooks are in `BPEnvironment` (`BPBRouterServer`, `BPOverpassURL`, `BPDisableStreetView`,
+- App-side test hooks are in `BPEnvironment` (`BPBRouterServer`, `BPOverpassURL`, `BPGoogleMapsEmbedURL`, `BPDisableStreetView`,
   `BPDisableTiles`, `BPInitialRegion`, `BPDisableLocation`); no effect without overrides. When adding an external endpoint, route it
   through `BPEnvironment` and teach `BPStubServer` to answer it. The Apple place search goes through `BPPlaceSearch`:
   tests replace it with `+setSearchHandlerForTesting:`. Tests of the Preferences use a private `NSUserDefaults`

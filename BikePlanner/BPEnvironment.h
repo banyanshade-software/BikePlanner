@@ -22,6 +22,8 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSURL *) brouterProfileURLForName:(NSString *)profileName;
 /// Overpass interpreter URL (default https://overpass-api.de/api/interpreter) — key BPOverpassURL
 + (NSURL *) overpassURL;
+/// Base URL of the Google Maps Embed API (default https://www.google.com/maps/embed/v1/) — key BPGoogleMapsEmbedURL
++ (NSURL *) googleMapsEmbedURL;
 /// YES to never load Google Street View — key BPDisableStreetView
 + (BOOL) streetViewDisabled;
 /// YES to not use remote map tiles (OSM / Thunderforest) — key BPDisableTiles

@@ -6,7 +6,10 @@
 #import "BPSecrets.h"
 #import "Secret.h" // git-ignored, see Secret.h.example
 
-// Optional (#49): without it, Street View falls back to the Google Maps web app
+// Optional (#49): without it, Street View falls back to the Google Maps web app. GOOGLE_API_KEY is accepted too.
+#if !defined(GOOGLE_MAPS_API_KEY) && defined(GOOGLE_API_KEY)
+#define GOOGLE_MAPS_API_KEY GOOGLE_API_KEY
+#endif
 #ifndef GOOGLE_MAPS_API_KEY
 #define GOOGLE_MAPS_API_KEY ""
 #endif

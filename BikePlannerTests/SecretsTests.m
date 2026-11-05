@@ -9,6 +9,9 @@
 #import <XCTest/XCTest.h>
 #import "BPSecrets.h"
 #import "../BikePlanner/Secret.h" // git-ignored, not in the project
+#if !defined(GOOGLE_MAPS_API_KEY) && defined(GOOGLE_API_KEY) // same alias as BPSecrets.m
+#define GOOGLE_MAPS_API_KEY GOOGLE_API_KEY
+#endif
 #ifndef GOOGLE_MAPS_API_KEY // optional (#49)
 #define GOOGLE_MAPS_API_KEY ""
 #endif
