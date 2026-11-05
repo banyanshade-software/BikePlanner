@@ -333,10 +333,9 @@ Each item is tracked as a GitHub issue.
 - Magic numbers: click modes 0–3, map types 0–4, polyline tags 0–2, pixel tolerances.
 - Profile name `trekking` hard-coded in two places; endpoints hard-coded in four files.
 - Dead code: `#if 0` blocks in `SafeOSMTileOverlay`, `SafeTileRenderer`, `MapController`; empty `BikeMapView`.
-- No automated test of the real external services (only the stub); the Street View page, tile loading,
+- No automated test of the real external services (only the stub); the Street View page, tile drawing,
   `MKLocalSearch` and the user location are not tested.
 - `BRouterClient` creates a new `NSURLSession` per request and never invalidates it (leak).
-- No User-Agent on tile requests (OSM tile usage policy requires an identifying one).
 
 ## 10. Directions for the reliability work (proposal)
 

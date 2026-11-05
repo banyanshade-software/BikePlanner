@@ -26,6 +26,7 @@
 #import "GPXParser.h"
 #import "BPPlaceSearch.h"
 #import "TestFixtures.h"
+#import "BPEnvironment.h"
 
 @interface MapController (WindowTesting)
 - (void)setSearchCompletionTitles:(NSArray<NSString *> *)titles;
@@ -1313,6 +1314,23 @@
 {
     SafeOSMTileOverlay *o = [[SafeOSMTileOverlay alloc] initWithURLTemplate:@"http://127.0.0.1:1/{z}/{x}/{y}.png"];
     XCTAssertTrue([[mc mapView:map rendererForOverlay:o] isKindOfClass:[SafeTileRenderer class]]);
+}
+
+// tiles are fetched by the overlay with the app's User-Agent (OSM tile usage policy); an HTTP error gives no data
+- (void)testTileRequestUserAgent
+{
+    NSString *template = [server.baseURL.absoluteString stringByAppendingString:@"/tiles/{z}/{x}/{y}.png"];
+    SafeOSMTileOverlay *o = [[SafeOSMTileOverlay alloc] initWithURLTemplate:template];
+    MKTileOverlayPath path = { .x = 3, .y = 5, .z = 4, .contentScaleFactor = 1 };
+    __block BOOL done = NO;
+    __block NSData *tile = nil;
+    __block NSError *error = nil;
+    [o loadTileAtPath:path result:^(NSData *d, NSError *e) { tile = d; error = e; done = YES; }];
+    XCTAssertTrue(BPWaitUntil(5, ^BOOL{ return done; }));
+    BPStubRequest *r = [server requestsWithPath:@"/tiles/4/3/5.png"].firstObject;
+    XCTAssertEqualObjects(r.userAgent, [BPEnvironment userAgent]);
+    XCTAssertNil(tile, @"the stub answers 404");
+    XCTAssertNotNil(error);
 }
 
 - (void)testDistanceBeyondRouteEnd

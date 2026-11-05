@@ -10,6 +10,7 @@
 #import "POILocation.h"
 #import "BPStubServer.h"
 #import "TestFixtures.h"
+#import "BPEnvironment.h"
 
 @interface POIFetchTests : XCTestCase
 @end
@@ -63,6 +64,7 @@
     BPStubRequest *r = [self overpassRequests].firstObject;
     XCTAssertEqualObjects(r.method, @"POST");
     XCTAssertTrue([r.body hasPrefix:@"[out:json]"]);
+    XCTAssertEqualObjects(r.userAgent, [BPEnvironment userAgent]);
     XCTAssertTrue([r.body containsString:@"around:1500,44.000000,0.500000"]);
     // one point out of 10 is sampled: 25 points -> 0, 10, 20
     XCTAssertEqual([r.body componentsSeparatedByString:@"node(around"].count - 1, 3u);

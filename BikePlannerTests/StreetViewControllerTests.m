@@ -10,6 +10,7 @@
 #import <XCTest/XCTest.h>
 #import "StreetViewController.h"
 #import "TestFixtures.h"
+#import "BPEnvironment.h"
 #import "BPSecrets.h"
 #import "BPStubServer.h"
 
@@ -141,6 +142,7 @@
     XCTAssertEqual(checks.count, 1u);
     XCTAssertEqualObjects(checks.firstObject.query[@"key"], @"KEY");
     XCTAssertEqualObjects(checks.firstObject.referer, @"https://bikeplanner.invalid/");
+    XCTAssertEqualObjects(checks.firstObject.userAgent, [BPEnvironment userAgent]);
 }
 
 // nothing is shown while the key is checked; then only the last requested view

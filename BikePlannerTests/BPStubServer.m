@@ -70,6 +70,7 @@ static __weak BPStubServer *bpInProcessServer = nil;
     req.query = q;
     req.body = [[NSString alloc] initWithData:[[self class] bodyOf:self.request] encoding:NSUTF8StringEncoding] ?: @"";
     req.referer = [self.request valueForHTTPHeaderField:@"Referer"];
+    req.userAgent = [self.request valueForHTTPHeaderField:@"User-Agent"];
 
     NSString *ctype = nil;
     NSData *body = nil;
@@ -269,12 +270,14 @@ static __weak BPStubServer *bpInProcessServer = nil;
                                            encoding:NSUTF8StringEncoding];
     NSArray<NSString *> *lines = [head componentsSeparatedByString:@"\r\n"];
     NSUInteger contentLength = 0;
-    NSString *referer = nil;
+    NSString *referer = nil, *userAgent = nil;
     for (NSString *l in lines) {
         if ([[l lowercaseString] hasPrefix:@"content-length:"]) {
             contentLength = (NSUInteger)[[l substringFromIndex:15] integerValue];
         } else if ([[l lowercaseString] hasPrefix:@"referer:"]) {
             referer = [[l substringFromIndex:8] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+        } else if ([[l lowercaseString] hasPrefix:@"user-agent:"]) {
+            userAgent = [[l substringFromIndex:11] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
         }
     }
     NSUInteger bodyStart = NSMaxRange(r);
@@ -293,6 +296,7 @@ static __weak BPStubServer *bpInProcessServer = nil;
     req.body = [[NSString alloc] initWithData:[buf subdataWithRange:NSMakeRange(bodyStart, contentLength)]
                                      encoding:NSUTF8StringEncoding] ?: @"";
     req.referer = referer;
+    req.userAgent = userAgent;
     return req;
 }
 

@@ -9,6 +9,7 @@
 #import "BRFProfileEditor.h"
 #import "BPStubServer.h"
 #import "TestFixtures.h"
+#import "BPEnvironment.h"
 
 @interface BRFProfileEditor (Testing)
 @property (strong) NSStackView *stackView;
@@ -185,6 +186,7 @@
     [self loadUI];
     BPStubRequest *r = [server requestsWithPath:@"/brouter/profiles2/trekking.brf"].firstObject;
     XCTAssertNotNil(r);
+    XCTAssertEqualObjects(r.userAgent, [BPEnvironment userAgent]);
     XCTAssertEqualObjects([editor.parameters valueForKey:@"name"],
                           (@[@"downhillcost", @"uphillcutoff", @"avoid_unsafe", @"totalMass", @"mode"]));
     NSTextField *cost = (NSTextField *)[self param:@"downhillcost"].valueControl;

@@ -44,6 +44,17 @@
     XCTAssertTrue([BPEnvironment tilesDisabled]);
 }
 
+// identifying User-Agent with a contact (OSM tile and Overpass usage policies)
+- (void)testUserAgent
+{
+    NSString *version = [NSBundle mainBundle].infoDictionary[@"CFBundleShortVersionString"];
+    NSString *prefix = [NSString stringWithFormat:@"BikePlanner/%@ (build ", version];
+    XCTAssertTrue([[BPEnvironment userAgent] hasPrefix:prefix], @"%@", [BPEnvironment userAgent]);
+    XCTAssertTrue([[BPEnvironment userAgent] hasSuffix:@"; +https://github.com/banyanshade-software/BikePlanner)"]);
+    NSURLRequest *r = [BPEnvironment requestWithURL:[NSURL URLWithString:@"https://example.com/"]];
+    XCTAssertEqualObjects([r valueForHTTPHeaderField:@"User-Agent"], [BPEnvironment userAgent]);
+}
+
 - (void)testEmptyOverrideFallsBackToDefault
 {
     BPOverrideDefaults(@{ @"BPBRouterServer": @"" });

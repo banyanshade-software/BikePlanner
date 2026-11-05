@@ -40,6 +40,11 @@ NS_ASSUME_NONNULL_BEGIN
 + (BOOL) locationDisabled;
 /// YES when the app is the host of unit tests (XCTest injected)
 + (BOOL) isUnitTestHost;
+/// User-Agent of every request of the app: "BikePlanner/<version> (build <n>; +<project URL>)" — the OSM tile and
+/// Overpass usage policies ask for an identifying User-Agent with a contact
++ (NSString *) userAgent;
+/// GET request with the app's User-Agent
++ (NSMutableURLRequest *) requestWithURL:(NSURL *)url;
 
 @end
 

@@ -243,7 +243,7 @@ static NSString *const BRFDefaultsKey = @"BPProfileOverrides";
     NSURL *url = [BPEnvironment brouterProfileURLForName:self.profileName];
     if (!url) return;
 
-    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:[BPEnvironment requestWithURL:url] completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         NSInteger status = [response isKindOfClass:[NSHTTPURLResponse class]] ? ((NSHTTPURLResponse *)response).statusCode : 200;
         NSString *profileText = (data && !error && status == 200) ? [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] : nil;
         dispatch_async(dispatch_get_main_queue(), ^{

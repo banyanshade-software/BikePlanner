@@ -6,8 +6,26 @@
 //
 
 #import "SafeOSMTileOverlay.h"
+#import "BPEnvironment.h"
 
 @implementation SafeOSMTileOverlay
+
+// tiles are fetched here rather than by MapKit, to send the app's User-Agent (OSM tile usage policy); the
+// NSURLSession cache honors the servers' caching headers
+- (void)loadTileAtPath:(MKTileOverlayPath)path result:(void (^)(NSData * _Nullable tileData, NSError * _Nullable error))result
+{
+    NSURL *url = [self URLForTilePath:path];
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:[BPEnvironment requestWithURL:url]
+        completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+        NSInteger status = [response isKindOfClass:[NSHTTPURLResponse class]] ? ((NSHTTPURLResponse *)response).statusCode : 200;
+        if (!error && status != 200) {
+            error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorBadServerResponse
+                                    userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithFormat:@"HTTP %ld", (long)status] }];
+        }
+        result(error ? nil : data, error);
+    }];
+    [task resume];
+}
 #if 0
 - (instancetype)initWithURLTemplate:(NSString *)URLTemplate {
     if (self = [super initWithURLTemplate:URLTemplate]) {

@@ -122,7 +122,7 @@ typedef NS_ENUM(NSInteger, BPEmbedKeyState) {
 - (void)checkKey:(NSString *)key at:(CLLocationCoordinate2D)coord
 {
     _keyState = BPEmbedKeyChecking;
-    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:
+    NSMutableURLRequest *req = [BPEnvironment requestWithURL:
         [StreetViewController embedURLForCoord:coord heading:0 key:key]];
     [req setValue:kEmbedPageBaseURL forHTTPHeaderField:@"Referer"];
     req.cachePolicy = NSURLRequestReloadIgnoringLocalCacheData;

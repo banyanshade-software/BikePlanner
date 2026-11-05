@@ -80,6 +80,20 @@
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"BPDisableLocation"];
 }
 
++ (NSString *) userAgent
+{
+    NSDictionary *info = [NSBundle mainBundle].infoDictionary;
+    return [NSString stringWithFormat:@"BikePlanner/%@ (build %@; +https://github.com/banyanshade-software/BikePlanner)",
+            info[@"CFBundleShortVersionString"] ?: @"?", info[@"CFBundleVersion"] ?: @"?"];
+}
+
++ (NSMutableURLRequest *) requestWithURL:(NSURL *)url
+{
+    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:url];
+    [req setValue:[self userAgent] forHTTPHeaderField:@"User-Agent"];
+    return req;
+}
+
 + (BOOL) isUnitTestHost
 {
     NSDictionary *env = [[NSProcessInfo processInfo] environment];

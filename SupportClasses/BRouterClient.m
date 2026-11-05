@@ -8,6 +8,7 @@
 #import <Cocoa/Cocoa.h>
 #import <MapKit/MapKit.h>
 #import "BRouterClient.h"
+#import "BPEnvironment.h"
 #import "GPXParser.h"
 #import "BRouterGeoJSON.h"
 
@@ -89,12 +90,11 @@ static NSString *BPQueryEncoded(NSString *s)
     }
     NSLog(@"URL: %@", url);
     NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-    config.HTTPAdditionalHeaders = @{ @"User-Agent" : @"BikePlaner/1.0" }; // avoid setting Accept-Encoding here
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:config]; // avoid setting Accept-Encoding here
     
     // NSURLSession *session = [NSURLSession sharedSession];
     
-    NSURLSessionDataTask *task = [session dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
+    NSURLSessionDataTask *task = [session dataTaskWithRequest:[BPEnvironment requestWithURL:url] completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
         if (err) {
             if (completion) completion(nil, nil, nil, err);
             return;

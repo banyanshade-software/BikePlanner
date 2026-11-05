@@ -10,6 +10,7 @@
 #import "GPXParser.h"
 #import "BPStubServer.h"
 #import "TestFixtures.h"
+#import "BPEnvironment.h"
 
 @interface BRouterClientTests : XCTestCase
 @end
@@ -69,6 +70,7 @@
     XCTAssertEqualObjects(r.query[@"profile"], @"trekking");
     XCTAssertEqualObjects(r.query[@"alternativeidx"], @"0");
     XCTAssertEqualObjects(r.query[@"format"], @"geojson", @"way tags for the road types (#53)");
+    XCTAssertEqualObjects(r.userAgent, [BPEnvironment userAgent]);
 }
 
 - (void)testIntermediateWaypoints

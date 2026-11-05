@@ -526,7 +526,7 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     NSData *bodyData = [query dataUsingEncoding:NSUTF8StringEncoding];
     
     NSURL *url = [BPEnvironment overpassURL]; // https://overpass-api.de/api/interpreter unless overridden
-    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:url];
+    NSMutableURLRequest *req = [BPEnvironment requestWithURL:url];
     req.HTTPMethod = @"POST";
     req.HTTPBody = bodyData;
     

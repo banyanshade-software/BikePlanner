@@ -8,8 +8,8 @@ provider's current terms at the time of distribution. Tracked by
 
 **Summary (status 2026-10-30)** — The app is not ready to be shared. Done: location usage string, keys kept out of
 git and obfuscated in the binary (#51), Street View through the Maps Embed API when a key is set (#49), a Credits
-text in the About window. Still missing: OSM tile User-Agent and on-map attributions (OSM, Thunderforest),
-Overpass backoff and User-Agent (#12), a user-configurable BRouter server (#2), and Developer ID signing +
+text in the About window, an identifying User-Agent on every request. Still missing: on-map attributions (OSM,
+Thunderforest), Overpass backoff (#12), a user-configurable BRouter server (#2), and Developer ID signing +
 notarization. The volunteer-run public services (OSM tiles, brouter.de, overpass-api.de) cannot back a distributed
 app anyway: each needs its own server, a paid provider, or a per-user setting.
 
@@ -42,10 +42,11 @@ app anyway: each needs its own server, a paid provider, or a per-user setting.
   with many users are not allowed to rely on them.
 - Requirements even for light use: a **valid, identifying HTTP User-Agent** (app name + contact), honoring HTTP
   caching headers (no bulk download / pre-fetching), and the visible attribution **“© OpenStreetMap contributors”**.
-- **Today**: tiles are loaded by `MKTileOverlay` (`SafeOSMTileOverlay`, whose own `loadTileAtPath:result:` is
-  disabled by `#if 0`) with the default User-Agent; no attribution on the map (only in the About window Credits).
-- **To do**: set a User-Agent (enable a `loadTileAtPath:result:` using an `NSURLSession` with headers), display the
-  attribution on the map, and for real distribution use a commercial/self-hosted tile provider.
+- **Today**: tiles are loaded by `SafeOSMTileOverlay -loadTileAtPath:result:` (`NSURLSession`, whose cache honors
+  the caching headers) with the app's User-Agent `BikePlanner/<version> (build <n>; +<GitHub URL>)`
+  (`+[BPEnvironment userAgent]`, sent on every request of the app); no attribution on the map (only in the About
+  window Credits).
+- **To do**: display the attribution on the map, and for real distribution use a commercial/self-hosted tile provider.
 
 ### 1.3 Thunderforest (OpenCycleMap)
 - Requires an API key; the free “Hobby Project” tier has a monthly tile limit and is for non-commercial use.
@@ -64,19 +65,17 @@ app anyway: each needs its own server, a paid provider, or a per-user setting.
   several GB per region) or let the user configure their own server.
 - Routing data is derived from OSM (ODbL): attribution required.
 - **Today**: `https://brouter.de` by default; another server can only be set with the hidden user default
-  `BPBRouterServer` (the test hook of `BPEnvironment`), not in the Preferences. The User-Agent is `BikePlaner/1.0`
-  (misspelled, no contact).
+  `BPBRouterServer` (the test hook of `BPEnvironment`), not in the Preferences. Identifying User-Agent (see 1.2).
 - **To do**: server in the Preferences ([#2](https://github.com/banyanshade-software/BikePlanner/issues/2), embedded
-  engine on branch `brouter`), identifying User-Agent.
+  engine on branch `brouter`).
 
 ### 1.5 Overpass API (`overpass-api.de`)
 - Public instances have usage limits (roughly: a few requests at a time per IP, daily volume guidance) and ask
   for reasonable use; heavy queries are rejected (HTTP 429/504).
 - **Today**: one query per route change, throttled to ≥ 2.8 s; the retry on error does not work and has no
-  backoff ([#12](https://github.com/banyanshade-software/BikePlanner/issues/12)); default User-Agent
-  (`NSURLSession sharedSession`).
+  backoff ([#12](https://github.com/banyanshade-software/BikePlanner/issues/12)); identifying User-Agent (see 1.2).
 - **To do**: exponential backoff, respect `429`/`Retry-After`, smaller queries (route bounding corridor instead of
-  one `around` clause per sampled point), identifying User-Agent; for distribution, a private Overpass instance
+  one `around` clause per sampled point); for distribution, a private Overpass instance
   or caching layer. Data is OSM (ODbL): attribution required.
 
 ### 1.6 Apple MapKit
@@ -122,9 +121,9 @@ if bundled, and a check of each icon's origin.
 | # | Item | Status | Issue |
 |---|---|---|---|
 | 1 | Street View through an official Google API (or an alternative provider) | 🟡 Maps Embed API when a key is set; drop the Google Maps web app fallback | #49 |
-| 2 | Identifying User-Agent + “© OpenStreetMap contributors” on the map for OSM tiles | ❌ | — |
+| 2 | Identifying User-Agent + “© OpenStreetMap contributors” on the map for OSM tiles | 🟡 User-Agent done; attribution missing | — |
 | 3 | Thunderforest attribution and key strategy (per-user key in Keychain?) | 🟡 key obfuscated; no attribution on the map | #51 |
-| 4 | Overpass backoff, User-Agent, smaller queries | ❌ | #12 |
+| 4 | Overpass backoff, User-Agent, smaller queries | 🟡 User-Agent done | #12 |
 | 5 | Configurable BRouter server (local or the user's own) | 🟡 hidden default only | #2 |
 | 6 | Real location usage string; acknowledgments in the About window | ✅ string; 🟡 Credits without exact attributions | — |
 | 7 | Developer ID signing + notarization | ❌ ad hoc signing, DMG not notarized | #37 |

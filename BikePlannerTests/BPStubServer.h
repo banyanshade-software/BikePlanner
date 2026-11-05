@@ -25,6 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy) NSDictionary<NSString *, NSString *> *query;
 @property (nonatomic, copy) NSString *body;
 @property (nonatomic, copy, nullable) NSString *referer;  // Referer header
+@property (nonatomic, copy, nullable) NSString *userAgent; // User-Agent header
 @end
 
 @interface BPStubServer : NSObject
