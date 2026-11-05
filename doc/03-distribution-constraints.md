@@ -27,6 +27,14 @@ app anyway: each needs its own server, a paid provider, or a per-user setting.
 - **To do before distributing**: require the Maps Embed API (drop the fallback to the Google Maps web app); manage
   the API key (restricted to the Maps Embed API and the referrer `https://bikeplanner.invalid/*`; it is obfuscated in
   the binary like the Thunderforest key, but sent in clear in the iframe URL); quotas (the Embed API is free).
+- **Billing**: the Maps Embed API is free with unlimited usage
+  ([Usage and Billing](https://developers.google.com/maps/documentation/embed/usage-and-billing)), but the project
+  needs a billing account, and the key can be extracted from the binary (or read in the iframe URL). The risk is a
+  stolen key used for paid Google Maps Platform APIs. Protections: a project dedicated to BikePlanner with only the
+  Maps Embed API enabled; the key restricted to the Maps Embed API (the main protection) and to the referrer
+  `https://bikeplanner.invalid/*` (can be spoofed); a 1 € budget with e-mail alerts (alerts only, it does not cap
+  spending); optionally a lower daily quota on the Maps Embed API; a monthly look at the billing reports. Steps in
+  the console (in French): `doc/google-maps-embed-facturation.md`; creating the key: `doc/get_google_api_key.md`.
 - Alternatives without Google: Mapillary (CC-BY-SA imagery, API key), Panoramax (open).
 
 ### 1.2 OpenStreetMap tiles (`tile.openstreetmap.org`)

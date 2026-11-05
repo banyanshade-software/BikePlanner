@@ -6,7 +6,7 @@ brouter.de for routing, Overpass for POIs, Google Street View in a `WKWebView`.
 Read first:
 - `doc/01-high-level-spec.md` — what the app does (functional requirements F1–F12, decisions, open questions)
 - `doc/02-architecture.md` — how it is built, key flows, **known bugs and tech debt (§9)**
-- `doc/03-distribution-constraints.md` — third-party service constraints (app is personal for now)
+- `doc/03-distribution-constraints.md` — third-party service constraints, status of each prerequisite (app is personal for now)
 - `doc/04-embedded-brouter.md` (on branch `brouter` only) — plan for a BRouter engine embedded in the app
 
 Work items are tracked as GitHub issues on `banyanshade-software/BikePlanner`.
@@ -136,7 +136,8 @@ committing). The Debug build is `~/Library/Developer/Xcode/DerivedData/BikePlann
   merged into `dev` (then `main`) when the owner asks — usually a fast-forward. Branch `brouter`: embedded BRouter
   engine (long-running).
 - The owner tests at the end of a batch; commit when the unit tests pass (if asked), push / close issues only when
-  asked, with a closing comment giving the commit. Read the issue comments first (`gh issue view N --comments`).
+  asked, with a closing comment giving the commit. Read the issue body and comments first (`gh issue view N` then
+  `gh issue view N --comments`: with `--comments`, `gh` prints only the comments).
 - Version: `MARKETING_VERSION` (2 lines of `project.pbxproj`, app target), bumped by the owner's request; the build
   number and commit are set at build time (`scripts/set_build_info.sh`).
 - Docs, code comments, commit messages and issues are in **English**; the owner talks in French.
