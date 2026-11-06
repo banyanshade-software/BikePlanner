@@ -10,7 +10,8 @@ BikePlanner is a **personal project**, not distributed yet (see
 ## Features
 
 - **Route building** on the map: start, destination and intermediate waypoints (Edit / Add / POI / View click
-  modes, with keyboard shortcuts), reverse route, clear route; undo/redo of every change.
+  modes, with keyboard shortcuts; opened documents start in View mode), reverse route, clear route, recalculate
+  route; undo/redo of every change.
 - **Routing** by a BRouter server (`brouter.de` by default), with the profile parameters editable in the
   *Params* tab and saved in the document.
 - **Base maps**: OpenStreetMap, OpenCycleMap (Thunderforest), Apple standard / hybrid / satellite; place search.

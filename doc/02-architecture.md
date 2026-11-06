@@ -94,8 +94,8 @@ README.POI.GARMIN.txt        List of Garmin POI types usable in GPX <type>
    `plan.brouterInfo.durationText` / `plan.brouterInfo.averageSpeedText`;
    “Fetch POI” → `plan.fetchPOI`; “View POI” → `mapController.viewPOI`; Export toolbar item enabled ↔ `mapController.gpxData`.
 4. `-[PlannerWindowController windowDidLoad]` asserts the wiring, then calls
-   `-[MapController initializeMapview]`, `-[StreetViewController initializeStreetView]`,
-   `-[MapController fullRefresh:YES]` and builds the `BRFProfileEditor` into the *Params* tab.
+   `-[MapController initializeMapview]` (click mode Edit; View for a document opened from a file, #56),
+   `-[StreetViewController initializeStreetView]`, `-[MapController fullRefresh:YES]` and builds the `BRFProfileEditor` into the *Params* tab.
 5. `initializeMapview` creates tile overlays, the `BRouterClient`, the overlay controls (buttons and segmented
    controls are created **in code**, added to the map's superview), the click gesture recognizer, the scrubber
    annotation, the mouse tracking area, and sets `plan.poiAvailableCallback`.
@@ -356,8 +356,10 @@ Each item is tracked as a GitHub issue.
   pure functions, easily unit-testable), GPX writer, route service, map controls.
 - **Model mixes persistence and networking** (`BikePlan` fetches POIs). A separate POI service would be cleaner.
 - Waypoint annotations are kept in sync manually with the model array (`waypointsRouteAnnotations`, `recalcAnnotIndexesFrom:`).
-- Magic numbers: click modes 0–3, map types 0–4, polyline tags 0–2, pixel tolerances.
+- Magic numbers: click modes 0–3, map types 0–4, polyline tags 0–3, pixel tolerances.
 - Profile name `trekking` hard-coded in two places; endpoints hard-coded in four files.
+- Compiler warnings in the Release build (non-null arguments, unused variable, unreachable code): to fix
+  ([#58](https://github.com/banyanshade-software/BikePlanner/issues/58)).
 - Dead code: `#if 0` blocks in `SafeOSMTileOverlay`, `SafeTileRenderer`, `MapController`; empty `BikeMapView`.
 - No automated test of the real external services (only the stub); the Street View page, tile drawing,
   `MKLocalSearch` and the user location are not tested.

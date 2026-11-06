@@ -116,7 +116,8 @@ if bundled, and a check of each icon's origin.
 
 - API keys must never be committed (already handled by `Secret.h` + `.gitignore`). Keys compiled in are obfuscated
   (`BPSecrets`, #51) and `scripts/make_dmg.sh` refuses an app with a key in clear.
-- Any key compiled into a distributed app is public in practice: prefer per-user keys or a server-side proxy.
+- Any key compiled into a distributed app is public in practice: prefer per-user keys or a server-side proxy
+  ([#57](https://github.com/banyanshade-software/BikePlanner/issues/57)).
 
 ## 5. Checklist — minimum set before sharing the app with anyone
 

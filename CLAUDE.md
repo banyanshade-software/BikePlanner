@@ -81,6 +81,8 @@ and product; source files are kept).
 - `NSLog` is used for diagnostics. `if ((0))` / `#if 0` blocks are the owner's way to keep disabled code —
   don't delete them unless the task is cleanup.
 - User-facing strings via `NSLocalizedString`.
+- Don't add compiler warnings (#58 lists the remaining ones): headers are `NS_ASSUME_NONNULL`, so pass a sender
+  (`self`), not `nil`, when calling an `IBAction` from code, and declare `nullable` parameters that accept nil.
 - HTTP requests are built with `+[BPEnvironment requestWithURL:]` (sets the app's User-Agent
   `BikePlanner/<version> (build <n>; +<GitHub URL>)`, required by the OSM tile and Overpass policies); endpoints come
   from `BPEnvironment`. Route requests: one at a time (`MapController` cancels the previous one, #9).
@@ -120,7 +122,10 @@ and product; source files are kept).
 - XCTest macros: a comma inside a message send (`[NSString stringWithFormat:@"%@", x]`) splits the macro arguments —
   compute the value in a variable first.
 - Integration tests of the window: `DocumentWindowTests` opens a real document window and drives `MapController`;
-  map clicks go through `-handleMapClick:` with a fake gesture recognizer (`BPFakeClick`).
+  map clicks go through `-handleMapClick:` with a fake gesture recognizer (`BPFakeClick`). A new document starts in
+  Edit mode, a document opened from a file (`initWithContentsOfURL:`) in View mode (#56): switch to Edit before
+  clicking to add waypoints. Route changes that keep the waypoints (*Recalculate Route*, #55) go through
+  `requestRouteUndoable:`.
 - Private methods are tested by declaring a category in the test file.
 - Undo: in tests, the undo manager does not close its automatic groups in nested run loops — set
   `groupsByEvent = NO` and group explicitly (see `UndoTests`).
@@ -137,7 +142,9 @@ and product; source files are kept).
 
 ## Packaging
 
-`scripts/make_dmg.sh` builds `build/BikePlanner-<version>.dmg` (see its header). Its Finder layout step uses
+`scripts/make_dmg.sh` builds `build/BikePlanner-<version>.dmg` (see its header). Unless the owner says otherwise, a DMG is built only
+from `main` or `dev` (after the batch branch is merged), never from a batch or feature branch: if the owner asks for
+one on another branch, say so first. Its Finder layout step uses
 AppleScript, which needs the owner's Automation permission for Finder and does not work from Claude's sandboxed
 shell: let the owner run it (`! scripts/make_dmg.sh`). The DMG embeds the Thunderforest key (obfuscated, #51: the script refuses an app containing it in clear): don't
 publish it.
@@ -152,8 +159,9 @@ committing). The Debug build is `~/Library/Developer/Xcode/DerivedData/BikePlann
 
 ## Workflow
 
-- Branch `dev` for work, `main` is the default branch for PRs. A batch of issues may get its own branch (e.g. `v08`),
-  merged into `dev` (then `main`) when the owner asks — usually a fast-forward. Branch `brouter`: embedded BRouter
+- Branch `dev` for work, `main` is the default branch for PRs. A batch of issues may get its own branch (`v08`, `v09`…;
+  current batch: `v10`, from `dev` at 0.9.2), merged into `dev` (then `main`) when the owner asks — usually a
+  fast-forward. The owner builds the DMG (`scripts/make_dmg.sh`) after a merge. Branch `brouter`: embedded BRouter
   engine (long-running).
 - The owner tests at the end of a batch; commit when the unit tests pass (if asked), push / close issues only when
   asked, with a closing comment giving the commit. Read the issue body and comments first (`gh issue view N` then
