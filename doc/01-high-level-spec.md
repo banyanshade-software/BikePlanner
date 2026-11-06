@@ -110,11 +110,13 @@ adapts the shortcut to the key carrying the digit (e.g. ⌘& on AZERTY, i.e. ⌘
 
 | Mode | Click on the map | Click near the route |
 |---|---|---|
-| **Edit** (0, default) | Appends a waypoint (first = start, then destinations) | (≤16 px) inserts an intermediate waypoint |
+| **Edit** (0, new document) | Appends a waypoint (first = start, then destinations) | (≤16 px) inserts an intermediate waypoint |
 | **Add interm.** (1) | — | (≤50 px) inserts an intermediate waypoint |
 | **Add POI** (2) | — | (≤50 px) adds a custom “warning” POI on the route |
-| **View** (3) | — | (≤40 px) moves the scrubber there, centers the map, updates Street View and the elevation profile cursor |
+| **View** (3, opened document) | — | (≤40 px) moves the scrubber there, centers the map, updates Street View and the elevation profile cursor |
 
+A new document starts in Edit mode, to place the start; an opened document starts in View mode, so that a click
+does not change its route by mistake.
 In every mode, a click within ~30–36 px of a POI selects that POI and shows its callout instead.
 A help text next to the control explains the current mode. The map type and click mode controls, the help text and
 the zoom / location buttons sit on a translucent blurred backdrop, so they stay readable on any map content while the map remains visible.

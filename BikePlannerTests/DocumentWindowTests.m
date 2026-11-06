@@ -1151,6 +1151,29 @@
     XCTAssertEqualObjects(opened.plan.profileOverrides, @{});
 }
 
+// a new document starts in Edit mode (to place the start), an opened one in View mode: a click does not change
+// its route by mistake
+- (void)testOpenedDocumentStartsInViewMode
+{
+    XCTAssertEqual(mc.clickMode, BPClickModeEdit, @"new document");
+    [self makeRoute];
+    NSString *type = @"fr.free.daniel.braun.bikeplan";
+    NSURL *url = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-open-view.bikeplan"]];
+    XCTAssertTrue([[doc dataOfType:type error:NULL] writeToURL:url atomically:YES]);
+    doc.plan.fetchPOI = NO;
+    [doc close];
+
+    NSError *err = nil;
+    doc = [[Document alloc] initWithContentsOfURL:url ofType:type error:&err];
+    XCTAssertNotNil(doc, @"%@", err);
+    [self openWindow];
+    XCTAssertEqual(mc.clickMode, BPClickModeView);
+    NSSegmentedControl *seg = (NSSegmentedControl *)[self viewWithIdentifier:@"clickMode" in:self.content];
+    XCTAssertEqual(seg.selectedSegment, BPClickModeView);
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.2, 0.7)];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u, @"a click does not add a waypoint");
+}
+
 // the document's parameters are restored in the Params tab by Revert to Saved (#44)
 - (void)testRevertRestoresProfileOverrides
 {
