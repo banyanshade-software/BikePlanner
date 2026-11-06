@@ -138,6 +138,8 @@ static NSString *BPQueryEncoded(NSString *s)
         NSMutableDictionary *bi = [route.info mutableCopy];
         bi[@"road-stats"] = route.roadStats;
         bi[@"surface-stats"] = route.surfaceStats;
+        bi[@"road-runs"] = route.roadRuns;
+        bi[@"surface-runs"] = route.surfaceRuns;
         // GPX for the export, with BRouter's statistics as comment (as in BRouter's own GPX)
         NSString *comment = [NSString stringWithFormat:@"track-length = %@ filtered ascend = %@ time=%@s (BRouter, %@)",
                              route.info[@"n-track-length-m"] ?: @"?", route.info[@"filtered-ascend"] ?: @"?",

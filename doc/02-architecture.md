@@ -57,7 +57,10 @@ BikePlanner/                 App target
 SupportClasses/              Reusable/support components
   BRouterClient.*            HTTP client for BRouter
   GPXParser.*                NSXMLParser-based GPX reader + BRouter comment parser; minimal GPX writer
-  BRouterGeoJSON.*           BRouter route in GeoJSON: points, statistics, distance by road / surface class (#53)
+  BRouterGeoJSON.*           BRouter route in GeoJSON: points, statistics, distance by road / surface class (#53),
+                             road / surface class along the route (runs of points, #54)
+  BPRoadTypesLabel.*         Info section label of the distance by road type; reports the road class of the hovered
+                             line or surface part (#54)
   BPPlaceSearch.*            Apple place search (MKLocalSearch), shared by the search field and the Preferences
   BPPOIEditor.*              Sheet asking the type and name of a custom POI (#3)
   BRFProfileEditor.*         Downloads a .brf profile, parses its annotated parameters, builds the Params tab UI;
@@ -69,8 +72,9 @@ SupportClasses/              Reusable/support components
   POIAnnotationView.*        MKMarkerAnnotationView subclass (highlight color)
   POICalloutView.*           Callout content (tags + Include/Exclude)
   RouteAnnotation.*          MKPointAnnotation for waypoints (carries its index)
-  TaggedPoly.*               MKPolyline with a tag (0 route, 1 waypoints, 2 reference GPX)
-  SafeOSMTileOverlay.*, SafeTileRenderer.*   MKTileOverlay/Renderer subclasses (custom code disabled with #if 0)
+  TaggedPoly.*               MKPolyline with a tag (0 route, 1 waypoints, 2 reference GPX, 3 road class highlight)
+  SafeOSMTileOverlay.*, SafeTileRenderer.*   MKTileOverlay/Renderer subclasses; the overlay fetches the tiles itself
+                             (app User-Agent); older custom code kept disabled with #if 0
   BikeMapView.*              MKMapView subclass (currently empty)
 BSSUI/, DCO/                 Third-party / older own code for the About window (DCOAboutWindow, MIT-like LICENSE)
 BikePlannerTests/, BikePlannerUITests/   Xcode template tests (empty)
@@ -109,7 +113,7 @@ waypoints).
 | `waypointsLocations` | `NSArray<CLLocation*>` (immutable, replaced on each change) | `waypointsLocations` | User waypoints, ordered |
 | `routePoints` | `NSArray<CLLocation*>` | `routePoints` | Route returned by BRouter, with altitude |
 | `gpxDisplayed` | `NSArray<CLLocation*>` | `gpxDisplayed` | Reference trace |
-| `brouterInfo` | `BrouterInfo` (`kmlen`, `mup`, `meters`, `seconds`) | `brouterInfo` | Length (km, m), ascent (m), riding time (s) estimated by BRouter; `meters`/`seconds` are 0 in documents saved before #30 |
+| `brouterInfo` | `BrouterInfo` (`kmlen`, `mup`, `meters`, `seconds`, `roadStats`, `surfaceStats`, `roadRuns`) | `brouterInfo` | Length (km, m), ascent (m), riding time (s) estimated by BRouter; `meters`/`seconds` are 0 in documents saved before #30. Distance by road / surface class (#53). `roadRuns` / `surfaceRuns`: road / surface class along the route, `@[class, index of the last route point]` per run of points of the same class, the first run from point 0 (#54); valid only if the last index is `routePoints.count - 1`; all part of the undoable route state |
 | `poiloc` | `NSArray<POILocation*>` | `poiloc` | Fetched POIs |
 | `customPoiloc` | `NSMutableArray<POILocation*>` | `customPoiloc` | User POIs |
 | `excludedPOIKeys` | `NSSet<NSString*>` | `excludedPOIKeys` | POIs excluded from the export (callout Include/Exclude), by `POILocation.poiKey` (#5) |
@@ -142,7 +146,9 @@ No version key: adding/removing fields relies on `decodeObject…` returning nil
 ## 5. Map layer
 
 - **Overlays**: tile overlays (`SafeOSMTileOverlay`, `canReplaceMapContent = YES`) for OSM / Thunderforest;
-  `TaggedPoly` overlays for route (tag 0, blue, 8 px) and reference trace (tag 2, orange, 6 px).
+  `TaggedPoly` overlays for route (tag 0, blue, 8 px), reference trace (tag 2, orange, 6 px) and the road class
+  hovered in the Info section (tag 3, pink, 9 px, one polyline per run; `highlightKind:`, removed with the
+  route by `refreshPoly:`, #54).
   `rendererForOverlay` picks the renderer by class and tag. Switching to an Apple map type removes the tile overlay
   and sets `mapView.mapType`.
 - **Annotations**: `RouteAnnotation` → `MKPinAnnotationView` (draggable, right-click menu), `POIAnnotation` →
@@ -203,13 +209,14 @@ MapController.requestRoute
     GET https://brouter.de/brouter?lonlats=lon,lat|lon,lat…&profile=trekking&alternativeidx=0&format=geojson[&profile:<name>=<value>…]
     (names and values percent-encoded, including & = + |; true/false sent as 1/0)
     (background) BRouterGeoJSON → points + brouterInfo (track-length, filtered ascend, total-time) + distance by road /
-                 surface class (properties.messages: Distance + WayTags) (#53); the GPX for the export is generated
+                 surface class (properties.messages: Distance + WayTags) (#53), road runs (each message ends at its
+                 Longitude/Latitude ×1e6, a point of the geometry; consecutive same-class messages merged, #54); the GPX for the export is generated
                  from the points (+[GPXParser gpxDataForPoints:name:comment:], BRouter statistics in the comment)
     HTTP error status or no route → NSError with BRouter's message (first line of the text answer)
   completion (background) → main queue; answer of an older generation (cancelled, newer request, plan replaced,
                             < 2 waypoints after an undo) → ignored
                           → error: "Routing failed: <message>" on the map for 4 s (showMapMessage:), route kept
-                          → plan.brouterInfo.{kmlen,mup,meters,seconds,roadStats,surfaceStats}, gpxData, plan.routePoints,
+                          → plan.brouterInfo.{kmlen,mup,meters,seconds,roadStats,surfaceStats,roadRuns,surfaceRuns}, gpxData, plan.routePoints,
                             elevationView.setGpxPoints, refreshPoly:NO (→ routePoly → POI flow 6.3)
 ```
 
@@ -226,6 +233,13 @@ Maps URL until the app is relaunched; no answer, 429 or 5xx → Google Maps URL 
 next one. Nothing is loaded while the check runs; the last requested view is shown when it ends.
 Moving the panorama without reloading would need the Maps JavaScript API (billed; option 2 of #49).
 Reverse direction (View mode click on route): `distanceAtCoordinate:` → `elevationView.highlightDistance`.
+
+### 6.5b Road type highlight (#54)
+Info section `BPRoadTypesLabel` (bound to `plan.brouterInfo.roadTypesAttributedText`, whose hoverable parts carry the
+`BPRouteKindAttributeName` attribute: `road:<class>` on each road type line, `surface:<class>` on each part of the
+surface line) → tracking area, mouse moved → character under the mouse (text laid out with an `NSLayoutManager` in
+the cell's title rect) → its attribute → `hoverHandler` on a change → `-[MapController highlightKind:]` (nil when the
+mouse leaves) → tag 3 `TaggedPoly` per run of that class in `roadRuns` / `surfaceRuns`.
 
 ### 6.6 Undo / redo
 `undoableWP:desc:` registers `undoAction:` with the **previous waypoint array** on the document's undo manager.

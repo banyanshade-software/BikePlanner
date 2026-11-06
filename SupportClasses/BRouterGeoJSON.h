@@ -35,6 +35,12 @@ extern NSString *const BPSurfaceUnknown;
 /// meters by road class / by surface class
 @property (readonly) NSDictionary<NSString *, NSNumber *> *roadStats;
 @property (readonly) NSDictionary<NSString *, NSNumber *> *surfaceStats;
+/// road class along the route (#54): runs of consecutive points of the same class, in order, each
+/// @[class, index of its last point in `points`]; the first run starts at point 0, the last one ends at the last
+/// point. Empty without way tags.
+@property (readonly) NSArray<NSArray *> *roadRuns;
+/// same for the surface class
+@property (readonly) NSArray<NSArray *> *surfaceRuns;
 
 + (NSString *)roadClassForTags:(NSDictionary<NSString *, NSString *> *)tags;
 + (NSString *)surfaceClassForTags:(NSDictionary<NSString *, NSString *> *)tags;

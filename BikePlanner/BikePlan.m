@@ -147,6 +147,7 @@ static const NSUInteger kPOIMaxSamplePoints = 300;
                            @"kmlen": @(_brouterInfo.kmlen), @"mup": @(_brouterInfo.mup),
                            @"meters": @(_brouterInfo.meters), @"seconds": @(_brouterInfo.seconds),
                            @"roadStats": _brouterInfo.roadStats ?: @{}, @"surfaceStats": _brouterInfo.surfaceStats ?: @{},
+                           @"roadRuns": _brouterInfo.roadRuns ?: @[], @"surfaceRuns": _brouterInfo.surfaceRuns ?: @[],
                            @"poiloc": _poiloc ?: @[],
                            @"custom": [_customPoiloc copy] ?: @[] };
     if (_routeGPX) {
@@ -163,6 +164,8 @@ static const NSUInteger kPOIMaxSamplePoints = 300;
     self.brouterInfo.seconds = 0;
     self.brouterInfo.roadStats = nil;
     self.brouterInfo.surfaceStats = nil;
+    self.brouterInfo.roadRuns = nil;
+    self.brouterInfo.surfaceRuns = nil;
     self.poiloc = @[];
     [self restoreCustomPoi:nil];
     return old;
@@ -179,6 +182,8 @@ static const NSUInteger kPOIMaxSamplePoints = 300;
     self.brouterInfo.seconds = [state[@"seconds"] integerValue];
     self.brouterInfo.roadStats = [state[@"roadStats"] count] ? state[@"roadStats"] : nil;
     self.brouterInfo.surfaceStats = [state[@"surfaceStats"] count] ? state[@"surfaceStats"] : nil;
+    self.brouterInfo.roadRuns = [state[@"roadRuns"] count] ? state[@"roadRuns"] : nil;
+    self.brouterInfo.surfaceRuns = [state[@"surfaceRuns"] count] ? state[@"surfaceRuns"] : nil;
     self.poiloc = state[@"poiloc"];
     [self restoreCustomPoi:state[@"custom"]];
 }
@@ -724,6 +729,8 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
 
 #pragma mark -
 
+NSAttributedStringKey const BPRouteKindAttributeName = @"BPRouteKind";
+
 @implementation BrouterInfo
 
 - (instancetype)init
@@ -794,6 +801,21 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     return names[c] ?: c;
 }
 
+- (NSArray<NSString *> *) roadTypesClasses
+{
+    NSArray *classes = [_roadStats keysSortedByValueUsingComparator:^NSComparisonResult(NSNumber *a, NSNumber *b) {
+        return [b compare:a];
+    }] ?: @[];
+    return [classes filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSString *c, NSDictionary *b) {
+        return self->_roadStats[c].doubleValue > 0;
+    }]];
+}
+
++ (NSSet<NSString *> *) keyPathsForValuesAffectingRoadTypesClasses
+{
+    return [NSSet setWithObject:@"roadStats"];
+}
+
 - (NSString *) roadTypesText
 {
     double total = [[_roadStats.allValues valueForKeyPath:@"@sum.doubleValue"] doubleValue];
@@ -802,12 +824,8 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     km.numberStyle = NSNumberFormatterDecimalStyle;
     km.minimumFractionDigits = km.maximumFractionDigits = 1;
     NSMutableArray<NSString *> *lines = [NSMutableArray array];
-    NSArray *classes = [_roadStats keysSortedByValueUsingComparator:^NSComparisonResult(NSNumber *a, NSNumber *b) {
-        return [b compare:a];
-    }];
-    for (NSString *c in classes) {
+    for (NSString *c in self.roadTypesClasses) {
         double m = _roadStats[c].doubleValue;
-        if (m <= 0) continue;
         [lines addObject:[NSString stringWithFormat:@"%@\t%@ km\t%.0f %%", [BrouterInfo displayNameForRoadClass:c],
                           [km stringFromNumber:@(m / 1000)], 100 * m / total]];
     }
@@ -837,8 +855,33 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
         initWithString:[NSLocalizedString(@"Distance by road type", @"Info section") stringByAppendingString:@"\n"]
             attributes:@{ NSFontAttributeName: [NSFont boldSystemFontOfSize:NSFont.smallSystemFontSize],
                           NSForegroundColorAttributeName: [NSColor labelColor] }];
+    NSUInteger start = s.length;
     [s appendAttributedString:[[NSAttributedString alloc] initWithString:text attributes:@{
         NSFontAttributeName: font, NSParagraphStyleAttributeName: style, NSForegroundColorAttributeName: [NSColor labelColor] }]];
+    // hoverable parts (#54): one road class per line (in the order of roadTypesClasses), then the surface parts
+    // (paved · unpaved · unknown, separated by " · ")
+    NSArray<NSString *> *lines = [text componentsSeparatedByString:@"\n"];
+    NSArray<NSString *> *classes = self.roadTypesClasses;
+    NSUInteger pos = start;
+    for (NSUInteger i = 0; i < lines.count; i++) {
+        NSString *line = lines[i];
+        if (i < classes.count) {
+            [s addAttribute:BPRouteKindAttributeName value:[@"road:" stringByAppendingString:classes[i]]
+                      range:NSMakeRange(pos, line.length)];
+        } else {
+            NSArray<NSString *> *surfaces = @[@"paved", @"unpaved", @"unknown"];
+            NSUInteger p = pos, k = 0;
+            for (NSString *part in [line componentsSeparatedByString:@" · "]) {
+                if (k < surfaces.count) {
+                    [s addAttribute:BPRouteKindAttributeName value:[@"surface:" stringByAppendingString:surfaces[k]]
+                              range:NSMakeRange(p, part.length)];
+                }
+                p += part.length + 3;
+                k++;
+            }
+        }
+        pos += line.length + 1;
+    }
     return s;
 }
 
@@ -855,6 +898,8 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     [coder encodeInteger:_seconds forKey:@"seconds"];
     [coder encodeObject:_roadStats forKey:@"roadStats"];
     [coder encodeObject:_surfaceStats forKey:@"surfaceStats"];
+    [coder encodeObject:_roadRuns forKey:@"roadRuns"];
+    [coder encodeObject:_surfaceRuns forKey:@"surfaceRuns"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)coder
@@ -868,6 +913,9 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     NSSet *classes = [NSSet setWithObjects:[NSDictionary class], [NSString class], [NSNumber class], nil];
     self.roadStats = [coder decodeObjectOfClasses:classes forKey:@"roadStats"];
     self.surfaceStats = [coder decodeObjectOfClasses:classes forKey:@"surfaceStats"];
+    NSSet *runClasses = [NSSet setWithObjects:[NSArray class], [NSString class], [NSNumber class], nil];
+    self.roadRuns = [coder decodeObjectOfClasses:runClasses forKey:@"roadRuns"];
+    self.surfaceRuns = [coder decodeObjectOfClasses:runClasses forKey:@"surfaceRuns"];
     return self;
 }
 @end

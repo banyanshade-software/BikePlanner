@@ -19,6 +19,21 @@ NSString *const BPSurfaceUnknown = @"unknown";
 
 @implementation BRouterGeoJSON
 
+// appends the segment ending at point `end` to runs of class `cls` (consecutive segments of the same class: one run)
+static void BPAddRun(NSMutableArray<NSArray *> *runs, NSString *cls, NSUInteger end)
+{
+    if ([runs.lastObject[0] isEqualToString:cls]) [runs removeLastObject];
+    [runs addObject:@[cls, @(end)]];
+}
+
+// points after the last segment found: in the last run
+static void BPCloseRuns(NSMutableArray<NSArray *> *runs, NSUInteger pointCount)
+{
+    if (runs.count && [runs.lastObject[1] unsignedIntegerValue] + 1 < pointCount) {
+        runs[runs.count - 1] = @[runs.lastObject[0], @(pointCount - 1)];
+    }
+}
+
 static NSError *BPGeoJSONError(NSString *message)
 {
     return [NSError errorWithDomain:@"BRouterGeoJSON" code:1 userInfo:@{ NSLocalizedDescriptionKey: message }];
@@ -86,13 +101,17 @@ static NSError *BPGeoJSONError(NSString *message)
     }
     r->_info = info;
 
-    // messages: a header row, then one row per way segment, with its Distance (m) and WayTags ("k=v k=v")
+    // messages: a header row, then one row per way segment, with its Distance (m) and WayTags ("k=v k=v"), ending
+    // at Longitude / Latitude (degrees × 1e6), a point of the geometry
     NSMutableDictionary<NSString *, NSNumber *> *roads = [NSMutableDictionary dictionary];
     NSMutableDictionary<NSString *, NSNumber *> *surfaces = [NSMutableDictionary dictionary];
+    NSMutableArray<NSArray *> *runs = [NSMutableArray array], *surfaceRuns = [NSMutableArray array];
+    NSUInteger runStart = 0; // first point not in a run yet
     NSArray<NSArray *> *messages = props[@"messages"];
     if ([messages isKindOfClass:[NSArray class]] && messages.count > 1) {
         NSArray *header = messages[0];
         NSUInteger iDist = [header indexOfObject:@"Distance"], iTags = [header indexOfObject:@"WayTags"];
+        NSUInteger iLon = [header indexOfObject:@"Longitude"], iLat = [header indexOfObject:@"Latitude"];
         if (iDist != NSNotFound && iTags != NSNotFound) {
             for (NSUInteger i = 1; i < messages.count; i++) {
                 NSArray *row = messages[i];
@@ -106,11 +125,27 @@ static NSError *BPGeoJSONError(NSString *message)
                 NSString *rc = [self roadClassForTags:tags], *sc = [self surfaceClassForTags:tags];
                 roads[rc] = @(roads[rc].doubleValue + d);
                 surfaces[sc] = @(surfaces[sc].doubleValue + d);
+                // the segment ends at the next point of the geometry at its position (#54); not found: its points
+                // go to the next segment
+                if (iLon == NSNotFound || iLat == NSNotFound || row.count <= MAX(iLon, iLat)) continue;
+                long lon = [row[iLon] integerValue], lat = [row[iLat] integerValue];
+                for (NSUInteger k = MAX(runStart, 1); k < points.count; k++) {
+                    CLLocationCoordinate2D c = points[k].coordinate;
+                    if (lround(c.longitude * 1e6) != lon || lround(c.latitude * 1e6) != lat) continue;
+                    BPAddRun(runs, rc, k);
+                    BPAddRun(surfaceRuns, sc, k);
+                    runStart = k + 1;
+                    break;
+                }
             }
         }
     }
+    BPCloseRuns(runs, points.count);
+    BPCloseRuns(surfaceRuns, points.count);
     r->_roadStats = roads;
     r->_surfaceStats = surfaces;
+    r->_roadRuns = runs;
+    r->_surfaceRuns = surfaceRuns;
     return r;
 }
 

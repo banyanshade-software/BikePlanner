@@ -18,6 +18,10 @@ extern const CLLocationDistance kBPImportTolerance;   // m, distance to the trac
 extern const CLLocationDistance kBPImportMaxSpacing;  // m, along the track
 extern const NSUInteger kBPImportMaxWaypoints;        // before spacing: the tolerance grows to stay below
 
+/// attribute of BrouterInfo.roadTypesAttributedText on the hoverable parts (#54): "road:<road class>" on each road type
+/// line, "surface:<surface class>" on each part of the surface line (classes: BRouterGeoJSON.h)
+extern NSAttributedStringKey const BPRouteKindAttributeName;
+
 @interface BrouterInfo : NSObject <NSSecureCoding> {
 }
 
@@ -34,6 +38,12 @@ extern const NSUInteger kBPImportMaxWaypoints;        // before spacing: the tol
 // distance (m) by road class / surface class, from the BRouter way tags (#53; keys: see BRouterGeoJSON.h)
 @property (copy, nullable) NSDictionary<NSString *, NSNumber *> *roadStats;
 @property (copy, nullable) NSDictionary<NSString *, NSNumber *> *surfaceStats;
+/// road class along the route (#54): runs of route points, @[class, index of the last point] (see BRouterGeoJSON)
+@property (copy, nullable) NSArray<NSArray *> *roadRuns;
+/// same for the surface class
+@property (copy, nullable) NSArray<NSArray *> *surfaceRuns;
+/// road classes in the order of the lines of roadTypesText (longest first)
+@property (readonly) NSArray<NSString *> *roadTypesClasses;
 /// Info section: one line per road class, longest first ("Small roads  18.0 km  50 %"), then the surface line;
 /// "" without statistics
 @property (readonly) NSString *roadTypesText;

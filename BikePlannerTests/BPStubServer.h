@@ -59,6 +59,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// GPX that the /brouter endpoint returns for these "lon,lat|lon,lat" waypoints (exposed for assertions)
 + (NSString *) gpxForLonLats:(NSString *)lonlats;
+/// same route as BRouter GeoJSON (what the /brouter endpoint returns with format=geojson)
++ (NSString *) geojsonForLonLats:(NSString *)lonlats;
 
 @end
 

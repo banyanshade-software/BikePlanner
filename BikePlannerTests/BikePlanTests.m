@@ -411,6 +411,52 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     XCTAssertEqualObjects(plan.brouterInfo.roadStats[@"track"], @4000, @"restored by undo");
 }
 
+// classes in the order of the lines of the Info section, without the empty ones (#54)
+- (void)testRoadTypesClasses
+{
+    plan.brouterInfo.roadStats = @{ @"tertiary": @11200, @"small": @18000, @"track": @4000, @"primary": @0 };
+    XCTAssertEqualObjects(plan.brouterInfo.roadTypesClasses, (@[@"small", @"tertiary", @"track"]));
+    plan.brouterInfo.roadStats = nil;
+    XCTAssertEqualObjects(plan.brouterInfo.roadTypesClasses, @[]);
+}
+
+// road class along the route (#54): saved, part of the route state
+- (void)testRoadRunsArchivedAndInRouteState
+{
+    NSArray *runs = @[ @[@"tertiary", @5], @[@"track", @10] ], *surfaces = @[ @[@"paved", @5], @[@"unpaved", @10] ];
+    plan.brouterInfo.roadRuns = runs;
+    plan.brouterInfo.surfaceRuns = surfaces;
+    BikePlan *r = [self roundTrip:plan];
+    XCTAssertEqualObjects(r.brouterInfo.roadRuns, runs);
+    XCTAssertEqualObjects(r.brouterInfo.surfaceRuns, surfaces);
+    NSDictionary *state = [plan clearRoute];
+    XCTAssertNil(plan.brouterInfo.roadRuns);
+    XCTAssertNil(plan.brouterInfo.surfaceRuns);
+    [plan restoreRoute:state];
+    XCTAssertEqualObjects(plan.brouterInfo.roadRuns, runs, @"restored by undo");
+    XCTAssertEqualObjects(plan.brouterInfo.surfaceRuns, surfaces, @"restored by undo");
+}
+
+// the hoverable parts of the Info text are tagged (#54): each road type line, each part of the surface line
+- (void)testRoadTypesTextKinds
+{
+    plan.brouterInfo.roadStats = @{ @"small": @18000, @"track": @4000 };
+    plan.brouterInfo.surfaceStats = @{ @"paved": @20000, @"unpaved": @2000 };
+    NSAttributedString *s = plan.brouterInfo.roadTypesAttributedText;
+    NSMutableArray<NSString *> *kinds = [NSMutableArray array];
+    NSMutableArray<NSString *> *texts = [NSMutableArray array];
+    [s enumerateAttribute:BPRouteKindAttributeName inRange:NSMakeRange(0, s.length) options:0
+               usingBlock:^(id value, NSRange range, BOOL *stop) {
+        if (!value) return;
+        [kinds addObject:value];
+        [texts addObject:[s.string substringWithRange:range]];
+    }];
+    XCTAssertEqualObjects(kinds, (@[@"road:small", @"road:track", @"surface:paved", @"surface:unpaved", @"surface:unknown"]));
+    XCTAssertTrue([texts[0] hasPrefix:NSLocalizedString(@"Small roads", nil)] && [texts[0] hasSuffix:@"%"], @"%@", texts[0]);
+    XCTAssertTrue([texts[2] hasSuffix:@"91 %"], @"%@", texts[2]);
+    XCTAssertFalse([texts[3] containsString:@"·"], @"%@", texts[3]);
+}
+
 - (void)testCustomPoiCanBeAddedAfterLoad
 {
     [plan addCustomPoiAt:CLLocationCoordinate2DMake(44, 0.5)];

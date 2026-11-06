@@ -10,6 +10,7 @@
 #import "MapController.h"
 #import "BRFProfileEditor.h"
 #import "BikePlan.h"
+#import "BPRoadTypesLabel.h"
 
 @interface PlannerWindowController ()
 
@@ -35,7 +36,8 @@
 }
 
 // Info section (#53): its content (box of Document.xib) goes into a scroll view, with the distance by road type
-// below (label bound to plan.brouterInfo.roadTypesAttributedText). Built here so that Document.xib is unchanged.
+// below (label bound to plan.brouterInfo.roadTypesAttributedText; hovering a road type line or a part of the surface
+// line highlights it on the map, #54). Built here so that Document.xib is unchanged.
 - (void) setupInfoSection
 {
     Document *d = (Document *)self.document;
@@ -66,9 +68,15 @@
         [c.heightAnchor constraintEqualToConstant:size.height].active = YES;
         [stack addArrangedSubview:c];
     }
-    NSTextField *roads = [NSTextField wrappingLabelWithString:@""];
+    BPRoadTypesLabel *roads = [BPRoadTypesLabel wrappingLabelWithString:@""];
     roads.accessibilityIdentifier = @"routeRoadTypes";
+    roads.selectable = NO; // a click would open the field editor over it: other layout, no more hover (#54)
     [roads bind:NSValueBinding toObject:d withKeyPath:@"plan.brouterInfo.roadTypesAttributedText" options:nil];
+    // hovering a road type or a surface highlights it on the map (#54)
+    __weak Document *weakDoc = d;
+    roads.hoverHandler = ^(NSString *kind) {
+        [weakDoc.mapController highlightKind:kind];
+    };
     [stack addArrangedSubview:roads];
     [stack setCustomSpacing:2 afterView:stack.arrangedSubviews.firstObject];
     [doc addSubview:stack];

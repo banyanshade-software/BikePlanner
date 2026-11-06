@@ -8,6 +8,7 @@
 #import <XCTest/XCTest.h>
 #import "BRouterGeoJSON.h"
 #import "TestFixtures.h"
+#import "BPStubServer.h"
 
 // same structure as a brouter.de answer (values are strings, coordinates [lon, lat, ele])
 static NSString *const kBRouterGeoJSON =
@@ -51,6 +52,36 @@ static NSString *const kBRouterGeoJSON =
     XCTAssertEqualObjects(r.surfaceStats, (@{ BPSurfaceUnknown: @1158, BPSurfacePaved: @1500, BPSurfaceUnpaved: @1000 }));
     double total = [[r.roadStats.allValues valueForKeyPath:@"@sum.doubleValue"] doubleValue];
     XCTAssertEqual(total, 3658, @"= track length");
+}
+
+// road class along the route (#54): each message ends at a point of the geometry; a message whose point is not in
+// the geometry (the first one of the fixture) gives its points to the next one
+- (void)testRoadRuns
+{
+    BRouterGeoJSON *r = [BRouterGeoJSON routeWithData:BPData(kBRouterGeoJSON) error:NULL];
+    XCTAssertEqualObjects(r.roadRuns, (@[ @[BPRoadTertiary, @2], @[BPRoadTrack, @3], @[BPRoadSmall, @4] ]));
+    XCTAssertEqualObjects(r.surfaceRuns, (@[ @[BPSurfacePaved, @2], @[BPSurfaceUnpaved, @3], @[BPSurfaceUnknown, @4] ]));
+}
+
+// consecutive messages of the same class: one run; the last run ends at the last point
+- (void)testRoadRunsMerged
+{
+    NSString *geo = [BPStubServer geojsonForLonLats:@"0.5,44.0|0.6,44.1"]; // 11 points, 5 tertiary + 5 track segments
+    BRouterGeoJSON *r = [BRouterGeoJSON routeWithData:BPData(geo) error:NULL];
+    XCTAssertEqual(r.points.count, 11u);
+    XCTAssertEqualObjects(r.roadRuns, (@[ @[BPRoadTertiary, @5], @[BPRoadTrack, @10] ]));
+    XCTAssertEqualObjects(r.surfaceRuns, (@[ @[BPSurfacePaved, @5], @[BPSurfaceUnpaved, @10] ]));
+}
+
+// without way tags: no run
+- (void)testNoRoadRunsWithoutMessages
+{
+    NSString *geo = @"{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{},"
+                    @"\"geometry\":{\"type\":\"LineString\",\"coordinates\":[[0.5,44.0],[0.6,44.1]]}}]}";
+    BRouterGeoJSON *r = [BRouterGeoJSON routeWithData:BPData(geo) error:NULL];
+    XCTAssertEqual(r.points.count, 2u);
+    XCTAssertEqualObjects(r.roadRuns, @[]);
+    XCTAssertEqualObjects(r.surfaceRuns, @[]);
 }
 
 - (void)testClasses

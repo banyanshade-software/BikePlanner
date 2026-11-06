@@ -135,6 +135,9 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   Below, the **distance by road type** (cycleways, paths, tracks, small roads, tertiary, secondary, main roads,
   other: km and %, longest first) and the share paved / unpaved / unknown surface, from the way tags of the
   BRouter answer; saved with the document. The Info section is in a scroll view (#53).
+  Hovering a road type line, or the paved / unpaved / unknown part of the surface line, highlights the parts of the
+  route of that type on the map (pink, over the route); leaving it removes the highlight (#54). Not available for a route whose road types are unknown (imported trace,
+  document saved before #54).
 - F3.7 All waypoint operations (add, insert, move, remove, reverse) are **undoable/redoable** (Edit ▸ Undo/Redo),
   as well as adding a custom POI and importing a reference trace.
 - F3.8 *Edit ▸ Reverse Route* or the toolbar *Reverse* button (enabled with ≥ 2 waypoints) swaps start and end: the waypoint order is reversed

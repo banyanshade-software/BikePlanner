@@ -887,7 +887,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
         // if (![ov isKindOfClass:[MKTileOverlay class]]) {
         if ([ov isKindOfClass:[TaggedPoly class]]) {
             TaggedPoly *tp = (TaggedPoly *)ov;
-            if (0 == tp.tag) {
+            if (0 == tp.tag || 3 == tp.tag) { // with the road class highlight of the old route (#54)
                 [self.mapView removeOverlay:ov];
             }
         }
@@ -962,6 +962,8 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
                 self.document.plan.brouterInfo.seconds = [brouterInfo[@"n-time-seconds"] integerValue];
                 self.document.plan.brouterInfo.roadStats = brouterInfo[@"road-stats"];       // #53
                 self.document.plan.brouterInfo.surfaceStats = brouterInfo[@"surface-stats"];
+                self.document.plan.brouterInfo.roadRuns = brouterInfo[@"road-runs"];        // #54
+                self.document.plan.brouterInfo.surfaceRuns = brouterInfo[@"surface-runs"];
             }
             self.document.plan.routeGPX = gpx; // saved with the document (#10)
             self.gpxData = gpx;
@@ -972,6 +974,40 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
         });
     
     }];
+}
+
+// tag 3 polylines over the route, one per run of the class; nothing when the runs are not those of the route
+// (route imported from a trace, document saved before #54)
+- (void) highlightKind:(nullable NSString *)kind
+{
+    for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
+        if ([ov isKindOfClass:[TaggedPoly class]] && 3 == ((TaggedPoly *)ov).tag) [self.mapView removeOverlay:ov];
+    }
+    NSArray<CLLocation *> *pts = _document.plan.routePoints;
+    NSArray<NSArray *> *runs = nil;
+    NSString *cls = nil;
+    if ([kind hasPrefix:@"road:"]) {
+        runs = _document.plan.brouterInfo.roadRuns;
+        cls = [kind substringFromIndex:5];
+    } else if ([kind hasPrefix:@"surface:"]) {
+        runs = _document.plan.brouterInfo.surfaceRuns;
+        cls = [kind substringFromIndex:8];
+    }
+    if (!cls || pts.count < 2 || [runs.lastObject[1] unsignedIntegerValue] != pts.count - 1) return;
+    NSUInteger from = 0; // a run starts at the last point of the previous one
+    for (NSArray *run in runs) {
+        NSUInteger end = MIN([run[1] unsignedIntegerValue], pts.count - 1);
+        if ([run[0] isEqualToString:cls] && end > from) {
+            NSUInteger n = end - from + 1;
+            CLLocationCoordinate2D *coords = malloc(n * sizeof(CLLocationCoordinate2D));
+            for (NSUInteger i = 0; i < n; i++) coords[i] = pts[from + i].coordinate;
+            TaggedPoly *p = [TaggedPoly polylineWithCoordinates:coords count:n];
+            free(coords);
+            p.tag = 3;
+            [self.mapView addOverlay:p level:MKOverlayLevelAboveLabels];
+        }
+        from = MAX(from, end);
+    }
 }
 
 #pragma mark - MKMapViewDelegate
@@ -993,6 +1029,11 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
             r.lineWidth = 8.0;
             r.alpha = 0.5;
             r.strokeColor = [NSColor blueColor];
+        } else if (pl.tag == 3) {
+            // road class hovered in the Info section (#54)
+            r.lineWidth = 9.0;
+            r.alpha = 0.9;
+            r.strokeColor = [NSColor systemPinkColor];
         } else {
             // gpx loaded
             r.lineWidth = 6.0;

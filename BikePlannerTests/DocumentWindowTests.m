@@ -21,6 +21,7 @@
 #import "BPStubServer.h"
 #import "BRFProfileEditor.h"
 #import "SafeOSMTileOverlay.h"
+#import "BPRoadTypesLabel.h"
 #import "SafeTileRenderer.h"
 #import "StreetViewController.h"
 #import "GPXParser.h"
@@ -1193,6 +1194,115 @@
     BPSpin(0.3);
     XCTAssertEqual(counter.count, 1, @"no search when the search field loses the focus");
     XCTAssertEqualObjects(field.stringValue, @"Agen");
+}
+
+// road class along the route (#54), from the stub's way tags: half tertiary, half track
+- (void)testRouteHasRoadRuns
+{
+    [self makeRoute];
+    XCTAssertEqualObjects(doc.plan.brouterInfo.roadRuns, (@[ @[@"tertiary", @5], @[@"track", @10] ]));
+    XCTAssertEqualObjects(doc.plan.brouterInfo.surfaceRuns, (@[ @[@"paved", @5], @[@"unpaved", @10] ]));
+}
+
+// surface classes are highlighted the same way; unknown kinds give nothing
+- (void)testHighlightSurfaceClass
+{
+    [self makeRoute];
+    [mc highlightKind:@"surface:unpaved"];
+    XCTAssertEqual([self polysWithTag:3].count, 1u);
+    XCTAssertEqual([self polysWithTag:3].firstObject.pointCount, 6u, @"points 5 to 10");
+    [mc highlightKind:@"surface:unknown"];
+    XCTAssertEqual([self polysWithTag:3].count, 0u, @"no unknown surface on the route");
+    [mc highlightKind:@"bogus"];
+    XCTAssertEqual([self polysWithTag:3].count, 0u);
+}
+
+// highlight of a road class on the map (#54): tag 3 polylines over the parts of the route of that class
+- (void)testHighlightRoadClass
+{
+    [self makeRoute];
+    [mc highlightKind:@"road:track"];
+    NSArray<TaggedPoly *> *h = [self polysWithTag:3];
+    XCTAssertEqual(h.count, 1u);
+    XCTAssertEqual(h.firstObject.pointCount, 6u, @"points 5 to 10: from the end of the tertiary part");
+    XCTAssertEqualWithAccuracy(h.firstObject.points[0].x, MKMapPointForCoordinate(doc.plan.routePoints[5].coordinate).x, 1e-3);
+    [mc highlightKind:@"road:tertiary"];
+    XCTAssertEqual([self polysWithTag:3].count, 1u, @"replaces the previous highlight");
+    XCTAssertEqual([self polysWithTag:3].firstObject.pointCount, 6u, @"points 0 to 5");
+    [mc highlightKind:@"road:cycleway"];
+    XCTAssertEqual([self polysWithTag:3].count, 0u, @"no cycleway on the route");
+    [mc highlightKind:@"road:track"];
+    [mc highlightKind:nil];
+    XCTAssertEqual([self polysWithTag:3].count, 0u);
+    XCTAssertTrue([[mc mapView:map rendererForOverlay:h.firstObject] isKindOfClass:[MKPolylineRenderer class]]);
+}
+
+// runs that are not those of the route (other point count: route from a trace, old document): no highlight
+- (void)testNoHighlightWithRunsOfAnotherRoute
+{
+    [self makeRoute];
+    doc.plan.brouterInfo.roadRuns = @[ @[@"track", @3] ];
+    [mc highlightKind:@"road:track"];
+    XCTAssertEqual([self polysWithTag:3].count, 0u);
+}
+
+// a new route removes the highlight of the old one
+- (void)testNewRouteRemovesHighlight
+{
+    [self makeRoute];
+    [mc highlightKind:@"road:track"];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.65)];
+    XCTAssertTrue([self waitForRouteWithPoints:21]);
+    BPSpin(0.1);
+    XCTAssertEqual([self polysWithTag:3].count, 0u);
+}
+
+// hovering a road type line or a part of the surface line of the Info section highlights it on the map, leaving
+// the label removes it (#54)
+- (void)testHoverRoadTypeHighlightsOnMap
+{
+    BPRoadTypesLabel *roads = (BPRoadTypesLabel *)[self viewWithIdentifier:@"routeRoadTypes" in:self.content];
+    XCTAssertTrue([roads isKindOfClass:[BPRoadTypesLabel class]]);
+    [self makeRoute];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(roads.stringValue.length > 0); }));
+    [roads.superview layoutSubtreeIfNeeded];
+    // kinds met over the label, top to bottom and left to right: the tagged parts of the text, in order
+    NSMutableArray<NSString *> *met = [NSMutableArray array];
+    NSRect b = roads.bounds;
+    for (CGFloat y = 1; y < NSHeight(b); y += 2) {
+        for (CGFloat x = 1; x < NSWidth(b); x += 2) {
+            NSPoint p = NSMakePoint(x, roads.isFlipped ? y : NSHeight(b) - y);
+            NSString *k = [roads kindAtPoint:p];
+            if (k && ![met containsObject:k]) {
+                [met addObject:k];
+                [roads hoverAtPoint:p];
+                XCTAssertEqualObjects(roads.hoveredKind, k);
+                BOOL onRoute = ![k isEqualToString:@"surface:unknown"]; // the stub route is all tertiary/paved or track/unpaved
+                XCTAssertEqual([self polysWithTag:3].count, onRoute ? 1u : 0u, @"%@", k);
+            }
+        }
+    }
+    NSArray *expected = [@[ [@"road:" stringByAppendingString:doc.plan.brouterInfo.roadTypesClasses[0]],
+                            [@"road:" stringByAppendingString:doc.plan.brouterInfo.roadTypesClasses[1]] ]
+                         arrayByAddingObjectsFromArray:@[@"surface:paved", @"surface:unpaved", @"surface:unknown"]];
+    XCTAssertEqualObjects(met, expected);
+    XCTAssertNil([roads kindAtPoint:NSMakePoint(20, roads.isFlipped ? 1 : NSHeight(b) - 1)], @"title line");
+    [roads hoverAtPoint:NSMakePoint(-10, -10)];
+    XCTAssertNil(roads.hoveredKind);
+    XCTAssertEqual([self polysWithTag:3].count, 0u);
+}
+
+// a click on the road types does not start text selection: the field editor would lay the text out differently
+// (tab stops) and take the mouse events, so the hover stopped working (#54)
+- (void)testRoadTypesLabelNotSelectable
+{
+    BPRoadTypesLabel *roads = (BPRoadTypesLabel *)[self viewWithIdentifier:@"routeRoadTypes" in:self.content];
+    [self makeRoute];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(roads.stringValue.length > 0); }));
+    XCTAssertFalse(roads.isSelectable);
+    XCTAssertFalse(roads.isEditable);
+    [roads.window makeFirstResponder:roads];
+    XCTAssertNil(roads.currentEditor, @"no field editor over the label");
 }
 
 // Info section: in a scroll view (it grows), with the distance by road type of the route (#53)

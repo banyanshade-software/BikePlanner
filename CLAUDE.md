@@ -8,13 +8,17 @@ Read first:
 - `doc/02-architecture.md` — how it is built, key flows, **known bugs and tech debt (§9)**
 - `doc/03-distribution-constraints.md` — third-party service constraints, status of each prerequisite (app is personal for now)
 - `doc/04-embedded-brouter.md` (on branch `brouter` only) — plan for a BRouter engine embedded in the app
+- `doc/get_google_api_key.md` (getting the Street View key), `doc/google-maps-embed-facturation.md` (in French, for
+  the owner: Google console settings so the key cannot be billed)
 
 Work items are tracked as GitHub issues on `banyanshade-software/BikePlanner`.
 
 ## Build & test
 
 One-time setup: `cp BikePlanner/Secret.h.example BikePlanner/Secret.h` (git-ignored; the build fails without it;
-put a real Thunderforest key in it for the OSM+cycle map, optionally a Google Maps Embed API key for Street View, #49).
+put a real Thunderforest key in it for the OSM+cycle map, optionally a Google Maps Embed API key for Street View, #49:
+`GOOGLE_MAPS_API_KEY`, or `GOOGLE_API_KEY` as in the owner's `Secret.h`. The app checks the Google key at the first
+Street View and falls back to the Google Maps web app if Google rejects it).
 Only `BPSecrets.m` includes `Secret.h`: it stores the keys obfuscated (#51); use `+[BPSecrets thunderforestAPIKey]` /
 `+googleMapsAPIKey`, never the macros, and never log a key.
 UI tests also need macOS Automation Mode, enabled once by the owner in Terminal.app:
@@ -46,7 +50,8 @@ xcrun xccov view --report --files-for-target BikePlanner.app <scratch>/r.xcresul
 Failure details: add `-resultBundlePath <scratch>/r.xcresult`, then
 `xcrun xcresulttool get test-results tests --path <scratch>/r.xcresult`.
 
-Expected state: all tests pass; the `XCTExpectFailure` ones (known bugs) are reported as "expected failure".
+Expected state: all tests pass; the `XCTExpectFailure` ones (known bugs) are reported as "expected failure" (none
+left since #9 / #12 were fixed).
 
 ## Adding files to the Xcode project
 
@@ -76,14 +81,24 @@ and product; source files are kept).
 - `NSLog` is used for diagnostics. `if ((0))` / `#if 0` blocks are the owner's way to keep disabled code —
   don't delete them unless the task is cleanup.
 - User-facing strings via `NSLocalizedString`.
+- HTTP requests are built with `+[BPEnvironment requestWithURL:]` (sets the app's User-Agent
+  `BikePlanner/<version> (build <n>; +<GitHub URL>)`, required by the OSM tile and Overpass policies); endpoints come
+  from `BPEnvironment`. Route requests: one at a time (`MapController` cancels the previous one, #9).
+- The stub does not validate what real services do with a request (e.g. Overpass QL semantics): when changing a
+  query or request format, also check it once against the real service (curl from the shell, never with a key in
+  the command output). An `around:<polyline>` Overpass clause returned nothing on real routes (#12).
 
 ## Tests conventions
 
 - Unit tests: `BikePlannerTests/`, hosted in the app; shared data/helpers in `TestFixtures.h`
   (`BPOverrideDefaults`, `BPWaitUntil`, `BPSpin`, `BPLoc`…). UI tests: `BikePlannerUITests/`, base class `BPUITestCase`.
 - **Everything runs offline.** External services are replaced by `BPStubServer` (in `BikePlannerTests/`, compiled
-  into both test targets), which imitates BRouter (routes in GeoJSON — the app requests `format=geojson` since #53 — or GPX, `.brf` profiles) and Overpass (3 POIs ~1 km from the
-  route start) and the Maps Embed API (HTTP 403 for a key starting with `invalid`, like Google for a rejected key) and records every request — use the request log as the oracle.
+  into both test targets), which imitates BRouter (routes in GeoJSON — the app requests `format=geojson` since #53 —
+  or GPX, `.brf` profiles; GeoJSON way tags: first half tertiary/asphalt, second half track/gravel), Overpass (3 POIs
+  ~1 km from the first `around` point) and the Maps Embed API (HTTP 403 for a key starting with `invalid`, like Google
+  for a rejected key). It records every request (path, query, body, `referer`, `userAgent`) — use the request log as
+  the oracle. Failures: `failCount` / `failStatus` / `failRetryAfter`; slow answers: `responseDelay` (read when the
+  request starts). `+geojsonForLonLats:` / `+gpxForLonLats:` give the route the stub returns.
   - unit tests: `[server startInProcess]` (NSURLProtocol, no socket — the sandboxed host app cannot listen), then
     point the app to it with `BPOverrideDefaults(@{ @"BPBRouterServer": server.baseURL.absoluteString, … })` and
     `BPRestoreDefaults()` in tearDown;
@@ -95,7 +110,11 @@ and product; source files are kept).
   tests replace it with `+setSearchHandlerForTesting:`. Tests of the Preferences use a private `NSUserDefaults`
   suite, never the owner's defaults. The test host reads the owner's real user defaults (Preferences, my default
   BRouter parameters): a test that depends on `BPDefaultPosition`, `BPInitialRadiusKm`, `BPProfileOverrides`… must
-  override it with `BPOverrideDefaults`.
+  override it with `BPOverrideDefaults`. `BPOverrideDefaults` is not cumulative: each call starts again from the
+  original values, so a second call in a test drops the overrides of `setUp` — repeat them.
+- Waiting: prefer `BPWaitUntil(timeout, condition)` to a fixed `BPSpin` for anything animated or asynchronous (map
+  region animations made a test flaky). A cancelled request may still reach the in-process stub after the test:
+  spin a little at the end of such a test so it does not consume the next test's `failCount`.
 - `Secret.h` is not in the Xcode project: a test that needs it imports `"../BikePlanner/Secret.h"` and never prints
   the key (`SecretsTests`).
 - XCTest macros: a comma inside a message send (`[NSString stringWithFormat:@"%@", x]`) splits the macro arguments —
@@ -106,7 +125,8 @@ and product; source files are kept).
 - Undo: in tests, the undo manager does not close its automatic groups in nested run loops — set
   `groupsByEvent = NO` and group explicitly (see `UndoTests`).
 - UI tests: controls created in code have `accessibilityIdentifier`s (`map`, `clickMode`, `mapType`, `clickModeHelp`,
-  `zoomIn`…, `brf.<parameter>` in the Params tab, `routeRoadTypes` (Info section), `poiType`/`poiName` (custom POI
+  `zoomIn`…, `brf.<parameter>` in the Params tab, `routeRoadTypes` (Info section, a `BPRoadTypesLabel`: hovering a
+  road type line or a surface part highlights it on the map, #54), `poiType`/`poiName` (custom POI
   sheet), `prefLatitude`/`prefLongitude`/`prefRadius`/`prefSearch` (Preferences), `routeLength`/`routeAscent`/`routeTime`/`routeSpeed` in the XIB — on the cell: unit tests find them with
   `-[DocumentWindowTests panelControlWithIdentifier:]`). POI markers and callouts are not exposed to accessibility:
   check POI behavior through its effects (stub requests, undo menu items). Files exchanged with the app go in
