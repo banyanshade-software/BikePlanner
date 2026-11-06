@@ -141,27 +141,60 @@
     [self waitForExpectations:@[done] timeout:10];
 }
 
-// Known bug (#9): an HTTP error status is not reported as an error.
+// an HTTP error status is an error, with BRouter's message (#9)
 - (void)testHTTPErrorGivesError
 {
     server.failCount = 1;
     [self route:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] overrides:nil
            then:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *info, NSError *error) {
         XCTAssertEqual(points.count, 0u);
-        XCTExpectFailure(@"HTTP status not checked by BRouterClient (#9)");
         XCTAssertNotNil(error);
+        XCTAssertEqual(error.code, 500);
+        XCTAssertEqualObjects(error.localizedDescription, @"stub failure");
     }];
 }
 
-// Known bug (#9): a BRouter error message (HTTP 400 text) is not reported as an error.
+// a BRouter error message (HTTP 400 text) is an error (#9)
 - (void)testSingleWaypointGivesError
 {
     [self route:@[BPLoc(44.0, 0.5)] overrides:nil
            then:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *info, NSError *error) {
         XCTAssertEqual(points.count, 0u);
-        XCTExpectFailure(@"HTTP status not checked by BRouterClient (#9)");
         XCTAssertNotNil(error);
+        XCTAssertEqual(error.code, 400);
+        XCTAssertEqualObjects(error.localizedDescription, @"lonlats must contain at least 2 points");
     }];
+}
+
+// the error code is the HTTP status
+- (void)testOtherHTTPErrorStatus
+{
+    server.failCount = 1;
+    server.failStatus = 503;
+    [self route:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] overrides:nil
+           then:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *info, NSError *error) {
+        XCTAssertEqual(error.code, 503);
+        XCTAssertEqualObjects(error.localizedDescription, @"stub failure");
+    }];
+}
+
+// the request can be cancelled (MapController cancels the previous request, #9)
+- (void)testCancel
+{
+    server.responseDelay = 0.5;
+    XCTestExpectation *done = [self expectationWithDescription:@"route"];
+    __block NSError *err = nil;
+    NSURLSessionDataTask *task = [client routeWithWaypoints:@[BPLoc(44.0, 0.5), BPLoc(44.1, 0.6)] profile:@"trekking"
+        overrides:nil completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *info, NSError *error) {
+        err = error;
+        [done fulfill];
+    }];
+    XCTAssertNotNil(task);
+    [task cancel];
+    [self waitForExpectations:@[done] timeout:5];
+    XCTAssertEqualObjects(err.domain, NSURLErrorDomain);
+    XCTAssertEqual(err.code, NSURLErrorCancelled);
+    BPSpin(0.7); // the stub may still start the cancelled request: not in the next test
 }
 
 @end

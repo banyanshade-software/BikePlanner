@@ -29,13 +29,16 @@ NS_ASSUME_NONNULL_BEGIN
                               profile:(nullable NSString *)profile
                             overrides:(nullable NSDictionary<NSString *, NSString *> *)overrides;
 
-- (void)routeWithWaypoints:(NSArray <CLLocation *>*)waypoints
+// The completion is called on a background queue: points, GPX and info, or an error (network, cancelled, HTTP
+// error status or no route: BRouter's message as localizedDescription, #9). Returns the task (to cancel it), nil
+// when the URL is invalid (the completion is then called at once with an error).
+- (nullable NSURLSessionDataTask *)routeWithWaypoints:(NSArray <CLLocation *>*)waypoints
           profile:(NSString *)profile
         overrides:(nullable NSDictionary<NSString *, NSString *> *)overrides
-       completion:(void(^)(NSArray<CLLocation *> *points,   // parsed points
-                           NSData *gpx,                     // raw gpx file, as received
-                           NSDictionary *brouterInfo,       // info brouter found in coments
-                           NSError *error))completion;
+       completion:(void(^)(NSArray<CLLocation *> * _Nullable points, // parsed points
+                           NSData * _Nullable gpx,                    // GPX built from the points
+                           NSDictionary * _Nullable brouterInfo,      // BRouter statistics
+                           NSError * _Nullable error))completion;
 
 @end
 

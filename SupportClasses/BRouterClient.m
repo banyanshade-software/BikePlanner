@@ -12,13 +12,38 @@
 #import "GPXParser.h"
 #import "BRouterGeoJSON.h"
 
-@implementation BRouterClient
+@implementation BRouterClient {
+    NSURLSession *_session; // one per client (was one per request, never invalidated, #9)
+}
 
 - (instancetype)initWithServerURL:(NSURL *)url {
     if (self = [super init]) {
         self.serverURL = url;
     }
     return self;
+}
+
+- (void)dealloc
+{
+    [_session finishTasksAndInvalidate];
+}
+
+// created at the first request (in tests, after the stub server is installed)
+- (NSURLSession *)session
+{
+    if (!_session) _session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]]; // avoid setting Accept-Encoding here
+    return _session;
+}
+
+// BRouter answers errors as plain text (e.g. HTTP 400 "lonlats must contain at least 2 points"): first line, short
+static NSError *BRouterError(NSInteger code, NSData *data, NSString *fallback)
+{
+    NSString *text = [[NSString alloc] initWithData:data ?: [NSData data] encoding:NSUTF8StringEncoding];
+    text = [[text componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]].firstObject
+            stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+    if (text.length > 200) text = [[text substringToIndex:200] stringByAppendingString:@"…"];
+    if (!text.length || [text hasPrefix:@"<"]) text = fallback; // empty or an HTML error page
+    return [NSError errorWithDomain:@"BRouterClient" code:code userInfo:@{ NSLocalizedDescriptionKey: text }];
 }
 
 
@@ -72,15 +97,15 @@ static NSString *BPQueryEncoded(NSString *s)
     return components.URL;
 }
 
-- (void)routeWithWaypoints:(NSArray <CLLocation *>*)waypoints
+- (nullable NSURLSessionDataTask *)routeWithWaypoints:(NSArray <CLLocation *>*)waypoints
           profile:(NSString *)profile
         overrides:(nullable NSDictionary<NSString *, NSString *> *)overrides
-       completion:(void(^)(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *brouterInfo, NSError *error))completion
+       completion:(void(^)(NSArray<CLLocation *> * _Nullable points, NSData * _Nullable gpx, NSDictionary * _Nullable brouterInfo, NSError * _Nullable error))completion
 {
     NSURL *url = [[self class] routeURLForServer:self.serverURL waypoints:waypoints profile:profile overrides:overrides];
     if (!url) {
         if (completion) completion(nil, nil, nil, [NSError errorWithDomain:@"BRouterClient" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"Invalid URL"}]);
-        return;
+        return nil;
     }
     
     if ((0)) {
@@ -89,24 +114,25 @@ static NSString *BPQueryEncoded(NSString *s)
         url = [NSURL URLWithString:encodedString];
     }
     NSLog(@"URL: %@", url);
-    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:config]; // avoid setting Accept-Encoding here
-    
     // NSURLSession *session = [NSURLSession sharedSession];
     
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:[BPEnvironment requestWithURL:url] completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
+    NSURLSessionDataTask *task = [[self session] dataTaskWithRequest:[BPEnvironment requestWithURL:url] completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
         if (err) {
             if (completion) completion(nil, nil, nil, err);
             return;
         }
         if (!data) { if (completion) completion(nil, nil, nil, [NSError errorWithDomain:@"BRouterClient" code:-2 userInfo:@{NSLocalizedDescriptionKey:@"No data"}]); return; }
 
-        
-        
-        // GeoJSON (#53). Not a route (BRouter error text): no points and no error, as before (#9)
+        NSInteger status = [resp isKindOfClass:[NSHTTPURLResponse class]] ? ((NSHTTPURLResponse *)resp).statusCode : 200;
+        if (status < 200 || status > 299) {
+            NSString *fallback = [NSString stringWithFormat:NSLocalizedString(@"HTTP error %ld", @"BRouter error"), (long)status];
+            if (completion) completion(nil, nil, nil, BRouterError(status, data, fallback));
+            return;
+        }
+        // GeoJSON (#53). Not a route (BRouter error text, no point): an error (#9)
         BRouterGeoJSON *route = [BRouterGeoJSON routeWithData:data error:NULL];
-        if (!route) {
-            if (completion) completion(@[], nil, nil, nil);
+        if (!route || !route.points.count) {
+            if (completion) completion(nil, nil, nil, BRouterError(-3, data, NSLocalizedString(@"No route found", @"BRouter error")));
             return;
         }
         NSMutableDictionary *bi = [route.info mutableCopy];
@@ -121,6 +147,7 @@ static NSString *BPQueryEncoded(NSString *s)
 
     }];
     [task resume];
+    return task;
 }
 
 

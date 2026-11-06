@@ -52,6 +52,8 @@ NS_ASSUME_NONNULL_BEGIN
 /// The next `failCount` requests get HTTP `failStatus` (default 500).
 @property (atomic) NSInteger failCount;
 @property (atomic) NSInteger failStatus;
+/// Retry-After header of these failures (default none)
+@property (atomic, copy, nullable) NSString *failRetryAfter;
 /// Delay before answering, in seconds (default 0).
 @property (atomic) double responseDelay;
 

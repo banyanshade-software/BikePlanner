@@ -869,7 +869,9 @@
 {
     [self reopenWithoutTestRegion];
     [mc userLocationAvailable:[[CLLocation alloc] initWithLatitude:44.5 longitude:0.3]];
-    BPSpin(0.5);
+    // animated from the default position (the owner's Preferences): wait for the end, not a fixed time
+    BPWaitUntil(3, ^BOOL{ return fabs(self->map.region.center.latitude - 44.5) < 0.01
+                              && fabs(self->map.region.center.longitude - 0.3) < 0.01; });
     XCTAssertEqualWithAccuracy(map.region.center.latitude, 44.5, 0.05);
     XCTAssertEqualWithAccuracy(map.region.center.longitude, 0.3, 0.05);
     XCTAssertTrue([self visibleKm] > 120 && [self visibleKm] < 260, @"%g km", [self visibleKm]);
@@ -1218,6 +1220,22 @@
     BPSpin(1.0);
     XCTAssertEqual(doc.plan.waypointsLocations.count, 3u);
     XCTAssertEqual(doc.plan.routePoints.count, 11u, @"route unchanged after a failed request");
+    // the user is told (#9): BRouter's message on the map
+    NSTextField *help = (NSTextField *)[self viewWithIdentifier:@"clickModeHelp" in:self.content];
+    XCTAssertEqualObjects(help.stringValue, @"Routing failed: stub failure");
+}
+
+// a slow answer to an older request does not overwrite the newer route (#9)
+- (void)testStaleRouteAnswerIgnored
+{
+    [self makeRoute];
+    server.responseDelay = 0.6;
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.65)];  // 3 waypoints, slow answer
+    server.responseDelay = 0;
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.05, 0.7)];  // 4 waypoints, fast answer
+    XCTAssertTrue([self waitForRouteWithPoints:31]);
+    BPSpin(1.0);
+    XCTAssertEqual(doc.plan.routePoints.count, 31u, @"the route of the last request");
 }
 
 - (void)testImportReferenceTrace

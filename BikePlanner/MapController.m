@@ -54,6 +54,8 @@
     BOOL animateDropPins;
     BOOL initialRegionPending;              // new plan: recenter on the first user location (#26)
     CLLocationCoordinate2D initialCenter;   // center set by showInitialRegion, to detect a map moved by the user
+    NSURLSessionDataTask *routeTask;        // route request in flight
+    NSUInteger routeGeneration;             // incremented by each request and cancel: older answers are ignored (#9)
 }
 
 - (void) initializeMapview
@@ -763,6 +765,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
 
 - (void) planReplaced
 {
+    [self cancelRouteRequest]; // its answer is for the replaced plan (#16)
     [self installPlanCallbacks];
     [self fullRefresh:YES];
 }
@@ -912,6 +915,8 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
 {
     if ([_document.plan.waypointsLocations count]>=2) {
         [self requestRoute];
+    } else {
+        [self cancelRouteRequest];
     }
     /*if (self.hasEnd && self.hasStart) {
      // 0.495477,44.178503
@@ -919,22 +924,34 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
      [self requestRoute];
      }*/
 }
+// the answer of the request in flight, if any, will be ignored
+- (void) cancelRouteRequest
+{
+    [routeTask cancel];
+    routeTask = nil;
+    routeGeneration++;
+}
+
+// one request at a time: a new one cancels the previous one, whose answer could otherwise overwrite the newer
+// route (#9); errors are shown on the map, the previous route is kept
 - (void) requestRoute
 {
     // profile can be changed, e.g. "trekking", "fastbike", etc.
     self.gpxData = nil;
+    [self cancelRouteRequest];
+    NSUInteger generation = routeGeneration;
     NSString *profile = _document.plan.profileName;
-    [self.brouter routeWithWaypoints:_document.plan.waypointsLocations profile:profile overrides:_document.plan.profileOverrides completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *brouterInfo, NSError *error) {
-        if (error) {
-            NSLog(@"BRouter error: %@", error);
-            return;
-        }
-        if (points.count == 0) {
-            NSLog(@"No points returned");
-            return;
-        }
+    routeTask = [self.brouter routeWithWaypoints:_document.plan.waypointsLocations profile:profile overrides:_document.plan.profileOverrides completion:^(NSArray<CLLocation *> *points, NSData *gpx, NSDictionary *brouterInfo, NSError *error) {
         // process it on main thread, otherwise setNeedDisplay does not operate ok
         dispatch_async(dispatch_get_main_queue(), ^{
+            if (generation != self->routeGeneration) return; // cancelled or replaced by a newer request
+            self->routeTask = nil;
+            if (error || points.count == 0) {
+                NSLog(@"BRouter error: %@", error);
+                [self showMapMessage:[NSString stringWithFormat:NSLocalizedString(@"Routing failed: %@", @"BRouter error"),
+                                      error.localizedDescription ?: NSLocalizedString(@"No route found", @"BRouter error")]];
+                return;
+            }
             if (brouterInfo) {
                 unsigned int kmlen = ([brouterInfo[@"n-track-length-m"] unsignedIntValue] + 500)/1000;
                 NSAssert(self.document.plan.brouterInfo, @"no brouterInfo");

@@ -9,7 +9,7 @@ provider's current terms at the time of distribution. Tracked by
 **Summary (status 2026-10-30)** — The app is not ready to be shared. Done: location usage string, keys kept out of
 git and obfuscated in the binary (#51), Street View through the Maps Embed API when a key is set (#49), a Credits
 text in the About window, an identifying User-Agent on every request. Still missing: on-map attributions (OSM,
-Thunderforest), Overpass backoff (#12), a user-configurable BRouter server (#2), and Developer ID signing +
+Thunderforest), a user-configurable BRouter server (#2), and Developer ID signing +
 notarization. The volunteer-run public services (OSM tiles, brouter.de, overpass-api.de) cannot back a distributed
 app anyway: each needs its own server, a paid provider, or a per-user setting.
 
@@ -72,10 +72,12 @@ app anyway: each needs its own server, a paid provider, or a per-user setting.
 ### 1.5 Overpass API (`overpass-api.de`)
 - Public instances have usage limits (roughly: a few requests at a time per IP, daily volume guidance) and ask
   for reasonable use; heavy queries are rejected (HTTP 429/504).
-- **Today**: one query per route change, throttled to ≥ 2.8 s; the retry on error does not work and has no
-  backoff ([#12](https://github.com/banyanshade-software/BikePlanner/issues/12)); identifying User-Agent (see 1.2).
-- **To do**: exponential backoff, respect `429`/`Retry-After`, smaller queries (route bounding corridor instead of
-  one `around` clause per sampled point); for distribution, a private Overpass instance
+- **Today**: one query per route change, throttled to ≥ 2.8 s; `around` clauses per route point sampled every
+  ≥ 1 km (at most 300 points; a single `around` along a polyline returned nothing on overpass-api.de); after an error, retries with exponential backoff (2, 4, 8… s) or the server's
+  `Retry-After` (429/503), at most 5, then nothing until the next route change
+  ([#12](https://github.com/banyanshade-software/BikePlanner/issues/12)); identifying User-Agent (see 1.2).
+- **To do**: for very long routes, split the query (300 points × 2 clauses may still be heavy); for
+  distribution, a private Overpass instance
   or caching layer. Data is OSM (ODbL): attribution required.
 
 ### 1.6 Apple MapKit
@@ -123,7 +125,7 @@ if bundled, and a check of each icon's origin.
 | 1 | Street View through an official Google API (or an alternative provider) | 🟡 Maps Embed API when a key is set; drop the Google Maps web app fallback | #49 |
 | 2 | Identifying User-Agent + “© OpenStreetMap contributors” on the map for OSM tiles | 🟡 User-Agent done; attribution missing | — |
 | 3 | Thunderforest attribution and key strategy (per-user key in Keychain?) | 🟡 key obfuscated; no attribution on the map | #51 |
-| 4 | Overpass backoff, User-Agent, smaller queries | 🟡 User-Agent done | #12 |
+| 4 | Overpass backoff, User-Agent, smaller queries | ✅ | #12 |
 | 5 | Configurable BRouter server (local or the user's own) | 🟡 hidden default only | #2 |
 | 6 | Real location usage string; acknowledgments in the About window | ✅ string; 🟡 Credits without exact attributions | — |
 | 7 | Developer ID signing + notarization | ❌ ad hoc signing, DMG not notarized | #37 |

@@ -40,7 +40,15 @@
 
 @interface BikePlan ()
 @property (strong,nonatomic) NSArray <CLLocation *>*waypointsLocations;
+// POI fetch timing (#12); 0 = default. Set by tests.
+@property (nonatomic) NSTimeInterval poiMinRequestInterval;  // between two Overpass requests (default 2.8 s)
+@property (nonatomic) NSTimeInterval poiRetryBaseDelay;      // first retry after an error, then doubled (default 2 s)
+@property (nonatomic) NSUInteger poiMaxRetries;              // then wait for the next route change (default 5)
 @end
+
+static const NSTimeInterval kPOIMaxRetryDelay = 120;         // also caps Retry-After
+static const double kPOISampleSpacingMeters = 1000;          // route points of the Overpass query (#12)
+static const NSUInteger kPOIMaxSamplePoints = 300;
 
 
 @implementation BikePlan {
@@ -55,6 +63,7 @@
     NSTimer *poireqretrytimer;
     NSTimeInterval tpoineed;
     NSTimeInterval tpoireq;
+    NSUInteger poiRetryCount;   // consecutive failed Overpass requests (#12)
 }
 
 - (instancetype)init
@@ -281,6 +290,11 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     tpoireq = tpoireq-1;
     [self tryRequestPoi];
 }
+
+- (NSTimeInterval) minPOIRequestInterval
+{
+    return self.poiMinRequestInterval > 0 ? self.poiMinRequestInterval : 2.8;
+}
 - (void) refetchPOI
 {
     dispatch_async(dispatch_get_main_queue(), ^() {
@@ -292,6 +306,9 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     NSLog(@"---- shouldRequestPOI ---- ");
     //OSAtomicIncrement32(&poiNeedUpdate);
     tpoineed = [NSDate timeIntervalSinceReferenceDate];
+    // a new route: a new series of retries; a pending retry would only duplicate the request
+    poiRetryCount = 0;
+    [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(refetchPOIWithErr) object:nil];
     [self tryRequestPoi];
 }
 
@@ -332,8 +349,8 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     if (poiUpdateOnProgress) {
         NSLog(@"--- ++ delayed (poiUpdateOnProgress)");
         delay = YES;
-    } else if (now-lastpoireq<2.8) {
-        NSLog(@"--- ++ delayed (less than 2.8)");
+    } else if (now-lastpoireq<[self minPOIRequestInterval]) {
+        NSLog(@"--- ++ delayed (less than %.1f)", [self minPOIRequestInterval]);
         delay = YES;
     }
     if (!delay) {
@@ -345,7 +362,8 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     } else {
         //NSLog(@"--- ++ delayed");
         if (!poireqretrytimer) {
-            poireqretrytimer = [[NSTimer alloc]initWithFireDate:[NSDate dateWithTimeIntervalSinceNow:2] interval:2 target:self selector:@selector(tryRequestPoiT) userInfo:nil repeats:YES];
+            NSTimeInterval ti = MIN(2, [self minPOIRequestInterval]);
+            poireqretrytimer = [[NSTimer alloc]initWithFireDate:[NSDate dateWithTimeIntervalSinceNow:ti] interval:ti target:self selector:@selector(tryRequestPoiT) userInfo:nil repeats:YES];
             [[NSRunLoop mainRunLoop]addTimer:poireqretrytimer forMode:NSRunLoopCommonModes];
         }
         return;
@@ -485,44 +503,69 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     return [poly stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 }*/
 
+// route points of the query: the first, the last, and points at least 1 km apart (more on long routes, at most
+// kPOIMaxSamplePoints); 1.5 km circles 1 km apart still cover ≥ 1.4 km on each side of the route (#12)
++ (NSArray<CLLocation *> *)samplePointsForPOI:(NSArray<CLLocation *> *)points
+{
+    if (points.count < 2) return points;
+    double length = 0;
+    for (NSUInteger i = 1; i < points.count; i++) length += [points[i] distanceFromLocation:points[i-1]];
+    double spacing = MAX(kPOISampleSpacingMeters, length / (kPOIMaxSamplePoints - 2));
+    NSMutableArray<CLLocation *> *sample = [NSMutableArray arrayWithObject:points.firstObject];
+    double run = 0;
+    for (NSUInteger i = 1; i + 1 < points.count; i++) {
+        run += [points[i] distanceFromLocation:points[i-1]];
+        if (run >= spacing) {
+            [sample addObject:points[i]];
+            run = 0;
+        }
+    }
+    [sample addObject:points.lastObject];
+    return sample;
+}
+
+// 2 "around" clauses per sampled point (was per 10th route point, ~300 m apart, #12). Not one "around" along a
+// polyline (around:r,lat1,lon1,lat2,lon2…): overpass-api.de returned no element for it on real routes.
 - (NSString *)overpassQueryForTrack:(NSArray<CLLocation *> *)trackPoints
-                        sampleEvery:(NSUInteger)step
                          withRadius:(NSUInteger)radiusMeters
 {
-    NSMutableString *query = [NSMutableString stringWithString:
-        @"[out:json][timeout:120];\n(\n"];
-
-    // Sample points (every Nth point)
-    NSUInteger c = [trackPoints count];
-    for (NSUInteger i = 0; i < c; i += step) {
-        CLLocation *loc = trackPoints[i];
+    NSMutableString *query = [NSMutableString stringWithString:@"[out:json][timeout:120];\n(\n"];
+    for (CLLocation *loc in [[self class] samplePointsForPOI:trackPoints]) {
         CLLocationCoordinate2D coord = loc.coordinate;
-
-        // Amenity = drinking_water
+        // amenity: drinking_water, toilets... (nodes)
         [query appendFormat:@"  node(around:%lu,%.6f,%.6f)[\"amenity\"~\"drinking_water|toilets|grave_yard|bicycle_repair_station\"];\n",
              (unsigned long)radiusMeters, coord.latitude, coord.longitude];
-
-
-        // Landuse = cemetery (ways or areas, get center)
+        // landuse = cemetery (ways or areas, get center)
         [query appendFormat:@"  way(around:%lu,%.6f,%.6f)[\"landuse\"=\"cemetery\"];\n",
              (unsigned long)radiusMeters, coord.latitude, coord.longitude];
     }
-
     [query appendString:@");\nout center;"];
-
     return query;
 }
 
-- (void) refetchPOIWithAdditionalDelay
+// after an error: retry later, on the main run loop (the NSURLSession completion queue has none, so the retry
+// never happened), with exponential backoff or the server's Retry-After, at most poiMaxRetries times (#12)
+- (void) refetchPOIAfterError:(NSHTTPURLResponse *)resp
 {
-    NSLog(@"----- refetchPOIWithAdditionalDelay");
-    [self performSelector:@selector(refetchPOIWithErr) withObject:nil afterDelay:2.0];
+    NSUInteger maxRetries = self.poiMaxRetries ?: 5;
+    if (poiRetryCount >= maxRetries) {
+        NSLog(@"POI: %lu failed requests, waiting for the next route change", (unsigned long)poiRetryCount);
+        return;
+    }
+    NSTimeInterval base = self.poiRetryBaseDelay > 0 ? self.poiRetryBaseDelay : 2;
+    NSTimeInterval delay = MIN(base * pow(2, poiRetryCount), kPOIMaxRetryDelay);
+    NSString *retryAfter = [resp valueForHTTPHeaderField:@"Retry-After"]; // seconds (an HTTP date is ignored)
+    if (retryAfter.length && [retryAfter integerValue] > 0) delay = MIN([retryAfter integerValue], kPOIMaxRetryDelay);
+    poiRetryCount++;
+    NSLog(@"POI: retry %lu in %.1f s", (unsigned long)poiRetryCount, delay);
+    [self performSelector:@selector(refetchPOIWithErr) withObject:nil afterDelay:delay
+                  inModes:@[NSRunLoopCommonModes]];
 }
 
 - (void) fetchPOIsNearRoute:(NSArray<CLLocation *> *)coords
 {
     NSLog(@"--- >>>> fetch");
-    NSString *query = [self overpassQueryForTrack:coords sampleEvery:10 withRadius:1500];
+    NSString *query = [self overpassQueryForTrack:coords withRadius:1500];
     NSData *bodyData = [query dataUsingEncoding:NSUTF8StringEncoding];
     
     NSURL *url = [BPEnvironment overpassURL]; // https://overpass-api.de/api/interpreter unless overridden
@@ -534,73 +577,80 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     NSURLSessionDataTask *task = [[NSURLSession sharedSession]
                                   dataTaskWithRequest:req
                                   completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
-        self->poiUpdateOnProgress = NO;
-        if (err) {
-            NSLog(@"Error: %@", err);
-            [self refetchPOIWithAdditionalDelay];
-            return;
-        }
-        if (!data) {
-            [self refetchPOIWithAdditionalDelay];
-            return;
-        }
-        NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *) resp;
-        NSInteger httpcode = [httpResponse statusCode];
-        if (httpcode>299) {
-            NSLog(@"HTTP status for POI : %d", (int) httpcode);
-            [self refetchPOIWithAdditionalDelay];
-            return;
-        }
-        //OSAtomicDecrement32(&poiNeedUpdate);
-        
-        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-        NSArray *elements = json[@"elements"];
-        if (![elements count]) {
-            //debug
-            NSLog(@"no poi1");
-            NSString *r = json[@"remark"];
-            NSLog(@"no poi1 remark %@", r);
-        }
+        // on the main queue: poiUpdateOnProgress and the retry state are main-thread only (#12)
         dispatch_async(dispatch_get_main_queue(), ^{
-            NSMutableArray *tpoiarray = [[NSMutableArray alloc]initWithCapacity:16];
-            for (NSDictionary *el in elements) {
-                NSString *poiid = el[@"id"];
-                NSDictionary *tags = el[@"tags"];
-                NSMutableDictionary *info2 = [tags mutableCopy];
-                [info2 setObject:poiid forKey:@"id"];
-                //NSDictionary *info = el[@"tags"];
-                double lon = 0.;
-                double lat = 0.;
-                NSString *t = el[@"type"];
-                NSString *poitypname = @"";
-                if ((0)) {
-                } else if ([t isEqualToString:@"node"]) {
-                    lat = [el[@"lat"] doubleValue];
-                    lon = [el[@"lon"] doubleValue];
-                    poitypname = tags[@"amenity"];
-                } else if ([t isEqualToString:@"way"]) {
-                    NSDictionary *center = el[@"center"];
-                    lat = [center[@"lat"] doubleValue];
-                    lon = [center[@"lon"] doubleValue];
-                    poitypname = tags[@"landuse"];
-                } else {
-                    NSLog(@"unknown type");
-                    continue;
-                }
-                
-                PoiType_t poit = [[POILocation class]poiTypeForAmenity:poitypname];
-                CLLocation *loc = [[POILocation alloc]initWithLatitude:lat longitude:lon ofType:poit info:info2 custom:NO];
-                
-                [tpoiarray addObject:loc];
+            self->poiUpdateOnProgress = NO;
+            NSHTTPURLResponse *httpResponse = [resp isKindOfClass:[NSHTTPURLResponse class]] ? (NSHTTPURLResponse *)resp : nil;
+            if (err) {
+                NSLog(@"Error: %@", err);
+                [self refetchPOIAfterError:httpResponse];
+                return;
             }
-            self.poiloc = tpoiarray;
+            if (!data) {
+                [self refetchPOIAfterError:httpResponse];
+                return;
+            }
+            NSInteger httpcode = [httpResponse statusCode];
+            if (httpcode>299) {
+                NSLog(@"HTTP status for POI : %d", (int) httpcode);
+                [self refetchPOIAfterError:httpResponse];
+                return;
+            }
+            self->poiRetryCount = 0;
+            if (coords != self.routePoints && self->tpoineed > self->tpoireq) {
+                return; // POIs of a previous route: the request for the current one is pending
+            }
+            //OSAtomicDecrement32(&poiNeedUpdate);
+        
+            NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+            NSArray *elements = json[@"elements"];
+            if (![elements count]) {
+                //debug
+                NSLog(@"no poi1");
+                NSString *r = json[@"remark"];
+                NSLog(@"no poi1 remark %@", r);
+            }
+            {
+                NSMutableArray *tpoiarray = [[NSMutableArray alloc]initWithCapacity:16];
+                for (NSDictionary *el in elements) {
+                    NSString *poiid = el[@"id"];
+                    NSDictionary *tags = el[@"tags"];
+                    NSMutableDictionary *info2 = [tags mutableCopy];
+                    [info2 setObject:poiid forKey:@"id"];
+                    //NSDictionary *info = el[@"tags"];
+                    double lon = 0.;
+                    double lat = 0.;
+                    NSString *t = el[@"type"];
+                    NSString *poitypname = @"";
+                    if ((0)) {
+                    } else if ([t isEqualToString:@"node"]) {
+                        lat = [el[@"lat"] doubleValue];
+                        lon = [el[@"lon"] doubleValue];
+                        poitypname = tags[@"amenity"];
+                    } else if ([t isEqualToString:@"way"]) {
+                        NSDictionary *center = el[@"center"];
+                        lat = [center[@"lat"] doubleValue];
+                        lon = [center[@"lon"] doubleValue];
+                        poitypname = tags[@"landuse"];
+                    } else {
+                        NSLog(@"unknown type");
+                        continue;
+                    }
+                
+                    PoiType_t poit = [[POILocation class]poiTypeForAmenity:poitypname];
+                    CLLocation *loc = [[POILocation alloc]initWithLatitude:lat longitude:lon ofType:poit info:info2 custom:NO];
+                
+                    [tpoiarray addObject:loc];
+                }
+                self.poiloc = tpoiarray;
             
-            //[self willChangeValueForKey:@"poiloc"];
-            //_poiloc = tpoiarray;
-            //[self didChangeValueForKey:@"poiloc"];
-            // notify controller
-            if (self.poiAvailableCallback) {
-                self.poiAvailableCallback();
+                //[self willChangeValueForKey:@"poiloc"];
+                //_poiloc = tpoiarray;
+                //[self didChangeValueForKey:@"poiloc"];
+                // notify controller
+                if (self.poiAvailableCallback) {
+                    self.poiAvailableCallback();
+                }
             }
         });
     }];

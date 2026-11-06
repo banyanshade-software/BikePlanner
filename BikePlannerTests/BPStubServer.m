@@ -18,7 +18,8 @@ static NSString * const kBPStubHost = @"bpstub.test";
 static __weak BPStubServer *bpInProcessServer = nil;
 
 @interface BPStubServer (InProcess)
-- (NSInteger) handle:(BPStubRequest *)req contentType:(NSString **)ctype body:(NSData **)body;
+- (NSInteger) handle:(BPStubRequest *)req contentType:(NSString **)ctype body:(NSData **)body
+             headers:(NSDictionary<NSString *, NSString *> **)headers;
 @end
 
 // Serves requests to http://bpstub.test/… from the in-process stub server, without any socket.
@@ -74,10 +75,13 @@ static __weak BPStubServer *bpInProcessServer = nil;
 
     NSString *ctype = nil;
     NSData *body = nil;
-    NSInteger status = [server handle:req contentType:&ctype body:&body];
+    NSDictionary<NSString *, NSString *> *extra = nil;
+    NSInteger status = [server handle:req contentType:&ctype body:&body headers:&extra];
+    NSMutableDictionary *fields = [extra mutableCopy];
+    fields[@"Content-Type"] = ctype;
     NSHTTPURLResponse *resp = [[NSHTTPURLResponse alloc] initWithURL:self.request.URL statusCode:status
                                                          HTTPVersion:@"HTTP/1.1"
-                                                        headerFields:@{ @"Content-Type": ctype }];
+                                                        headerFields:fields];
     void (^deliver)(void) = ^{
         [self.client URLProtocol:self didReceiveResponse:resp cacheStoragePolicy:NSURLCacheStorageNotAllowed];
         [self.client URLProtocol:self didLoadData:body];
@@ -300,9 +304,11 @@ static __weak BPStubServer *bpInProcessServer = nil;
     return req;
 }
 
-// Records the request and computes the response (status, content type, body); used by both transports.
+// Records the request and computes the response (status, content type, body, other headers); used by both transports.
 - (NSInteger) handle:(BPStubRequest *)req contentType:(NSString **)ctypeOut body:(NSData **)bodyOut
+             headers:(NSDictionary<NSString *, NSString *> **)headersOut
 {
+    NSMutableDictionary<NSString *, NSString *> *headers = [NSMutableDictionary dictionary];
     @synchronized (_requests) {
         [_requests addObject:req];
     }
@@ -314,6 +320,7 @@ static __weak BPStubServer *bpInProcessServer = nil;
         self.failCount = self.failCount - 1;
         status = self.failStatus;
         body = @"stub failure";
+        if (self.failRetryAfter) headers[@"Retry-After"] = self.failRetryAfter;
     } else if ([req.path isEqualToString:@"/brouter"]) {
         NSString *lonlats = req.query[@"lonlats"] ?: @"";
         if ([lonlats componentsSeparatedByString:@"|"].count < 2) {
@@ -364,6 +371,7 @@ static __weak BPStubServer *bpInProcessServer = nil;
 
     *ctypeOut = ctype;
     *bodyOut = [body dataUsingEncoding:NSUTF8StringEncoding];
+    *headersOut = headers;
     return status;
 }
 
@@ -371,10 +379,13 @@ static __weak BPStubServer *bpInProcessServer = nil;
 {
     NSString *ctype = nil;
     NSData *payload = nil;
-    NSInteger status = [self handle:req contentType:&ctype body:&payload];
+    NSDictionary<NSString *, NSString *> *extra = nil;
+    NSInteger status = [self handle:req contentType:&ctype body:&payload headers:&extra];
+    NSMutableString *more = [NSMutableString string];
+    for (NSString *k in extra) [more appendFormat:@"%@: %@\r\n", k, extra[k]];
     NSString *header = [NSString stringWithFormat:
-                        @"HTTP/1.1 %ld Stub\r\nContent-Type: %@\r\nContent-Length: %lu\r\nConnection: close\r\n\r\n",
-                        (long)status, ctype, (unsigned long)payload.length];
+                        @"HTTP/1.1 %ld Stub\r\nContent-Type: %@\r\nContent-Length: %lu\r\n%@Connection: close\r\n\r\n",
+                        (long)status, ctype, (unsigned long)payload.length, more];
     NSMutableData *out = [[header dataUsingEncoding:NSUTF8StringEncoding] mutableCopy];
     [out appendData:payload];
     NSData *outCopy = [out copy];

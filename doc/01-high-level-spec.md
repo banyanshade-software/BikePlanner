@@ -249,7 +249,7 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 
 - **Responsiveness**: the UI must never block on network; all requests are asynchronous.
 - **Robustness**: network failures must not crash or corrupt the document; the user should be told when
-  routing fails *(today errors are only logged)*.
+  routing fails (“Routing failed: <BRouter's message>” on the map, the previous route is kept, #9).
 - **Data safety**: every user change must mark the document as edited so it gets saved.
 - **Fair use of free services**: respect OSM tile policy, Overpass and brouter.de rate limits; identify the
   app with a proper User-Agent.

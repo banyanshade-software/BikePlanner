@@ -123,7 +123,7 @@ Waypoint mutators (`appendWaypoint:`, `insertWaypoint:atIndex:`, `replaceWaypoin
 `removeWaypointAtIndex:`, `removeWaypoints`) **return the previous array**, which the controller registers for undo.
 
 `BikePlan` also contains the **POI fetching logic** (Overpass query building, throttling with a retry
-`NSTimer`, JSON parsing) — see §6.3.
+`NSTimer`, retries with backoff, JSON parsing) — see §6.3.
 
 ### 4.2 `POILocation`
 `CLLocation` subclass adding `poiType` (`PoiType_t` enum: unknown, drinking_water, toilets,
@@ -182,9 +182,15 @@ POIs, `setGpxDisplayed:` (reference trace) → `shouldRecalcRoute`.
 plan.routePoly getter → shouldRequestPOI (tpoineed = now) → tryRequestPoi
   ├─ fetchPOI off, <2 points, or already fetched → stop
   ├─ request in progress or last request < 2.8 s ago → (re)arm 2 s repeating NSTimer, stop
-  └─ fetchPOIsNearRoute: POST Overpass QL (every 10th route point, radius 1500 m)
-        error/HTTP≥300 → retry after 2 s
-        success → main queue: build POILocation[] → plan.poiloc → poiAvailableCallback → MapController.refreshPOI
+  └─ fetchPOIsNearRoute: POST Overpass QL, node(around:1500,lat,lon) + way(around:…) per route point sampled every
+     ≥ 1 km (first and last points included, at most 300 points) (#12); not one around:<polyline> clause:
+     overpass-api.de returned no element for it on real routes
+        completion → main queue (poiUpdateOnProgress and the retry state are main-thread only)
+        error/HTTP≥300 → refetchPOIAfterError: retry on the main run loop after 2, 4, 8… s (max 120 s), or the
+                         Retry-After of the answer (429/503); at most 5 retries, then wait for the next route change
+                         (shouldRequestPOI resets the series and cancels a pending retry)
+        answer for a previous route while a newer need is pending → ignored
+        success → build POILocation[] → plan.poiloc → poiAvailableCallback → MapController.refreshPOI
 ```
 
 ### 6.4 Route computation
@@ -192,15 +198,18 @@ Params tab Apply → `PlannerWindowController setProfileOverrides:` (undoable; s
 `brfEditor.appliedOverrides`) → `shouldRecalcRoute`.
 ```
 MapController.requestRoute
-  gpxData = nil
+  gpxData = nil; cancelRouteRequest (cancels the task in flight, routeGeneration++) (#9)
   BRouterClient.routeWithWaypoints:profile:plan.profileName overrides:plan.profileOverrides   (URL: +routeURLForServer:…)
     GET https://brouter.de/brouter?lonlats=lon,lat|lon,lat…&profile=trekking&alternativeidx=0&format=geojson[&profile:<name>=<value>…]
     (names and values percent-encoded, including & = + |; true/false sent as 1/0)
     (background) BRouterGeoJSON → points + brouterInfo (track-length, filtered ascend, total-time) + distance by road /
                  surface class (properties.messages: Distance + WayTags) (#53); the GPX for the export is generated
                  from the points (+[GPXParser gpxDataForPoints:name:comment:], BRouter statistics in the comment)
-  completion (background) → error: NSLog only
-                          → main queue: plan.brouterInfo.{kmlen,mup,meters,seconds,roadStats,surfaceStats}, gpxData, plan.routePoints,
+    HTTP error status or no route → NSError with BRouter's message (first line of the text answer)
+  completion (background) → main queue; answer of an older generation (cancelled, newer request, plan replaced,
+                            < 2 waypoints after an undo) → ignored
+                          → error: "Routing failed: <message>" on the map for 4 s (showMapMessage:), route kept
+                          → plan.brouterInfo.{kmlen,mup,meters,seconds,roadStats,surfaceStats}, gpxData, plan.routePoints,
                             elevationView.setGpxPoints, refreshPoly:NO (→ routePoly → POI flow 6.3)
 ```
 
@@ -299,18 +308,18 @@ Each item is tracked as a GitHub issue.
 | 1 | M ✅ fixed | `BikePlan.m` `routePoly` | `routePoly` tested `!_waypointPoly` instead of `!_routePoly`: the route polyline was rebuilt, and the POIs re-requested, at each access. Now cached and invalidated by `setRoutePoints:` (`testRoutePolyIsCached`). | [#6](https://github.com/banyanshade-software/BikePlanner/issues/6) |
 | 2 | H ✅ fixed | `POIAnnotation.h:16`, `POICalloutView.h:14` | `info` / `infodic` are `assign` object properties (= `unsafe_unretained` under ARC) → potential dangling pointer / crash. | [#7](https://github.com/banyanshade-software/BikePlanner/issues/7) |
 | 3 | H ✅ fixed | `MapController.m:523`, `MapController.m:1640` | Adding a custom POI or importing a reference trace does not register undo nor call `updateChangeCount:` → document not marked edited, changes can be lost. | [#8](https://github.com/banyanshade-software/BikePlanner/issues/8) |
-| 4 | M | `MapController.m:750` | Route requests are not cancelled or sequenced: a slow earlier response can overwrite the result of a later one. | [#9](https://github.com/banyanshade-software/BikePlanner/issues/9) |
-| 5 | M ✅ | `MapController.m:756` | Routing errors and empty results are only logged; the user gets no feedback. | [#9](https://github.com/banyanshade-software/BikePlanner/issues/9) |
+| 4 | M ✅ fixed | `MapController.m` `requestRoute` | Route requests were not cancelled or sequenced: a slow earlier response could overwrite the result of a later one. Now a new request cancels the previous one and answers of older requests are ignored (`routeGeneration`; `testStaleRouteAnswerIgnored`, `BRouterClientTests.testCancel`). `BRouterClient` uses one `NSURLSession` (was one per request, never invalidated). | [#9](https://github.com/banyanshade-software/BikePlanner/issues/9) |
+| 5 | M ✅ fixed | `BRouterClient.m`, `MapController.m` | Routing errors and empty results were only logged, HTTP error statuses not even detected; the user got no feedback. Now an `NSError` with BRouter's message, shown on the map: "Routing failed: …" (`testHTTPErrorGivesError`, `testSingleWaypointGivesError`, `testRoutingErrorKeepsPreviousRoute`). | [#9](https://github.com/banyanshade-software/BikePlanner/issues/9) |
 | 6 | M ✅ fixed | `BikePlan.m`, `MapController.m` | `gpxData` (raw BRouter GPX used by the export) was not persisted: after reopening a document, export was disabled until the route was recomputed. The GPX is now saved in the plan (`routeGPX`), part of the undoable route state; documents saved before get a GPX generated from `routePoints` (`exportableGPX`; `testRouteGPXArchivedAndInRouteState`, `testReopenOldDocumentCanExport`). | [#10](https://github.com/banyanshade-software/BikePlanner/issues/10) |
-| 7 | M ✅ | `BikePlan.m:325` | After an Overpass error (or HTTP ≥ 300), the retry is scheduled with `performSelector:afterDelay:` from the NSURLSession completion queue, which has no run loop: **the retry never happens** and POIs stay missing until the next route change (`POIFetchTests.testRetryAfterHTTPError`). Query size also grows with route length (one clause per 10 points × 2) — long routes may hit Overpass limits. | [#12](https://github.com/banyanshade-software/BikePlanner/issues/12) |
+| 7 | M ✅ fixed | `BikePlan.m` | After an Overpass error (or HTTP ≥ 300), the retry was scheduled with `performSelector:afterDelay:` from the NSURLSession completion queue, which has no run loop: **the retry never happened** and POIs stayed missing until the next route change. Query size grew with route length (one clause per 10 points × 2). Now retried on the main run loop with exponential backoff / `Retry-After`, at most 5 times; `around` clauses per route point sampled every ≥ 1 km instead of every 10th route point (~300 m) (`testRetryAfterHTTPError`, `testRetryBackoff`, `testRetriesAreBounded`, `testRetryAfterHeader`, `testSamplePoints`). | [#12](https://github.com/banyanshade-software/BikePlanner/issues/12) |
 | 8 | M ✅ fixed | `MapController.m` `exportGpxDataWithPOI:` | GPX export built XML with string formatting, without XML escaping; custom POIs had a nil title (`<name>(null)</name>`). Now escaped (`xmlEscaped`), custom POIs named after their type. Still: custom POIs `gpxSymbol` is “...”. | [#11](https://github.com/banyanshade-software/BikePlanner/issues/11) |
 | 9 | M ✅ fixed | `BRouterClient.m` | BRF overrides were joined with `&` and escaped with the deprecated `stringByAddingPercentEscapesUsingEncoding:` (no `&` escaping) inside an `extraParams=` parameter. Now `+[BRouterClient routeURLForServer:…]` builds one percent-encoded `profile:<name>` query item per override (`BRouterClientTests`). | [#15](https://github.com/banyanshade-software/BikePlanner/issues/15) |
-| 10 | M ✅ fixed | `Document.m` | *Revert to Saved* replaced `plan` but the map was not refreshed and `poiAvailableCallback` was not re-installed on the new plan. Now `revertToContentsOfURL:ofType:error:` calls `-[MapController planReplaced]` (`testRevertToSavedRefreshesMap`). Still open: a route request in flight during the revert writes its result into the reverted plan when it completes. | [#16](https://github.com/banyanshade-software/BikePlanner/issues/16) |
+| 10 | M ✅ fixed | `Document.m` | *Revert to Saved* replaced `plan` but the map was not refreshed and `poiAvailableCallback` was not re-installed on the new plan. Now `revertToContentsOfURL:ofType:error:` calls `-[MapController planReplaced]` (`testRevertToSavedRefreshesMap`). A route request in flight during the revert is now cancelled (#9). | [#16](https://github.com/banyanshade-software/BikePlanner/issues/16) |
 | 11 | L ✅ fixed | `ElevationProfileView.m` | Division by zero when the route was flat (`maxElev == minElev`): did not crash but drew nothing meaningful. Now the vertical range is at least 100 m (`elevationRangeForMin:max:low:high:`, #32). Axes invisible in dark mode: fixed (`labelColor`). | [#17](https://github.com/banyanshade-software/BikePlanner/issues/17) |
 | 12 | L ✅ fixed | `MapController.m` | `excludeControlChanged:` read a POI pointer from `sender.tag`, never set, and did nothing. Include/Exclude now excludes the POI from the export (`BikePlan.excludedPOIKeys`, `POILocation.poiKey`), undoable (`testExcludePOIFromCallout`, `testExcludedPOIsAreNotExported`). | [#5](https://github.com/banyanshade-software/BikePlanner/issues/5) |
 | 13 | L ✅ fixed | `MapController.m` | `clearAction:` was unused and would have set `scrubberMarker = nil`: removed. | [#18](https://github.com/banyanshade-software/BikePlanner/issues/18) |
 | 14 | L ✅ fixed | `GPXParser.m` | Imported GPX mixed `wpt`, `rtept` and `trkpt` into one point list. Now the trace is the track (else the route, else the waypoints); `wpt` are available apart (`waypoints`). | [#18](https://github.com/banyanshade-software/BikePlanner/issues/18) |
-| 15 | L | `BikePlan.m` | `poiUpdateOnProgress` is written from a background thread and read on main. | [#12](https://github.com/banyanshade-software/BikePlanner/issues/12) |
+| 15 | L ✅ fixed | `BikePlan.m` | `poiUpdateOnProgress` was written from a background thread and read on main; the Overpass completion now runs on the main queue. | [#12](https://github.com/banyanshade-software/BikePlanner/issues/12) |
 | 16 | M ✅ fixed | `MapController.m` | `distanceAtCoordinate:segstart:` returned the distance on the **first** segment on which the point projects (0 ≤ t ≤ 1), not on the **nearest** segment → in View mode, clicking on the route could put the elevation cursor at a wrong place when the route turns or comes back. Now reuses the nearest-segment projection of `projectedDistanceAlongPolyline:forCoordinate:segment:`. | [#14](https://github.com/banyanshade-software/BikePlanner/issues/14) |
 | 17 | L ✅ fixed | `BikePlan.m` / `POILocation.m` | Overpass is asked for `amenity=grave_yard` nodes, but `poiTypeForAmenity:` does not map `grave_yard` → those POIs get type unknown (no icon, no title). | [#13](https://github.com/banyanshade-software/BikePlanner/issues/13) |
 | 18 | M ✅ fixed | `MapController.m` `distanceAtCoordinate:segstart:` | Street View heading sometimes wrong shortly after a 90° turn (View-mode click on the route). Cause: #14 (a point just after a corner was located on the incoming segment, so the heading was the incoming one). Fixed with #14, tested (`testBearingJustAfterTurn`), confirmed manually by the owner. | [#21](https://github.com/banyanshade-software/BikePlanner/issues/21) |
@@ -335,7 +344,6 @@ Each item is tracked as a GitHub issue.
 - Dead code: `#if 0` blocks in `SafeOSMTileOverlay`, `SafeTileRenderer`, `MapController`; empty `BikeMapView`.
 - No automated test of the real external services (only the stub); the Street View page, tile drawing,
   `MKLocalSearch` and the user location are not tested.
-- `BRouterClient` creates a new `NSURLSession` per request and never invalidates it (leak).
 
 ## 10. Directions for the reliability work (proposal)
 
