@@ -936,8 +936,15 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
 // route (#9); errors are shown on the map, the previous route is kept
 - (void) requestRoute
 {
+    [self requestRouteUndoable:nil];
+}
+
+// undoDesc: the answer replaces the route as an undoable action of that name (the waypoints did not change, #55);
+// nil when the change of waypoints that caused the request is the undoable action
+- (void) requestRouteUndoable:(nullable NSString *)undoDesc
+{
     // profile can be changed, e.g. "trekking", "fastbike", etc.
-    self.gpxData = nil;
+    if (!undoDesc) self.gpxData = nil; // the route no longer matches the waypoints
     [self cancelRouteRequest];
     NSUInteger generation = routeGeneration;
     NSString *profile = _document.plan.profileName;
@@ -951,6 +958,13 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
                 [self showMapMessage:[NSString stringWithFormat:NSLocalizedString(@"Routing failed: %@", @"BRouter error"),
                                       error.localizedDescription ?: NSLocalizedString(@"No route found", @"BRouter error")]];
                 return;
+            }
+            if (undoDesc) {
+                NSUndoManager *um = self.document.undoManager;
+                [um beginUndoGrouping];
+                [um registerUndoWithTarget:self selector:@selector(undoRouteState:) object:[self.document.plan routeState]];
+                [um setActionName:undoDesc];
+                [um endUndoGrouping];
             }
             if (brouterInfo) {
                 unsigned int kmlen = ([brouterInfo[@"n-track-length-m"] unsignedIntValue] + 500)/1000;
@@ -1975,6 +1989,19 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     [self undoableWP:[_document.plan reverseWaypoints] desc:@"reverse route"];
     [self fullRefresh:NO];
     [self shouldRecalcRoute];
+}
+
+// the same waypoints sent again to BRouter (#55): route of a document saved before a feature that needs the
+// BRouter answer (#53, #54), of an imported trace, or after a failed request
+- (BOOL) canRecalculateRoute
+{
+    return [_document.plan.waypointsLocations count] >= 2;
+}
+
+- (IBAction) recalculateRoute:(id)sender
+{
+    if (![self canRecalculateRoute]) return;
+    [self requestRouteUndoable:@"recalculate route"];
 }
 
 // toolbar items targeting the map controller (Document.xib)

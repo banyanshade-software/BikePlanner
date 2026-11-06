@@ -99,6 +99,8 @@ extern NSAttributedStringKey const BPRouteKindAttributeName;
 // erases waypoints, route, length/ascent, fetched and custom POIs; keeps the reference trace (#33).
 // Returns the previous state, to give back to restoreRoute: (undo)
 - (NSDictionary *) clearRoute NS_WARN_UNUSED_RESULT;
+// the same state, without erasing anything
+- (NSDictionary *) routeState;
 - (void) restoreRoute:(NSDictionary *)state;
 
 // Import GPX as route (#29): waypoints for a track, simplified (Douglas–Peucker, kBPImportTolerance) and with at

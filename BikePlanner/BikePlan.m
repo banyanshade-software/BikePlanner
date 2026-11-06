@@ -140,7 +140,7 @@ static const NSUInteger kPOIMaxSamplePoints = 300;
     return old;
 }
 
-- (NSDictionary *) clearRoute
+- (NSDictionary *) routeState
 {
     NSDictionary *old = @{ @"waypoints": _waypointsLocations ?: @[],
                            @"route": _routePoints ?: @[],
@@ -155,6 +155,12 @@ static const NSUInteger kPOIMaxSamplePoints = 300;
         withGPX[@"gpx"] = _routeGPX;
         old = withGPX;
     }
+    return old;
+}
+
+- (NSDictionary *) clearRoute
+{
+    NSDictionary *old = [self routeState];
     [self undoSetWayPt:@[]];
     self.routePoints = @[];
     self.routeGPX = nil;

@@ -198,6 +198,11 @@
                                     <action selector="reverseRoute:" target="-1" id="bpR-ev-Act"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Recalculate Route" keyEquivalent="R" id="bpR-ec-Itm">
+                                <connections>
+                                    <action selector="recalculateRoute:" target="-1" id="bpR-ec-Act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Clear Route" id="bpC-lr-Itm">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>

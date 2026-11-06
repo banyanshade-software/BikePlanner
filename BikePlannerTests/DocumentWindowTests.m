@@ -58,6 +58,7 @@
 - (IBAction)setClickModeToView:(id)sender;
 - (IBAction)setClickModeToAddPoi:(id)sender;
 - (IBAction)reverseRoute:(id)sender;
+- (IBAction)recalculateRoute:(id)sender;
 - (IBAction)removeGPXTraceForDisplay:(id)sender;
 - (IBAction)clearRoute:(id)sender;
 @end
@@ -657,6 +658,71 @@
     XCTAssertEqualObjects(um.undoActionName, @"reverse route");
     [um undo];
     XCTAssertEqualObjects(doc.plan.waypointsLocations, wps);
+}
+
+// Edit ▸ Recalculate Route (#55): same waypoints, profile and overrides sent again to BRouter; the new answer
+// (here: with road types, missing from a document saved before #54) is one undoable action
+- (void)testRecalculateRoute
+{
+    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"Recalculate Route" action:@selector(recalculateRoute:) keyEquivalent:@""];
+    XCTAssertFalse([doc validateMenuItem:item], @"disabled without a route");
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    [um beginUndoGrouping];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.5)];
+    [um endUndoGrouping];
+    XCTAssertFalse([doc validateMenuItem:item], @"disabled with 1 waypoint");
+    [um beginUndoGrouping];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.1, 0.6)];
+    [um endUndoGrouping];
+    XCTAssertTrue([self waitForRouteWithPoints:11]);
+    BPSpin(0.1);
+    XCTAssertTrue([doc validateMenuItem:item]);
+    doc.plan.profileOverrides = @{ @"avoid_unsafe": @"1" };
+    doc.plan.brouterInfo.roadRuns = nil; // as in a document saved before #54
+    doc.plan.brouterInfo.roadStats = nil;
+    NSArray *wps = doc.plan.waypointsLocations;
+    [server clearRequests];
+    [doc updateChangeCount:NSChangeCleared];
+
+    [doc recalculateRoute:item];
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->doc.plan.brouterInfo.roadRuns != nil); }), @"new BRouter answer");
+    NSArray<BPStubRequest *> *reqs = [server requestsWithPath:@"/brouter"];
+    XCTAssertEqual(reqs.count, 1u);
+    XCTAssertEqualObjects(reqs.firstObject.query[@"lonlats"], @"0.500000,44.000000|0.600000,44.100000");
+    XCTAssertEqualObjects(reqs.firstObject.query[@"profile:avoid_unsafe"], @"1");
+    XCTAssertEqualObjects(doc.plan.waypointsLocations, wps, @"waypoints unchanged");
+    XCTAssertNotNil(doc.plan.brouterInfo.roadStats);
+    XCTAssertTrue(BPWaitUntil(2, ^{ return self->doc.isDocumentEdited; }), @"document edited");
+
+    XCTAssertEqualObjects(um.undoActionName, @"recalculate route");
+    [um undo];
+    XCTAssertNil(doc.plan.brouterInfo.roadRuns, @"undo gives back the previous route");
+    XCTAssertEqual(doc.plan.routePoints.count, 11u);
+    XCTAssertEqualObjects(doc.plan.waypointsLocations, wps);
+    [um redo];
+    XCTAssertNotNil(doc.plan.brouterInfo.roadRuns);
+    BPSpin(0.2);
+    XCTAssertEqual([server requestsWithPath:@"/brouter"].count, 1u, @"undo/redo do not ask BRouter again");
+}
+
+// a failed recalculation keeps the route and registers nothing to undo
+- (void)testRecalculateRouteFailureKeepsRoute
+{
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    [um beginUndoGrouping];
+    [self makeRoute];
+    [um endUndoGrouping];
+    NSArray *route = doc.plan.routePoints;
+    server.failCount = 1;
+    server.failStatus = 500;
+    [server clearRequests];
+    [doc recalculateRoute:nil];
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([self->server requestsWithPath:@"/brouter"].count == 1); }));
+    BPSpin(0.3);
+    XCTAssertEqualObjects(doc.plan.routePoints, route);
+    XCTAssertEqualObjects(um.undoActionName, @"add destination");
 }
 
 // Edit ▸ Clear Route and its toolbar button (#33): after confirmation, erases waypoints, route, length/ascent and POIs, keeps the

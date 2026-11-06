@@ -55,6 +55,8 @@ typedef NS_ENUM(int, BPClickMode) {
 - (BOOL) canRemoveGPXTraceForDisplay;
 - (IBAction) reverseRoute:(id)sender;
 - (BOOL) canReverseRoute;
+- (IBAction) recalculateRoute:(id)sender;
+- (BOOL) canRecalculateRoute;
 - (IBAction) clearRoute:(id)sender;
 - (BOOL) canClearRoute;
 - (IBAction) sendersearchFieldAction:(id)sender;

@@ -100,9 +100,9 @@ README.POI.GARMIN.txt        List of Garmin POI types usable in GPX <type>
    controls are created **in code**, added to the map's superview), the click gesture recognizer, the scrubber
    annotation, the mouse tracking area, and sets `plan.poiAvailableCallback`.
 
-Menu actions (*Edit ▸ Mode…*, *Edit ▸ Reverse Route*, *Import*, *Export*) go through the responder chain to
-`Document`, which relays them to `MapController` (`Document.validateMenuItem:` enables *Reverse Route* with ≥ 2
-waypoints).
+Menu actions (*Edit ▸ Mode…*, *Edit ▸ Reverse Route*, *Edit ▸ Recalculate Route*, *Import*, *Export*) go through
+the responder chain to `Document`, which relays them to `MapController` (`Document.validateMenuItem:` enables
+*Reverse Route* and *Recalculate Route* with ≥ 2 waypoints).
 
 ## 4. Data model
 
@@ -176,6 +176,9 @@ Insert: `insertionIndexForCoordinate` → `plan.insertWaypoint` → undo → ann
 Move: `mapView:annotationView:didChangeDragState:` (Ending) → `plan.replaceWaypointAtIndex` → undo → `requestRoute`.
 Remove: context menu → `plan.removeWaypointAtIndex` → undo → reindex → `shouldRecalcRoute`.
 Reverse: *Edit ▸ Reverse Route* → `plan.reverseWaypoints` → undo → `fullRefresh:NO` → `shouldRecalcRoute`.
+Recalculate (#55): *Edit ▸ Recalculate Route* → `requestRouteUndoable:@"recalculate route"` (`requestRoute` is
+`requestRouteUndoable:nil`); when the answer arrives, before applying it, registers `undoRouteState:` with
+`plan.routeState` (the current state, nothing erased) in its own undo group; the exported GPX is kept meanwhile.
 Clear: *Edit ▸ Clear Route* → confirmation sheet (`NSAlert`) → `setRouteState:nil` → `plan.clearRoute` (returns the previous state, + BRouter GPX)
 → undo registers `undoRouteState:` with it → `fullRefresh:NO`; undo calls `plan.restoreRoute:` (no new request).
 Import GPX as route: *File ▸ Import GPX as Route…* → `loadGPXAsRouteFromURL:` → `GPXParser` (`traceSource`,

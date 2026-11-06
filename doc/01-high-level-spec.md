@@ -142,6 +142,10 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   as well as adding a custom POI and importing a reference trace.
 - F3.8 *Edit ▸ Reverse Route* or the toolbar *Reverse* button (enabled with ≥ 2 waypoints) swaps start and end: the waypoint order is reversed
   and the route is **recomputed** by BRouter (one-way streets, climbs differ in the other direction).
+- F3.8b *Edit ▸ Recalculate Route* (⇧⌘R, enabled with ≥ 2 waypoints) sends the same waypoints, profile and
+  overrides to BRouter again (#55): for a document saved before a feature that needs the BRouter answer (road types,
+  #53/#54), a route imported from a GPX trace, or after a failed request. The new route is one undoable action
+  (undo gives back the previous route without a new request); a failure keeps the route.
 - F3.9 *Edit ▸ Clear Route* or the toolbar *Clear* button (enabled with ≥ 1 waypoint) asks for confirmation (sheet), then erases waypoints, route,
   length/ascent, fetched and custom POIs, but **keeps the reference trace**. Undo restores the route as it was
   (no new BRouter request).
