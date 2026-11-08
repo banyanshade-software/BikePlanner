@@ -40,6 +40,8 @@
 - (IBAction)zoomIn:(id)sender;
 - (IBAction)zoomOut:(id)sender;
 - (void)removeWaypointMenuAction:(id)sender;
+- (NSMenu *)waypointMenuForAnnotation:(RouteAnnotation *)annotation;
+- (BOOL)exportStagesToDirectory:(NSURL *)dir baseName:(NSString *)baseName withPOI:(BOOL)inclPOI error:(NSError **)error;
 - (void)mouseMoved:(NSEvent *)event;
 - (NSData *)exportGpxDataWithPOI:(BOOL)inclPOI trackName:(NSString *)trackName;
 - (void)loadGPXFromURL:(NSURL *)url;
@@ -1149,6 +1151,136 @@
     Document *opened = [[Document alloc] init];
     XCTAssertTrue([opened readFromData:data ofType:type error:NULL]);
     XCTAssertEqualObjects(opened.plan.profileOverrides, @{});
+}
+
+#pragma mark - stages (#31)
+
+// three waypoints (start, 44.1/0.6, end): stub route of 21 points, the middle waypoint on point 10
+- (void)makeThreeWaypointRoute
+{
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.5)];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.1, 0.6)];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.2, 0.5)];
+    XCTAssertTrue([self waitForRouteWithPoints:21]);
+    BPSpin(0.1);
+}
+
+- (RouteAnnotation *)waypointAnnotation:(NSUInteger)idx
+{
+    for (RouteAnnotation *a in [self annotationsOfClass:[RouteAnnotation class]]) if (a.idx == idx) return a;
+    return nil;
+}
+
+- (NSMenuItem *)stageItemForWaypoint:(NSUInteger)idx
+{
+    NSMenu *menu = [mc waypointMenuForAnnotation:[self waypointAnnotation:idx]];
+    for (NSMenuItem *it in menu.itemArray) if (it.action == NSSelectorFromString(@"toggleStageEndMenuAction:")) return it;
+    return nil;
+}
+
+// right-click on an intermediate waypoint ▸ End Stage Here: the route is cut there (colors, elevation profile), no
+// new BRouter request, undoable
+- (void)testEndStageFromWaypointMenu
+{
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    [um beginUndoGrouping];
+    [self makeThreeWaypointRoute];
+    [um endUndoGrouping];
+    XCTAssertNil([self stageItemForWaypoint:0], @"not on the start");
+    XCTAssertNil([self stageItemForWaypoint:2], @"not on the end");
+    NSMenuItem *item = [self stageItemForWaypoint:1];
+    XCTAssertNotNil(item);
+    XCTAssertEqualObjects(item.title, @"End Stage Here");
+    XCTAssertEqual(item.state, NSControlStateValueOff);
+    XCTAssertEqual([self polysWithTag:0].count, 1u);
+    [server clearRequests];
+    [doc updateChangeCount:NSChangeCleared];
+
+    [um beginUndoGrouping];
+    [NSApp sendAction:item.action to:item.target from:item];
+    [um endUndoGrouping];
+    XCTAssertTrue([doc.plan isStageEndAtWaypointIndex:1]);
+    NSArray<TaggedPoly *> *polys = [self polysWithTag:0];
+    XCTAssertEqual(polys.count, 2u, @"one polyline per stage");
+    NSUInteger stage0 = 0, stage1 = 0;
+    for (TaggedPoly *p in polys) { if (p.stage == 0) stage0 = p.pointCount; else stage1 = p.pointCount; }
+    XCTAssertEqual(stage0, 11u, @"points 0 to 10");
+    XCTAssertEqual(stage1, 11u, @"points 10 to 20");
+    XCTAssertEqualObjects(mc.elevationView.stageEndIndexes, @[@10]);
+    XCTAssertEqual(mc.elevationView.stageEndDistances.count, 1u);
+    XCTAssertEqual([self stageItemForWaypoint:1].state, NSControlStateValueOn, @"checked");
+    XCTAssertTrue(BPWaitUntil(2, ^{ return self->doc.isDocumentEdited; }), @"document edited");
+    XCTAssertEqualObjects(um.undoActionName, @"end stage");
+    BPSpin(0.2);
+    XCTAssertEqual([server requestsWithPath:@"/brouter"].count, 0u, @"same route: no new request");
+
+    [um undo];
+    XCTAssertFalse([doc.plan isStageEndAtWaypointIndex:1]);
+    XCTAssertEqual([self polysWithTag:0].count, 1u);
+    XCTAssertEqualObjects(mc.elevationView.stageEndIndexes, @[]);
+    [um redo];
+    XCTAssertTrue([doc.plan isStageEndAtWaypointIndex:1]);
+    XCTAssertEqual([self polysWithTag:0].count, 2u);
+    BPSpin(0.2);
+    XCTAssertEqual([server requestsWithPath:@"/brouter"].count, 0u);
+}
+
+// a moved stage end still ends its stage; a stage end that becomes the end of the route (removal) ends nothing
+- (void)testStageEndFollowsWaypointChanges
+{
+    [self makeThreeWaypointRoute];
+    [NSApp sendAction:NSSelectorFromString(@"toggleStageEndMenuAction:") to:mc from:[self stageItemForWaypoint:1]];
+    XCTAssertTrue([doc.plan isStageEndAtWaypointIndex:1]);
+    (void)[doc.plan replaceWaypointAtIndex:1 by:BPLoc(44.11, 0.6)];
+    XCTAssertTrue([doc.plan isStageEndAtWaypointIndex:1]);
+    NSMenuItem *remove = [mc waypointMenuForAnnotation:[self waypointAnnotation:2]].itemArray.firstObject;
+    [mc removeWaypointMenuAction:remove];
+    XCTAssertTrue([self waitForRouteWithPoints:11]);
+    BPSpin(0.1);
+    XCTAssertEqual([self polysWithTag:0].count, 1u, @"no stage any more");
+    XCTAssertNil([self stageItemForWaypoint:1], @"now the end of the route");
+}
+
+// stage ends survive save + reopen
+- (void)testStageEndsSavedWithDocument
+{
+    [self makeThreeWaypointRoute];
+    [NSApp sendAction:NSSelectorFromString(@"toggleStageEndMenuAction:") to:mc from:[self stageItemForWaypoint:1]];
+    NSString *type = @"fr.free.daniel.braun.bikeplan";
+    Document *opened = [[Document alloc] init];
+    XCTAssertTrue([opened readFromData:[doc dataOfType:type error:NULL] ofType:type error:NULL]);
+    XCTAssertTrue([opened.plan isStageEndAtWaypointIndex:1]);
+    XCTAssertEqual(opened.plan.stagesRoutePoints.count, 2u);
+}
+
+// export of a staged route: one GPX per stage, each with the POIs of its stage
+- (void)testExportStages
+{
+    doc.plan.fetchPOI = NO; // only the custom POIs below
+    [self makeThreeWaypointRoute];
+    [NSApp sendAction:NSSelectorFromString(@"toggleStageEndMenuAction:") to:mc from:[self stageItemForWaypoint:1]];
+    [mc addCustomPoiAt:CLLocationCoordinate2DMake(44.03, 0.53)];  // stage 1
+    [mc addCustomPoiAt:CLLocationCoordinate2DMake(44.17, 0.53)];  // stage 2
+    NSURL *dir = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-stages"] isDirectory:YES];
+    [[NSFileManager defaultManager] removeItemAtURL:dir error:NULL];
+    XCTAssertTrue([[NSFileManager defaultManager] createDirectoryAtURL:dir withIntermediateDirectories:NO attributes:nil error:NULL]);
+    NSError *err = nil;
+    XCTAssertTrue([mc exportStagesToDirectory:dir baseName:@"Trip" withPOI:YES error:&err], @"%@", err);
+    NSArray *files = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:dir.path error:NULL] sortedArrayUsingSelector:@selector(compare:)];
+    XCTAssertEqualObjects(files, (@[@"Trip - stage 1.gpx", @"Trip - stage 2.gpx"]));
+    for (NSUInteger i = 0; i < 2; i++) {
+        GPXParser *p = [[GPXParser alloc] init];
+        NSData *d = [NSData dataWithContentsOfURL:[dir URLByAppendingPathComponent:files[i]]];
+        NSArray<CLLocation *> *pts = [p parseGPXData:d error:NULL];
+        XCTAssertEqual(pts.count, 11u);
+        XCTAssertEqual(p.waypoints.count, 1u, @"the POI of the stage");
+        double lat = i ? 44.17 : 44.03;
+        XCTAssertEqualWithAccuracy(p.waypoints.firstObject.coordinate.latitude, lat, 1e-4);
+        NSString *xml = [[NSString alloc] initWithData:d encoding:NSUTF8StringEncoding];
+        NSString *name = [NSString stringWithFormat:@"<name>Trip - stage %lu</name>", (unsigned long)(i + 1)];
+        XCTAssertTrue([xml containsString:name]);
+    }
 }
 
 // printing is not implemented (#59): File ▸ Print… / Page Setup… and the Print toolbar button are disabled, and a

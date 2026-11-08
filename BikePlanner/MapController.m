@@ -55,6 +55,7 @@
     BOOL initialRegionPending;              // new plan: recenter on the first user location (#26)
     CLLocationCoordinate2D initialCenter;   // center set by showInitialRegion, to detect a map moved by the user
     NSURLSessionDataTask *routeTask;        // route request in flight
+    __weak NSSavePanel *exportPanel;         // while the export panel is open (#31: per-stage checkbox)
     NSUInteger routeGeneration;             // incremented by each request and cancel: older answers are ignored (#9)
 }
 
@@ -584,7 +585,8 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
 - (NSColor *) pinColorForWaypointIdx:(NSUInteger)idx
 {
     NSColor *c;
-    if (0==idx) c = [NSColor grayColor];
+    if ([_document.plan isStageEndAtWaypointIndex:idx]) c = [NSColor systemPurpleColor]; // #31
+    else if (0==idx) c = [NSColor grayColor];
     else if (idx >= [waypointsRouteAnnotations count]-1) c = [NSColor whiteColor];
     else c = [NSColor yellowColor];
     return c;
@@ -894,7 +896,22 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     }
     MKPolyline *poly = _document.plan.routePoly;
     
-    [self.mapView addOverlay:poly level:MKOverlayLevelAboveLabels];
+    // a route cut in stages (#31): one polyline per stage, alternating colors
+    NSArray<NSArray<CLLocation *> *> *stages = _document.plan.stagesRoutePoints;
+    if (stages.count > 1) {
+        [stages enumerateObjectsUsingBlock:^(NSArray<CLLocation *> *pts, NSUInteger i, BOOL *stop) {
+            CLLocationCoordinate2D *coords = malloc(pts.count * sizeof(CLLocationCoordinate2D));
+            for (NSUInteger k = 0; k < pts.count; k++) coords[k] = pts[k].coordinate;
+            TaggedPoly *p = [TaggedPoly polylineWithCoordinates:coords count:pts.count];
+            free(coords);
+            p.tag = 0;
+            p.stage = i;
+            [self.mapView addOverlay:p level:MKOverlayLevelAboveLabels];
+        }];
+    } else {
+        [self.mapView addOverlay:poly level:MKOverlayLevelAboveLabels];
+    }
+    self.elevationView.stageEndIndexes = _document.plan.stageEndRouteIndexes;
     if (changeVisibleRect) {
         if (poly.pointCount>0) {
             MKMapRect rect = [poly boundingMapRect];
@@ -1042,7 +1059,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
             // route being built
             r.lineWidth = 8.0;
             r.alpha = 0.5;
-            r.strokeColor = [NSColor blueColor];
+            r.strokeColor = (pl.stage % 2) ? [NSColor systemPurpleColor] : [NSColor blueColor]; // stages (#31)
         } else if (pl.tag == 3) {
             // road class hovered in the Info section (#54)
             r.lineWidth = 9.0;
@@ -1229,9 +1246,45 @@ static NSString *xmlEscaped(NSString * _Nullable s)
     if (0 && !inclPOI) {
         return _gpxData;
     }
+    return [self gpxData:_gpxData withPOIs:inclPOI ? self.exportablePOIs : @[] trackName:trackName];
+}
+
+// custom POIs, then fetched ones, without the excluded ones (#5)
+- (NSArray<POILocation *> *) exportablePOIs
+{
+    NSMutableArray<POILocation *> *pois = [NSMutableArray array];
+    for (POILocation *poi in [_document.plan.customPoiloc arrayByAddingObjectsFromArray:_document.plan.poiloc ?: @[]]) {
+        if (![_document.plan isPOIExcluded:poi]) [pois addObject:poi];
+    }
+    return pois;
+}
+
+// one GPX per stage (#31) in dir: "<baseName> - stage <n>.gpx", with the POIs of the stage (nearest route point)
+- (BOOL) exportStagesToDirectory:(NSURL *)dir baseName:(NSString *)baseName withPOI:(BOOL)inclPOI error:(NSError **)error
+{
+    NSArray<NSArray<CLLocation *> *> *stages = _document.plan.stagesRoutePoints;
+    NSMutableArray<NSMutableArray<POILocation *> *> *pois = [NSMutableArray array];
+    for (NSUInteger i = 0; i < stages.count; i++) [pois addObject:[NSMutableArray array]];
+    if (inclPOI) {
+        for (POILocation *poi in self.exportablePOIs) {
+            NSUInteger s = MIN([_document.plan stageOfCoordinate:poi.coordinate], stages.count - 1);
+            [pois[s] addObject:poi];
+        }
+    }
+    for (NSUInteger i = 0; i < stages.count; i++) {
+        NSString *name = [NSString stringWithFormat:NSLocalizedString(@"%@ - stage %lu", @"GPX file of a stage"), baseName, (unsigned long)(i + 1)];
+        NSData *gpx = [self gpxData:[BikePlan gpxDataForPoints:stages[i] name:name] withPOIs:pois[i] trackName:name];
+        NSURL *url = [dir URLByAppendingPathComponent:[name stringByAppendingPathExtension:@"gpx"]];
+        if (![gpx writeToURL:url options:NSDataWritingAtomic error:error]) return NO;
+    }
+    return YES;
+}
+
+- (NSData *) gpxData:(NSData *)baseGPX withPOIs:(NSArray<POILocation *> *)pois trackName:(nullable NSString *)trackName
+{
     if (!trackName) trackName = @"track";
     //NSMutableString *xml = [[NSMutableString alloc]initWithCapacity:4000];
-    NSString *gpxstr = [[NSString alloc] initWithData:_gpxData encoding:NSUTF8StringEncoding];
+    NSString *gpxstr = [[NSString alloc] initWithData:baseGPX encoding:NSUTF8StringEncoding];
     
     //gpxstr = [gpxstr stringByAppendingString:@"<name>plop</name>"];
     NSRange nameTag = [gpxstr rangeOfString:@"<name>.*</name>" options:NSRegularExpressionSearch|NSCaseInsensitiveSearch];
@@ -1243,37 +1296,21 @@ static NSString *xmlEscaped(NSString * _Nullable s)
     NSRange closingTag = [gpxstr rangeOfString:@"</gpx>" options:NSBackwardsSearch|NSCaseInsensitiveSearch];
     if (closingTag.location == NSNotFound) {
         NSLog(@"Invalid GPX: missing </gpx>");
-        return _gpxData;
+        return baseGPX;
     }
     NSMutableString *xml = [NSMutableString stringWithString:
                                [gpxstr substringToIndex:closingTag.location]];
   
     
-    if (inclPOI) {
-        for (POILocation *poi in _document.plan.customPoiloc) {
-            if ([_document.plan isPOIExcluded:poi]) continue; // #5
-            [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
-            [xml appendFormat:@"  <name>%@</name>\n", xmlEscaped(poi.title ?: poi.gpxType)]; // custom POIs have no title
-            //if (poi.subtitle) {
-            //    [xml appendFormat:@"  <desc>%@</desc>\n", poi.subtitle];
-            //}
-            [xml appendFormat:@"  <sym>%@</sym>\n", xmlEscaped(poi.gpxSymbol ?: @"Flag")];
-            [xml appendFormat:@"  <type>%@</type>\n", xmlEscaped(poi.gpxType ?: @"Flag")];
-            [xml appendString:@"</wpt>\n"];
-        }
-    }
-    if (inclPOI) {
-        for (POILocation *poi in _document.plan.poiloc) {
-            if ([_document.plan isPOIExcluded:poi]) continue; // #5
-            [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
-            [xml appendFormat:@"  <name>%@</name>\n", xmlEscaped(poi.title ?: poi.gpxType)]; // custom POIs have no title
-            //if (poi.subtitle) {
-            //    [xml appendFormat:@"  <desc>%@</desc>\n", poi.subtitle];
-            //}
-            [xml appendFormat:@"  <sym>%@</sym>\n", xmlEscaped(poi.gpxSymbol ?: @"Flag")];
-            [xml appendFormat:@"  <type>%@</type>\n", xmlEscaped(poi.gpxType ?: @"Flag")];
-            [xml appendString:@"</wpt>\n"];
-        }
+    for (POILocation *poi in pois) {
+        [xml appendFormat:@"<wpt lat=\"%f\" lon=\"%f\">\n", poi.coordinate.latitude, poi.coordinate.longitude];
+        [xml appendFormat:@"  <name>%@</name>\n", xmlEscaped(poi.title ?: poi.gpxType)]; // custom POIs have no title
+        //if (poi.subtitle) {
+        //    [xml appendFormat:@"  <desc>%@</desc>\n", poi.subtitle];
+        //}
+        [xml appendFormat:@"  <sym>%@</sym>\n", xmlEscaped(poi.gpxSymbol ?: @"Flag")];
+        [xml appendFormat:@"  <type>%@</type>\n", xmlEscaped(poi.gpxType ?: @"Flag")];
+        [xml appendString:@"</wpt>\n"];
     }
     if ((0)) {
         [xml appendString:@"<rte>\n"];
@@ -1299,6 +1336,28 @@ static NSString *xmlEscaped(NSString * _Nullable s)
     
     return d;
 }
+- (BOOL) isDirectory:(NSURL *)url
+{
+    BOOL dir = NO;
+    return [[NSFileManager defaultManager] fileExistsAtPath:url.path isDirectory:&dir] && dir;
+}
+
+// per stage: a folder name (no extension); else a .gpx file
+- (void) exportPerStageChanged:(NSButton *)sender
+{
+    NSSavePanel *panel = exportPanel;
+    if (!panel) return;
+    NSString *base = [panel.nameFieldStringValue stringByDeletingPathExtension];
+    if (!base.length) base = @"plan";
+    if (sender.state == NSControlStateValueOn) {
+        panel.allowedContentTypes = @[UTTypeFolder];
+        panel.nameFieldStringValue = base;
+    } else {
+        panel.allowedContentTypes = @[[UTType typeWithFilenameExtension:@"gpx"]];
+        panel.nameFieldStringValue = [base stringByAppendingPathExtension:@"gpx"];
+    }
+}
+
 - (IBAction) exportGPX:(id)sender
 {
     if (!_gpxData) return;
@@ -1312,16 +1371,45 @@ static NSString *xmlEscaped(NSString * _Nullable s)
     ExportAccessoryViewController *accessoryVC = [[ExportAccessoryViewController alloc] initWithNibName:@"ExportAccessoryView" bundle:nil];
     savePanel.accessoryView = accessoryVC.view;
     accessoryVC.savePanel = savePanel;
+    // a route in stages (#31): one GPX per stage (default), in a folder named in the panel (the sandbox only lets
+    // the app write where the user chose), or the whole route
+    NSButton *perStage = nil;
+    if (_document.plan.stagesRoutePoints.count > 1) {
+        NSView *acc = accessoryVC.view;
+        perStage = [NSButton checkboxWithTitle:NSLocalizedString(@"One file per stage, in a folder", @"export")
+                                        target:self action:@selector(exportPerStageChanged:)];
+        perStage.state = NSControlStateValueOn;
+        NSView *box = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, NSWidth(acc.frame), NSHeight(acc.frame) + 26)];
+        acc.frame = NSMakeRect(0, 26, NSWidth(acc.frame), NSHeight(acc.frame));
+        [perStage sizeToFit];
+        perStage.frameOrigin = NSMakePoint(20, 4);
+        [box addSubview:acc];
+        [box addSubview:perStage];
+        savePanel.accessoryView = box;
+        exportPanel = savePanel;
+        [self exportPerStageChanged:perStage];
+    }
     
     [savePanel beginWithCompletionHandler:^(NSModalResponse result) {
+        self->exportPanel = nil;
         if (result == NSModalResponseOK) {
             NSURL *destinationURL = savePanel.URL;
             NSString *trackname = [[destinationURL lastPathComponent] stringByDeletingPathExtension];
             NSError *error = nil;
             BOOL includePOI = (accessoryVC.poiCheckbox.state == NSControlStateValueOn);
 
-            NSData *gpxdta = [self exportGpxDataWithPOI:includePOI trackName:trackname];
-            if (![gpxdta writeToURL:destinationURL options:NSDataWritingAtomic error:&error]) {
+            BOOL ok;
+            if (perStage.state == NSControlStateValueOn) {
+                ok = [[NSFileManager defaultManager] createDirectoryAtURL:destinationURL withIntermediateDirectories:NO
+                                                               attributes:nil error:&error]
+                     || [destinationURL hasDirectoryPath] || [self isDirectory:destinationURL];
+                if (ok) error = nil;
+                ok = ok && [self exportStagesToDirectory:destinationURL baseName:trackname withPOI:includePOI error:&error];
+            } else {
+                NSData *gpxdta = [self exportGpxDataWithPOI:includePOI trackName:trackname];
+                ok = [gpxdta writeToURL:destinationURL options:NSDataWritingAtomic error:&error];
+            }
+            if (!ok) {
                 NSAlert *alert = [[NSAlert alloc] init];
                 alert.messageText = @"Export failed";
                 alert.informativeText = error.localizedDescription;
@@ -1706,15 +1794,7 @@ static const BOOL useMarker = NO;
         }
         view.draggable = YES;
         // right click menu
-        NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Waypoint Menu"];
-        NSMenuItem *removeItem = [[NSMenuItem alloc] initWithTitle:@"Remove Waypoint"
-                                                            action:@selector(removeWaypointMenuAction:)
-                                                     keyEquivalent:@""];
-        removeItem.target = self;
-        removeItem.representedObject = annotation; // store the annotation reference
-        [menu addItem:removeItem];
-        
-        view.menu = menu;
+        view.menu = [self waypointMenuForAnnotation:ra];
         view.annotation = annotation;
         
         // Add right-click recognizer
@@ -1802,13 +1882,8 @@ static const BOOL useMarker = NO;
         MKAnnotationView *annotView = (MKAnnotationView *)gesture.view;
         if (!annotView.annotation) return;
         
-        NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Waypoint Menu"];
-        NSMenuItem *removeItem = [[NSMenuItem alloc] initWithTitle:@"Remove Waypoint"
-                                                            action:@selector(removeWaypointMenuAction:)
-                                                     keyEquivalent:@""];
-        removeItem.target = self;
-        removeItem.representedObject = annotView.annotation;
-        [menu addItem:removeItem];
+        if (![annotView.annotation isKindOfClass:[RouteAnnotation class]]) return;
+        NSMenu *menu = [self waypointMenuForAnnotation:(RouteAnnotation *)annotView.annotation];
         
         NSPoint clickLocation = [gesture locationInView:annotView];
         NSPoint windowLocation = [annotView convertPoint:clickLocation toView:nil];
@@ -1953,6 +2028,64 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     return fmod((bearingDeg + 360.0), 360.0); // normalize to 0–360
 }
 
+
+// Remove Waypoint; on an intermediate waypoint, End Stage Here (checked when it ends a stage, #31)
+- (NSMenu *)waypointMenuForAnnotation:(RouteAnnotation *)annotation
+{
+    NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Waypoint Menu"];
+    menu.delegate = self; // rebuilt when opened: the waypoint indexes change with insertions (menuNeedsUpdate:)
+    [self fillWaypointMenu:menu annotation:annotation];
+    return menu;
+}
+
+- (void)menuNeedsUpdate:(NSMenu *)menu
+{
+    RouteAnnotation *annotation = menu.itemArray.firstObject.representedObject;
+    if (![menu.title isEqualToString:@"Waypoint Menu"] || ![annotation isKindOfClass:[RouteAnnotation class]]) return;
+    [menu removeAllItems];
+    [self fillWaypointMenu:menu annotation:annotation];
+}
+
+- (void)fillWaypointMenu:(NSMenu *)menu annotation:(RouteAnnotation *)annotation
+{
+    NSMenuItem *removeItem = [[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"Remove Waypoint", @"waypoint menu")
+                                                        action:@selector(removeWaypointMenuAction:)
+                                                 keyEquivalent:@""];
+    removeItem.target = self;
+    removeItem.representedObject = annotation; // store the annotation reference
+    [menu addItem:removeItem];
+    NSUInteger idx = annotation.idx;
+    if (idx > 0 && idx + 1 < _document.plan.waypointsLocations.count) {
+        NSMenuItem *stageItem = [[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"End Stage Here", @"waypoint menu")
+                                                           action:@selector(toggleStageEndMenuAction:)
+                                                    keyEquivalent:@""];
+        stageItem.target = self;
+        stageItem.representedObject = annotation;
+        stageItem.state = [_document.plan isStageEndAtWaypointIndex:idx] ? NSControlStateValueOn : NSControlStateValueOff;
+        [menu addItem:stageItem];
+    }
+}
+
+// the route is not requested again: same waypoints, only cut differently
+- (void)toggleStageEndMenuAction:(id)sender
+{
+    RouteAnnotation *annotation = [(NSMenuItem *)sender representedObject];
+    NSUInteger idx = annotation.idx;
+    if (idx == 0 || idx + 1 >= _document.plan.waypointsLocations.count) return;
+    BOOL end = ![_document.plan isStageEndAtWaypointIndex:idx];
+    NSArray *old = [_document.plan setStageEnd:end atWaypointIndex:idx];
+    NSUndoManager *um = _document.undoManager;
+    [um registerUndoWithTarget:self selector:@selector(undoStages:) object:old];
+    [um setActionName:end ? @"end stage" : @"remove stage end"];
+    [self fullRefresh:NO];
+}
+
+- (void)undoStages:(NSArray<CLLocation *> *)oldwp
+{
+    [_document.undoManager registerUndoWithTarget:self selector:@selector(undoStages:) object:_document.plan.waypointsLocations];
+    [_document.plan undoSetWayPt:oldwp];
+    [self fullRefresh:NO];
+}
 
 #pragma  mark -
 

@@ -152,6 +152,12 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F3.9 *Edit ▸ Clear Route* or the toolbar *Clear* button (enabled with ≥ 1 waypoint) asks for confirmation (sheet), then erases waypoints, route,
   length/ascent, fetched and custom POIs, but **keeps the reference trace**. Undo restores the route as it was
   (no new BRouter request).
+- F3.10 **Stages** (#31, e.g. one per day): right-click on an intermediate waypoint ▸ *End Stage Here* (checked when
+  the waypoint ends a stage; again to remove it). The route stays one BRouter request and is cut at those waypoints
+  (no new request): stages alternate blue / purple on the map, a stage-end waypoint has a purple pin, and the
+  elevation profile shows a purple line with the number of the next stage. Undoable, saved with the document. A
+  moved stage end still ends its stage; on the start or the end of the route (after a removal or an insertion) it
+  has no effect.
 
 ### F4 — Routing parameters
 - F4.1 Routing uses the BRouter `trekking` profile.
@@ -238,6 +244,9 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F10.1 *File ▸ Export to GPX* (or toolbar) saves the route as GPX. The track name is the file name.
 - F10.2 An option in the save panel adds custom and fetched POIs as GPX `<wpt>` elements, with a
   Garmin-compatible `<type>` (WATER, TOILET, SERVICE, GENERIC, DANGER — see `README.POI.GARMIN.txt`).
+- F10.2b A route in stages (F3.10): the save panel option *One file per stage, in a folder* (checked by default)
+  writes `<name> - stage <n>.gpx` files in a new folder `<name>`, each with the POIs of its stage (the stage of the
+  nearest route point); unchecked, the whole route is one file.
 - F10.3 *(planned)* *Export to FIT* (Garmin course) — menu item exists, not implemented.
 - F10.4 Export is only possible once a route has been computed in the current session.
 

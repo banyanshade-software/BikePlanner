@@ -63,6 +63,21 @@ static const double kMinElevationRange = 100; // m: small differences must not l
     *high = hi;
 }
 
+- (void) setStageEndIndexes:(NSArray<NSNumber *> *)stageEndIndexes
+{
+    _stageEndIndexes = [stageEndIndexes copy] ?: @[];
+    [self setNeedsDisplay:YES];
+}
+
+- (NSArray<NSNumber *> *) stageEndDistances
+{
+    NSMutableArray<NSNumber *> *res = [NSMutableArray array];
+    for (NSNumber *i in _stageEndIndexes) {
+        if (i.unsignedIntegerValue < self.distances.count) [res addObject:self.distances[i.unsignedIntegerValue]];
+    }
+    return res;
+}
+
 - (void) setGpxPoints:(NSArray<CLLocation *> *)trackPoints
 {
     NSMutableArray<NSNumber *> *distances = [NSMutableArray array];
@@ -224,6 +239,21 @@ static const double kBPSlopeHalfWindow = 50; // m
         CGContextStrokePath(ctx);
     }
     
+    // stage ends (#31): a vertical line, the number of the next stage at the top
+    NSDictionary *stageAttrs = @{ NSFontAttributeName: [NSFont boldSystemFontOfSize:10],
+                                  NSForegroundColorAttributeName: [NSColor systemPurpleColor] };
+    NSUInteger stage = 2;
+    for (NSNumber *d in self.stageEndDistances) {
+        CGFloat sx = plotRect.origin.x + (d.doubleValue / maxDist) * plotRect.size.width;
+        [[NSColor systemPurpleColor] setStroke];
+        CGContextSetLineWidth(ctx, 1.5);
+        CGContextMoveToPoint(ctx, sx, plotRect.origin.y);
+        CGContextAddLineToPoint(ctx, sx, NSMaxY(plotRect));
+        CGContextStrokePath(ctx);
+        NSString *s = [NSString stringWithFormat:@"%lu", (unsigned long)stage++];
+        [s drawAtPoint:NSMakePoint(sx + 3, NSMaxY(plotRect) - [s sizeWithAttributes:stageAttrs].height) withAttributes:stageAttrs];
+    }
+
     // Draw highlight line
      if (_highlightDistance > 0 && _highlightDistance <= _maxDist) {
          CGFloat hx = _plotRect.origin.x + (_highlightDistance / _maxDist) * _plotRect.size.width;

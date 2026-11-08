@@ -146,7 +146,7 @@ No version key: adding/removing fields relies on `decodeObject…` returning nil
 ## 5. Map layer
 
 - **Overlays**: tile overlays (`SafeOSMTileOverlay`, `canReplaceMapContent = YES`) for OSM / Thunderforest;
-  `TaggedPoly` overlays for route (tag 0, blue, 8 px), reference trace (tag 2, orange, 6 px) and the road class
+  `TaggedPoly` overlays for route (tag 0, blue, 8 px; in stages, #31: one per stage, `stage` odd in purple), reference trace (tag 2, orange, 6 px) and the road class
   hovered in the Info section (tag 3, pink, 9 px, one polyline per run; `highlightKind:`, removed with the
   route by `refreshPoly:`, #54).
   `rendererForOverlay` picks the renderer by class and tag. Switching to an Apple map type removes the tile overlay
@@ -244,6 +244,17 @@ surface line) → tracking area, mouse moved → character under the mouse (text
 the cell's title rect) → its attribute → `hoverHandler` on a change → `-[MapController highlightKind:]` (nil when the
 mouse leaves) → tag 3 `TaggedPoly` per run of that class in `roadRuns` / `surfaceRuns`.
 
+### 6.5c Stages (#31)
+A stage-end waypoint is a `BPStageEndLocation` (subclass of `CLLocation`) in `plan.waypointsLocations`, so the
+waypoint undo (previous arrays) and `replaceWaypointAtIndex:by:` (keeps the class) carry it; archived as plain
+`CLLocation`s + the `stageEnds` index set (older versions still read the waypoints). Waypoint menu (built by
+`waypointMenuForAnnotation:`, rebuilt by `menuNeedsUpdate:`) ▸ *End Stage Here* → `toggleStageEndMenuAction:` →
+`plan.setStageEnd:atWaypointIndex:` → undo `undoStages:` (no route request) → `fullRefresh:NO`. `refreshPoly:` draws
+`plan.stagesRoutePoints` (cut at `stageEndRouteIndexes`: each waypoint's nearest route point, in order, via
+`+routeIndexesOfWaypoints:inRoute:`) and sets `elevationView.stageEndIndexes`. Export:
+`exportStagesToDirectory:baseName:withPOI:error:` (POIs by `plan.stageOfCoordinate:`); the export panel has the
+per-stage checkbox, which switches the panel to a folder name (`exportPerStageChanged:`).
+
 ### 6.6 Undo / redo
 `undoableWP:desc:` registers `undoAction:` with the **previous waypoint array** on the document's undo manager.
 `undoAction:` registers the current array (for redo), restores the old one via `plan.undoSetWayPt:`,
@@ -256,8 +267,9 @@ pattern with their own snapshot. Registering an undo action is also what marks t
 `fullRefresh:YES` rebuilds the map and zooms to the route.
 
 ### 6.8 GPX export
-`exportGPX:` → `NSSavePanel` + `ExportAccessoryViewController` → `exportGpxDataWithPOI:trackName:` which takes the
-**raw BRouter GPX** (`gpxData`), replaces the first `<name>` with the file name, and inserts `<wpt>` elements
+`exportGPX:` → `NSSavePanel` + `ExportAccessoryViewController` → `exportGpxDataWithPOI:trackName:` →
+`gpxData:withPOIs:trackName:` which takes the **raw BRouter GPX** (`gpxData`; for a stage, a GPX generated from its
+points), replaces the first `<name>` with the file name, and inserts `<wpt>` elements
 before `</gpx>` by string manipulation.
 
 ## 7. Threading model

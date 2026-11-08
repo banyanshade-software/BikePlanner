@@ -465,6 +465,89 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     XCTAssertEqual(r.customPoiloc.count, 2u);
 }
 
+#pragma mark - stages (#31)
+
+// route of 11 points on a meridian, 0.01° (~1.1 km) apart; waypoints on points 0, 4, 7, 10
+- (void)makeStagedPlan
+{
+    NSMutableArray *route = [NSMutableArray array];
+    for (int i = 0; i <= 10; i++) [route addObject:BPLoc(44 + i * 0.01, 0.5)];
+    plan.routePoints = route;
+    for (NSNumber *i in @[@0, @4, @7, @10]) (void)[plan appendWaypoint:BPLoc(44 + i.intValue * 0.01, 0.5)];
+}
+
+- (void)testStageEndFlag
+{
+    [self makeStagedPlan];
+    CLLocationCoordinate2D c = plan.waypointsLocations[1].coordinate;
+    NSArray *old = [plan setStageEnd:YES atWaypointIndex:1];
+    XCTAssertEqual(old.count, 4u);
+    XCTAssertFalse([old[1] isKindOfClass:[BPStageEndLocation class]], @"previous array not changed");
+    XCTAssertTrue([plan isStageEndAtWaypointIndex:1]);
+    XCTAssertFalse([plan isStageEndAtWaypointIndex:2]);
+    XCTAssertEqual(plan.waypointsLocations[1].coordinate.latitude, c.latitude, @"same place");
+    // moved: still a stage end
+    (void)[plan replaceWaypointAtIndex:1 by:BPLoc(44.041, 0.5)];
+    XCTAssertTrue([plan isStageEndAtWaypointIndex:1]);
+    (void)[plan setStageEnd:NO atWaypointIndex:1];
+    XCTAssertFalse([plan isStageEndAtWaypointIndex:1]);
+    XCTAssertTrue([plan.waypointsLocations[1] isMemberOfClass:[CLLocation class]]);
+}
+
+- (void)testStagesRoutePoints
+{
+    [self makeStagedPlan];
+    XCTAssertEqualObjects(plan.stageEndRouteIndexes, @[]);
+    XCTAssertEqual(plan.stagesRoutePoints.count, 1u, @"one stage without stage ends");
+    (void)[plan setStageEnd:YES atWaypointIndex:1];
+    (void)[plan setStageEnd:YES atWaypointIndex:2];
+    XCTAssertEqualObjects(plan.stageEndRouteIndexes, (@[@4, @7]));
+    NSArray<NSArray *> *stages = plan.stagesRoutePoints;
+    XCTAssertEqual(stages.count, 3u);
+    XCTAssertEqual(stages[0].count, 5u, @"points 0 to 4");
+    XCTAssertEqual(stages[1].count, 4u, @"points 4 to 7: the stage end is in both stages");
+    XCTAssertEqual(stages[2].count, 4u);
+    XCTAssertEqual([plan stageOfCoordinate:CLLocationCoordinate2DMake(44.021, 0.501)], 0u);
+    XCTAssertEqual([plan stageOfCoordinate:CLLocationCoordinate2DMake(44.061, 0.501)], 1u);
+    XCTAssertEqual([plan stageOfCoordinate:CLLocationCoordinate2DMake(44.091, 0.501)], 2u);
+}
+
+// a stage end on the start or the end (after a removal) has no effect; no stages without route
+- (void)testStageEndOnlyOnIntermediateWaypoints
+{
+    [self makeStagedPlan];
+    (void)[plan setStageEnd:YES atWaypointIndex:2];
+    (void)[plan removeWaypointAtIndex:3];
+    XCTAssertFalse([plan isStageEndAtWaypointIndex:2], @"now the end");
+    XCTAssertEqualObjects(plan.stageEndRouteIndexes, @[]);
+    plan.routePoints = @[];
+    (void)[plan appendWaypoint:BPLoc(44.1, 0.5)];
+    XCTAssertTrue([plan isStageEndAtWaypointIndex:2]);
+    XCTAssertEqual(plan.stagesRoutePoints.count, 0u);
+}
+
+// a route passing twice near a waypoint: the waypoint is matched on the first passage after the previous one
+- (void)testRouteIndexesOfWaypointsOnLoop
+{
+    NSArray *route = @[BPLoc(44, 0.5), BPLoc(44.01, 0.5), BPLoc(44.02, 0.5), BPLoc(44.01, 0.5001), BPLoc(44, 0.5001)];
+    NSArray *wps = @[BPLoc(44, 0.5), BPLoc(44.01, 0.50005), BPLoc(44.02, 0.5), BPLoc(44, 0.5001)];
+    XCTAssertEqualObjects([BikePlan routeIndexesOfWaypoints:wps inRoute:route], (@[@0, @1, @2, @4]));
+}
+
+- (void)testStageEndsArchived
+{
+    [self makeStagedPlan];
+    (void)[plan setStageEnd:YES atWaypointIndex:2];
+    BikePlan *r = [self roundTrip:plan];
+    XCTAssertEqual(r.waypointsLocations.count, 4u);
+    XCTAssertFalse([r isStageEndAtWaypointIndex:1]);
+    XCTAssertTrue([r isStageEndAtWaypointIndex:2]);
+    // stored as plain CLLocations + an index set: older versions read the waypoints
+    NSData *d = [NSKeyedArchiver archivedDataWithRootObject:plan requiringSecureCoding:YES error:NULL];
+    NSRange r2 = [d rangeOfData:[@"BPStageEndLocation" dataUsingEncoding:NSUTF8StringEncoding] options:0 range:NSMakeRange(0, d.length)];
+    XCTAssertEqual(r2.location, NSNotFound, @"no subclass in the archive");
+}
+
 - (void)testEmptyPlanRoundTrip
 {
     BikePlan *r = [self roundTrip:plan];

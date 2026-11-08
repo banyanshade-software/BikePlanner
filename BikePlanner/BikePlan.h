@@ -55,6 +55,12 @@ extern NSAttributedStringKey const BPRouteKindAttributeName;
 
 #pragma mark -
 
+/// a waypoint where a stage ends (#31): the next stage starts there. Only an intermediate waypoint ends a stage
+/// (on the start or the end, the class has no effect). Archived as a plain CLLocation + the "stageEnds" index set
+@interface BPStageEndLocation : CLLocation
++ (instancetype) locationFrom:(CLLocation *)loc;
+@end
+
 
 @interface BikePlan : NSObject <NSSecureCoding> {
     
@@ -93,6 +99,22 @@ extern NSAttributedStringKey const BPRouteKindAttributeName;
 - (NSArray <CLLocation *>*) insertWaypoint:(CLLocation *)loc atIndex:(NSUInteger)idx NS_WARN_UNUSED_RESULT;
 - (NSArray <CLLocation *>*) replaceWaypointAtIndex:(NSUInteger)idx by:(CLLocation *)loc NS_WARN_UNUSED_RESULT;
 - (NSArray <CLLocation *>*) reverseWaypoints NS_WARN_UNUSED_RESULT; // start <-> end
+// replaceWaypointAtIndex:by: keeps the stage end of the replaced waypoint (a moved waypoint still ends its stage)
+
+// stages (#31): a route is cut in stages at the waypoints marked as stage ends (one BRouter request for the whole
+// route). The waypoint keeps its coordinates. Returns old waypointsLocations for undo
+- (NSArray <CLLocation *>*) setStageEnd:(BOOL)stageEnd atWaypointIndex:(NSUInteger)idx NS_WARN_UNUSED_RESULT;
+/// an intermediate waypoint marked as a stage end (NO for the start and the end)
+- (BOOL) isStageEndAtWaypointIndex:(NSUInteger)idx;
+/// indexes in routePoints where a stage ends, ascending, without 0 and the last point; empty without route or stages
+@property (readonly,nonatomic) NSArray<NSNumber *> *stageEndRouteIndexes;
+/// route points of each stage (a stage end belongs to both stages); one stage without stage ends, none without route
+@property (readonly,nonatomic) NSArray<NSArray<CLLocation *> *> *stagesRoutePoints;
+/// index in routePoints of the route point nearest to each waypoint, in order (the route goes through them): the
+/// nearest point after the previous waypoint's, the first one within 30 m of the minimum when the route passes twice
++ (NSArray<NSNumber *> *) routeIndexesOfWaypoints:(NSArray<CLLocation *> *)waypoints inRoute:(NSArray<CLLocation *> *)route;
+/// stage (0-based) of a location: the one of the nearest route point; 0 without stages
+- (NSUInteger) stageOfCoordinate:(CLLocationCoordinate2D)coord;
 
 - (void) undoSetWayPt:() wp;
 

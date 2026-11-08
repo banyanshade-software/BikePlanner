@@ -26,7 +26,7 @@ typedef NS_ENUM(int, BPClickMode) {
 @end
 
 @interface MapController : NSObject <MKMapViewDelegate, ElevationProfileViewDelegate, NSGestureRecognizerDelegate, NSToolbarItemValidation,
-                                     NSSearchFieldDelegate, MKLocalSearchCompleterDelegate>
+                                     NSSearchFieldDelegate, MKLocalSearchCompleterDelegate, NSMenuDelegate>
 
 @property (weak) IBOutlet MKMapView *mapView;
 @property (weak) IBOutlet Document *document;

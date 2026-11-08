@@ -78,6 +78,9 @@ and product; source files are kept).
 - UI and model changes happen on the main thread; network completions must `dispatch_async` to the main queue.
 - Every user-visible change of the plan must be undoable and/or mark the document edited
   (`undoableWP:desc:` in `MapController` for waypoints).
+- A waypoint that ends a stage (#31) is a `BPStageEndLocation` (subclass of `CLLocation`) in
+  `plan.waypointsLocations`: change waypoints through the `BikePlan` mutators (`replaceWaypointAtIndex:by:` keeps
+  the stage end), never by rebuilding the array from coordinates.
 - `NSLog` is used for diagnostics. `if ((0))` / `#if 0` blocks are the owner's way to keep disabled code —
   don't delete them unless the task is cleanup.
 - User-facing strings via `NSLocalizedString`.

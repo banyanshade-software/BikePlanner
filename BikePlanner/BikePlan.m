@@ -51,6 +51,26 @@ static const double kPOISampleSpacingMeters = 1000;          // route points of 
 static const NSUInteger kPOIMaxSamplePoints = 300;
 
 
+// a copy of the location as the given class (BPStageEndLocation or CLLocation)
+static CLLocation *BPLocationAs(Class cls, CLLocation *loc)
+{
+    return [[cls alloc] initWithCoordinate:loc.coordinate altitude:loc.altitude horizontalAccuracy:loc.horizontalAccuracy
+                          verticalAccuracy:loc.verticalAccuracy course:loc.course speed:loc.speed timestamp:loc.timestamp];
+}
+
+static CLLocation *BPPlainLocation(CLLocation *loc)
+{
+    return [loc isMemberOfClass:[CLLocation class]] ? loc : BPLocationAs([CLLocation class], loc);
+}
+
+@implementation BPStageEndLocation
++ (instancetype) locationFrom:(CLLocation *)loc
+{
+    return [loc isKindOfClass:self] ? (BPStageEndLocation *)loc : (BPStageEndLocation *)BPLocationAs(self, loc);
+}
+@end
+
+
 @implementation BikePlan {
     NSArray <CLLocation *>*_waypointsLocations;
     TaggedPoly *_waypointPoly;
@@ -129,6 +149,7 @@ static const NSUInteger kPOIMaxSamplePoints = 300;
 - (NSArray <CLLocation *>*) replaceWaypointAtIndex:(NSUInteger)idx by:(CLLocation *)loc
 {
     NSArray <CLLocation *>*old = _waypointsLocations;
+    if ([old[idx] isKindOfClass:[BPStageEndLocation class]]) loc = [BPStageEndLocation locationFrom:loc];
     //[_waypointsLocations replaceObjectAtIndex:idx withObject:loc];
     self.waypointsLocations  = [_waypointsLocations arrayByReplacingObjectAtIndex:idx withObject:loc];
     return old;
@@ -138,6 +159,92 @@ static const NSUInteger kPOIMaxSamplePoints = 300;
     NSArray <CLLocation *>*old = _waypointsLocations;
     self.waypointsLocations  = _waypointsLocations.reverseObjectEnumerator.allObjects;
     return old;
+}
+
+#pragma mark - stages (#31)
+
+- (NSArray <CLLocation *>*) setStageEnd:(BOOL)stageEnd atWaypointIndex:(NSUInteger)idx
+{
+    NSArray <CLLocation *>*old = _waypointsLocations;
+    CLLocation *wp = old[idx];
+    if (stageEnd == [wp isKindOfClass:[BPStageEndLocation class]]) return old;
+    CLLocation *nwp = stageEnd ? [BPStageEndLocation locationFrom:wp] : BPPlainLocation(wp);
+    self.waypointsLocations = [old arrayByReplacingObjectAtIndex:idx withObject:nwp];
+    return old;
+}
+
+- (BOOL) isStageEndAtWaypointIndex:(NSUInteger)idx
+{
+    return idx > 0 && idx + 1 < _waypointsLocations.count && [_waypointsLocations[idx] isKindOfClass:[BPStageEndLocation class]];
+}
+
++ (NSArray<NSNumber *> *) routeIndexesOfWaypoints:(NSArray<CLLocation *> *)waypoints inRoute:(NSArray<CLLocation *> *)route
+{
+    NSMutableArray<NSNumber *> *res = [NSMutableArray arrayWithCapacity:waypoints.count];
+    NSUInteger from = 0;
+    for (CLLocation *wp in waypoints) {
+        if (!route.count) break;
+        CLLocationDistance best = DBL_MAX;
+        NSUInteger n = route.count;
+        double *d = malloc(n * sizeof(double));
+        for (NSUInteger i = from; i < n; i++) {
+            d[i] = [route[i] distanceFromLocation:wp];
+            best = MIN(best, d[i]);
+        }
+        NSUInteger found = from;
+        for (NSUInteger i = from; i < n; i++) {
+            if (d[i] <= best + 30) { found = i; break; }
+        }
+        free(d);
+        [res addObject:@(found)];
+        from = found;
+    }
+    return res;
+}
+
+- (NSArray<NSNumber *> *) stageEndRouteIndexes
+{
+    NSUInteger n = _routePoints.count;
+    if (n < 2) return @[];
+    NSArray<NSNumber *> *idx = [BikePlan routeIndexesOfWaypoints:_waypointsLocations inRoute:_routePoints];
+    NSMutableArray<NSNumber *> *ends = [NSMutableArray array];
+    for (NSUInteger w = 0; w < idx.count; w++) {
+        NSUInteger r = idx[w].unsignedIntegerValue;
+        if ([self isStageEndAtWaypointIndex:w] && r > 0 && r + 1 < n && r > ends.lastObject.unsignedIntegerValue) {
+            [ends addObject:@(r)];
+        }
+    }
+    return ends;
+}
+
+- (NSArray<NSArray<CLLocation *> *> *) stagesRoutePoints
+{
+    NSUInteger n = _routePoints.count;
+    if (n < 2) return @[];
+    NSMutableArray *stages = [NSMutableArray array];
+    NSUInteger from = 0;
+    for (NSNumber *e in [self.stageEndRouteIndexes arrayByAddingObject:@(n - 1)]) {
+        NSUInteger to = e.unsignedIntegerValue;
+        [stages addObject:[_routePoints subarrayWithRange:NSMakeRange(from, to - from + 1)]];
+        from = to;
+    }
+    return stages;
+}
+
+- (NSUInteger) stageOfCoordinate:(CLLocationCoordinate2D)coord
+{
+    NSArray<NSNumber *> *ends = self.stageEndRouteIndexes;
+    if (!ends.count) return 0;
+    CLLocation *loc = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
+    CLLocationDistance best = DBL_MAX;
+    NSUInteger nearest = 0;
+    for (NSUInteger i = 0; i < _routePoints.count; i++) {
+        CLLocationDistance d = [_routePoints[i] distanceFromLocation:loc];
+        if (d < best) { best = d; nearest = i; }
+    }
+    NSUInteger stage = 0;
+    for (NSNumber *e in ends) if (nearest > e.unsignedIntegerValue) stage++;
+    return stage;
 }
 
 - (NSDictionary *) routeState
@@ -471,7 +578,15 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
 
 - (void)encodeWithCoder:(NSCoder *)coder
 {
-    [coder encodeObject:_waypointsLocations forKey:@"waypointsLocations"];
+    // plain CLLocations, the stage ends apart (#31): documents stay readable by older versions
+    NSMutableArray<CLLocation *> *wps = [NSMutableArray arrayWithCapacity:_waypointsLocations.count];
+    NSMutableIndexSet *stageEnds = [NSMutableIndexSet indexSet];
+    [_waypointsLocations enumerateObjectsUsingBlock:^(CLLocation *wp, NSUInteger i, BOOL *stop) {
+        [wps addObject:BPPlainLocation(wp)];
+        if ([wp isKindOfClass:[BPStageEndLocation class]]) [stageEnds addIndex:i];
+    }];
+    [coder encodeObject:wps forKey:@"waypointsLocations"];
+    if (stageEnds.count) [coder encodeObject:stageEnds forKey:@"stageEnds"];
     [coder encodeObject:_routePoints forKey:@"routePoints"];
     [coder encodeObject:_gpxDisplayed forKey:@"gpxDisplayed"];
     [coder encodeObject:_brouterInfo forKey:@"brouterInfo"];
@@ -486,7 +601,16 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
 {
     self = [super init];
     if (!self) return self;
-    self.waypointsLocations = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [CLLocation class], nil] forKey:@"waypointsLocations"];
+    NSArray<CLLocation *> *wps = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [CLLocation class], nil] forKey:@"waypointsLocations"];
+    NSIndexSet *stageEnds = [coder decodeObjectOfClass:[NSIndexSet class] forKey:@"stageEnds"];
+    if (stageEnds.count && wps.count) {
+        NSMutableArray<CLLocation *> *m = [wps mutableCopy];
+        [stageEnds enumerateIndexesUsingBlock:^(NSUInteger i, BOOL *stop) {
+            if (i < m.count) m[i] = [BPStageEndLocation locationFrom:m[i]];
+        }];
+        wps = m;
+    }
+    self.waypointsLocations = wps;
     self.routePoints = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [CLLocation class], nil] forKey:@"routePoints"];
     self.gpxDisplayed = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [CLLocation class], nil] forKey:@"gpxDisplayed"];
     self.brouterInfo = [coder decodeObjectOfClass:[BrouterInfo class] forKey:@"brouterInfo"];
