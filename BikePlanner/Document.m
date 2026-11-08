@@ -223,8 +223,38 @@
     [_mapController clearRoute:sender];
 }
 
+#pragma mark - printing (not implemented, #59)
+
+// NSDocument raises NSInternalInconsistencyException when printOperationWithSettings:error: is not overridden: the
+// app crashed on File ▸ Print… (#59). Until printing is designed, Print… / Page Setup… and the Print toolbar button
+// are disabled, and a print request (shortcut, Finder, AppleScript) does nothing.
+- (IBAction)printDocument:(id)sender
+{
+}
+
+- (IBAction)runPageLayout:(id)sender
+{
+}
+
+- (nullable NSPrintOperation *)printOperationWithSettings:(NSDictionary<NSPrintInfoAttributeKey, id> *)printSettings
+                                                    error:(NSError **)outError
+{
+    if (outError) {
+        *outError = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFeatureUnsupportedError
+                                    userInfo:@{ NSLocalizedDescriptionKey: NSLocalizedString(@"Printing is not available yet.", @"") }];
+    }
+    return nil;
+}
+
+- (BOOL)validateUserInterfaceItem:(id<NSValidatedUserInterfaceItem>)item
+{
+    if (item.action == @selector(printDocument:) || item.action == @selector(runPageLayout:)) return NO;
+    return [super validateUserInterfaceItem:item];
+}
+
 - (BOOL)validateMenuItem:(NSMenuItem *)item
 {
+    if (item.action == @selector(printDocument:) || item.action == @selector(runPageLayout:)) return NO;
     if (item.action == @selector(reverseRoute:)) return [_mapController canReverseRoute];
     if (item.action == @selector(clearRoute:)) return [_mapController canClearRoute];
     if (item.action == @selector(recalculateRoute:)) return [_mapController canRecalculateRoute];

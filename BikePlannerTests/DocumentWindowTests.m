@@ -1151,6 +1151,34 @@
     XCTAssertEqualObjects(opened.plan.profileOverrides, @{});
 }
 
+// printing is not implemented (#59): File ▸ Print… / Page Setup… and the Print toolbar button are disabled, and a
+// print request (menu shortcut, Finder, AppleScript) does nothing instead of raising in NSDocument
+- (void)testPrintDisabled
+{
+    [self makeRoute];
+    NSMenuItem *print = [[NSMenuItem alloc] initWithTitle:@"Print…" action:@selector(printDocument:) keyEquivalent:@"p"];
+    NSMenuItem *setup = [[NSMenuItem alloc] initWithTitle:@"Page Setup…" action:@selector(runPageLayout:) keyEquivalent:@"P"];
+    XCTAssertFalse([doc validateMenuItem:print]);
+    XCTAssertFalse([doc validateMenuItem:setup]);
+    NSToolbarItem *button = nil;
+    for (NSToolbarItem *it in doc.windowControllers.firstObject.window.toolbar.items) {
+        if ([it.itemIdentifier isEqualToString:NSToolbarPrintItemIdentifier]) button = it;
+    }
+    XCTAssertNotNil(button, @"Print button kept in the toolbar");
+    XCTAssertFalse([doc validateUserInterfaceItem:button]);
+
+    NSError *err = nil;
+    NSPrintOperation *op = nil;
+    XCTAssertNoThrow(op = [doc printOperationWithSettings:@{} error:&err]);
+    XCTAssertNil(op);
+    XCTAssertNotNil(err);
+    NSWindow *window = doc.windowControllers.firstObject.window;
+    XCTAssertNoThrow([doc printDocument:print]);
+    XCTAssertNoThrow([doc runPageLayout:setup]);
+    BPSpin(0.3);
+    XCTAssertNil(window.attachedSheet, @"no print panel");
+}
+
 // a new document starts in Edit mode (to place the start), an opened one in View mode: a click does not change
 // its route by mistake
 - (void)testOpenedDocumentStartsInViewMode

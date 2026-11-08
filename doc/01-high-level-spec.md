@@ -60,7 +60,8 @@ the track to a GPS device.
 
 ## 5. Main window
 
-One window per document. Layout:
+One window per document (printing is not implemented: *Print…*, *Page Setup…* and the toolbar *Print* button are
+disabled, #59). Layout:
 
 ```
 +-----------------------------------------------------------------------------+
