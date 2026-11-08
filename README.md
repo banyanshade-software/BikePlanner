@@ -7,6 +7,8 @@ preview the road in Google Street View, and export a GPX file for a bike GPS (Ga
 BikePlanner is a **personal project**, not distributed yet (see
 [distribution constraints](doc/03-distribution-constraints.md)).
 
+![BikePlanner: a route in the Alps on the OpenCycleMap base map, with the route info, Street View and the elevation profile](doc/images/main-window.png)
+
 ## Features
 
 - **Route building** on the map: start, destination and intermediate waypoints (Edit / Add / POI / View click
@@ -58,7 +60,20 @@ Work items are tracked as [GitHub issues](https://github.com/banyanshade-softwar
 
 ## Credits
 
-Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL). Routing by
-[BRouter](https://github.com/abrensch/brouter). Cycle maps © [Thunderforest](https://www.thunderforest.com).
-POI icons from [Maki](https://github.com/mapbox/maki). About window:
-[DCOAboutWindow](https://github.com/DangerCove/DCOAboutWindow) (© Danger Cove).
+- Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, available under the Open
+  Database License (ODbL): base map tiles, routes and points of interest.
+- Cycle maps © [Thunderforest](https://www.thunderforest.com) (OpenCycleMap), data © OpenStreetMap contributors.
+- Apple maps, satellite imagery and place search: Apple MapKit.
+- Routing by [BRouter](https://github.com/abrensch/brouter) (brouter.de); points of interest through the
+  [Overpass API](https://overpass-api.de).
+- Street View imagery © Google ([Maps Embed API](https://developers.google.com/maps/documentation/embed)).
+- POI icons from [Maki](https://github.com/mapbox/maki) (CC0).
+- About window: [DCOAboutWindow](https://github.com/DangerCove/DCOAboutWindow) © 2014 Danger Cove (BSD license, see
+  [DCO/LICENSE](DCO/LICENSE)).
+
+## Copyright and license
+
+© 2025–2026 Daniel Braun. All rights reserved.
+
+The source code is published for reference only: no license is granted to copy, modify or redistribute it without
+the author's permission. Third-party components and data keep their own licenses (see Credits).
