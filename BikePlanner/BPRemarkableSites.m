@@ -10,6 +10,7 @@
 @property (readwrite) NSString *name;
 @property (readwrite) CLLocationCoordinate2D coordinate;
 @property (readwrite) BPSiteKind kind;
+@property (readwrite) double heading;
 @end
 
 @implementation BPRemarkableSite
@@ -27,96 +28,53 @@
 
 @end
 
-typedef struct {
-    const char *name;
-    double lat, lon;
-    BPSiteKind kind;
-} BPSiteDef;
-
-// summit of the climbs; center of the monuments and sites
-static const BPSiteDef kSites[] = {
-    // famous climbs
-    { "Mont Ventoux",                    44.1739,  5.2789, BPSiteKindClimb },
-    { "Col du Tourmalet",                42.9086,  0.1453, BPSiteKindClimb },
-    { "Col du Galibier",                 45.0642,  6.4078, BPSiteKindClimb },
-    { "Alpe d'Huez",                     45.0917,  6.0697, BPSiteKindClimb },
-    { "Col d'Izoard",                    44.8203,  6.7350, BPSiteKindClimb },
-    { "Col d'Aubisque",                  42.9767, -0.3386, BPSiteKindClimb },
-    { "Col de la Madeleine",             45.4350,  6.3756, BPSiteKindClimb },
-    { "Col de la Croix de Fer",          45.2269,  6.2039, BPSiteKindClimb },
-    { "Col du Glandon",                  45.2392,  6.1767, BPSiteKindClimb },
-    { "Col du Télégraphe",               45.2031,  6.4442, BPSiteKindClimb },
-    { "Col du Lautaret",                 45.0353,  6.4053, BPSiteKindClimb },
-    { "Col de la Bonette",               44.3264,  6.8072, BPSiteKindClimb },
-    { "Col de Vars",                     44.5383,  6.7031, BPSiteKindClimb },
-    { "Col d'Aspin",                     42.9431,  0.3256, BPSiteKindClimb },
-    { "Col de Peyresourde",              42.7975,  0.4497, BPSiteKindClimb },
-    { "Hautacam",                        43.0217, -0.0003, BPSiteKindClimb },
-    { "Superbagnères",                   42.7600,  0.5847, BPSiteKindClimb },
-    { "Puy de Dôme",                     45.7725,  2.9644, BPSiteKindClimb },
-    { "Puy Mary (Pas de Peyrol)",        45.1103,  2.6703, BPSiteKindClimb },
-    { "Mont Aigoual",                    44.1211,  3.5814, BPSiteKindClimb },
-    { "La Planche des Belles Filles",    47.7722,  6.7778, BPSiteKindClimb },
-    { "Grand Ballon",                    47.9017,  7.0983, BPSiteKindClimb },
-    // monuments
-    { "Mont-Saint-Michel",               48.6361, -1.5115, BPSiteKindMonument },
-    { "Cité de Carcassonne",             43.2067,  2.3636, BPSiteKindMonument },
-    { "Pont du Gard",                    43.9475,  4.5353, BPSiteKindMonument },
-    { "Château de Chambord",             47.6161,  1.5170, BPSiteKindMonument },
-    { "Château de Chenonceau",           47.3249,  1.0703, BPSiteKindMonument },
-    { "Château de Villandry",            47.3403,  0.5144, BPSiteKindMonument },
-    { "Château d'Amboise",               47.4131,  0.9856, BPSiteKindMonument },
-    { "Rocamadour",                      44.7994,  1.6178, BPSiteKindMonument },
-    { "Conques",                         44.5992,  2.3981, BPSiteKindMonument },
-    { "Palais des Papes, Avignon",       43.9508,  4.8075, BPSiteKindMonument },
-    { "Viaduc de Millau",                44.0775,  3.0225, BPSiteKindMonument },
-    { "Arènes de Nîmes",                 43.8347,  4.3597, BPSiteKindMonument },
-    { "Cathédrale de Chartres",          48.4477,  1.4878, BPSiteKindMonument },
-    { "Cathédrale d'Albi",               43.9286,  2.1428, BPSiteKindMonument },
-    { "Abbaye de Sénanque",              43.9278,  5.1867, BPSiteKindMonument },
-    { "Vézelay",                         47.4664,  3.7483, BPSiteKindMonument },
-    { "Château de Versailles",           48.8049,  2.1204, BPSiteKindMonument },
-    { "Saint-Émilion",                   44.8936, -0.1553, BPSiteKindMonument },
-    // natural sites
-    { "Gorges du Verdon",                43.7967,  6.3983, BPSiteKindNature },
-    { "Dune du Pilat",                   44.5892, -1.2128, BPSiteKindNature },
-    { "Lac d'Annecy",                    45.8500,  6.1700, BPSiteKindNature },
-    { "Seuil de Naurouze (Canal du Midi)", 43.3492, 1.8128, BPSiteKindNature },
-    { "Gorges du Tarn",                  44.3653,  3.4119, BPSiteKindNature },
-    { "Pont d'Arc (Gorges de l'Ardèche)", 44.3825, 4.4153, BPSiteKindNature },
-    { "Cirque de Gavarnie",              42.7125, -0.0083, BPSiteKindNature },
-    { "Pointe du Raz",                   48.0397, -4.7397, BPSiteKindNature },
-    { "Falaises d'Étretat",              49.7069,  0.2003, BPSiteKindNature },
-    { "Baie de Somme",                   50.2158,  1.6267, BPSiteKindNature },
-    { "Calanques de Marseille",          43.2025,  5.4997, BPSiteKindNature },
-    { "Lac de Serre-Ponçon",             44.5300,  6.3700, BPSiteKindNature },
-    { "Chamonix-Mont-Blanc",             45.9237,  6.8694, BPSiteKindNature },
-    { "Île de Ré",                       46.2031, -1.3664, BPSiteKindNature },
-};
-
 @implementation BPRemarkableSites
+
+// RemarkableSites.plist (resource): array of { name, latitude, longitude, kind ("climb", "monument", "nature"),
+// heading (degrees, 0 = north, optional) }; invalid entries are skipped
++ (NSArray<BPRemarkableSite *> *) sitesFromPropertyList:(id)plist
+{
+    NSDictionary<NSString *, NSNumber *> *kinds = @{ @"climb": @(BPSiteKindClimb), @"monument": @(BPSiteKindMonument),
+                                                     @"nature": @(BPSiteKindNature) };
+    NSMutableArray<BPRemarkableSite *> *a = [NSMutableArray array];
+    if (![plist isKindOfClass:[NSArray class]]) return a;
+    for (NSDictionary *d in plist) {
+        if (![d isKindOfClass:[NSDictionary class]]) continue;
+        NSString *name = d[@"name"];
+        NSNumber *lat = d[@"latitude"], *lon = d[@"longitude"], *heading = d[@"heading"];
+        NSNumber *kind = [d[@"kind"] isKindOfClass:[NSString class]] ? kinds[d[@"kind"]] : nil;
+        if (![name isKindOfClass:[NSString class]] || !name.length || ![lat isKindOfClass:[NSNumber class]]
+            || ![lon isKindOfClass:[NSNumber class]] || !kind) continue;
+        CLLocationCoordinate2D c = CLLocationCoordinate2DMake(lat.doubleValue, lon.doubleValue);
+        if (!CLLocationCoordinate2DIsValid(c)) continue;
+        BPRemarkableSite *s = [[BPRemarkableSite alloc] init];
+        s.name = name;
+        s.coordinate = c;
+        s.kind = kind.integerValue;
+        s.heading = [heading isKindOfClass:[NSNumber class]] ? heading.doubleValue : 0;
+        [a addObject:s];
+    }
+    return a;
+}
 
 + (NSArray<BPRemarkableSite *> *) sites
 {
     static NSArray<BPRemarkableSite *> *sites;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        NSMutableArray *a = [NSMutableArray array];
-        for (size_t i = 0; i < sizeof(kSites) / sizeof(kSites[0]); i++) {
-            BPRemarkableSite *s = [[BPRemarkableSite alloc] init];
-            s.name = @(kSites[i].name);
-            s.coordinate = CLLocationCoordinate2DMake(kSites[i].lat, kSites[i].lon);
-            s.kind = kSites[i].kind;
-            [a addObject:s];
-        }
-        sites = a;
+        NSURL *url = [[NSBundle bundleForClass:self] URLForResource:@"RemarkableSites" withExtension:@"plist"];
+        NSData *data = url ? [NSData dataWithContentsOfURL:url] : nil;
+        id plist = data ? [NSPropertyListSerialization propertyListWithData:data options:0 format:NULL error:NULL] : nil;
+        sites = [self sitesFromPropertyList:plist];
+        if (!sites.count) NSLog(@"RemarkableSites.plist: no site");
     });
     return sites;
 }
 
-+ (BPRemarkableSite *) randomSite
++ (nullable BPRemarkableSite *) randomSite
 {
     NSArray<BPRemarkableSite *> *sites = [self sites];
+    if (!sites.count) return nil;
     NSInteger forced = [BPEnvironment remarkableSiteIndex];
     if (forced >= 0 && forced < (NSInteger)sites.count) return sites[forced];
     return sites[arc4random_uniform((uint32_t)sites.count)];

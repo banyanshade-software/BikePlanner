@@ -78,6 +78,7 @@
 		3F85331F72FD54A5FE9F65EF /* BPRoadTypesLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 22588E46EB94D875275191CA /* BPRoadTypesLabel.m */; };
 		B100AEFBF44EAE67DE1EBDBF /* BPRemarkableSites.m in Sources */ = {isa = PBXBuildFile; fileRef = A1C9865B43FA92585091A816 /* BPRemarkableSites.m */; };
 		A91D29A9CDC0B46D1C6C54EC /* BPRemarkableSitesTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D8997E3CAA336BA565381E10 /* BPRemarkableSitesTests.m */; };
+		F918EABD954C135DE301F046 /* RemarkableSites.plist in Resources */ = {isa = PBXBuildFile; fileRef = AF37C4A38C3D74E24B3D3F40 /* RemarkableSites.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -211,6 +212,7 @@
 		A1C9865B43FA92585091A816 /* BPRemarkableSites.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRemarkableSites.m; sourceTree = "<group>"; };
 		8EC8FEDD026DE4A231BDF414 /* BPRemarkableSites.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPRemarkableSites.h; sourceTree = "<group>"; };
 		D8997E3CAA336BA565381E10 /* BPRemarkableSitesTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRemarkableSitesTests.m; sourceTree = "<group>"; };
+		AF37C4A38C3D74E24B3D3F40 /* RemarkableSites.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = RemarkableSites.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -376,6 +378,7 @@
 				7A8DF1A16B04B617120AB1D9 /* BPSecrets.h */,
 				A1C9865B43FA92585091A816 /* BPRemarkableSites.m */,
 				8EC8FEDD026DE4A231BDF414 /* BPRemarkableSites.h */,
+				AF37C4A38C3D74E24B3D3F40 /* RemarkableSites.plist */,
 			);
 			path = BikePlanner;
 			sourceTree = "<group>";
@@ -534,6 +537,7 @@
 				65F365A02E4F6BE10046B03D /* MainMenu.xib in Resources */,
 				1B53B84E2E5CDEFD00C9470F /* ExportAccessoryView.xib in Resources */,
 				65F365C72E4F73200046B03D /* BRFProfileEditor.xib in Resources */,
+				F918EABD954C135DE301F046 /* RemarkableSites.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

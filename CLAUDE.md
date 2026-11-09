@@ -61,7 +61,8 @@ scripts/xcode_add_files.py --target BikePlanner      --anchor MapController.m   
 scripts/xcode_add_files.py --target BikePlannerTests --anchor BikePlannerTests.m BikePlannerTests/NewTests.m
 scripts/xcode_add_files.py --target BikePlannerUITests --anchor BikePlannerUITests.m BikePlannerUITests/NewUITests.m
 ```
-A file already in the project can be added to another target the same way (e.g. `BikePlannerTests/BPStubServer.m`
+Resources (`.plist`, `.json`) go to the target's Resources build phase (e.g. `BikePlanner/RemarkableSites.plist`, the
+list of start sites, #65). A file already in the project can be added to another target the same way (e.g. `BikePlannerTests/BPStubServer.m`
 is in both test targets). Removing a file: delete its lines from `project.pbxproj` (grep its name).
 A Run Script phase: `scripts/xcode_add_run_script.py --target … --name … --script …` (see its header).
 New files go in the anchor's group/directory. Use `SupportClasses/` + `--anchor GPXParser.m` for support classes.

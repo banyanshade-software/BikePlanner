@@ -80,6 +80,7 @@ typedef NS_ENUM(NSInteger, BPEmbedKeyState) {
 - (void) viewCoord:(CLLocationCoordinate2D)coord  lookingAt:(double)bearing coalesce:(BOOL)coal
 {
     _lastCoord = coord;
+    _lastHeading = bearing;
     if ((0)) return; // disable
     if ([BPEnvironment streetViewDisabled]) return;
     if ((0)) bearing-=20;

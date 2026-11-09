@@ -3,7 +3,7 @@
 //  BikePlanner
 //
 //  Remarkable sites in France (famous climbs, monuments, natural sites) where a new document can start, picked
-//  at random (Preferences ▸ Start position, #65).
+//  at random (Preferences ▸ Start position, #65). The list is the resource RemarkableSites.plist.
 //
 
 #import <Foundation/Foundation.h>
@@ -21,14 +21,19 @@ typedef NS_ENUM(NSInteger, BPSiteKind) {
 @property (readonly) NSString *name;
 @property (readonly) CLLocationCoordinate2D coordinate;
 @property (readonly) BPSiteKind kind;
+/// direction of the Street View camera, degrees (0 = north, 90 = east)
+@property (readonly) double heading;
 /// "Mont Ventoux — famous climb", for the map message
 @property (readonly) NSString *displayText;
 @end
 
 @interface BPRemarkableSites : NSObject
+/// the sites of RemarkableSites.plist
 + (NSArray<BPRemarkableSite *> *) sites;
-/// a site at random; the test hook BPRemarkableSiteIndex (BPEnvironment) chooses it
-+ (BPRemarkableSite *) randomSite;
+/// sites of a property list (format: RemarkableSites.plist); invalid entries are skipped
++ (NSArray<BPRemarkableSite *> *) sitesFromPropertyList:(nullable id)plist;
+/// a site at random, nil if the list is empty; the test hook BPRemarkableSiteIndex (BPEnvironment) chooses it
++ (nullable BPRemarkableSite *) randomSite;
 @end
 
 NS_ASSUME_NONNULL_END

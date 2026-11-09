@@ -3,7 +3,7 @@
 
 The new files are put in the same group as an existing "anchor" file that already
 belongs to the target, and added to the target's Sources build phase
-(.m / .c files) or just to the group (.h files).
+(.m / .c files), to its Resources build phase (.plist / .json files), or just to the group (.h files).
 
 Usage:
     scripts/xcode_add_files.py --target BikePlannerTests --anchor BikePlannerTests.m \
@@ -22,7 +22,9 @@ import sys
 
 PBXPROJ = os.path.join(os.path.dirname(__file__), "..", "BikePlanner.xcodeproj", "project.pbxproj")
 
-FILE_TYPES = {".m": "sourcecode.c.objc", ".h": "sourcecode.c.h", ".c": "sourcecode.c.c"}
+FILE_TYPES = {".m": "sourcecode.c.objc", ".h": "sourcecode.c.h", ".c": "sourcecode.c.c",
+              ".plist": "text.plist.xml", ".json": "text.json"}
+RESOURCE_TYPES = {".plist", ".json"}
 
 
 def new_id(text):
@@ -41,14 +43,14 @@ def block(text, ident):
     return m.start(), end
 
 
-def add_build_file(text, sources_id, ref, name):
+def add_build_file(text, phase_id, ref, name, phase="Sources"):
     bf = new_id(text)
     text = text.replace(
         "/* End PBXBuildFile section */",
-        "\t\t%s /* %s in Sources */ = {isa = PBXBuildFile; fileRef = %s /* %s */; };\n"
-        "/* End PBXBuildFile section */" % (bf, name, ref, name), 1)
-    ss, se = block(text, sources_id)
-    sb = text[ss:se].replace("\t\t\t);\n", "\t\t\t\t%s /* %s in Sources */,\n\t\t\t);\n" % (bf, name), 1)
+        "\t\t%s /* %s in %s */ = {isa = PBXBuildFile; fileRef = %s /* %s */; };\n"
+        "/* End PBXBuildFile section */" % (bf, name, phase, ref, name), 1)
+    ss, se = block(text, phase_id)
+    sb = text[ss:se].replace("\t\t\t);\n", "\t\t\t\t%s /* %s in %s */,\n\t\t\t);\n" % (bf, name, phase), 1)
     return text[:ss] + sb + text[se:]
 
 
@@ -77,6 +79,7 @@ def main():
         sys.exit("target %s not found" % args.target)
     ts, te = block(text, m.group(1))
     sources_id = re.search(r"(\w{24}) /\* Sources \*/", text[ts:te]).group(1)
+    resources_id = re.search(r"(\w{24}) /\* Resources \*/", text[ts:te]).group(1)
     ss, se = block(text, sources_id)
     sources_block = text[ss:se]
 
@@ -128,7 +131,9 @@ def main():
         grp = text[gs:ge]
         grp = grp.replace("\t\t\t);\n", "\t\t\t\t%s /* %s */,\n\t\t\t);\n" % (ref, name), 1)
         text = text[:gs] + grp + text[ge:]
-        if ext != ".h":
+        if ext in RESOURCE_TYPES:
+            text = add_build_file(text, resources_id, ref, name, "Resources")
+        elif ext != ".h":
             text = add_build_file(text, sources_id, ref, name)
         print("added: %s" % name)
 

@@ -104,8 +104,9 @@ parameters (Params tab) on the length, time and speed of the route is seen (#43)
   `BPDefaultPosition`, “lat,lon”; set in the Preferences, F12). The first location recenters the map,
   unless the user has moved it or started placing waypoints.
 - F1.6 *Start position* (Preferences, #65, key `BPStartPosition`): *A remarkable site in France, at random* (the
-  default; `BPRemarkableSites`: ~55 famous climbs, monuments and natural sites; ~15 km around it; its name and kind
-  are shown in the map message, e.g. “Mont Ventoux — famous climb”, and Street View shows it), *My location*
+  default; ~55 famous climbs, monuments and natural sites listed in the resource `RemarkableSites.plist` — name,
+  coordinates, kind, Street View camera heading; ~15 km around it; its name and kind are shown in the map message,
+  e.g. “Mont Ventoux — famous climb”, and Street View shows it with the site's heading), *My location*
   (F1.5; Street View follows the first location), or *Default position*. The location is asked only with
   *My location*.
 

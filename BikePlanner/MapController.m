@@ -358,12 +358,12 @@ static const double kBPSiteRadiusKm = 15;
     BPStartPosition start = [BPEnvironment startPosition];
     if (start != BPStartPositionLocation) { // the location is not asked (#65)
         initialRegionPending = NO;
-        if (start == BPStartPositionRemarkableSite) {
-            BPRemarkableSite *site = [BPRemarkableSites randomSite];
+        BPRemarkableSite *site = (start == BPStartPositionRemarkableSite) ? [BPRemarkableSites randomSite] : nil;
+        if (site) {
             double d = 2 * 1000 * kBPSiteRadiusKm;
             [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(site.coordinate, d, d) animated:NO];
             [self showMapMessage:site.displayText];
-            [self.svCtrl viewCoord:site.coordinate lookingAt:0 coalesce:NO]; // not the default position
+            [self.svCtrl viewCoord:site.coordinate lookingAt:site.heading coalesce:NO]; // not the default position
         } else {
             [self.mapView setRegion:[self initialRegionAround:[BPEnvironment defaultPosition]] animated:NO];
         }

@@ -15,8 +15,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void) initializeStreetView;
 - (void) viewCoord:(CLLocationCoordinate2D)coord lookingAt:(double)bearing coalesce:(BOOL)coal;
-/// coordinate of the last viewCoord:… (also when Street View is disabled: tests)
+/// coordinate and heading of the last viewCoord:… (also when Street View is disabled: tests)
 @property (readonly) CLLocationCoordinate2D lastCoord;
+@property (readonly) double lastHeading;
 
 @end
 

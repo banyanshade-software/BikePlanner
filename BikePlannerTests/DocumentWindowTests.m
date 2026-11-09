@@ -27,6 +27,7 @@
 #import "GPXParser.h"
 #import "BPPlaceSearch.h"
 #import "TestFixtures.h"
+#import "BPRemarkableSites.h"
 #import "BPEnvironment.h"
 
 @interface MapController (WindowTesting)
@@ -971,6 +972,7 @@
     XCTAssertEqualObjects(help.stringValue, @"Mont Ventoux — famous climb");
     XCTAssertEqualWithAccuracy(mc.svCtrl.lastCoord.latitude, 44.1739, 1e-4, @"Street View on the site");
     XCTAssertEqualWithAccuracy(mc.svCtrl.lastCoord.longitude, 5.2789, 1e-4);
+    XCTAssertEqual(mc.svCtrl.lastHeading, [BPRemarkableSites sites][0].heading, @"camera heading of the site");
     [mc userLocationAvailable:[[CLLocation alloc] initWithLatitude:44.5 longitude:0.3]];
     BPSpin(0.3);
     XCTAssertEqualWithAccuracy(map.region.center.latitude, 44.1739, 0.02, @"the location does not move the map");
