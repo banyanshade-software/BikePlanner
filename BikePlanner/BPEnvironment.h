@@ -14,6 +14,13 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/// where a new document starts (#65) — key BPStartPosition (Preferences)
+typedef NS_ENUM(NSInteger, BPStartPosition) {
+    BPStartPositionLocation = 0,        // the user location; the default position until it comes, or if refused
+    BPStartPositionDefault = 1,         // the default position (BPDefaultPosition), the location is not asked
+    BPStartPositionRemarkableSite = 2,  // a remarkable site at random (BPRemarkableSites), the location is not asked
+};
+
 @interface BPEnvironment : NSObject
 
 /// BRouter server base URL (default https://brouter.de) — key BPBRouterServer
@@ -36,6 +43,11 @@ NS_ASSUME_NONNULL_BEGIN
 + (CLLocationCoordinate2D) defaultPosition;
 /// Radius of the initial map region, km (default 80) — key BPInitialRadiusKm
 + (double) initialRadiusKm;
+/// Where a new document starts — key BPStartPosition (default: a remarkable site)
++ (BPStartPosition) startPosition;
+/// Index of the remarkable site to start on instead of a random one (tests) — key BPRemarkableSiteIndex; -1 when
+/// not set
++ (NSInteger) remarkableSiteIndex;
 /// YES to never ask for / use the user location (tests) — key BPDisableLocation
 + (BOOL) locationDisabled;
 /// YES when the app is the host of unit tests (XCTest injected)

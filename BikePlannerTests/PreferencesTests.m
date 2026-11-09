@@ -17,6 +17,7 @@
 @property (strong) NSTextField *latitudeField;
 @property (strong) NSTextField *longitudeField;
 @property (strong) NSTextField *radiusField;
+@property (strong) NSArray<NSButton *> *startButtons;
 @property (strong) NSSearchField *searchField;
 @property (strong) NSTextField *messageLabel;
 - (void)positionChanged:(id)sender;
@@ -76,6 +77,7 @@ static MKMapItem *BPItem(NSString *name, double lat, double lon)
     NSDictionary *reg = [[NSUserDefaults standardUserDefaults] volatileDomainForName:NSRegistrationDomain];
     XCTAssertEqualObjects(reg[BPDefaultPositionKey], @"44.124923,0.496171");
     XCTAssertEqualObjects(reg[BPInitialRadiusKmKey], @80);
+    XCTAssertEqualObjects(reg[BPStartPositionKey], @(BPStartPositionRemarkableSite), @"default start: a remarkable site (#65)");
     XCTAssertEqualObjects(BPDefaultPositionKey, @"BPDefaultPosition", @"the key read by BPEnvironment");
     XCTAssertEqualObjects(BPInitialRadiusKmKey, @"BPInitialRadiusKm");
 }
@@ -96,7 +98,33 @@ static MKMapItem *BPItem(NSString *name, double lat, double lon)
     XCTAssertEqual(prefs.initialRadiusKm, 30);
 }
 
+// where a new document starts (#65): the key read by BPEnvironment, the location by default
+- (void)testStartPosition
+{
+    XCTAssertEqual(prefs.startPosition, BPStartPositionRemarkableSite, @"default when unset");
+    prefs.startPosition = BPStartPositionRemarkableSite;
+    XCTAssertEqual([defaults integerForKey:@"BPStartPosition"], 2);
+    XCTAssertEqualObjects(BPStartPositionKey, @"BPStartPosition");
+    prefs.startPosition = BPStartPositionLocation;
+    XCTAssertEqual(prefs.startPosition, BPStartPositionLocation);
+    [defaults setInteger:7 forKey:@"BPStartPosition"];
+    XCTAssertEqual(prefs.startPosition, BPStartPositionRemarkableSite, @"unknown value: the default");
+}
+
 #pragma mark - window
+
+- (void)testStartPositionRadioButtons
+{
+    prefs.startPosition = BPStartPositionDefault;
+    [self window];
+    XCTAssertEqual(wc.startButtons.count, 3u);
+    XCTAssertEqual(wc.startButtons[1].state, NSControlStateValueOn);
+    XCTAssertEqual(wc.startButtons[0].state, NSControlStateValueOff);
+    XCTAssertEqualObjects(wc.startButtons[2].accessibilityIdentifier, @"prefStartSite");
+    [wc.startButtons[2] performClick:nil];
+    XCTAssertEqual(prefs.startPosition, BPStartPositionRemarkableSite, @"applied at once");
+    XCTAssertEqual(wc.startButtons[1].state, NSControlStateValueOff, @"one choice");
+}
 
 - (void)testFieldsShowAndChangePreferences
 {

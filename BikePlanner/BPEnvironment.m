@@ -75,6 +75,20 @@
     return (r > 0) ? r : 80;
 }
 
++ (BPStartPosition) startPosition
+{
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    if (![ud objectForKey:@"BPStartPosition"]) return BPStartPositionRemarkableSite;
+    NSInteger p = [ud integerForKey:@"BPStartPosition"];
+    return (p >= BPStartPositionLocation && p <= BPStartPositionRemarkableSite) ? p : BPStartPositionRemarkableSite;
+}
+
++ (NSInteger) remarkableSiteIndex
+{
+    id v = [[NSUserDefaults standardUserDefaults] objectForKey:@"BPRemarkableSiteIndex"];
+    return [v respondsToSelector:@selector(integerValue)] ? [v integerValue] : -1;
+}
+
 + (BOOL) locationDisabled
 {
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"BPDisableLocation"];

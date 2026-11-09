@@ -910,7 +910,7 @@
     [doc close];
     // all the settings involved, so that the owner's Preferences (#27) do not change the result
     BPOverrideDefaults(@{ @"BPInitialRegion": @"", @"BPDefaultPosition": @"45.0,1.0", @"BPInitialRadiusKm": @80,
-                          @"BPDisableLocation": @YES });
+                          @"BPDisableLocation": @YES, @"BPDisableStreetView": @YES, @"BPDisableTiles": @YES, @"BPStartPosition": @0 });
     doc = [[Document alloc] init];
     [doc makeWindowControllers];
     XCTAssertNotNil(doc.windowControllers.firstObject.window);
@@ -948,6 +948,51 @@
     [mc userLocationAvailable:[[CLLocation alloc] initWithLatitude:43.0 longitude:2.0]];
     BPSpin(0.3);
     XCTAssertEqualWithAccuracy(map.region.center.latitude, 44.5, 0.05);
+}
+
+// Preferences ▸ Start position (#65): a remarkable site, ~15 km around it, its name in the map message; the
+// location is not used
+- (void)testStartOnRemarkableSite
+{
+    doc.plan.fetchPOI = NO;
+    [doc close];
+    BPOverrideDefaults(@{ @"BPInitialRegion": @"", @"BPDefaultPosition": @"45.0,1.0", @"BPInitialRadiusKm": @80,
+                          @"BPDisableLocation": @YES, @"BPDisableStreetView": @YES, @"BPDisableTiles": @YES, @"BPStartPosition": @2, @"BPRemarkableSiteIndex": @0 });
+    doc = [[Document alloc] init];
+    [doc makeWindowControllers];
+    XCTAssertNotNil(doc.windowControllers.firstObject.window); // loads the window
+    mc = doc.mapController;
+    map = mc.mapView;
+    BPSpin(0.2);
+    XCTAssertEqualWithAccuracy(map.region.center.latitude, 44.1739, 0.02, @"Mont Ventoux");
+    XCTAssertEqualWithAccuracy(map.region.center.longitude, 5.2789, 0.02);
+    XCTAssertTrue([self visibleKm] > 20 && [self visibleKm] < 60, @"%g km", [self visibleKm]);
+    NSTextField *help = (NSTextField *)[self viewWithIdentifier:@"clickModeHelp" in:self.content];
+    XCTAssertEqualObjects(help.stringValue, @"Mont Ventoux — famous climb");
+    XCTAssertEqualWithAccuracy(mc.svCtrl.lastCoord.latitude, 44.1739, 1e-4, @"Street View on the site");
+    XCTAssertEqualWithAccuracy(mc.svCtrl.lastCoord.longitude, 5.2789, 1e-4);
+    [mc userLocationAvailable:[[CLLocation alloc] initWithLatitude:44.5 longitude:0.3]];
+    BPSpin(0.3);
+    XCTAssertEqualWithAccuracy(map.region.center.latitude, 44.1739, 0.02, @"the location does not move the map");
+}
+
+// Start position: default position — the location does not move the map either
+- (void)testStartOnDefaultPosition
+{
+    doc.plan.fetchPOI = NO;
+    [doc close];
+    BPOverrideDefaults(@{ @"BPInitialRegion": @"", @"BPDefaultPosition": @"45.0,1.0", @"BPInitialRadiusKm": @80,
+                          @"BPDisableLocation": @YES, @"BPDisableStreetView": @YES, @"BPDisableTiles": @YES, @"BPStartPosition": @1 });
+    doc = [[Document alloc] init];
+    [doc makeWindowControllers];
+    XCTAssertNotNil(doc.windowControllers.firstObject.window); // loads the window
+    mc = doc.mapController;
+    map = mc.mapView;
+    BPSpin(0.2);
+    XCTAssertEqualWithAccuracy(map.region.center.latitude, 45.0, 0.05);
+    [mc userLocationAvailable:[[CLLocation alloc] initWithLatitude:44.5 longitude:0.3]];
+    BPSpin(0.3);
+    XCTAssertEqualWithAccuracy(map.region.center.latitude, 45.0, 0.05);
 }
 
 - (void)testUserLocationDoesNotMoveAMapTheUserMoved

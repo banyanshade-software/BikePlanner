@@ -22,6 +22,7 @@
 #import "BPPlaceSearch.h"
 #import "BPSecrets.h"
 #import "BPEnvironment.h"
+#import "BPRemarkableSites.h"
 
 // Secret.h is not commited, see Secret.h.example
 
@@ -349,8 +350,26 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     return MKCoordinateRegionMakeWithDistance(center, d, d);
 }
 
+// radius around a remarkable site (#65): close enough to recognize it
+static const double kBPSiteRadiusKm = 15;
+
 - (void) showInitialRegion
 {
+    BPStartPosition start = [BPEnvironment startPosition];
+    if (start != BPStartPositionLocation) { // the location is not asked (#65)
+        initialRegionPending = NO;
+        if (start == BPStartPositionRemarkableSite) {
+            BPRemarkableSite *site = [BPRemarkableSites randomSite];
+            double d = 2 * 1000 * kBPSiteRadiusKm;
+            [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(site.coordinate, d, d) animated:NO];
+            [self showMapMessage:site.displayText];
+            [self.svCtrl viewCoord:site.coordinate lookingAt:0 coalesce:NO]; // not the default position
+        } else {
+            [self.mapView setRegion:[self initialRegionAround:[BPEnvironment defaultPosition]] animated:NO];
+        }
+        initialCenter = self.mapView.centerCoordinate;
+        return;
+    }
     CLLocation *loc = [BPEnvironment locationDisabled] ? nil : self.mapView.userLocation.location;
     initialRegionPending = (loc == nil);
     if (initialRegionPending && ![BPEnvironment locationDisabled]) {
@@ -370,6 +389,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     BOOL moved = fabs(c.latitude - initialCenter.latitude) > 1e-3 || fabs(c.longitude - initialCenter.longitude) > 1e-3;
     if (moved || [_document.plan.waypointsLocations count]) return; // keep what the user is looking at
     [self.mapView setRegion:[self initialRegionAround:loc.coordinate] animated:YES];
+    [self.svCtrl viewCoord:loc.coordinate lookingAt:0 coalesce:NO];
 }
 
 - (void)mapView:(MKMapView *)mapView didUpdateUserLocation:(MKUserLocation *)userLocation

@@ -76,6 +76,8 @@
 		A146C78EBDFEBE3B5F048C37 /* BRouterGeoJSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 89125B9A98FFE575BE6A66EC /* BRouterGeoJSON.m */; };
 		04E8FE91159AC178E5EF30EF /* BRouterGeoJSONTests.m in Sources */ = {isa = PBXBuildFile; fileRef = B6E717394B6A8172F6C038F5 /* BRouterGeoJSONTests.m */; };
 		3F85331F72FD54A5FE9F65EF /* BPRoadTypesLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 22588E46EB94D875275191CA /* BPRoadTypesLabel.m */; };
+		B100AEFBF44EAE67DE1EBDBF /* BPRemarkableSites.m in Sources */ = {isa = PBXBuildFile; fileRef = A1C9865B43FA92585091A816 /* BPRemarkableSites.m */; };
+		A91D29A9CDC0B46D1C6C54EC /* BPRemarkableSitesTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D8997E3CAA336BA565381E10 /* BPRemarkableSitesTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -206,6 +208,9 @@
 		B6E717394B6A8172F6C038F5 /* BRouterGeoJSONTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BRouterGeoJSONTests.m; sourceTree = "<group>"; };
 		22588E46EB94D875275191CA /* BPRoadTypesLabel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRoadTypesLabel.m; sourceTree = "<group>"; };
 		E621F2AB14558224D04F4A15 /* BPRoadTypesLabel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPRoadTypesLabel.h; sourceTree = "<group>"; };
+		A1C9865B43FA92585091A816 /* BPRemarkableSites.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRemarkableSites.m; sourceTree = "<group>"; };
+		8EC8FEDD026DE4A231BDF414 /* BPRemarkableSites.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPRemarkableSites.h; sourceTree = "<group>"; };
+		D8997E3CAA336BA565381E10 /* BPRemarkableSitesTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRemarkableSitesTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -369,6 +374,8 @@
 				8C5FB74F8D3F2DAB04F6AC88 /* BPPreferencesWindowController.h */,
 				6BE71F1D096ACB6884574632 /* BPSecrets.m */,
 				7A8DF1A16B04B617120AB1D9 /* BPSecrets.h */,
+				A1C9865B43FA92585091A816 /* BPRemarkableSites.m */,
+				8EC8FEDD026DE4A231BDF414 /* BPRemarkableSites.h */,
 			);
 			path = BikePlanner;
 			sourceTree = "<group>";
@@ -400,6 +407,7 @@
 				D5EDBB5E4D6F8299BEC5C94B /* PreferencesTests.m */,
 				ECBF9870ED7DC9BB75B9F399 /* SecretsTests.m */,
 				B6E717394B6A8172F6C038F5 /* BRouterGeoJSONTests.m */,
+				D8997E3CAA336BA565381E10 /* BPRemarkableSitesTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -607,6 +615,7 @@
 				BEC262829054999E9B9115A7 /* BPSecrets.m in Sources */,
 				A146C78EBDFEBE3B5F048C37 /* BRouterGeoJSON.m in Sources */,
 				3F85331F72FD54A5FE9F65EF /* BPRoadTypesLabel.m in Sources */,
+				B100AEFBF44EAE67DE1EBDBF /* BPRemarkableSites.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -636,6 +645,7 @@
 				9B9B10B1342DF9F8C2F0FB1D /* PreferencesTests.m in Sources */,
 				C85D91D5D5C5955832DE3936 /* SecretsTests.m in Sources */,
 				04E8FE91159AC178E5EF30EF /* BRouterGeoJSONTests.m in Sources */,
+				A91D29A9CDC0B46D1C6C54EC /* BPRemarkableSitesTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

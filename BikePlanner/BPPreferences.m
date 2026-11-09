@@ -7,6 +7,7 @@
 
 NSString *const BPDefaultPositionKey = @"BPDefaultPosition";
 NSString *const BPInitialRadiusKmKey = @"BPInitialRadiusKm";
+NSString *const BPStartPositionKey = @"BPStartPosition";
 
 static const CLLocationCoordinate2D kBPDefaultPosition = { 44.1249234, 0.4961707 }; // Laplume, as BPEnvironment
 static const double kBPDefaultRadiusKm = 80;
@@ -40,7 +41,8 @@ static const double kBPDefaultRadiusKm = 80;
 {
     [[NSUserDefaults standardUserDefaults] registerDefaults:@{
         BPDefaultPositionKey: [self stringForPosition:kBPDefaultPosition],
-        BPInitialRadiusKmKey: @(kBPDefaultRadiusKm) }];
+        BPInitialRadiusKmKey: @(kBPDefaultRadiusKm),
+        BPStartPositionKey: @(BPStartPositionRemarkableSite) }];
 }
 
 - (CLLocationCoordinate2D)defaultPosition
@@ -69,6 +71,19 @@ static const double kBPDefaultRadiusKm = 80;
 {
     if (r <= 0) return;
     [ud setDouble:r forKey:BPInitialRadiusKmKey];
+}
+
+// default: a remarkable site (#65)
+- (BPStartPosition)startPosition
+{
+    if (![ud objectForKey:BPStartPositionKey]) return BPStartPositionRemarkableSite;
+    NSInteger p = [ud integerForKey:BPStartPositionKey];
+    return (p >= BPStartPositionLocation && p <= BPStartPositionRemarkableSite) ? p : BPStartPositionRemarkableSite;
+}
+
+- (void)setStartPosition:(BPStartPosition)p
+{
+    [ud setInteger:p forKey:BPStartPositionKey];
 }
 
 @end

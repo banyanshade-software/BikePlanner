@@ -8,11 +8,13 @@
 
 #import <Foundation/Foundation.h>
 #import <CoreLocation/CoreLocation.h>
+#import "BPEnvironment.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 extern NSString *const BPDefaultPositionKey;   // "lat,lon"
 extern NSString *const BPInitialRadiusKmKey;   // km
+extern NSString *const BPStartPositionKey;     // BPStartPosition
 
 @interface BPPreferences : NSObject
 
@@ -26,6 +28,8 @@ extern NSString *const BPInitialRadiusKmKey;   // km
 @property (nonatomic) CLLocationCoordinate2D defaultPosition;
 /// radius of the initial region around the start position
 @property (nonatomic) double initialRadiusKm;
+/// where a new document starts (#65)
+@property (nonatomic) BPStartPosition startPosition;
 
 @end
 

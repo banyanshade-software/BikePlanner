@@ -103,6 +103,11 @@ parameters (Params tab) on the length, time and speed of the route is seen (#43)
   user location; until the location is known, or if it is refused, around the default position (key
   `BPDefaultPosition`, “lat,lon”; set in the Preferences, F12). The first location recenters the map,
   unless the user has moved it or started placing waypoints.
+- F1.6 *Start position* (Preferences, #65, key `BPStartPosition`): *A remarkable site in France, at random* (the
+  default; `BPRemarkableSites`: ~55 famous climbs, monuments and natural sites; ~15 km around it; its name and kind
+  are shown in the map message, e.g. “Mont Ventoux — famous climb”, and Street View shows it), *My location*
+  (F1.5; Street View follows the first location), or *Default position*. The location is asked only with
+  *My location*.
 
 ### F2 — Click modes
 The map has four click modes, selectable with the segmented control or the *Edit ▸ Mode* menu items
@@ -259,8 +264,8 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F12.1 *BikePlanner ▸ Preferences…* (⌘,) opens a single Preferences window (#27); changes apply immediately.
 - F12.2 **Default position** (F1.5): latitude / longitude fields, *Use Current Map Center* (map of the front document
   window), or *Find a place* (Apple place search: one result is used directly, several are proposed in a menu, none
-  gives a message). **Initial radius** (km, default 80).
-- F12.3 Stored in the user defaults (`BPDefaultPosition`, `BPInitialRadiusKm`, defaults registered at launch), so
+  gives a message). **Initial radius** (km, default 80). **Start position** (F1.6): radio buttons.
+- F12.3 Stored in the user defaults (`BPDefaultPosition`, `BPInitialRadiusKm`, `BPStartPosition`, defaults registered at launch), so
   that launch-argument overrides (tests) still apply. Later candidates: BRouter server (#2), routing engine,
   default profile (#1), POI types to fetch.
 

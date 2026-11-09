@@ -12,6 +12,7 @@
 @property (strong) NSTextField *latitudeField;
 @property (strong) NSTextField *longitudeField;
 @property (strong) NSTextField *radiusField;
+@property (strong) NSArray<NSButton *> *startButtons; // index = BPStartPosition (#65)
 @property (strong) NSButton *mapCenterButton;
 @property (strong) NSSearchField *searchField;
 @property (strong) NSTextField *messageLabel;
@@ -22,7 +23,7 @@
 
 - (instancetype)initWithPreferences:(BPPreferences *)preferences
 {
-    NSWindow *w = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 500, 230)
+    NSWindow *w = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 500, 320)
                                               styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
                                                 backing:NSBackingStoreBuffered defer:YES];
     w.title = NSLocalizedString(@"Preferences", @"Preferences window");
@@ -101,10 +102,29 @@
     self.messageLabel.textColor = [NSColor secondaryLabelColor];
     self.messageLabel.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
 
+    // radio buttons: same superview and action, so AppKit keeps one selected
+    NSArray<NSString *> *startTitles = @[ NSLocalizedString(@"My location (default position until it is known)", @"Preferences"),
+                                          NSLocalizedString(@"Default position", @"Preferences"),
+                                          NSLocalizedString(@"A remarkable site in France, at random", @"Preferences") ];
+    NSArray<NSString *> *startIds = @[ @"prefStartLocation", @"prefStartDefault", @"prefStartSite" ];
+    NSMutableArray<NSButton *> *startButtons = [NSMutableArray array];
+    for (NSUInteger i = 0; i < startTitles.count; i++) {
+        NSButton *b = [NSButton radioButtonWithTitle:startTitles[i] target:self action:@selector(startPositionChanged:)];
+        b.tag = (NSInteger)i;
+        b.accessibilityIdentifier = startIds[i];
+        [startButtons addObject:b];
+    }
+    self.startButtons = startButtons;
+    NSStackView *start = [NSStackView stackViewWithViews:startButtons];
+    start.orientation = NSUserInterfaceLayoutOrientationVertical;
+    start.alignment = NSLayoutAttributeLeading;
+    start.spacing = 4;
+
     NSStackView *position = [NSStackView stackViewWithViews:@[ self.latitudeField, self.longitudeField ]];
     NSStackView *radius = [NSStackView stackViewWithViews:@[ self.radiusField,
                                                              [NSTextField labelWithString:NSLocalizedString(@"km", @"Preferences")] ]];
     NSGridView *grid = [NSGridView gridViewWithViews:@[
+        @[ [self label:NSLocalizedString(@"Start position:", @"Preferences")], start ],
         @[ [self label:NSLocalizedString(@"Default position:", @"Preferences")], position ],
         @[ [NSGridCell emptyContentView], self.mapCenterButton ],
         @[ [self label:NSLocalizedString(@"Find a place:", @"Preferences")], self.searchField ],
@@ -134,6 +154,9 @@
     self.latitudeField.objectValue = @(p.latitude);
     self.longitudeField.objectValue = @(p.longitude);
     self.radiusField.objectValue = @(self.preferences.initialRadiusKm);
+    for (NSButton *b in self.startButtons) {
+        b.state = (b.tag == self.preferences.startPosition) ? NSControlStateValueOn : NSControlStateValueOff;
+    }
 }
 
 - (void)showMessage:(NSString *)message
@@ -150,6 +173,12 @@
     if ([lat isKindOfClass:[NSNumber class]] && [lon isKindOfClass:[NSNumber class]]) {
         self.preferences.defaultPosition = CLLocationCoordinate2DMake(lat.doubleValue, lon.doubleValue);
     }
+    [self refreshFields];
+}
+
+- (void)startPositionChanged:(NSButton *)sender
+{
+    self.preferences.startPosition = (BPStartPosition)sender.tag;
     [self refreshFields];
 }
 

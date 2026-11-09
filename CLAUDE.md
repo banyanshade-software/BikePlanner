@@ -110,11 +110,11 @@ and product; source files are kept).
   - UI tests: `BPUITestCase` starts a real HTTP server (`[server start]`, needs `network.server`, granted to the UI test
     runner by `BikePlannerUITests.entitlements`) and passes launch arguments to the app.
 - App-side test hooks are in `BPEnvironment` (`BPBRouterServer`, `BPOverpassURL`, `BPGoogleMapsEmbedURL`, `BPDisableStreetView`,
-  `BPDisableTiles`, `BPInitialRegion`, `BPDisableLocation`); no effect without overrides. When adding an external endpoint, route it
+  `BPDisableTiles`, `BPInitialRegion`, `BPDisableLocation`, `BPRemarkableSiteIndex`); no effect without overrides. When adding an external endpoint, route it
   through `BPEnvironment` and teach `BPStubServer` to answer it. The Apple place search goes through `BPPlaceSearch`:
   tests replace it with `+setSearchHandlerForTesting:`. Tests of the Preferences use a private `NSUserDefaults`
   suite, never the owner's defaults. The test host reads the owner's real user defaults (Preferences, my default
-  BRouter parameters): a test that depends on `BPDefaultPosition`, `BPInitialRadiusKm`, `BPProfileOverrides`… must
+  BRouter parameters): a test that depends on `BPDefaultPosition`, `BPInitialRadiusKm`, `BPStartPosition`, `BPProfileOverrides`… must
   override it with `BPOverrideDefaults`. `BPOverrideDefaults` is not cumulative: each call starts again from the
   original values, so a second call in a test drops the overrides of `setUp` — repeat them.
 - Waiting: prefer `BPWaitUntil(timeout, condition)` to a fixed `BPSpin` for anything animated or asynchronous (map
