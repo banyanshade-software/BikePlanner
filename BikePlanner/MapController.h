@@ -66,7 +66,8 @@ typedef NS_ENUM(int, BPClickMode) {
 - (void) initializeMapview;
 - (void) planReplaced; // document.plan was replaced (Revert to Saved)
 /// the parts of the route of this kind, highlighted over the route (#54): "road:<road class>" or
-/// "surface:<surface class>" (classes: BRouterGeoJSON.h; see BPRouteKindAttributeName); nil: none
+/// "surface:<surface class>" (classes: BRouterGeoJSON.h; see BPRoadTypeKindKey); nil: none. Drawn again on each
+/// new route (#66)
 - (void) highlightKind:(nullable NSString *)kind;
 
 

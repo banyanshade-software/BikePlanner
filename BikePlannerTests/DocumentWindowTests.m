@@ -21,7 +21,7 @@
 #import "BPStubServer.h"
 #import "BRFProfileEditor.h"
 #import "SafeOSMTileOverlay.h"
-#import "BPRoadTypesLabel.h"
+#import "BPRoadTypesView.h"
 #import "SafeTileRenderer.h"
 #import "StreetViewController.h"
 #import "GPXParser.h"
@@ -1579,80 +1579,91 @@
     XCTAssertEqual([self polysWithTag:3].count, 0u);
 }
 
-// a new route removes the highlight of the old one
-- (void)testNewRouteRemovesHighlight
+- (BPRoadTypesView *)roadTypes
+{
+    return (BPRoadTypesView *)[self viewWithIdentifier:@"routeRoadTypes" in:self.content];
+}
+
+// a new route keeps the selected road type highlighted when it still has it (#66)
+- (void)testNewRouteKeepsHighlight
 {
     [self makeRoute];
-    [mc highlightKind:@"road:track"];
+    BPRoadTypesView *roads = [self roadTypes];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)([roads radioForKind:@"road:track"] != nil); }));
+    [[roads radioForKind:@"road:track"] performClick:self];
+    XCTAssertEqual([self polysWithTag:3].count, 1u);
     [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.65)];
     XCTAssertTrue([self waitForRouteWithPoints:21]);
     BPSpin(0.1);
-    XCTAssertEqual([self polysWithTag:3].count, 0u);
+    XCTAssertEqualObjects(roads.selectedKind, @"road:track");
+    XCTAssertEqual([roads radioForKind:@"road:track"].state, NSControlStateValueOn);
+    NSArray<TaggedPoly *> *h = [self polysWithTag:3];
+    XCTAssertEqual(h.count, 1u, @"the track part of the new route");
+    XCTAssertEqual(h.firstObject.pointCount, 11u, @"points 10 to 20 of the new route");
 }
 
-// hovering a road type line or a part of the surface line of the Info section highlights it on the map, leaving
-// the label removes it (#54)
-- (void)testHoverRoadTypeHighlightsOnMap
+// a route without the selected kind: back to None, no highlight (#66)
+- (void)testRouteWithoutSelectedKindClearsSelection
 {
-    BPRoadTypesLabel *roads = (BPRoadTypesLabel *)[self viewWithIdentifier:@"routeRoadTypes" in:self.content];
-    XCTAssertTrue([roads isKindOfClass:[BPRoadTypesLabel class]]);
     [self makeRoute];
-    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(roads.stringValue.length > 0); }));
-    [roads.superview layoutSubtreeIfNeeded];
-    // kinds met over the label, top to bottom and left to right: the tagged parts of the text, in order
-    NSMutableArray<NSString *> *met = [NSMutableArray array];
-    NSRect b = roads.bounds;
-    for (CGFloat y = 1; y < NSHeight(b); y += 2) {
-        for (CGFloat x = 1; x < NSWidth(b); x += 2) {
-            NSPoint p = NSMakePoint(x, roads.isFlipped ? y : NSHeight(b) - y);
-            NSString *k = [roads kindAtPoint:p];
-            if (k && ![met containsObject:k]) {
-                [met addObject:k];
-                [roads hoverAtPoint:p];
-                XCTAssertEqualObjects(roads.hoveredKind, k);
-                BOOL onRoute = ![k isEqualToString:@"surface:unknown"]; // the stub route is all tertiary/paved or track/unpaved
-                XCTAssertEqual([self polysWithTag:3].count, onRoute ? 1u : 0u, @"%@", k);
-            }
-        }
-    }
-    NSArray *expected = [@[ [@"road:" stringByAppendingString:doc.plan.brouterInfo.roadTypesClasses[0]],
-                            [@"road:" stringByAppendingString:doc.plan.brouterInfo.roadTypesClasses[1]] ]
-                         arrayByAddingObjectsFromArray:@[@"surface:paved", @"surface:unpaved", @"surface:unknown"]];
-    XCTAssertEqualObjects(met, expected);
-    XCTAssertNil([roads kindAtPoint:NSMakePoint(20, roads.isFlipped ? 1 : NSHeight(b) - 1)], @"title line");
-    [roads hoverAtPoint:NSMakePoint(-10, -10)];
-    XCTAssertNil(roads.hoveredKind);
+    BPRoadTypesView *roads = [self roadTypes];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)([roads radioForKind:@"surface:unpaved"] != nil); }));
+    [roads selectKind:@"surface:unpaved"];
+    XCTAssertEqual([self polysWithTag:3].count, 1u);
+    doc.plan.brouterInfo.surfaceStats = @{ @"paved": @1000 };
+    XCTAssertNil(roads.selectedKind);
+    XCTAssertEqual([roads radioForKind:nil].state, NSControlStateValueOn);
     XCTAssertEqual([self polysWithTag:3].count, 0u);
+    (void)[doc.plan clearRoute];
+    XCTAssertNil([roads radioForKind:nil], @"no route: no rows");
 }
 
-// a click on the road types does not start text selection: the field editor would lay the text out differently
-// (tab stops) and take the mouse events, so the hover stopped working (#54)
-- (void)testRoadTypesLabelNotSelectable
+// Info section (#53, #66): in a scroll view (it grows), the distance by road type and surface of the route, one
+// radio button per class; the selected one is highlighted on the map, None removes the highlight
+- (void)testRoadTypeRadioButtonsHighlightOnMap
 {
-    BPRoadTypesLabel *roads = (BPRoadTypesLabel *)[self viewWithIdentifier:@"routeRoadTypes" in:self.content];
-    [self makeRoute];
-    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(roads.stringValue.length > 0); }));
-    XCTAssertFalse(roads.isSelectable);
-    XCTAssertFalse(roads.isEditable);
-    [roads.window makeFirstResponder:roads];
-    XCTAssertNil(roads.currentEditor, @"no field editor over the label");
-}
-
-// Info section: in a scroll view (it grows), with the distance by road type of the route (#53)
-- (void)testInfoShowsDistanceByRoadType
-{
-    NSTextField *roads = (NSTextField *)[self viewWithIdentifier:@"routeRoadTypes" in:self.content];
-    XCTAssertNotNil(roads);
+    BPRoadTypesView *roads = [self roadTypes];
+    XCTAssertTrue([roads isKindOfClass:[BPRoadTypesView class]]);
     NSView *length = [self panelControlWithIdentifier:@"routeLength"];
     XCTAssertNotNil(roads.enclosingScrollView, @"Info section in a scroll view");
     XCTAssertEqual(length.enclosingScrollView, roads.enclosingScrollView, @"existing Info fields in the same scroll view");
-    XCTAssertEqualObjects(roads.stringValue, @"", @"no route");
+    XCTAssertNil([roads radioForKind:nil], @"no route: nothing");
+    XCTAssertEqual(roads.fittingSize.height, 0);
+
     [self makeRoute];
-    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(roads.stringValue.length > 0); }));
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)([roads radioForKind:nil] != nil); }));
+    [roads.superview layoutSubtreeIfNeeded];
+    XCTAssertGreaterThan(NSHeight(roads.frame), 100, @"title, 2 road types, Surface, 2 surfaces, None");
     // stub route: half tertiary / asphalt, half track / gravel
-    XCTAssertTrue([roads.stringValue containsString:NSLocalizedString(@"Tertiary roads", nil)], @"%@", roads.stringValue);
-    XCTAssertTrue([roads.stringValue containsString:NSLocalizedString(@"Tracks", nil)], @"%@", roads.stringValue);
-    XCTAssertTrue([roads.stringValue containsString:@"km"]);
+    NSButton *tertiary = [roads radioForKind:@"road:tertiary"], *track = [roads radioForKind:@"road:track"];
+    XCTAssertEqualObjects(tertiary.title, NSLocalizedString(@"Tertiary roads", nil));
+    XCTAssertEqualObjects(track.accessibilityIdentifier, @"roadType.road:track");
+    XCTAssertNotNil([roads radioForKind:@"surface:paved"]);
+    XCTAssertNotNil([roads radioForKind:@"surface:unpaved"]);
+    XCTAssertNil([roads radioForKind:@"surface:unknown"], @"no unknown surface on the stub route");
+    XCTAssertEqual([roads radioForKind:nil].state, NSControlStateValueOn, @"None at first");
+    XCTAssertEqual([self polysWithTag:3].count, 0u);
+
+    [track performClick:self];
+    XCTAssertEqualObjects(roads.selectedKind, @"road:track");
+    XCTAssertEqual(track.state, NSControlStateValueOn);
+    XCTAssertEqual(tertiary.state, NSControlStateValueOff);
+    XCTAssertEqual([self polysWithTag:3].count, 1u);
+    XCTAssertEqual([self polysWithTag:3].firstObject.pointCount, 6u, @"points 5 to 10");
+
+    [[roads radioForKind:@"surface:paved"] performClick:self];
+    XCTAssertEqual(track.state, NSControlStateValueOff, @"one selection at a time");
+    XCTAssertEqual([self polysWithTag:3].firstObject.pointCount, 6u, @"points 0 to 5");
+
+    // the highlight stays when the mouse goes to the map (it was a hover, #54)
+    NSEvent *moved = [NSEvent mouseEventWithType:NSEventTypeMouseMoved location:NSZeroPoint modifierFlags:0 timestamp:0
+                                    windowNumber:roads.window.windowNumber context:nil eventNumber:0 clickCount:0 pressure:0];
+    [map mouseMoved:moved];
+    XCTAssertEqual([self polysWithTag:3].count, 1u);
+
+    [[roads radioForKind:nil] performClick:self];
+    XCTAssertNil(roads.selectedKind);
+    XCTAssertEqual([self polysWithTag:3].count, 0u);
 }
 
 - (void)testRoutingErrorKeepsPreviousRoute

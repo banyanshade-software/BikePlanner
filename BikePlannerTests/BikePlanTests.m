@@ -388,17 +388,21 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     XCTAssertEqual(plan.customPoiloc.count, 0u);
 }
 
-// distance by road / surface class (#53): saved, part of the route state, shown as text
+// distance by road / surface class (#53): saved, part of the route state, shown as rows (#66)
 - (void)testRoadStats
 {
     plan.brouterInfo.roadStats = @{ @"tertiary": @11200, @"small": @18000, @"track": @4000, @"cycleway": @3100, @"primary": @0 };
     plan.brouterInfo.surfaceStats = @{ @"paved": @30000, @"unpaved": @5300, @"unknown": @1000 };
-    NSString *t = plan.brouterInfo.roadTypesText;
-    NSArray<NSString *> *lines = [t componentsSeparatedByString:@"\n"];
-    XCTAssertEqual(lines.count, 5u, @"4 road classes (not the empty one) + surface: %@", t);
-    XCTAssertTrue([lines[0] hasPrefix:NSLocalizedString(@"Small roads", nil)], @"longest first: %@", lines[0]);
-    XCTAssertTrue([lines[0] containsString:@"18"] && [lines[0] containsString:@"50 %"], @"%@", lines[0]);
-    XCTAssertTrue([lines[4] containsString:@"83 %"] && [lines[4] containsString:@"15 %"], @"surface line: %@", lines[4]);
+    NSArray<NSDictionary<NSString *, NSString *> *> *rows = plan.brouterInfo.roadTypesRows;
+    XCTAssertEqualObjects([rows valueForKey:BPRoadTypeKindKey],
+                          (@[@"road:small", @"road:tertiary", @"road:track", @"road:cycleway",
+                             @"surface:paved", @"surface:unpaved", @"surface:unknown"]), @"longest first, not the empty one");
+    XCTAssertEqualObjects(rows[0][BPRoadTypeNameKey], NSLocalizedString(@"Small roads", nil));
+    XCTAssertEqualObjects(rows[0][BPRoadTypePercentKey], @"50 %");
+    XCTAssertTrue([rows[0][BPRoadTypeDistanceKey] hasPrefix:@"18"] && [rows[0][BPRoadTypeDistanceKey] hasSuffix:@" km"],
+                  @"%@", rows[0][BPRoadTypeDistanceKey]);
+    XCTAssertEqualObjects(rows[4][BPRoadTypePercentKey], @"83 %");
+    XCTAssertEqualObjects(rows[5][BPRoadTypePercentKey], @"15 %");
 
     BikePlan *r = [self roundTrip:plan];
     XCTAssertEqualObjects(r.brouterInfo.roadStats, plan.brouterInfo.roadStats);
@@ -406,12 +410,22 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
 
     NSDictionary *state = [plan clearRoute];
     XCTAssertNil(plan.brouterInfo.roadStats);
-    XCTAssertEqualObjects(plan.brouterInfo.roadTypesText, @"");
+    XCTAssertEqualObjects(plan.brouterInfo.roadTypesRows, @[]);
     [plan restoreRoute:state];
     XCTAssertEqualObjects(plan.brouterInfo.roadStats[@"track"], @4000, @"restored by undo");
 }
 
-// classes in the order of the lines of the Info section, without the empty ones (#54)
+// surface classes without distance have no row (nothing to highlight, #66)
+- (void)testRoadTypesRowsSkipEmptySurfaces
+{
+    plan.brouterInfo.roadStats = @{ @"small": @18000, @"track": @4000 };
+    plan.brouterInfo.surfaceStats = @{ @"paved": @20000, @"unpaved": @2000 };
+    XCTAssertEqualObjects([plan.brouterInfo.roadTypesRows valueForKey:BPRoadTypeKindKey],
+                          (@[@"road:small", @"road:track", @"surface:paved", @"surface:unpaved"]));
+    XCTAssertEqualObjects(plan.brouterInfo.roadTypesRows[2][BPRoadTypePercentKey], @"91 %");
+}
+
+// classes in the order of the rows of the Info section, without the empty ones (#54)
 - (void)testRoadTypesClasses
 {
     plan.brouterInfo.roadStats = @{ @"tertiary": @11200, @"small": @18000, @"track": @4000, @"primary": @0 };
@@ -435,26 +449,6 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     [plan restoreRoute:state];
     XCTAssertEqualObjects(plan.brouterInfo.roadRuns, runs, @"restored by undo");
     XCTAssertEqualObjects(plan.brouterInfo.surfaceRuns, surfaces, @"restored by undo");
-}
-
-// the hoverable parts of the Info text are tagged (#54): each road type line, each part of the surface line
-- (void)testRoadTypesTextKinds
-{
-    plan.brouterInfo.roadStats = @{ @"small": @18000, @"track": @4000 };
-    plan.brouterInfo.surfaceStats = @{ @"paved": @20000, @"unpaved": @2000 };
-    NSAttributedString *s = plan.brouterInfo.roadTypesAttributedText;
-    NSMutableArray<NSString *> *kinds = [NSMutableArray array];
-    NSMutableArray<NSString *> *texts = [NSMutableArray array];
-    [s enumerateAttribute:BPRouteKindAttributeName inRange:NSMakeRange(0, s.length) options:0
-               usingBlock:^(id value, NSRange range, BOOL *stop) {
-        if (!value) return;
-        [kinds addObject:value];
-        [texts addObject:[s.string substringWithRange:range]];
-    }];
-    XCTAssertEqualObjects(kinds, (@[@"road:small", @"road:track", @"surface:paved", @"surface:unpaved", @"surface:unknown"]));
-    XCTAssertTrue([texts[0] hasPrefix:NSLocalizedString(@"Small roads", nil)] && [texts[0] hasSuffix:@"%"], @"%@", texts[0]);
-    XCTAssertTrue([texts[2] hasSuffix:@"91 %"], @"%@", texts[2]);
-    XCTAssertFalse([texts[3] containsString:@"·"], @"%@", texts[3]);
 }
 
 - (void)testCustomPoiCanBeAddedAfterLoad

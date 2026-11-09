@@ -859,7 +859,10 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
 
 #pragma mark -
 
-NSAttributedStringKey const BPRouteKindAttributeName = @"BPRouteKind";
+NSString *const BPRoadTypeKindKey = @"kind";
+NSString *const BPRoadTypeNameKey = @"name";
+NSString *const BPRoadTypeDistanceKey = @"distance";
+NSString *const BPRoadTypePercentKey = @"percent";
 
 @implementation BrouterInfo
 
@@ -946,78 +949,36 @@ NSAttributedStringKey const BPRouteKindAttributeName = @"BPRouteKind";
     return [NSSet setWithObject:@"roadStats"];
 }
 
-- (NSString *) roadTypesText
+- (NSArray<NSDictionary<NSString *, NSString *> *> *) roadTypesRows
 {
+    NSMutableArray *rows = [NSMutableArray array];
     double total = [[_roadStats.allValues valueForKeyPath:@"@sum.doubleValue"] doubleValue];
-    if (total <= 0) return @"";
+    if (total <= 0) return rows;
     NSNumberFormatter *km = [[NSNumberFormatter alloc] init];
     km.numberStyle = NSNumberFormatterDecimalStyle;
     km.minimumFractionDigits = km.maximumFractionDigits = 1;
-    NSMutableArray<NSString *> *lines = [NSMutableArray array];
+    void (^add)(NSString *, NSString *, double, double) = ^(NSString *kind, NSString *name, double m, double sum) {
+        [rows addObject:@{ BPRoadTypeKindKey: kind, BPRoadTypeNameKey: name,
+                           BPRoadTypeDistanceKey: [NSString stringWithFormat:@"%@ km", [km stringFromNumber:@(m / 1000)]],
+                           BPRoadTypePercentKey: [NSString stringWithFormat:@"%.0f %%", 100 * m / sum] }];
+    };
     for (NSString *c in self.roadTypesClasses) {
-        double m = _roadStats[c].doubleValue;
-        [lines addObject:[NSString stringWithFormat:@"%@\t%@ km\t%.0f %%", [BrouterInfo displayNameForRoadClass:c],
-                          [km stringFromNumber:@(m / 1000)], 100 * m / total]];
+        add([@"road:" stringByAppendingString:c], [BrouterInfo displayNameForRoadClass:c], _roadStats[c].doubleValue, total);
     }
     double stotal = [[_surfaceStats.allValues valueForKeyPath:@"@sum.doubleValue"] doubleValue];
-    if (stotal > 0) {
-        [lines addObject:[NSString stringWithFormat:NSLocalizedString(@"Paved %.0f %% · unpaved %.0f %% · unknown %.0f %%", @"surface line"),
-                          100 * _surfaceStats[@"paved"].doubleValue / stotal, 100 * _surfaceStats[@"unpaved"].doubleValue / stotal,
-                          100 * _surfaceStats[@"unknown"].doubleValue / stotal]];
+    NSDictionary *surfaces = @{ @"paved": NSLocalizedString(@"Paved", @"surface class"),
+                                @"unpaved": NSLocalizedString(@"Unpaved", @"surface class"),
+                                @"unknown": NSLocalizedString(@"Unknown surface", @"surface class") };
+    for (NSString *c in @[@"paved", @"unpaved", @"unknown"]) {
+        double m = _surfaceStats[c].doubleValue;
+        if (stotal > 0 && m > 0) add([@"surface:" stringByAppendingString:c], surfaces[c], m, stotal);
     }
-    return [lines componentsJoinedByString:@"\n"];
+    return rows;
 }
 
-+ (NSSet<NSString *> *) keyPathsForValuesAffectingRoadTypesText
++ (NSSet<NSString *> *) keyPathsForValuesAffectingRoadTypesRows
 {
     return [NSSet setWithObjects:@"roadStats", @"surfaceStats", nil];
-}
-
-- (NSAttributedString *) roadTypesAttributedText
-{
-    NSString *text = self.roadTypesText;
-    if (!text.length) return [[NSAttributedString alloc] initWithString:@""];
-    NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
-    style.tabStops = @[ [[NSTextTab alloc] initWithTextAlignment:NSTextAlignmentRight location:170 options:@{}],
-                        [[NSTextTab alloc] initWithTextAlignment:NSTextAlignmentRight location:215 options:@{}] ];
-    NSFont *font = [NSFont monospacedDigitSystemFontOfSize:NSFont.smallSystemFontSize weight:NSFontWeightRegular];
-    NSMutableAttributedString *s = [[NSMutableAttributedString alloc]
-        initWithString:[NSLocalizedString(@"Distance by road type", @"Info section") stringByAppendingString:@"\n"]
-            attributes:@{ NSFontAttributeName: [NSFont boldSystemFontOfSize:NSFont.smallSystemFontSize],
-                          NSForegroundColorAttributeName: [NSColor labelColor] }];
-    NSUInteger start = s.length;
-    [s appendAttributedString:[[NSAttributedString alloc] initWithString:text attributes:@{
-        NSFontAttributeName: font, NSParagraphStyleAttributeName: style, NSForegroundColorAttributeName: [NSColor labelColor] }]];
-    // hoverable parts (#54): one road class per line (in the order of roadTypesClasses), then the surface parts
-    // (paved · unpaved · unknown, separated by " · ")
-    NSArray<NSString *> *lines = [text componentsSeparatedByString:@"\n"];
-    NSArray<NSString *> *classes = self.roadTypesClasses;
-    NSUInteger pos = start;
-    for (NSUInteger i = 0; i < lines.count; i++) {
-        NSString *line = lines[i];
-        if (i < classes.count) {
-            [s addAttribute:BPRouteKindAttributeName value:[@"road:" stringByAppendingString:classes[i]]
-                      range:NSMakeRange(pos, line.length)];
-        } else {
-            NSArray<NSString *> *surfaces = @[@"paved", @"unpaved", @"unknown"];
-            NSUInteger p = pos, k = 0;
-            for (NSString *part in [line componentsSeparatedByString:@" · "]) {
-                if (k < surfaces.count) {
-                    [s addAttribute:BPRouteKindAttributeName value:[@"surface:" stringByAppendingString:surfaces[k]]
-                              range:NSMakeRange(p, part.length)];
-                }
-                p += part.length + 3;
-                k++;
-            }
-        }
-        pos += line.length + 1;
-    }
-    return s;
-}
-
-+ (NSSet<NSString *> *) keyPathsForValuesAffectingRoadTypesAttributedText
-{
-    return [NSSet setWithObject:@"roadTypesText"];
 }
 
 - (void)encodeWithCoder:(NSCoder *)coder

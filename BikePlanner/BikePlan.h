@@ -18,9 +18,12 @@ extern const CLLocationDistance kBPImportTolerance;   // m, distance to the trac
 extern const CLLocationDistance kBPImportMaxSpacing;  // m, along the track
 extern const NSUInteger kBPImportMaxWaypoints;        // before spacing: the tolerance grows to stay below
 
-/// attribute of BrouterInfo.roadTypesAttributedText on the hoverable parts (#54): "road:<road class>" on each road type
-/// line, "surface:<surface class>" on each part of the surface line (classes: BRouterGeoJSON.h)
-extern NSAttributedStringKey const BPRouteKindAttributeName;
+/// keys of the rows of BrouterInfo.roadTypesRows (#66)
+extern NSString *const BPRoadTypeKindKey;      // "road:<road class>" or "surface:<surface class>" (BRouterGeoJSON.h),
+                                               // as -[MapController highlightKind:] takes it
+extern NSString *const BPRoadTypeNameKey;      // "Small roads", "Paved"
+extern NSString *const BPRoadTypeDistanceKey;  // "18.0 km"
+extern NSString *const BPRoadTypePercentKey;   // "50 %"
 
 @interface BrouterInfo : NSObject <NSSecureCoding> {
 }
@@ -42,13 +45,11 @@ extern NSAttributedStringKey const BPRouteKindAttributeName;
 @property (copy, nullable) NSArray<NSArray *> *roadRuns;
 /// same for the surface class
 @property (copy, nullable) NSArray<NSArray *> *surfaceRuns;
-/// road classes in the order of the lines of roadTypesText (longest first)
+/// road classes in the order of the rows of roadTypesRows (longest first)
 @property (readonly) NSArray<NSString *> *roadTypesClasses;
-/// Info section: one line per road class, longest first ("Small roads  18.0 km  50 %"), then the surface line;
-/// "" without statistics
-@property (readonly) NSString *roadTypesText;
-/// same, with a title and aligned columns, bound to the Info section label
-@property (readonly) NSAttributedString *roadTypesAttributedText;
+/// Info section (#53, #66): one row per road class, longest first, then one per surface class (paved, unpaved,
+/// unknown), without the empty ones; keys BPRoadType…Key; empty without statistics
+@property (readonly) NSArray<NSDictionary<NSString *, NSString *> *> *roadTypesRows;
 
 @end
 

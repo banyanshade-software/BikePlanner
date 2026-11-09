@@ -59,8 +59,8 @@ SupportClasses/              Reusable/support components
   GPXParser.*                NSXMLParser-based GPX reader + BRouter comment parser; minimal GPX writer
   BRouterGeoJSON.*           BRouter route in GeoJSON: points, statistics, distance by road / surface class (#53),
                              road / surface class along the route (runs of points, #54)
-  BPRoadTypesLabel.*         Info section label of the distance by road type; reports the road class of the hovered
-                             line or surface part (#54)
+  BPRoadTypesView.*          Info section distance by road type and surface, one radio button per class; reports
+                             the selected one (#54, #66)
   BPPlaceSearch.*            Apple place search (MKLocalSearch), shared by the search field and the Preferences
   BPPOIEditor.*              Sheet asking the type and name of a custom POI (#3)
   BRFProfileEditor.*         Downloads a .brf profile, parses its annotated parameters, builds the Params tab UI;
@@ -147,8 +147,8 @@ No version key: adding/removing fields relies on `decodeObject…` returning nil
 
 - **Overlays**: tile overlays (`SafeOSMTileOverlay`, `canReplaceMapContent = YES`) for OSM / Thunderforest;
   `TaggedPoly` overlays for route (tag 0, blue, 8 px; in stages, #31: one per stage, `stage` odd in purple), reference trace (tag 2, orange, 6 px) and the road class
-  hovered in the Info section (tag 3, pink, 9 px, one polyline per run; `highlightKind:`, removed with the
-  route by `refreshPoly:`, #54).
+  selected in the Info section (tag 3, pink, 9 px, one polyline per run; `highlightKind:`, removed with the
+  route by `refreshPoly:` and drawn again on the new route, #54, #66).
   `rendererForOverlay` picks the renderer by class and tag. Switching to an Apple map type removes the tile overlay
   and sets `mapView.mapType`.
 - **Annotations**: `RouteAnnotation` → `MKPinAnnotationView` (draggable, right-click menu), `POIAnnotation` →
@@ -245,12 +245,14 @@ next one. Nothing is loaded while the check runs; the last requested view is sho
 Moving the panorama without reloading would need the Maps JavaScript API (billed; option 2 of #49).
 Reverse direction (View mode click on route): `distanceAtCoordinate:` → `elevationView.highlightDistance`.
 
-### 6.5b Road type highlight (#54)
-Info section `BPRoadTypesLabel` (bound to `plan.brouterInfo.roadTypesAttributedText`, whose hoverable parts carry the
-`BPRouteKindAttributeName` attribute: `road:<class>` on each road type line, `surface:<class>` on each part of the
-surface line) → tracking area, mouse moved → character under the mouse (text laid out with an `NSLayoutManager` in
-the cell's title rect) → its attribute → `hoverHandler` on a change → `-[MapController highlightKind:]` (nil when the
-mouse leaves) → tag 3 `TaggedPoly` per run of that class in `roadRuns` / `surfaceRuns`.
+### 6.5b Road type highlight (#54, #66)
+Info section `BPRoadTypesView` (its `rows` bound to `plan.brouterInfo.roadTypesRows`: one dictionary per road class
+then per surface class, `BPRoadTypeKindKey` = `road:<class>` / `surface:<class>`) → an `NSGridView` of small radio
+buttons (accessibility identifiers `roadType.<kind>`, `roadType.none`) → `selectionHandler` on a change →
+`-[MapController highlightKind:]` (nil for *None*) → tag 3 `TaggedPoly` per run of that class in `roadRuns` /
+`surfaceRuns`. `MapController` keeps the kind (`_highlightedKind`) and `refreshPoly:` draws it again on a new route;
+when the new rows no longer have it, the view goes back to *None* and reports nil. (Until #66 it was a label whose
+hovered line was highlighted: the highlight disappeared as soon as the mouse went to the map.)
 
 ### 6.5c Stages (#31)
 A stage-end waypoint is a `BPStageEndLocation` (subclass of `CLLocation`) in `plan.waypointsLocations`, so the

@@ -43,6 +43,7 @@
     
     NSTextField *helpTxtField;
     BPClickMode clickmode;
+    NSString *_highlightedKind;     // road type / surface highlighted on the map (#54), drawn again on a new route (#66)
     NSSearchField *searchField;                      // toolbar (#40)
     MKLocalSearchCompleter *searchCompleter;
     NSArray<NSString *> *searchCompletionTitles;
@@ -908,7 +909,7 @@ static const double kBPSiteRadiusKm = 15;
         // if (![ov isKindOfClass:[MKTileOverlay class]]) {
         if ([ov isKindOfClass:[TaggedPoly class]]) {
             TaggedPoly *tp = (TaggedPoly *)ov;
-            if (0 == tp.tag || 3 == tp.tag) { // with the road class highlight of the old route (#54)
+            if (0 == tp.tag || 3 == tp.tag) { // with the road class highlight of the old route (#54), drawn again below
                 [self.mapView removeOverlay:ov];
             }
         }
@@ -931,6 +932,7 @@ static const double kBPSiteRadiusKm = 15;
         [self.mapView addOverlay:poly level:MKOverlayLevelAboveLabels];
     }
     self.elevationView.stageEndIndexes = _document.plan.stageEndRouteIndexes;
+    if (_highlightedKind) [self highlightKind:_highlightedKind]; // on the new route (#66)
     if (changeVisibleRect) {
         if (poly.pointCount>0) {
             MKMapRect rect = [poly boundingMapRect];
@@ -1027,9 +1029,10 @@ static const double kBPSiteRadiusKm = 15;
 }
 
 // tag 3 polylines over the route, one per run of the class; nothing when the runs are not those of the route
-// (route imported from a trace, document saved before #54)
+// (route imported from a trace, document saved before #54). Kept for the next routes (#66)
 - (void) highlightKind:(nullable NSString *)kind
 {
+    _highlightedKind = [kind copy];
     for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
         if ([ov isKindOfClass:[TaggedPoly class]] && 3 == ((TaggedPoly *)ov).tag) [self.mapView removeOverlay:ov];
     }

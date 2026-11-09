@@ -75,10 +75,10 @@
 		BEC262829054999E9B9115A7 /* BPSecrets.m in Sources */ = {isa = PBXBuildFile; fileRef = 6BE71F1D096ACB6884574632 /* BPSecrets.m */; };
 		A146C78EBDFEBE3B5F048C37 /* BRouterGeoJSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 89125B9A98FFE575BE6A66EC /* BRouterGeoJSON.m */; };
 		04E8FE91159AC178E5EF30EF /* BRouterGeoJSONTests.m in Sources */ = {isa = PBXBuildFile; fileRef = B6E717394B6A8172F6C038F5 /* BRouterGeoJSONTests.m */; };
-		3F85331F72FD54A5FE9F65EF /* BPRoadTypesLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 22588E46EB94D875275191CA /* BPRoadTypesLabel.m */; };
 		B100AEFBF44EAE67DE1EBDBF /* BPRemarkableSites.m in Sources */ = {isa = PBXBuildFile; fileRef = A1C9865B43FA92585091A816 /* BPRemarkableSites.m */; };
 		A91D29A9CDC0B46D1C6C54EC /* BPRemarkableSitesTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D8997E3CAA336BA565381E10 /* BPRemarkableSitesTests.m */; };
 		F918EABD954C135DE301F046 /* RemarkableSites.plist in Resources */ = {isa = PBXBuildFile; fileRef = AF37C4A38C3D74E24B3D3F40 /* RemarkableSites.plist */; };
+		EB00DFBB48006DBD7729B1D8 /* BPRoadTypesView.m in Sources */ = {isa = PBXBuildFile; fileRef = 80A6BA70B19383BE05B7CBC3 /* BPRoadTypesView.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -207,12 +207,12 @@
 		89125B9A98FFE575BE6A66EC /* BRouterGeoJSON.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BRouterGeoJSON.m; sourceTree = "<group>"; };
 		5BC720DD72F72937C575B9DC /* BRouterGeoJSON.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRouterGeoJSON.h; sourceTree = "<group>"; };
 		B6E717394B6A8172F6C038F5 /* BRouterGeoJSONTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BRouterGeoJSONTests.m; sourceTree = "<group>"; };
-		22588E46EB94D875275191CA /* BPRoadTypesLabel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRoadTypesLabel.m; sourceTree = "<group>"; };
-		E621F2AB14558224D04F4A15 /* BPRoadTypesLabel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPRoadTypesLabel.h; sourceTree = "<group>"; };
 		A1C9865B43FA92585091A816 /* BPRemarkableSites.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRemarkableSites.m; sourceTree = "<group>"; };
 		8EC8FEDD026DE4A231BDF414 /* BPRemarkableSites.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPRemarkableSites.h; sourceTree = "<group>"; };
 		D8997E3CAA336BA565381E10 /* BPRemarkableSitesTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRemarkableSitesTests.m; sourceTree = "<group>"; };
 		AF37C4A38C3D74E24B3D3F40 /* RemarkableSites.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = RemarkableSites.plist; sourceTree = "<group>"; };
+		80A6BA70B19383BE05B7CBC3 /* BPRoadTypesView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRoadTypesView.m; sourceTree = "<group>"; };
+		F19EC713A6F99C103A02957A /* BPRoadTypesView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPRoadTypesView.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -339,8 +339,8 @@
 				E89A1304743D6DA6A51C2AB4 /* BPPlaceSearch.h */,
 				89125B9A98FFE575BE6A66EC /* BRouterGeoJSON.m */,
 				5BC720DD72F72937C575B9DC /* BRouterGeoJSON.h */,
-				22588E46EB94D875275191CA /* BPRoadTypesLabel.m */,
-				E621F2AB14558224D04F4A15 /* BPRoadTypesLabel.h */,
+				80A6BA70B19383BE05B7CBC3 /* BPRoadTypesView.m */,
+				F19EC713A6F99C103A02957A /* BPRoadTypesView.h */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -618,8 +618,8 @@
 				C0BE5B9AE4B26B13D80F5E12 /* BPPreferencesWindowController.m in Sources */,
 				BEC262829054999E9B9115A7 /* BPSecrets.m in Sources */,
 				A146C78EBDFEBE3B5F048C37 /* BRouterGeoJSON.m in Sources */,
-				3F85331F72FD54A5FE9F65EF /* BPRoadTypesLabel.m in Sources */,
 				B100AEFBF44EAE67DE1EBDBF /* BPRemarkableSites.m in Sources */,
+				EB00DFBB48006DBD7729B1D8 /* BPRoadTypesView.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
