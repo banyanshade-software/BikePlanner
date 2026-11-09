@@ -37,8 +37,8 @@ typedef NS_ENUM(int, PoiType_t) {
 @property (nonatomic,readonly,nullable) NSString *title;     // custom POI: its name, else its type name
 @property (nonatomic,readonly,nullable) NSString *name;      // custom POI: name given by the user (#3), nil if none
 @property (nonatomic,readonly) NSDictionary *info;
-@property (nonatomic,readonly) NSString *gpxSymbol;
-@property (nonatomic,readonly) NSString *gpxType;
+@property (nonatomic,readonly,nullable) NSString *gpxSymbol; // nil for an unknown type
+@property (nonatomic,readonly,nullable) NSString *gpxType;
 // stable identity (fetched POIs are re-created at each route change): OSM id + position, or position for custom POIs
 @property (nonatomic,readonly) NSString *poiKey;
 

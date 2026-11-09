@@ -75,7 +75,7 @@ extern NSAttributedStringKey const BPRouteKindAttributeName;
 // GPX to export: routeGPX, else one generated from routePoints (older documents); nil without route
 @property (readonly,nonatomic,nullable) NSData *exportableGPX;
 + (NSData *) gpxDataForPoints:(NSArray<CLLocation *> *)points name:(NSString *)name;
-@property (strong,nonatomic) NSArray<CLLocation *> *gpxDisplayed;
+@property (strong,nonatomic,nullable) NSArray<CLLocation *> *gpxDisplayed; // reference trace, nil: none
 @property (strong,nonatomic) BrouterInfo *brouterInfo;
 @property (readonly,nonatomic) NSString *profileName;   // BRouter profile: "trekking" (choice of the profile: #1)
 // BRouter profile parameters (Params tab, name → value, sent as profile:<name>=<value>), saved in the document;
@@ -90,7 +90,7 @@ extern NSAttributedStringKey const BPRouteKindAttributeName;
 - (POILocation *) addCustomPoiAt:(CLLocationCoordinate2D)coord type:(PoiType_t)type name:(nullable NSString *)name;
 - (POILocation *) replaceCustomPoi:(POILocation *)poi type:(PoiType_t)type name:(nullable NSString *)name;
 - (void) removeCustomPoi:(POILocation *)poi;
-- (void) restoreCustomPoi:(NSArray<POILocation *> *)pois; // for undo
+- (void) restoreCustomPoi:(nullable NSArray<POILocation *> *)pois; // for undo; nil: none
 
 // returns old waypointsLocations for undo
 - (NSArray <CLLocation *>*) removeWaypoints NS_WARN_UNUSED_RESULT;

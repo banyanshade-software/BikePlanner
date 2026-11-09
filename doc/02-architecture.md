@@ -373,8 +373,9 @@ Each item is tracked as a GitHub issue.
 - Waypoint annotations are kept in sync manually with the model array (`waypointsRouteAnnotations`, `recalcAnnotIndexesFrom:`).
 - Magic numbers: click modes 0–3, map types 0–4, polyline tags 0–3, pixel tolerances.
 - Profile name `trekking` hard-coded in two places; endpoints hard-coded in four files.
-- Compiler warnings in the Release build (non-null arguments, unused variable, unreachable code): to fix
-  ([#58](https://github.com/banyanshade-software/BikePlanner/issues/58)).
+- Compiler and analyzer warnings: none since [#58](https://github.com/banyanshade-software/BikePlanner/issues/58)
+  (the analyzer found a NULL dereference in `projectPoint:ontoSegmentFrom:to:projection:` and a nil renderer
+  returned to MapKit; both fixed and tested).
 - Dead code: `#if 0` blocks in `SafeOSMTileOverlay`, `SafeTileRenderer`, `MapController`; empty `BikeMapView`.
 - No automated test of the real external services (only the stub); the Street View page, tile drawing,
   `MKLocalSearch` and the user location are not tested.

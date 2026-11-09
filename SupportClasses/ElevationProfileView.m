@@ -156,7 +156,7 @@ static const double kBPSlopeHalfWindow = 50; // m
     NSString *s = [NSString stringWithFormat:@"%@ km · %.0f m", [km stringFromNumber:@(_highlightDistance / 1000)],
                    [self elevationAtDistance:_highlightDistance]];
     NSNumber *p = [self slopeAtDistance:_highlightDistance];
-    if (p) s = [s stringByAppendingFormat:@" · %@ %%", [slope stringFromNumber:p]];
+    if (p != nil) s = [s stringByAppendingFormat:@" · %@ %%", [slope stringFromNumber:p]];
     return s;
 }
 

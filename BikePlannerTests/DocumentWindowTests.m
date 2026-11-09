@@ -41,6 +41,7 @@
 - (IBAction)zoomIn:(id)sender;
 - (IBAction)zoomOut:(id)sender;
 - (void)removeWaypointMenuAction:(id)sender;
+- (CGFloat)projectPoint:(CGPoint)p ontoSegmentFrom:(CGPoint)a to:(CGPoint)b projection:(CGPoint *)projection;
 - (NSMenu *)waypointMenuForAnnotation:(RouteAnnotation *)annotation;
 - (BOOL)exportStagesToDirectory:(NSURL *)dir baseName:(NSString *)baseName withPOI:(BOOL)inclPOI error:(NSError **)error;
 - (void)mouseMoved:(NSEvent *)event;
@@ -196,7 +197,7 @@
 
 - (NSArray<TaggedPoly *> *)polysWithTag:(NSUInteger)tag
 {
-    return [map.overlays filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id o, NSDictionary *b) {
+    return (NSArray<TaggedPoly *> *)[map.overlays filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id o, NSDictionary *b) {
         return [o isKindOfClass:[TaggedPoly class]] && ((TaggedPoly *)o).tag == tag;
     }]];
 }
@@ -243,16 +244,16 @@
     NSTextField *help = (NSTextField *)[self viewWithIdentifier:@"clickModeHelp" in:self.content];
     NSSegmentedControl *seg = (NSSegmentedControl *)[self viewWithIdentifier:@"clickMode" in:self.content];
 
-    [mc setClickModeToInterm:nil];
+    [mc setClickModeToInterm:self];
     XCTAssertEqual(seg.selectedSegment, 1);
     XCTAssertEqualObjects(help.stringValue, @"Click on path to add intermediate waypoints");
-    [mc setClickModeToAddPoi:nil];
+    [mc setClickModeToAddPoi:self];
     XCTAssertEqual(seg.selectedSegment, 2);
     XCTAssertEqualObjects(help.stringValue, @"Add POI");
-    [mc setClickModeToView:nil];
+    [mc setClickModeToView:self];
     XCTAssertEqual(seg.selectedSegment, 3);
     XCTAssertEqualObjects(help.stringValue, @"Drag waypoints");
-    [mc setClickModeToEdit:nil];
+    [mc setClickModeToEdit:self];
     XCTAssertEqual(seg.selectedSegment, 0);
 
     // through the segmented control itself
@@ -368,7 +369,7 @@
 - (void)testClickOnRouteInsertsIntermediateWaypoint
 {
     [self makeRoute];
-    [mc setClickModeToInterm:nil];
+    [mc setClickModeToInterm:self];
     [self clickAtCoordinate:doc.plan.routePoints[5].coordinate];
     XCTAssertEqual(doc.plan.waypointsLocations.count, 3u);
     XCTAssertEqualWithAccuracy(doc.plan.waypointsLocations[1].coordinate.latitude, 44.05, 0.002);
@@ -380,7 +381,7 @@
 - (void)testClickAwayFromRouteInIntermModeDoesNothing
 {
     [self makeRoute];
-    [mc setClickModeToInterm:nil];
+    [mc setClickModeToInterm:self];
     [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.6)];
     XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
 }
@@ -388,7 +389,7 @@
 - (void)testViewModeClickOnRoute
 {
     [self makeRoute];
-    [mc setClickModeToView:nil];
+    [mc setClickModeToView:self];
     CLLocationCoordinate2D c = doc.plan.routePoints[3].coordinate;
     [self clickAtCoordinate:c];
     BPSpin(0.2);
@@ -418,7 +419,7 @@
 {
     [self makeRoute];
     doc.plan.fetchPOI = NO;
-    [mc setClickModeToAddPoi:nil];
+    [mc setClickModeToAddPoi:self];
     [self clickAtCoordinate:doc.plan.routePoints[4].coordinate];
     NSWindow *sheet = [self waitForSheet];
     NSPopUpButton *type = (NSPopUpButton *)[self viewWithIdentifier:@"poiType" in:sheet.contentView];
@@ -1040,7 +1041,6 @@
     MKPolylineRenderer *g = (MKPolylineRenderer *)[mc mapView:map rendererForOverlay:doc.plan.gpxDisplayedPoly];
     XCTAssertEqual(g.lineWidth, 6.0);
     XCTAssertNotNil([mc mapView:map rendererForOverlay:[[MKTileOverlay alloc] initWithURLTemplate:@"x"]]);
-    XCTAssertNil([mc mapView:map rendererForOverlay:[MKCircle circleWithCenterCoordinate:CLLocationCoordinate2DMake(0, 0) radius:1]]);
 }
 
 - (void)testElevationScrubbingMovesMap
@@ -1198,6 +1198,26 @@
     Document *opened = [[Document alloc] init];
     XCTAssertTrue([opened readFromData:data ofType:type error:NULL]);
     XCTAssertEqualObjects(opened.plan.profileOverrides, @{});
+}
+
+#pragma mark - analyzer findings (#58)
+
+// the projection is optional: NULL used to be dereferenced
+- (void)testProjectPointWithoutProjection
+{
+    CGFloat d = [mc projectPoint:CGPointMake(5, 3) ontoSegmentFrom:CGPointMake(0, 0) to:CGPointMake(10, 0) projection:NULL];
+    XCTAssertEqualWithAccuracy(d, 3, 1e-9);
+    CGPoint proj;
+    d = [mc projectPoint:CGPointMake(-4, 3) ontoSegmentFrom:CGPointMake(0, 0) to:CGPointMake(10, 0) projection:&proj];
+    XCTAssertEqualWithAccuracy(d, 5, 1e-9, @"before the segment: distance to its start");
+    XCTAssertEqual(proj.x, 0);
+}
+
+// MapKit expects a renderer for every overlay: one that draws nothing for an unknown kind (was nil)
+- (void)testRendererForUnknownOverlay
+{
+    MKCircle *circle = [MKCircle circleWithCenterCoordinate:CLLocationCoordinate2DMake(44, 0.5) radius:100];
+    XCTAssertNotNil([mc mapView:map rendererForOverlay:circle]);
 }
 
 #pragma mark - stages (#31)
@@ -1872,7 +1892,7 @@ static MKMapItem *BPPlace(NSString *name, double lat, double lon)
 - (void)testExportWithoutRouteDoesNothing
 {
     XCTAssertNil(mc.gpxData);
-    XCTAssertNoThrow([mc exportGPX:nil]); // returns before opening the panel
+    XCTAssertNoThrow([mc exportGPX:self]); // returns before opening the panel
 }
 
 @end

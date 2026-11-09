@@ -85,8 +85,10 @@ and product; source files are kept).
 - `NSLog` is used for diagnostics. `if ((0))` / `#if 0` blocks are the owner's way to keep disabled code —
   don't delete them unless the task is cleanup.
 - User-facing strings via `NSLocalizedString`.
-- Don't add compiler warnings (#58 lists the remaining ones): headers are `NS_ASSUME_NONNULL`, so pass a sender
-  (`self`), not `nil`, when calling an `IBAction` from code, and declare `nullable` parameters that accept nil.
+- No compiler or analyzer warning (#58: clean build of every target, `xcodebuild … analyze` clean): keep it so.
+  Headers are `NS_ASSUME_NONNULL`, so pass a sender (`self`), not `nil`, when calling an `IBAction` from code, and
+  declare `nullable` parameters, properties and results that accept nil; compare an `NSNumber *` to nil explicitly
+  (`if (n != nil)`). Third-party code (`DCO/`): silence a warning locally with `#pragma clang diagnostic`.
 - HTTP requests are built with `+[BPEnvironment requestWithURL:]` (sets the app's User-Agent
   `BikePlanner/<version> (build <n>; +<GitHub URL>)`, required by the OSM tile and Overpass policies); endpoints come
   from `BPEnvironment`. Route requests: one at a time (`MapController` cancels the previous one, #9).

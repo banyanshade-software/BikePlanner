@@ -190,7 +190,7 @@
     ElevationProfileView *flat = [self profileOver:2000 elevation:^double(double d) { return 100; }];
     XCTAssertEqualWithAccuracy([flat slopeAtDistance:1000].doubleValue, 0, 0.05);
     ElevationProfileView *up = [self profileOver:2000 elevation:^double(double d) { return 100 + 0.05 * d; }];
-    XCTAssertEqualWithAccuracy([up slopeAtDistance:1000].doubleValue, 5.0, 0.1, @"5 %");
+    XCTAssertEqualWithAccuracy([up slopeAtDistance:1000].doubleValue, 5.0, 0.1, @"5 %%");
     XCTAssertEqualWithAccuracy([up slopeAtDistance:0].doubleValue, 5.0, 0.1, @"at the start");
     XCTAssertEqualWithAccuracy([up slopeAtDistance:2000].doubleValue, 5.0, 0.1, @"at the end");
     ElevationProfileView *down = [self profileOver:2000 elevation:^double(double d) { return 300 - 0.08 * d; }];

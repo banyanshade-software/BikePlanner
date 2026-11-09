@@ -58,7 +58,11 @@
 
 - (NSColor *)trimColor {
     if (!_trimColor) {
+        // BikePlanner: deprecated since macOS 11, kept as is (#58)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         _trimColor = [NSColor windowFrameColor];
+#pragma clang diagnostic pop
     }
     
     return _trimColor;

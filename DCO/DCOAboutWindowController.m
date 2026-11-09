@@ -205,7 +205,11 @@
     
     // Set colors
     theView.backgroundColor = [NSColor textBackgroundColor];
+    // BikePlanner: deprecated since macOS 11, kept as is (#58)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     theView.trimColor = [NSColor windowFrameColor];
+#pragma clang diagnostic pop
     
     // Set active view
     self.activeView = theView;

@@ -6,6 +6,7 @@
 //
 
 #import "ExportAccessoryViewController.h"
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 @interface ExportAccessoryViewController ()
 
@@ -33,7 +34,7 @@
             ext = @"fit";
             break;
     }
-    self.savePanel.allowedFileTypes = @[ext];
+    self.savePanel.allowedContentTypes = @[[UTType typeWithFilenameExtension:ext]];
 
     // Change suggested file extension
     NSString *currentName = self.savePanel.nameFieldStringValue;

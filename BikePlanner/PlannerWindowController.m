@@ -109,7 +109,7 @@
     [d.mapController initializeMapview];
     // a new document starts in Edit mode (to place the start), an opened one in View mode: a click does not change
     // its route by mistake
-    if (d.fileURL) [d.mapController setClickModeToView:nil];
+    if (d.fileURL) [d.mapController setClickModeToView:self];
     [d.mapController.svCtrl initializeStreetView];
     
     [d.mapController fullRefresh:YES];

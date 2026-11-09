@@ -119,9 +119,9 @@ static CGFloat BPBrightness(NSColor *c, NSAppearance *appearance)
     XCTAssertTrue([helpBg isKindOfClass:[NSVisualEffectView class]]);
     XCTAssertFalse(help.drawsBackground, @"no opaque background of its own");
     XCTAssertTrue(NSContainsRect(helpBg.frame, help.frame));
-    [mc setClickModeToEdit:nil];
+    [mc setClickModeToEdit:self];
     CGFloat longWidth = helpBg.frame.size.width;   // "Click on map to add start and end waypoints"
-    [mc setClickModeToAddPoi:nil];
+    [mc setClickModeToAddPoi:self];
     XCTAssertLessThan(helpBg.frame.size.width, longWidth - 50, @"backdrop follows the text width"); // "Add POI"
     XCTAssertTrue(NSContainsRect(helpBg.frame, help.frame));
     XCTAssertGreaterThanOrEqual(help.frame.size.width, help.attributedStringValue.size.width, @"text not clipped");

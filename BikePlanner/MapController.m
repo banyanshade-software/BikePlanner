@@ -846,7 +846,6 @@ static const double kBPSiteRadiusKm = 15;
         idx++;
     }
     */
-    NSMutableArray *ans = [[NSMutableArray alloc]initWithCapacity:4];
     for (CLLocation *loc in _document.plan.waypointsLocations) {
         CLLocationCoordinate2D coord = loc.coordinate;
         NSString *title = [self stringForWaypointIdx:idx];
@@ -1094,7 +1093,7 @@ static const double kBPSiteRadiusKm = 15;
         }
         return r;
     }
-    return nil;
+    return [[MKOverlayRenderer alloc] initWithOverlay:overlay]; // draws nothing; MapKit expects a renderer
 }
 
 
@@ -1263,7 +1262,7 @@ static NSString *xmlEscaped(NSString * _Nullable s)
 
 - (NSData *) exportGpxDataWithPOI:(BOOL)inclPOI trackName:(NSString *)trackName
 {
-    if (0 && !inclPOI) {
+    if ((0) && !inclPOI) {
         return _gpxData;
     }
     return [self gpxData:_gpxData withPOIs:inclPOI ? self.exportablePOIs : @[] trackName:trackName];
@@ -1593,16 +1592,18 @@ static NSString *xmlEscaped(NSString * _Nullable s)
     
     CGFloat t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx*dx + dy*dy);
     
+    CGPoint proj; // projection may be NULL
     if (t < 0) {
-        if (projection) *projection = a;
+        proj = a;
     } else if (t > 1) {
-        if (projection) *projection = b;
+        proj = b;
     } else {
-        if (projection) *projection = CGPointMake(a.x + t * dx, a.y + t * dy);
+        proj = CGPointMake(a.x + t * dx, a.y + t * dy);
     }
+    if (projection) *projection = proj;
     
-    CGFloat px = p.x - projection->x;
-    CGFloat py = p.y - projection->y;
+    CGFloat px = p.x - proj.x;
+    CGFloat py = p.y - proj.y;
     return sqrt(px*px + py*py);
 }
 /*
@@ -2307,7 +2308,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     NSLog(@"undo action %d %d", _document.undoManager.isUndoing, _document.undoManager.isRedoing);
     //BOOL oa = animateDropPins;
     //animateDropPins = NO;
-    if (1 || _document.undoManager.isUndoing) {
+    if ((1) || _document.undoManager.isUndoing) {
         // register for redo
         [self undoableWP:_document.plan.waypointsLocations desc:nil];
     }
@@ -2378,7 +2379,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     [self refreshPOI];
 }
 
-- (void) setGpxDisplayed:(NSArray <CLLocation *>*)points desc:(NSString *)d
+- (void) setGpxDisplayed:(nullable NSArray <CLLocation *>*)points desc:(nullable NSString *)d
 {
     NSUndoManager *um = _document.undoManager;
     [um registerUndoWithTarget:self selector:@selector(undoGpxDisplayed:) object:_document.plan.gpxDisplayed];

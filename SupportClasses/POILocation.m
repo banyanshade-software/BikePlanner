@@ -111,7 +111,7 @@
 {
     return info;
 }
-- (NSString *) gpxSymbol
+- (nullable NSString *) gpxSymbol
 {
     switch (poitype) {
         default:
@@ -139,7 +139,7 @@
     return [@"custom:" stringByAppendingString:pos];
 }
 
-- (NSString *)gpxType
+- (nullable NSString *)gpxType
 {
     switch (poitype) {
         default:

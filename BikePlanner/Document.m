@@ -265,7 +265,7 @@
                                                      @"setClickModeToAddPoi:": @(BPClickModeAddPOI),
                                                      @"setClickModeToView:": @(BPClickModeView) };
     NSNumber *mode = modes[NSStringFromSelector(item.action)];
-    if (mode) {
+    if (mode != nil) {
         item.state = (_mapController.clickMode == mode.intValue) ? NSControlStateValueOn : NSControlStateValueOff;
         return YES;
     }

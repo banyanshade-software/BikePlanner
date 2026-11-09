@@ -44,7 +44,7 @@
         NSNumber *lat = d[@"latitude"], *lon = d[@"longitude"], *heading = d[@"heading"];
         NSNumber *kind = [d[@"kind"] isKindOfClass:[NSString class]] ? kinds[d[@"kind"]] : nil;
         if (![name isKindOfClass:[NSString class]] || !name.length || ![lat isKindOfClass:[NSNumber class]]
-            || ![lon isKindOfClass:[NSNumber class]] || !kind) continue;
+            || ![lon isKindOfClass:[NSNumber class]] || kind == nil) continue;
         CLLocationCoordinate2D c = CLLocationCoordinate2DMake(lat.doubleValue, lon.doubleValue);
         if (!CLLocationCoordinate2DIsValid(c)) continue;
         BPRemarkableSite *s = [[BPRemarkableSite alloc] init];

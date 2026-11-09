@@ -849,7 +849,7 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     [_customPoiloc removeObjectIdenticalTo:poi];
 }
 
-- (void) restoreCustomPoi:(NSArray<POILocation *> *)pois
+- (void) restoreCustomPoi:(nullable NSArray<POILocation *> *)pois
 {
     self.customPoiloc = pois ? [pois mutableCopy] : [[NSMutableArray alloc]initWithCapacity:5];
 }

@@ -198,17 +198,17 @@
     // time=6h 10m 11s  -> time-seconds
     NSString *timeStr = brouterInfo[@"time"];
     NSNumber *tSeconds = [self secondsFromTimeString:timeStr];
-    if (tSeconds) brouterInfo[@"n-time-seconds"] = tSeconds.stringValue;
+    if (tSeconds != nil) brouterInfo[@"n-time-seconds"] = tSeconds.stringValue;
 
     // track-length=124597 -> meters (already meters typically)
     NSString *lenStr = brouterInfo[@"track-length"];
     NSNumber *meters = [self numberFromString:lenStr];
-    if (meters) brouterInfo[@"n-track-length-m"] = meters.stringValue;
+    if (meters != nil) brouterInfo[@"n-track-length-m"] = meters.stringValue;
 
     // energy=.6kwh -> watt-hours
     NSString *energyStr = brouterInfo[@"energy"];
     NSNumber *wh = [self wattHoursFromEnergyString:energyStr];
-    if (wh) brouterInfo[@"n-energy-wh"] = wh.stringValue;
+    if (wh != nil) brouterInfo[@"n-energy-wh"] = wh.stringValue;
 }
 
 - (NSNumber *)secondsFromTimeString:(NSString *)s {

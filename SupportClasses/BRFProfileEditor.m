@@ -403,7 +403,7 @@ static NSString *const BRFDefaultsKey = @"BPProfileOverrides";
             NSTextField *field = (NSTextField *)p.valueControl;
             NSString *text = field.currentEditor ? field.currentEditor.string : field.stringValue;
             NSNumber *n = [(NSNumberFormatter *)field.formatter numberFromString:text];
-            if (!n) return [self defaultValueOf:p]; // being edited, not a number (yet)
+            if (n == nil) return [self defaultValueOf:p]; // being edited, not a number (yet)
             return [[self class] normalizedValue:[n descriptionWithLocale:BRFPosixLocale()] kind:BRFParamNumber];
         }
     }
@@ -536,7 +536,7 @@ static NSString *const BRFDefaultsKey = @"BPProfileOverrides";
     NSString *section = nil;
     for (NSUInteger i = 0; i < self.parameters.count; i++) {
         BRFParam *param = self.parameters[i];
-        if (param.section && ![param.section isEqualToString:section]) {
+        if (param.section && ![section isEqualToString:param.section]) { // section nil: the first one
             section = param.section;
             NSView *last = self.stackView.arrangedSubviews.lastObject;
             if (last) [self.stackView setCustomSpacing:16 afterView:last];
