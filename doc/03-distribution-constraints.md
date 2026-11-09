@@ -6,11 +6,14 @@ It is a checklist, not legal advice: terms of service change, and each item must
 provider's current terms at the time of distribution. Tracked by
 [#20](https://github.com/banyanshade-software/BikePlanner/issues/20).
 
-**Summary (status 2026-10-30)** — The app is not ready to be shared. Done: location usage string, keys kept out of
-git and obfuscated in the binary (#51), Street View through the Maps Embed API when a key is set (#49), a Credits
-text in the About window, an identifying User-Agent on every request. Still missing: on-map attributions (OSM,
-Thunderforest), a user-configurable BRouter server (#2), and Developer ID signing +
-notarization. The volunteer-run public services (OSM tiles, brouter.de, overpass-api.de) cannot back a distributed
+**Summary (status 2026-11-09, version 0.9.5)** — The app is not ready to be shared. Done: location usage string
+(and the location is asked only when the user chooses *My location* as start position, #65), keys kept out of git
+and obfuscated in the binary (#51), Street View through the Maps Embed API when a key is set (#49, the key is checked
+first), a Credits text in the About window and exact attributions in the README (#64), an identifying User-Agent on
+every request, Overpass backoff and smaller queries (#12), a build without compiler or analyzer warnings (#58).
+Still missing: on-map attributions (OSM, Thunderforest), the exact attributions in the About window, a better
+protection of the keys (#57), a user-configurable BRouter server (#2), a license decision for distribution (today
+all rights reserved), and Developer ID signing + notarization. The volunteer-run public services (OSM tiles, brouter.de, overpass-api.de) cannot back a distributed
 app anyway: each needs its own server, a paid provider, or a per-user setting.
 
 ---
@@ -93,7 +96,10 @@ app anyway: each needs its own server, a paid provider, or a per-user setting.
 | DCOAboutWindow (`DCO/`) | See `DCO/LICENSE` — keep the license notice |
 | BRouter (if bundled) | MIT |
 
-**Today**: the About window shows `Base.lproj/Credits.rtf` (services used, Maki icons, DCOAboutWindow). To do:
+**Today**: the README has the exact attributions (#64: OSM/ODbL, Thunderforest, Apple MapKit, BRouter, Overpass,
+Google Street View, Maki CC0, DCOAboutWindow BSD) and a copyright notice (© 2025–2026 Daniel Braun, all rights
+reserved; also `NSHumanReadableCopyright`); the About window shows `Base.lproj/Credits.rtf` (services used, Maki
+icons, DCOAboutWindow; its Street View sentence predates #49). To do in the About window:
 the exact attribution texts (“© OpenStreetMap contributors”, ODbL; “Maps © Thunderforest”; Google), BRouter (MIT)
 if bundled, and a check of each icon's origin.
 
@@ -106,7 +112,8 @@ if bundled, and a check of each icon's origin.
   server would need either an XPC/helper or a separate install.
 - **Location usage description** ✅: `NSLocationWhenInUseUsageDescription` is a real sentence (“BikePlanner centers
   the map on your location when you start planning a route.”).
-- **Privacy**: requests to Google, OSM, Thunderforest and Overpass reveal the user's area of interest; a privacy
+- **Privacy**: the user location is asked only when *Preferences ▸ Start position* is *My location* (the default
+  is a remarkable site at random, #65). Requests to Google, OSM, Thunderforest and Overpass reveal the user's area of interest; a privacy
   policy is required for the App Store and is good practice anyway. App Store also requires a privacy manifest
   if required-reason APIs are used.
 - **Mac App Store**: in addition, the review would likely reject the embedded Google Maps web page (see 1.1:
@@ -125,8 +132,9 @@ if bundled, and a check of each icon's origin.
 |---|---|---|---|
 | 1 | Street View through an official Google API (or an alternative provider) | 🟡 Maps Embed API when a key is set; drop the Google Maps web app fallback | #49 |
 | 2 | Identifying User-Agent + “© OpenStreetMap contributors” on the map for OSM tiles | 🟡 User-Agent done; attribution missing | — |
-| 3 | Thunderforest attribution and key strategy (per-user key in Keychain?) | 🟡 key obfuscated; no attribution on the map | #51 |
+| 3 | Thunderforest attribution and key strategy (per-user key in Keychain?) | 🟡 key obfuscated; no attribution on the map | #51, #57 |
 | 4 | Overpass backoff, User-Agent, smaller queries | ✅ | #12 |
 | 5 | Configurable BRouter server (local or the user's own) | 🟡 hidden default only | #2 |
-| 6 | Real location usage string; acknowledgments in the About window | ✅ string; 🟡 Credits without exact attributions | — |
+| 6 | Real location usage string; acknowledgments in the About window | ✅ string (location asked only for *My location*, #65); 🟡 exact attributions in the README, not yet in the About window | #64 |
 | 7 | Developer ID signing + notarization | ❌ ad hoc signing, DMG not notarized | #37 |
+| 8 | License of the app and of the source | 🟡 all rights reserved (README, #64); to decide before distributing | #64 |
