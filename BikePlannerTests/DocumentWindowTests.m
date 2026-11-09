@@ -1052,6 +1052,23 @@
     XCTAssertEqualWithAccuracy(map.centerCoordinate.latitude, 44.05, 0.005);
 }
 
+// zooming the elevation profile shows the same part of the route on the map (#62)
+- (void)testProfileZoomMovesMap
+{
+    [self makeRoute]; // 44.0, 0.5 → 44.1, 0.6
+    double total = mc.elevationView.distances.lastObject.doubleValue;
+    [mc.elevationView showRangeFrom:0 to:total / 4 notify:YES];
+    BPSpin(0.2);
+    MKCoordinateRegion r = map.region;
+    XCTAssertEqualWithAccuracy(r.center.latitude, 44.0125, 0.01, @"first quarter of the route");
+    XCTAssertLessThan(r.span.latitudeDelta, 0.08, @"zoomed on it");
+    XCTAssertGreaterThan(r.span.latitudeDelta, 0.025, @"all of it");
+    // the cursor set from the map moves the profile, not the map back
+    mc.elevationView.highlightDistance = total * 0.9;
+    XCTAssertTrue(mc.elevationView.visibleTo >= total * 0.9);
+    XCTAssertEqualWithAccuracy(map.region.center.latitude, r.center.latitude, 1e-6);
+}
+
 - (void)testExportAfterRoute
 {
     [self makeRoute];

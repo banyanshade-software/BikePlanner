@@ -65,7 +65,7 @@ SupportClasses/              Reusable/support components
   BPPOIEditor.*              Sheet asking the type and name of a custom POI (#3)
   BRFProfileEditor.*         Downloads a .brf profile, parses its annotated parameters, builds the Params tab UI;
                              "my defaults" (user defaults BPProfileOverrides)
-  ElevationProfileView.*     Elevation chart, scrubbing
+  ElevationProfileView.*     Elevation chart, scrubbing, zoom (buttons, gestures, overview strip, #62)
   StreetViewController.*     Google Street View in a WKWebView: Maps Embed API iframe (key) or Google Maps URL (#49)
   POILocation.*              Model class for a POI (CLLocation subclass, NSSecureCoding)
   POIAnnotation.*            MKPointAnnotation for POIs, icon configuration
@@ -226,6 +226,14 @@ MapController.requestRoute
 ### 6.5 Scrubbing (profile ↔ map ↔ Street View)
 `ElevationProfileView` mouse down/drag → delegate `elevationProfileView:didSelectDistance:` →
 `coordinateAtDistance:` + `bearingAtDistance:` → scrubber marker, map center, `svCtrl viewCoord:lookingAt:`.
+Zoom (#62): `ElevationProfileView` keeps the visible range (`visibleFrom`/`visibleTo`, set by
+`showRangeFrom:to:notify:` — at least 1 km, moved inside the route — and `zoomBy:around:`); `setGpxPoints:` resets it.
+A user zoom or move calls the optional delegate method `elevationProfileView:didShowRangeFrom:to:`: `MapController`
+fits the map to the route points in the range (`setVisibleMapRect:edgePadding:`). One way only: a
+`highlightDistance` outside the range (cursor set from the map) moves the range with `notify:NO`. Mouse down picks
+a drag mode: overview strip (move), stage number (zoom on the stage), double-click (whole route), ⌥ (range
+selection, applied on mouse up if ≥ 4 px), else the cursor. The zoom buttons are `NSButton`s created in code
+(`profileZoomIn`/`profileZoomOut`/`profileZoomFit`).
 Each Street View update reloads the page: with a Google Maps key, a local HTML page (base URL
 `https://bikeplanner.invalid/`, the referrer seen by Google) holding a Maps Embed API iframe
 (`…/maps/embed/v1/streetview?key=…&location=…&heading=…&pitch=0&fov=90`, #49); without a key, the Google Maps URL.

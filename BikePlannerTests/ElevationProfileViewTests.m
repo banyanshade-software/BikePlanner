@@ -10,6 +10,7 @@
 @interface ElevationProfileView (ScaleTesting)
 + (void)elevationRangeForMin:(double)minElev max:(double)maxElev low:(double *)low high:(double *)high;
 + (NSArray<NSNumber *> *)ticksFrom:(double)low to:(double)high maxCount:(NSUInteger)maxCount;
+- (void)displayedElevationLow:(double *)low high:(double *)high;
 @end
 
 @interface ElevationProfileViewTests : XCTestCase <ElevationProfileViewDelegate>
@@ -17,6 +18,7 @@
 
 @implementation ElevationProfileViewTests {
     NSMutableArray<NSNumber *> *selected;
+    NSMutableArray<NSArray<NSNumber *> *> *shown; // ranges reported by elevationProfileView:didShowRangeFrom:to:
 }
 
 - (void)elevationProfileView:(id)view didSelectDistance:(double)distance
@@ -24,10 +26,20 @@
     [selected addObject:@(distance)];
 }
 
+- (void)elevationProfileView:(id)view didShowRangeFrom:(double)from to:(double)to
+{
+    [shown addObject:@[@(from), @(to)]];
+}
+
 - (NSEvent *)mouse:(NSEventType)type at:(NSPoint)p in:(NSWindow *)w
 {
-    return [NSEvent mouseEventWithType:type location:p modifierFlags:0 timestamp:0
-                          windowNumber:w.windowNumber context:nil eventNumber:0 clickCount:1 pressure:1];
+    return [self mouse:type at:p in:w flags:0 clicks:1];
+}
+
+- (NSEvent *)mouse:(NSEventType)type at:(NSPoint)p in:(NSWindow *)w flags:(NSEventModifierFlags)flags clicks:(NSInteger)n
+{
+    return [NSEvent mouseEventWithType:type location:p modifierFlags:flags timestamp:0
+                          windowNumber:w.windowNumber context:nil eventNumber:0 clickCount:n pressure:1];
 }
 
 // Click / drag in the plot area reports the distance along the route to the delegate.
@@ -213,6 +225,269 @@
     XCTAssertTrue([t containsString:@"+6"] && [t containsString:@"%"], @"%@", t);
     XCTAssertTrue([t containsString:@"km"], @"%@", t);
     XCTAssertTrue([t containsString:@"178 m"], @"elevation at 1.2 km: %@", t);
+}
+
+#pragma mark - zoom (#62)
+
+// a 440 x 200 profile in a window (plot area: x from 40 to 400) over a route going east along the equator, one
+// point every ~111 m; elevations from f(index)
+- (ElevationProfileView *)zoomableProfile:(NSUInteger)n elevation:(double (^)(NSUInteger i))f window:(NSWindow **)pw
+{
+    NSWindow *w = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 440, 200) styleMask:NSWindowStyleMaskBorderless
+                                                backing:NSBackingStoreBuffered defer:NO];
+    w.releasedWhenClosed = NO;
+    ElevationProfileView *v = [[ElevationProfileView alloc] initWithFrame:NSMakeRect(0, 0, 440, 200)];
+    [w.contentView addSubview:v];
+    NSMutableArray<CLLocation *> *pts = [NSMutableArray array];
+    for (NSUInteger i = 0; i < n; i++) pts[i] = BPLocAlt(0, i * 0.001, f(i));
+    [v setGpxPoints:pts];
+    selected = [NSMutableArray array];
+    shown = [NSMutableArray array];
+    v.delegate = self;
+    [self render:v];
+    *pw = w;
+    return v;
+}
+
+- (void)render:(ElevationProfileView *)v
+{
+    NSBitmapImageRep *rep = [v bitmapImageRepForCachingDisplayInRect:v.bounds];
+    [v cacheDisplayInRect:v.bounds toBitmapImageRep:rep];
+}
+
+- (NSButton *)button:(NSString *)identifier in:(NSView *)v
+{
+    for (NSView *s in v.subviews) {
+        if ([s.accessibilityIdentifier isEqualToString:identifier]) return (NSButton *)s;
+    }
+    return nil;
+}
+
+- (void)testShowRangeIsClampedWithMinimumSpan
+{
+    NSWindow *w;
+    ElevationProfileView *v = [self zoomableProfile:21 elevation:^double(NSUInteger i) { return 100; } window:&w];
+    double total = v.distances.lastObject.doubleValue; // ~2.2 km
+    XCTAssertFalse(v.zoomed);
+    XCTAssertEqual(v.visibleFrom, 0);
+    XCTAssertEqualWithAccuracy(v.visibleTo, total, 1e-6);
+
+    [v showRangeFrom:600 to:900 notify:NO]; // 300 m: widened to 1 km around its middle
+    XCTAssertTrue(v.zoomed);
+    XCTAssertEqualWithAccuracy(v.visibleFrom, 250, 1e-6);
+    XCTAssertEqualWithAccuracy(v.visibleTo, 1250, 1e-6);
+    XCTAssertEqual(shown.count, 0u, @"not notified");
+
+    [v showRangeFrom:-500 to:400 notify:YES]; // before the start: moved, keeps its span
+    XCTAssertEqualWithAccuracy(v.visibleFrom, 0, 1e-6);
+    XCTAssertEqualWithAccuracy(v.visibleTo, 1000, 1e-6);
+    XCTAssertEqual(shown.count, 1u);
+
+    [v showRangeFrom:-100 to:total + 100 notify:NO]; // the whole route
+    XCTAssertFalse(v.zoomed);
+    XCTAssertEqualWithAccuracy(v.visibleTo, total, 1e-6);
+    [w close];
+}
+
+- (void)testZoomButtons
+{
+    NSWindow *w;
+    ElevationProfileView *v = [self zoomableProfile:41 elevation:^double(NSUInteger i) { return 100; } window:&w];
+    double total = v.distances.lastObject.doubleValue; // ~4.4 km
+    NSButton *zin = [self button:@"profileZoomIn" in:v], *zout = [self button:@"profileZoomOut" in:v];
+    NSButton *fit = [self button:@"profileZoomFit" in:v];
+    XCTAssertNotNil(zin);
+    XCTAssertNotNil(zout);
+    XCTAssertNotNil(fit);
+    XCTAssertTrue(zin.enabled);
+    XCTAssertFalse(zout.enabled, @"nothing to zoom out");
+    XCTAssertFalse(fit.enabled, @"the whole route is shown");
+    // in the top right corner, above the plot area
+    XCTAssertGreaterThan(NSMinX(zin.frame), 300);
+    XCTAssertGreaterThanOrEqual(NSMinY(zin.frame), 170);
+
+    [zin performClick:self]; // no cursor: around the middle
+    XCTAssertTrue(v.zoomed);
+    XCTAssertEqualWithAccuracy(v.visibleFrom, total / 4, 1);
+    XCTAssertEqualWithAccuracy(v.visibleTo, total * 3 / 4, 1);
+    XCTAssertTrue(zout.enabled);
+    XCTAssertTrue(fit.enabled);
+    XCTAssertEqual(shown.count, 1u, @"the delegate is told (the map follows)");
+
+    v.highlightDistance = total * 0.3; // with a cursor in view: around the cursor
+    [zin performClick:self];
+    XCTAssertEqualWithAccuracy(v.visibleTo - v.visibleFrom, total / 4, 1);
+    XCTAssertTrue(v.visibleFrom < total * 0.3 && total * 0.3 < v.visibleTo);
+    XCTAssertTrue(zin.enabled);
+    [zin performClick:self];
+    XCTAssertEqualWithAccuracy(v.visibleTo - v.visibleFrom, 1000, 1, @"at most 1 km");
+    XCTAssertFalse(zin.enabled, @"at the minimum span");
+
+    [zout performClick:self];
+    XCTAssertEqualWithAccuracy(v.visibleTo - v.visibleFrom, 2000, 1);
+
+    [fit performClick:self];
+    XCTAssertFalse(v.zoomed);
+    XCTAssertEqualWithAccuracy(shown.lastObject[0].doubleValue, 0, 1e-6);
+    XCTAssertEqualWithAccuracy(shown.lastObject[1].doubleValue, total, 1e-6);
+    XCTAssertFalse(fit.enabled);
+    [w close];
+}
+
+// ⌥-drag selects a range and zooms on it; the cursor does not move. Double-click: the whole route.
+- (void)testOptionDragZoomsOnRangeAndDoubleClickResets
+{
+    NSWindow *w;
+    ElevationProfileView *v = [self zoomableProfile:41 elevation:^double(NSUInteger i) { return 100; } window:&w];
+    double total = v.distances.lastObject.doubleValue;
+    NSEventModifierFlags opt = NSEventModifierFlagOption;
+    [v mouseDown:[self mouse:NSEventTypeLeftMouseDown at:NSMakePoint(130, 100) in:w flags:opt clicks:1]];
+    [v mouseDragged:[self mouse:NSEventTypeLeftMouseDragged at:NSMakePoint(250, 100) in:w flags:opt clicks:1]];
+    [self render:v]; // the selection is drawn
+    [v mouseDragged:[self mouse:NSEventTypeLeftMouseDragged at:NSMakePoint(310, 100) in:w flags:opt clicks:1]];
+    [v mouseUp:[self mouse:NSEventTypeLeftMouseUp at:NSMakePoint(310, 100) in:w flags:opt clicks:1]];
+    XCTAssertEqual(selected.count, 0u, @"the cursor does not move");
+    XCTAssertEqualWithAccuracy(v.visibleFrom, total / 4, total * 0.01);
+    XCTAssertEqualWithAccuracy(v.visibleTo, total * 3 / 4, total * 0.01);
+    XCTAssertEqual(shown.count, 1u);
+
+    // a click in the zoomed profile: the distance in the visible part
+    [self render:v];
+    [v mouseDown:[self mouse:NSEventTypeLeftMouseDown at:NSMakePoint(220, 120) in:w]];
+    XCTAssertEqual(selected.count, 1u);
+    XCTAssertEqualWithAccuracy(selected[0].doubleValue, total / 2, total * 0.01);
+
+    // ⌥-click without dragging: nothing
+    [v mouseDown:[self mouse:NSEventTypeLeftMouseDown at:NSMakePoint(200, 120) in:w flags:opt clicks:1]];
+    [v mouseUp:[self mouse:NSEventTypeLeftMouseUp at:NSMakePoint(201, 120) in:w flags:opt clicks:1]];
+    XCTAssertEqualWithAccuracy(v.visibleFrom, total / 4, total * 0.01);
+
+    [v mouseDown:[self mouse:NSEventTypeLeftMouseDown at:NSMakePoint(220, 120) in:w flags:0 clicks:2]];
+    XCTAssertFalse(v.zoomed);
+    [w close];
+}
+
+- (NSEvent *)scrollX:(int32_t)dx y:(int32_t)dy flags:(CGEventFlags)flags at:(NSPoint)p in:(NSWindow *)w
+{
+    CGEventRef cg = CGEventCreateScrollWheelEvent2(NULL, kCGScrollEventUnitPixel, 2, dy, dx, 0);
+    CGEventSetFlags(cg, flags);
+    NSPoint sp = [w convertPointToScreen:p];
+    CGEventSetLocation(cg, CGPointMake(sp.x, NSMaxY(NSScreen.screens.firstObject.frame) - sp.y));
+    NSEvent *e = [NSEvent eventWithCGEvent:cg];
+    CFRelease(cg);
+    return e;
+}
+
+// horizontal scrolling moves a zoomed profile; ⌘-scroll zooms
+- (void)testScrollMovesZoomedProfile
+{
+    NSWindow *w;
+    ElevationProfileView *v = [self zoomableProfile:41 elevation:^double(NSUInteger i) { return 100; } window:&w];
+    double total = v.distances.lastObject.doubleValue;
+    [v scrollWheel:[self scrollX:-50 y:0 flags:0 at:NSMakePoint(220, 100) in:w]];
+    XCTAssertFalse(v.zoomed, @"not zoomed: nothing to scroll");
+
+    [v showRangeFrom:total / 4 to:total * 3 / 4 notify:NO];
+    double from = v.visibleFrom;
+    [v scrollWheel:[self scrollX:-36 y:0 flags:0 at:NSMakePoint(220, 100) in:w]];
+    // content moved to the left: further along the route
+    XCTAssertGreaterThan(v.visibleFrom, from + 1);
+    XCTAssertLessThan(v.visibleFrom, from + total / 4);
+    XCTAssertEqual(shown.count, 1u);
+
+    double span = v.visibleTo - v.visibleFrom;
+    [v scrollWheel:[self scrollX:0 y:30 flags:kCGEventFlagMaskCommand at:NSMakePoint(220, 100) in:w]];
+    XCTAssertNotEqualWithAccuracy(v.visibleTo - v.visibleFrom, span, 1, @"⌘-scroll zooms");
+    [w close];
+}
+
+- (void)testMagnifyZoomsAroundPointer
+{
+    NSWindow *w;
+    ElevationProfileView *v = [self zoomableProfile:41 elevation:^double(NSUInteger i) { return 100; } window:&w];
+    double total = v.distances.lastObject.doubleValue;
+    [v zoomBy:2 around:total / 4];
+    XCTAssertEqualWithAccuracy(v.visibleFrom, total / 8, 1, @"the distance stays at the same place");
+    XCTAssertEqualWithAccuracy(v.visibleTo, total * 5 / 8, 1);
+    XCTAssertEqual(shown.count, 1u);
+    [w close];
+}
+
+// zoomed: an overview of the whole route under the plot; a click there moves the view, a drag moves it along
+- (void)testOverviewStrip
+{
+    NSWindow *w;
+    ElevationProfileView *v = [self zoomableProfile:41 elevation:^double(NSUInteger i) { return 100 + i; } window:&w];
+    double total = v.distances.lastObject.doubleValue;
+    double inkBefore = [self inkIn:NSMakeRect(40, 3, 360, 14) of:v];
+    [v showRangeFrom:0 to:total / 4 notify:NO];
+    XCTAssertGreaterThan([self inkIn:NSMakeRect(40, 3, 360, 14) of:v], inkBefore + 0.1, @"overview drawn");
+
+    // overview: x from 40 to 400 for the whole route
+    [v mouseDown:[self mouse:NSEventTypeLeftMouseDown at:NSMakePoint(220, 10) in:w]];
+    XCTAssertEqualWithAccuracy((v.visibleFrom + v.visibleTo) / 2, total / 2, total * 0.01, @"centered on the click");
+    [v mouseDragged:[self mouse:NSEventTypeLeftMouseDragged at:NSMakePoint(310, 10) in:w]];
+    XCTAssertEqualWithAccuracy((v.visibleFrom + v.visibleTo) / 2, total * 3 / 4, total * 0.01);
+    [v mouseUp:[self mouse:NSEventTypeLeftMouseUp at:NSMakePoint(310, 10) in:w]];
+    XCTAssertEqual(selected.count, 0u, @"the cursor does not move");
+    XCTAssertEqual(shown.count, 2u);
+    XCTAssertEqualWithAccuracy(v.visibleTo - v.visibleFrom, total / 4, 1, @"same span");
+    [w close];
+}
+
+// the vertical axis fits the visible part
+- (void)testVerticalAxisFitsVisiblePart
+{
+    NSWindow *w;
+    // climbs 1000 m over the first half, then flat
+    ElevationProfileView *v = [self zoomableProfile:41 elevation:^double(NSUInteger i) {
+        return i <= 20 ? 100 + 50 * i : 1100; } window:&w];
+    double total = v.distances.lastObject.doubleValue;
+    double lo, hi;
+    [v displayedElevationLow:&lo high:&hi];
+    XCTAssertLessThanOrEqual(lo, 100);
+    XCTAssertGreaterThanOrEqual(hi, 1100);
+    [v showRangeFrom:total * 0.6 to:total notify:NO];
+    [v displayedElevationLow:&lo high:&hi];
+    XCTAssertGreaterThanOrEqual(lo, 1000);
+    XCTAssertLessThanOrEqual(hi, 1200);
+    [w close];
+}
+
+// a cursor set from the map outside the visible part moves the profile (not the map)
+- (void)testCursorOutsideVisiblePartMovesProfile
+{
+    NSWindow *w;
+    ElevationProfileView *v = [self zoomableProfile:41 elevation:^double(NSUInteger i) { return 100; } window:&w];
+    double total = v.distances.lastObject.doubleValue;
+    [v showRangeFrom:0 to:total / 4 notify:NO];
+    v.highlightDistance = total * 0.8;
+    XCTAssertTrue(v.visibleFrom < total * 0.8 && total * 0.8 < v.visibleTo);
+    XCTAssertEqualWithAccuracy(v.visibleTo - v.visibleFrom, total / 4, 1);
+    XCTAssertEqual(shown.count, 0u);
+    v.highlightDistance = 0; // no cursor: unchanged
+    XCTAssertTrue(v.zoomed);
+    [w close];
+}
+
+// a click on a stage number zooms on that stage; a new route shows the whole route
+- (void)testStageNumberZoomsOnStageAndNewRouteResets
+{
+    NSWindow *w;
+    ElevationProfileView *v = [self zoomableProfile:41 elevation:^double(NSUInteger i) { return 100; } window:&w];
+    double total = v.distances.lastObject.doubleValue;
+    v.stageEndIndexes = @[@10, @30];
+    [self render:v];
+    // stage 2 starts at 1/4 of the route: its number is drawn right of the line, at the top of the plot (y 170)
+    [v mouseDown:[self mouse:NSEventTypeLeftMouseDown at:NSMakePoint(40 + 90 + 6, 165) in:w]];
+    XCTAssertEqualWithAccuracy(v.visibleFrom, total / 4, 1);
+    XCTAssertEqualWithAccuracy(v.visibleTo, total * 3 / 4, 1);
+    XCTAssertEqual(selected.count, 0u);
+    XCTAssertEqual(shown.count, 1u);
+
+    [v setGpxPoints:@[BPLocAlt(0, 0, 100), BPLocAlt(0, 0.05, 100)]];
+    XCTAssertFalse(v.zoomed);
+    [w close];
 }
 
 @end

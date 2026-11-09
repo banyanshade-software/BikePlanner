@@ -8,17 +8,214 @@
 #import "ElevationProfileView.h"
 
 static const double kMinElevationRange = 100; // m: small differences must not look steep (#32)
+static const double kMinVisibleSpan = 1000;    // m: narrowest zoomed view (#62)
+static const CGFloat kOverviewHeight = 14;     // overview strip under the plot when zoomed (#62)
+
+typedef NS_ENUM(NSInteger, BPProfileDrag) {
+    BPProfileDragCursor,    // moves the cursor (and the map, Street View)
+    BPProfileDragSelect,    // ⌥-drag: range to zoom on
+    BPProfileDragOverview,  // moves the visible part in the overview strip
+    BPProfileDragNone,
+};
 
 @implementation ElevationProfileView {
     double _maxDist;
     double _minElev, _maxElev;
     CGRect _plotRect;
+    CGRect _overviewRect;           // empty when not zoomed
+    BOOL _zoomed;
+    double _visibleFrom, _visibleTo; // when zoomed
+    NSButton *_zoomInButton, *_zoomOutButton, *_zoomFitButton;
+    BPProfileDrag _drag;
+    double _selectFrom, _selectTo;  // ⌥-drag, m
+    double _dragOffset;             // overview drag: distance of the pointer from visibleFrom
+    NSMutableArray<NSArray<NSValue *> *> *_stageLabels; // drawn stage numbers: rect, range (x: from, y: to)
 }
+
+- (instancetype)initWithFrame:(NSRect)frameRect
+{
+    self = [super initWithFrame:frameRect];
+    if (self) [self setupZoomButtons];
+    return self;
+}
+
+- (nullable instancetype)initWithCoder:(NSCoder *)coder
+{
+    self = [super initWithCoder:coder];
+    if (self) [self setupZoomButtons];
+    return self;
+}
+
+- (NSButton *)zoomButton:(NSString *)symbol action:(SEL)action identifier:(NSString *)identifier tip:(NSString *)tip
+{
+    NSButton *b = [NSButton buttonWithImage:[NSImage imageWithSystemSymbolName:symbol accessibilityDescription:tip]
+                                     target:self action:action];
+    b.controlSize = NSControlSizeSmall;
+    b.toolTip = tip;
+    b.accessibilityIdentifier = identifier;
+    [self addSubview:b];
+    return b;
+}
+
+- (void)setupZoomButtons
+{
+    if (_zoomInButton) return;
+    _drag = BPProfileDragNone;
+    _zoomOutButton = [self zoomButton:@"minus.magnifyingglass" action:@selector(zoomProfileOut:) identifier:@"profileZoomOut"
+                                  tip:NSLocalizedString(@"Zoom out of the elevation profile", @"profile zoom button")];
+    _zoomInButton = [self zoomButton:@"plus.magnifyingglass" action:@selector(zoomProfileIn:) identifier:@"profileZoomIn"
+                                 tip:NSLocalizedString(@"Zoom in on the elevation profile (also: pinch, ⌘-scroll, ⌥-drag on a range)", @"profile zoom button")];
+    _zoomFitButton = [self zoomButton:@"arrow.up.left.and.arrow.down.right" action:@selector(zoomProfileToFit:)
+                           identifier:@"profileZoomFit"
+                                  tip:NSLocalizedString(@"Show the whole route (also: double-click)", @"profile zoom button")];
+    [self placeZoomButtons];
+    [self updateZoomButtons];
+}
+
+// top right corner, above the plot area
+- (void)placeZoomButtons
+{
+    CGFloat x = NSMaxX(self.bounds) - 4;
+    for (NSButton *b in @[_zoomFitButton, _zoomInButton, _zoomOutButton]) {
+        NSSize sz = b.fittingSize;
+        x -= sz.width;
+        b.frame = NSMakeRect(x, NSMaxY(self.bounds) - 3 - sz.height, sz.width, sz.height);
+        x -= 2;
+    }
+}
+
+- (void)setFrameSize:(NSSize)newSize
+{
+    [super setFrameSize:newSize];
+    [self placeZoomButtons];
+}
+
+- (void)updateZoomButtons
+{
+    double total = self.distances.lastObject.doubleValue;
+    _zoomInButton.enabled = total > kMinVisibleSpan && self.visibleTo - self.visibleFrom > kMinVisibleSpan + 1;
+    _zoomOutButton.enabled = _zoomed;
+    _zoomFitButton.enabled = _zoomed;
+}
+
 - (void)updateMetrics {
     _maxDist = [[self.distances lastObject] doubleValue];
     _maxElev = [[self.elevations valueForKeyPath:@"@max.doubleValue"] doubleValue];
     _minElev = [[self.elevations valueForKeyPath:@"@min.doubleValue"] doubleValue];
     _plotRect = NSInsetRect(self.bounds, 40, 30);
+    _overviewRect = NSZeroRect;
+    if (_zoomed) {
+        // the overview at the bottom, the distance labels between it and the plot
+        CGFloat extra = kOverviewHeight + 6;
+        _plotRect.origin.y += extra;
+        _plotRect.size.height -= extra;
+        _overviewRect = NSMakeRect(NSMinX(_plotRect), 4, NSWidth(_plotRect), kOverviewHeight);
+    }
+}
+
+#pragma mark - zoom (#62)
+
+- (double)visibleFrom
+{
+    return _zoomed ? _visibleFrom : 0;
+}
+
+- (double)visibleTo
+{
+    return _zoomed ? _visibleTo : self.distances.lastObject.doubleValue;
+}
+
+- (BOOL)isZoomed
+{
+    return _zoomed;
+}
+
+- (void)showRangeFrom:(double)from to:(double)to notify:(BOOL)notify
+{
+    double total = self.distances.lastObject.doubleValue;
+    double span = fmin(fmax(to - from, kMinVisibleSpan), total);
+    if (to - from < span) from = (from + to - span) / 2;
+    from = fmax(0, fmin(from, total - span));
+    to = from + span;
+    _zoomed = total > 0 && (from > 0.5 || to < total - 0.5);
+    _visibleFrom = from;
+    _visibleTo = to;
+    [self updateZoomButtons];
+    [self setNeedsDisplay:YES];
+    if (notify && [self.delegate respondsToSelector:@selector(elevationProfileView:didShowRangeFrom:to:)]) {
+        [self.delegate elevationProfileView:self didShowRangeFrom:self.visibleFrom to:self.visibleTo];
+    }
+}
+
+- (void)zoomBy:(double)factor around:(double)distance
+{
+    double from = self.visibleFrom, to = self.visibleTo, span = to - from;
+    if (span <= 0 || factor <= 0) return;
+    distance = fmax(from, fmin(distance, to));
+    double newSpan = span / factor;
+    double newFrom = distance - (distance - from) * newSpan / span;
+    [self showRangeFrom:newFrom to:newFrom + newSpan notify:YES];
+}
+
+// around the cursor when it is in view, else around the middle
+- (double)zoomCenter
+{
+    if (_highlightDistance > 0 && _highlightDistance >= self.visibleFrom && _highlightDistance <= self.visibleTo) {
+        return _highlightDistance;
+    }
+    return (self.visibleFrom + self.visibleTo) / 2;
+}
+
+- (IBAction)zoomProfileIn:(id)sender
+{
+    [self zoomBy:2 around:[self zoomCenter]];
+}
+
+- (IBAction)zoomProfileOut:(id)sender
+{
+    [self zoomBy:0.5 around:[self zoomCenter]];
+}
+
+- (IBAction)zoomProfileToFit:(id)sender
+{
+    [self showRangeFrom:0 to:self.distances.lastObject.doubleValue notify:YES];
+}
+
+// x in the plot of a distance, and back
+- (CGFloat)xForDistance:(double)d
+{
+    double span = self.visibleTo - self.visibleFrom;
+    return _plotRect.origin.x + (span > 0 ? (d - self.visibleFrom) / span : 0) * _plotRect.size.width;
+}
+
+- (double)distanceAtX:(CGFloat)x
+{
+    return self.visibleFrom + ((x - _plotRect.origin.x) / _plotRect.size.width) * (self.visibleTo - self.visibleFrom);
+}
+
+- (double)overviewDistanceAtX:(CGFloat)x
+{
+    double f = (x - _overviewRect.origin.x) / _overviewRect.size.width;
+    return fmax(0, fmin(f, 1)) * _maxDist;
+}
+
+// displayed vertical range (#32): the visible part of the route
+- (void)displayedElevationLow:(double *)low high:(double *)high
+{
+    double from = self.visibleFrom, to = self.visibleTo;
+    double lo = [self elevationAtDistance:from], hi = lo;
+    double e = [self elevationAtDistance:to];
+    lo = fmin(lo, e);
+    hi = fmax(hi, e);
+    for (NSUInteger i = 0; i < self.distances.count; i++) {
+        double d = self.distances[i].doubleValue;
+        if (d < from) continue;
+        if (d > to) break;
+        e = self.elevations[i].doubleValue;
+        lo = fmin(lo, e);
+        hi = fmax(hi, e);
+    }
+    [[self class] elevationRangeForMin:lo max:hi low:low high:high];
 }
 
 #pragma mark - scale
@@ -103,6 +300,8 @@ static const double kMinElevationRange = 100; // m: small differences must not l
     self.distances = distances;
     self.slopes = slopes;
     self.elevations = elevations;
+    _zoomed = NO; // a new route: the whole route (#62)
+    [self updateZoomButtons];
     [self setNeedsDisplay:YES];
     //[self setNeedsLayout:YES];
 }
@@ -165,20 +364,19 @@ static const double kBPSlopeHalfWindow = 50; // m
     //NSLog(@"[%@] drawRect called", [NSDate date]);
     [super drawRect:dirtyRect];
     [self updateMetrics];
+    [_stageLabels removeAllObjects];
 
     if (self.distances.count == 0) return;
 
     CGContextRef ctx = [[NSGraphicsContext currentContext] CGContext];
 
-    double maxElev, minElev; // displayed range, not the data range (#32)
-    [[self class] elevationRangeForMin:_minElev max:_maxElev low:&minElev high:&maxElev];
+    double maxElev, minElev; // displayed range, not the data range (#32), of the visible part (#62)
+    [self displayedElevationLow:&minElev high:&maxElev];
     double maxDist = [[self.distances lastObject] doubleValue];
+    double from = self.visibleFrom, to = self.visibleTo;
+    CGRect plotRect = _plotRect;
 
-    // Margins
-    CGFloat leftMargin = 40, bottomMargin = 30;
-    CGRect plotRect = NSInsetRect(self.bounds, leftMargin, bottomMargin);
-
-    // Scale: altitude grid + labels (m) on the left, distance labels (km) at the bottom
+    // Scale: altitude grid + labels (m) on the left, distance labels (km from the start) at the bottom
     NSDictionary *labelAttrs = @{ NSFontAttributeName: [NSFont systemFontOfSize:9],
                                   NSForegroundColorAttributeName: [NSColor secondaryLabelColor] };
     for (NSNumber *t in [[self class] ticksFrom:minElev to:maxElev maxCount:5]) {
@@ -193,8 +391,8 @@ static const double kBPSlopeHalfWindow = 50; // m
         [s drawAtPoint:NSMakePoint(plotRect.origin.x - 4 - sz.width, y - sz.height / 2) withAttributes:labelAttrs];
     }
     if (maxDist > 0) {
-        for (NSNumber *t in [[self class] ticksFrom:0 to:maxDist / 1000 maxCount:6]) {
-            CGFloat x = plotRect.origin.x + (t.doubleValue * 1000 / maxDist) * plotRect.size.width;
+        for (NSNumber *t in [[self class] ticksFrom:from / 1000 to:to / 1000 maxCount:6]) {
+            CGFloat x = [self xForDistance:t.doubleValue * 1000];
             NSString *s = [NSString stringWithFormat:@"%g km", t.doubleValue];
             NSSize sz = [s sizeWithAttributes:labelAttrs];
             [s drawAtPoint:NSMakePoint(x - sz.width / 2, plotRect.origin.y - 4 - sz.height) withAttributes:labelAttrs];
@@ -210,6 +408,9 @@ static const double kBPSlopeHalfWindow = 50; // m
     CGContextStrokePath(ctx);
     if (maxDist <= 0) return; // single point: nothing to draw along the distance
 
+    CGContextSaveGState(ctx);
+    CGContextClipToRect(ctx, NSInsetRect(plotRect, -2, -2)); // zoomed: segments across the edges
+
     // Draw profile
     for (NSUInteger i = 1; i < self.distances.count; i++) {
         double d1 = [self.distances[i - 1] doubleValue];
@@ -217,11 +418,13 @@ static const double kBPSlopeHalfWindow = 50; // m
         double d2 = [self.distances[i] doubleValue];
         double e2 = [self.elevations[i] doubleValue];
         double slope = [self.slopes[i] doubleValue]; // m/m
+        if (d2 < from) continue;
+        if (d1 > to) break;
 
         // Map to view coords
-        CGFloat x1 = plotRect.origin.x + (d1 / maxDist) * plotRect.size.width;
+        CGFloat x1 = [self xForDistance:d1];
         CGFloat y1 = plotRect.origin.y + ((e1 - minElev) / (maxElev - minElev)) * plotRect.size.height;
-        CGFloat x2 = plotRect.origin.x + (d2 / maxDist) * plotRect.size.width;
+        CGFloat x2 = [self xForDistance:d2];
         CGFloat y2 = plotRect.origin.y + ((e2 - minElev) / (maxElev - minElev)) * plotRect.size.height;
 
         // Color based on slope
@@ -238,25 +441,43 @@ static const double kBPSlopeHalfWindow = 50; // m
         CGContextAddLineToPoint(ctx, x2, y2);
         CGContextStrokePath(ctx);
     }
-    
-    // stage ends (#31): a vertical line, the number of the next stage at the top
+    CGContextRestoreGState(ctx);
+
+    // stage ends (#31): a vertical line, the number of the next stage at the top; a click on it zooms on the stage
+    if (!_stageLabels) _stageLabels = [NSMutableArray array];
     NSDictionary *stageAttrs = @{ NSFontAttributeName: [NSFont boldSystemFontOfSize:10],
                                   NSForegroundColorAttributeName: [NSColor systemPurpleColor] };
-    NSUInteger stage = 2;
-    for (NSNumber *d in self.stageEndDistances) {
-        CGFloat sx = plotRect.origin.x + (d.doubleValue / maxDist) * plotRect.size.width;
+    NSArray<NSNumber *> *ends = self.stageEndDistances;
+    for (NSUInteger k = 0; k < ends.count; k++) {
+        double d = ends[k].doubleValue;
+        if (d < from || d > to) continue;
+        CGFloat sx = [self xForDistance:d];
         [[NSColor systemPurpleColor] setStroke];
         CGContextSetLineWidth(ctx, 1.5);
         CGContextMoveToPoint(ctx, sx, plotRect.origin.y);
         CGContextAddLineToPoint(ctx, sx, NSMaxY(plotRect));
         CGContextStrokePath(ctx);
-        NSString *s = [NSString stringWithFormat:@"%lu", (unsigned long)stage++];
-        [s drawAtPoint:NSMakePoint(sx + 3, NSMaxY(plotRect) - [s sizeWithAttributes:stageAttrs].height) withAttributes:stageAttrs];
+        NSString *s = [NSString stringWithFormat:@"%lu", (unsigned long)k + 2];
+        NSSize sz = [s sizeWithAttributes:stageAttrs];
+        NSPoint at = NSMakePoint(sx + 3, NSMaxY(plotRect) - sz.height);
+        [s drawAtPoint:at withAttributes:stageAttrs];
+        double stageEnd = k + 1 < ends.count ? ends[k + 1].doubleValue : maxDist;
+        [_stageLabels addObject:@[[NSValue valueWithRect:NSInsetRect(NSMakeRect(at.x, at.y, sz.width, sz.height), -3, -2)],
+                                  [NSValue valueWithPoint:NSMakePoint(d, stageEnd)]]];
     }
 
+    // ⌥-drag: the range to zoom on
+    if (_drag == BPProfileDragSelect) {
+        CGFloat xa = [self xForDistance:fmin(_selectFrom, _selectTo)], xb = [self xForDistance:fmax(_selectFrom, _selectTo)];
+        [[[NSColor selectedContentBackgroundColor] colorWithAlphaComponent:0.2] setFill];
+        NSRectFillUsingOperation(NSMakeRect(xa, plotRect.origin.y, xb - xa, plotRect.size.height), NSCompositingOperationSourceOver);
+    }
+
+    if (_zoomed) [self drawOverviewWithMaxDistance:maxDist context:ctx];
+
     // Draw highlight line
-     if (_highlightDistance > 0 && _highlightDistance <= _maxDist) {
-         CGFloat hx = _plotRect.origin.x + (_highlightDistance / _maxDist) * _plotRect.size.width;
+     if (_highlightDistance > 0 && _highlightDistance >= from && _highlightDistance <= to) {
+         CGFloat hx = [self xForDistance:_highlightDistance];
          [[NSColor labelColor] setStroke];
          CGContextSetLineWidth(ctx, 1.0);
          CGContextMoveToPoint(ctx, hx, _plotRect.origin.y);
@@ -282,20 +503,109 @@ static const double kBPSlopeHalfWindow = 50; // m
      }
 }
 
+// the whole route, small, with the visible part framed (#62)
+- (void)drawOverviewWithMaxDistance:(double)maxDist context:(CGContextRef)ctx
+{
+    NSRect r = _overviewRect;
+    [[[NSColor tertiaryLabelColor] colorWithAlphaComponent:0.15] setFill];
+    [[NSBezierPath bezierPathWithRoundedRect:r xRadius:2 yRadius:2] fill];
+    double lo, hi;
+    [[self class] elevationRangeForMin:_minElev max:_maxElev low:&lo high:&hi];
+    NSBezierPath *area = [NSBezierPath bezierPath];
+    [area moveToPoint:NSMakePoint(NSMinX(r), NSMinY(r))];
+    for (NSUInteger i = 0; i < self.distances.count; i++) {
+        CGFloat x = NSMinX(r) + self.distances[i].doubleValue / maxDist * NSWidth(r);
+        CGFloat y = NSMinY(r) + (self.elevations[i].doubleValue - lo) / (hi - lo) * NSHeight(r);
+        [area lineToPoint:NSMakePoint(x, y)];
+    }
+    [area lineToPoint:NSMakePoint(NSMaxX(r), NSMinY(r))];
+    [area closePath];
+    [[NSColor secondaryLabelColor] setFill];
+    [area fill];
+    CGFloat xa = NSMinX(r) + self.visibleFrom / maxDist * NSWidth(r);
+    CGFloat xb = NSMinX(r) + self.visibleTo / maxDist * NSWidth(r);
+    NSRect vis = NSMakeRect(xa, NSMinY(r) - 1, fmax(xb - xa, 3), NSHeight(r) + 2);
+    NSBezierPath *frame = [NSBezierPath bezierPathWithRoundedRect:vis xRadius:2 yRadius:2];
+    [[[NSColor controlAccentColor] colorWithAlphaComponent:0.25] setFill];
+    [frame fill];
+    [[NSColor controlAccentColor] setStroke];
+    frame.lineWidth = 1.5;
+    [frame stroke];
+}
+
 
 
 - (void)mouseDown:(NSEvent *)event {
+    NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
+    _drag = BPProfileDragNone;
+    if (self.distances.count < 2) return;
+    if (_zoomed && NSPointInRect(p, NSInsetRect(_overviewRect, 0, -3))) {
+        double d = [self overviewDistanceAtX:p.x];
+        double span = self.visibleTo - self.visibleFrom;
+        if (d < self.visibleFrom || d > self.visibleTo) {
+            [self showRangeFrom:d - span / 2 to:d + span / 2 notify:YES]; // centered on the click
+        }
+        _dragOffset = d - self.visibleFrom;
+        _drag = BPProfileDragOverview;
+        return;
+    }
+    for (NSArray<NSValue *> *label in _stageLabels) {
+        if (NSPointInRect(p, label[0].rectValue)) {
+            NSPoint range = label[1].pointValue;
+            [self showRangeFrom:range.x to:range.y notify:YES];
+            return;
+        }
+    }
+    if (event.clickCount == 2) {
+        [self zoomProfileToFit:self];
+        return;
+    }
+    if ((event.modifierFlags & NSEventModifierFlagOption) && NSPointInRect(p, _plotRect)) {
+        _selectFrom = _selectTo = [self distanceAtX:p.x];
+        _drag = BPProfileDragSelect;
+        [self setNeedsDisplay:YES];
+        return;
+    }
+    _drag = BPProfileDragCursor;
     [self handleMouse:event];
 }
 
 - (void)mouseDragged:(NSEvent *)event {
-    [self handleMouse:event];
+    NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
+    switch (_drag) {
+        case BPProfileDragCursor:
+            [self handleMouse:event];
+            break;
+        case BPProfileDragSelect:
+            _selectTo = [self distanceAtX:fmax(NSMinX(_plotRect), fmin(p.x, NSMaxX(_plotRect)))];
+            [self setNeedsDisplay:YES];
+            break;
+        case BPProfileDragOverview: {
+            double from = [self overviewDistanceAtX:p.x] - _dragOffset;
+            [self showRangeFrom:from to:from + self.visibleTo - self.visibleFrom notify:YES];
+            break;
+        }
+        case BPProfileDragNone:
+            break;
+    }
+}
+
+- (void)mouseUp:(NSEvent *)event {
+    if (_drag == BPProfileDragSelect) {
+        _drag = BPProfileDragNone;
+        CGFloat xa = [self xForDistance:_selectFrom], xb = [self xForDistance:_selectTo];
+        if (fabs(xb - xa) >= 4) { // not a ⌥-click
+            [self showRangeFrom:fmin(_selectFrom, _selectTo) to:fmax(_selectFrom, _selectTo) notify:YES];
+        }
+        [self setNeedsDisplay:YES];
+    }
+    _drag = BPProfileDragNone;
 }
 
 - (void)handleMouse:(NSEvent *)event {
     NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
     if (NSPointInRect(p, _plotRect)) {
-        double dist = ((p.x - _plotRect.origin.x) / _plotRect.size.width) * _maxDist;
+        double dist = [self distanceAtX:p.x];
         [self setHighlightDistance:dist animated:YES];
         if ([self.delegate respondsToSelector:@selector(elevationProfileView:didSelectDistance:)]) {
             [self.delegate elevationProfileView:self didSelectDistance:dist];
@@ -304,10 +614,50 @@ static const double kBPSlopeHalfWindow = 50; // m
     }
 }
 
+// horizontal scroll (or ⇧-scroll with a mouse) moves a zoomed profile; ⌘-scroll zooms around the pointer
+- (void)scrollWheel:(NSEvent *)event
+{
+    if (self.distances.count < 2) {
+        [super scrollWheel:event];
+        return;
+    }
+    CGFloat scale = event.hasPreciseScrollingDeltas ? 1 : 10; // lines → points
+    CGFloat dx = event.scrollingDeltaX * scale, dy = event.scrollingDeltaY * scale;
+    if (event.modifierFlags & NSEventModifierFlagCommand) {
+        if (dy != 0) {
+            NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
+            [self zoomBy:exp(dy / 100) around:[self distanceAtX:p.x]];
+        }
+        return;
+    }
+    if (_zoomed && dx != 0 && fabs(dx) >= fabs(dy)) {
+        double shift = -dx * (self.visibleTo - self.visibleFrom) / _plotRect.size.width;
+        [self showRangeFrom:self.visibleFrom + shift to:self.visibleTo + shift notify:YES];
+        return;
+    }
+    [super scrollWheel:event];
+}
 
+// trackpad pinch
+- (void)magnifyWithEvent:(NSEvent *)event
+{
+    if (self.distances.count < 2) return;
+    NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
+    [self zoomBy:1 + event.magnification around:[self distanceAtX:p.x]];
+}
+
+- (void)setHighlightDistance:(double)highlightDistance
+{
+    [self setHighlightDistance:highlightDistance animated:NO];
+}
 
 - (void)setHighlightDistance:(double)highlightDistance animated:(BOOL)animated {
     _highlightDistance =  highlightDistance; //fmax(0, fmin(_highlightDistance, [[self.distances lastObject] doubleValue]));
+    if (_zoomed && highlightDistance > 0 && (highlightDistance < _visibleFrom || highlightDistance > _visibleTo)) {
+        // set from the map: the profile moves to show it (the map is where it is)
+        double span = _visibleTo - _visibleFrom;
+        [self showRangeFrom:highlightDistance - span / 2 to:highlightDistance + span / 2 notify:NO];
+    }
     if (animated) {
         [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
             context.duration = 0.1;

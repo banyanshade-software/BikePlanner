@@ -18,7 +18,8 @@ BikePlanner is a **personal project**, not distributed yet (see
   *Params* tab and saved in the document.
 - **Base maps**: OpenStreetMap, OpenCycleMap (Thunderforest), Apple standard / hybrid / satellite; place search.
 - **Route info**: length, ascent, estimated riding time and speed, distance by road type and surface.
-- **Elevation profile** with slope coloring and a cursor linked to the map and to Street View.
+- **Elevation profile** with slope coloring and a cursor linked to the map and to Street View; zoom (buttons,
+  pinch, ⌥-drag on a range) with an overview strip, the map following the zoomed part.
 - **Points of interest** along the route from OpenStreetMap (Overpass): drinking water, toilets, bicycle repair
   stations, cemeteries; plus typed custom POIs.
 - **GPX**: import a trace as a reference or as an editable route; export the route, optionally with the POIs as

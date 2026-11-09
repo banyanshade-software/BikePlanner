@@ -136,7 +136,7 @@ and product; source files are kept).
 - Undo: in tests, the undo manager does not close its automatic groups in nested run loops — set
   `groupsByEvent = NO` and group explicitly (see `UndoTests`).
 - UI tests: controls created in code have `accessibilityIdentifier`s (`map`, `clickMode`, `mapType`, `clickModeHelp`,
-  `zoomIn`…, `brf.<parameter>` in the Params tab, `routeRoadTypes` (Info section, a `BPRoadTypesLabel`: hovering a
+  `zoomIn`…, `profileZoomIn`/`profileZoomOut`/`profileZoomFit` (elevation profile, #62), `brf.<parameter>` in the Params tab, `routeRoadTypes` (Info section, a `BPRoadTypesLabel`: hovering a
   road type line or a surface part highlights it on the map, #54), `poiType`/`poiName` (custom POI
   sheet), `prefLatitude`/`prefLongitude`/`prefRadius`/`prefSearch` (Preferences), `routeLength`/`routeAscent`/`routeTime`/`routeSpeed` in the XIB — on the cell: unit tests find them with
   `-[DocumentWindowTests panelControlWithIdentifier:]`). POI markers and callouts are not exposed to accessibility:

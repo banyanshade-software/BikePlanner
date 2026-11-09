@@ -1960,6 +1960,25 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     
     [self.svCtrl viewCoord:coord lookingAt:bearing coalesce:NO];
 }
+
+// the profile was zoomed or moved (#62): the map shows the same part of the route
+- (void)elevationProfileView:(id)view didShowRangeFrom:(double)from to:(double)to
+{
+    NSArray<CLLocation *> *pts = _document.plan.routePoints;
+    if (pts.count < 2) return;
+    MKMapPoint a = MKMapPointForCoordinate([self coordinateAtDistance:from]);
+    MKMapPoint b = MKMapPointForCoordinate([self coordinateAtDistance:to]);
+    MKMapRect r = MKMapRectMake(fmin(a.x, b.x), fmin(a.y, b.y), fabs(a.x - b.x), fabs(a.y - b.y));
+    double d = 0;
+    for (NSUInteger i = 1; i < pts.count && d < to; i++) {
+        d += [pts[i] distanceFromLocation:pts[i - 1]];
+        if (d <= from || d >= to) continue;
+        MKMapPoint p = MKMapPointForCoordinate(pts[i].coordinate);
+        r = MKMapRectUnion(r, MKMapRectMake(p.x, p.y, 0, 0));
+    }
+    [self.mapView setVisibleMapRect:r edgePadding:NSEdgeInsetsMake(40, 40, 40, 40) animated:NO];
+}
+
 // distance along the route of the projection of coord on the NEAREST route segment (#14)
 // *psegstart: index of the start point of that segment, or the last point index if coord is beyond the end
 - (CLLocationDistance)distanceAtCoordinate:(CLLocationCoordinate2D)coord segstart:(NSUInteger *)psegstart

@@ -202,6 +202,14 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F5.3 Next to the cursor (profile scrubbed, or route clicked in *View* mode), the profile shows the distance from
   the start, the elevation and the **slope** at that point (“12.3 km · 145 m · +6.5 %”, positive uphill in the
   direction of the route). The slope is computed over ±50 m around the point (raw elevations are noisy) (#48).
+- F5.4 Zoom on the distance axis (#62): buttons − / + / ⤢ (whole route) at the top right of the profile, trackpad
+  pinch or ⌘-scroll (around the pointer), ⌥-drag over a range, click on a stage number (that stage); double-click
+  shows the whole route. − / + zoom around the cursor when it is in view. The narrowest view is 1 km. A zoomed
+  profile moves with a horizontal scroll (⇧-scroll with a mouse) or with the **overview strip** under it (the whole
+  route, the visible part framed: click or drag). The vertical range fits the visible part; distances stay counted
+  from the start. The **map follows**: it shows the visible part of the route at each zoom or move of the profile
+  (not the other way round: a cursor set from the map moves the profile to show it, the map stays). The zoom is
+  not saved and not undoable; a new route shows the whole profile.
 
 ### F6 — Street View
 - F6.1 The Street View pane shows Google Street View at a given coordinate and heading, filling the pane with as
