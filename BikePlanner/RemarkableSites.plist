@@ -27,6 +27,54 @@
 	</dict>
 	<dict>
 		<key>name</key>
+		<string>Golf du Morbihan</string>
+		<key>latitude</key>
+		<real>47.60214</real>
+		<key>longitude</key>
+		<real>-2.72011</real>
+		<key>kind</key>
+		<string>nature</string>
+		<key>heading</key>
+		<integer>239</integer>
+	</dict>
+	<dict>
+		<key>name</key>
+		<string>Nérac</string>
+		<key>latitude</key>
+		<real>44.13515</real>
+		<key>longitude</key>
+		<real>0.34134</real>
+		<key>kind</key>
+		<string>monument</string>
+		<key>heading</key>
+		<integer>5</integer>
+	</dict>
+	<dict>
+		<key>name</key>
+		<string>Pont-Canal Agen</string>
+		<key>latitude</key>
+		<real>44.20745</real>
+		<key>longitude</key>
+		<real>0.60452</real>
+		<key>kind</key>
+		<string>monument</string>
+		<key>heading</key>
+		<integer>32</integer>
+	</dict>
+	<dict>
+		<key>name</key>
+		<string>Pente d'eau de Montech</string>
+		<key>latitude</key>
+		<real>43.97092</real>
+		<key>longitude</key>
+		<real>1.22665</real>
+		<key>kind</key>
+		<string>monument</string>
+		<key>heading</key>
+		<integer>15</integer>
+	</dict>
+	<dict>
+		<key>name</key>
 		<string>Col du Tourmalet</string>
 		<key>latitude</key>
 		<real>42.90715</real>
@@ -633,9 +681,57 @@
 		<key>longitude</key>
 		<real>1.44316</real>
 		<key>kind</key>
-		<string>climb</string>
+		<string>monument</string>
 		<key>heading</key>
 		<integer>85</integer>
+	</dict>
+	<dict>
+		<key>name</key>
+		<string>Plateau de Valensole</string>
+		<key>latitude</key>
+		<real>43.83799</real>
+		<key>longitude</key>
+		<real>5.96453</real>
+		<key>kind</key>
+		<string>nature</string>
+		<key>heading</key>
+		<integer>5</integer>
+	</dict>
+	<dict>
+		<key>name</key>
+		<string>Tour Eiffel, Paris</string>
+		<key>latitude</key>
+		<real>48.85785</real>
+		<key>longitude</key>
+		<real>2.29526</real>
+		<key>kind</key>
+		<string>monument</string>
+		<key>heading</key>
+		<integer>0</integer>
+	</dict>
+	<dict>
+		<key>name</key>
+		<string>Moissac, pont-canal</string>
+		<key>latitude</key>
+		<real>44.09311</real>
+		<key>longitude</key>
+		<real>1.10276</real>
+		<key>kind</key>
+		<string>monument</string>
+		<key>heading</key>
+		<integer>0</integer>
+	</dict>
+	<dict>
+		<key>name</key>
+		<string>Saint-Cirq-Lapopie</string>
+		<key>latitude</key>
+		<real>44.46392</real>
+		<key>longitude</key>
+		<real>1.67051</real>
+		<key>kind</key>
+		<string>monument</string>
+		<key>heading</key>
+		<integer>3</integer>
 	</dict>
 </array>
 </plist>
