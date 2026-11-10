@@ -269,9 +269,12 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F10.1 *File ▸ Export to GPX* (or toolbar) saves the route as GPX. The track name is the file name.
 - F10.2 An option in the save panel adds custom and fetched POIs as GPX `<wpt>` elements, with a
   Garmin-compatible `<type>` (WATER, TOILET, SERVICE, GENERIC, DANGER — see `README.POI.GARMIN.txt`).
-- F10.2b A route in stages (F3.10): the save panel option *One file per stage, in a folder* (checked by default)
-  writes `<name> - stage <n>.gpx` files in a new folder `<name>`, each with the POIs of its stage (the stage of the
-  nearest route point); unchecked, the whole route is one file.
+- F10.2b A route in stages (F3.10): the save panel pop-up *Stages:* (#69; it starts on the last choice, *in a folder*
+  the first time) offers *One file per stage, in a folder*: `<name> - stage <n>.gpx` files in a new folder `<name>`,
+  each with the POIs of its stage (the stage of the nearest route point); *Whole route, one file*: exactly the file of
+  the same route without stages; *One file per stage, no folder*: the same stage files in the chosen folder. The
+  sandbox asks once per folder for the last one: a folder panel opens on it (*Export Here*), then the folder is
+  remembered.
 - F10.3 *(planned)* *Export to FIT* (Garmin course) — menu item exists, not implemented.
 - F10.4 Export is only possible once a route has been computed in the current session.
 

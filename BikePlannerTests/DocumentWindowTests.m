@@ -44,6 +44,13 @@
 - (CGFloat)projectPoint:(CGPoint)p ontoSegmentFrom:(CGPoint)a to:(CGPoint)b projection:(CGPoint *)projection;
 - (NSMenu *)waypointMenuForAnnotation:(RouteAnnotation *)annotation;
 - (BOOL)exportStagesToDirectory:(NSURL *)dir baseName:(NSString *)baseName withPOI:(BOOL)inclPOI error:(NSError **)error;
+- (BOOL)exportGPXToURL:(NSURL *)url mode:(NSInteger)mode withPOI:(BOOL)inclPOI error:(NSError **)error;
+- (NSPopUpButton *)stagesExportPopUp;
+- (void)applyStagesExportMode:(NSInteger)mode toPanel:(NSSavePanel *)panel;
+- (void)setExportDefaults:(nullable NSUserDefaults *)defaults;
+- (BOOL)isNoPermissionError:(nullable NSError *)error;
+- (nullable NSURL *)rememberedFolderAccess:(NSURL *)dir;
+- (void)rememberFolderAccess:(NSURL *)dir;
 - (void)mouseMoved:(NSEvent *)event;
 - (NSData *)exportGpxDataWithPOI:(BOOL)inclPOI trackName:(NSString *)trackName;
 - (void)loadGPXFromURL:(NSURL *)url;
@@ -1365,6 +1372,100 @@
         NSString *name = [NSString stringWithFormat:@"<name>Trip - stage %lu</name>", (unsigned long)(i + 1)];
         XCTAssertTrue([xml containsString:name]);
     }
+}
+
+- (NSURL *)emptyTemporaryDirectory:(NSString *)name
+{
+    NSURL *dir = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:name] isDirectory:YES];
+    [[NSFileManager defaultManager] removeItemAtURL:dir error:NULL];
+    XCTAssertTrue([[NSFileManager defaultManager] createDirectoryAtURL:dir withIntermediateDirectories:NO attributes:nil error:NULL]);
+    return dir;
+}
+
+- (NSArray<NSString *> *)filesIn:(NSURL *)dir
+{
+    return [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:dir.path error:NULL] sortedArrayUsingSelector:@selector(compare:)];
+}
+
+// export of a route in stages (#69): a/ one file per stage in a new folder, b/ the whole route, exactly the file of
+// the same route without stages, c/ one file per stage next to each other (the chosen name itself not written)
+- (void)testExportStagesModes
+{
+    doc.plan.fetchPOI = NO;
+    [self makeThreeWaypointRoute];
+    [NSApp sendAction:NSSelectorFromString(@"toggleStageEndMenuAction:") to:mc from:[self stageItemForWaypoint:1]];
+    XCTAssertEqual(doc.plan.stagesRoutePoints.count, 2u);
+    [mc addCustomPoiAt:CLLocationCoordinate2DMake(44.03, 0.53)];
+    NSURL *dir = [self emptyTemporaryDirectory:@"bp-stages-modes"];
+    NSError *err = nil;
+
+    XCTAssertTrue([mc exportGPXToURL:[dir URLByAppendingPathComponent:@"Trip"] mode:0 withPOI:YES error:&err], @"%@", err);
+    XCTAssertEqualObjects([self filesIn:[dir URLByAppendingPathComponent:@"Trip"]], (@[@"Trip - stage 1.gpx", @"Trip - stage 2.gpx"]));
+
+    XCTAssertTrue([mc exportGPXToURL:[dir URLByAppendingPathComponent:@"Next.gpx"] mode:2 withPOI:YES error:&err], @"%@", err);
+    XCTAssertEqualObjects([self filesIn:dir], (@[@"Next - stage 1.gpx", @"Next - stage 2.gpx", @"Trip"]));
+
+    NSURL *whole = [dir URLByAppendingPathComponent:@"Whole.gpx"];
+    XCTAssertTrue([mc exportGPXToURL:whole mode:1 withPOI:YES error:&err], @"%@", err);
+    GPXParser *p = [[GPXParser alloc] init];
+    XCTAssertEqual([p parseGPXData:[NSData dataWithContentsOfURL:whole] error:NULL].count, 21u, @"the whole route");
+    // the same route without stages
+    [NSApp sendAction:NSSelectorFromString(@"toggleStageEndMenuAction:") to:mc from:[self stageItemForWaypoint:1]];
+    XCTAssertEqual(doc.plan.stagesRoutePoints.count, 1u);
+    NSURL *plain = [dir URLByAppendingPathComponent:@"Whole2.gpx"];
+    XCTAssertTrue([mc exportGPXToURL:plain mode:1 withPOI:YES error:&err], @"%@", err);
+    NSString *a = [[NSString alloc] initWithContentsOfURL:whole encoding:NSUTF8StringEncoding error:NULL];
+    NSString *b = [[NSString alloc] initWithContentsOfURL:plain encoding:NSUTF8StringEncoding error:NULL];
+    XCTAssertEqualObjects([a stringByReplacingOccurrencesOfString:@"<name>Whole</name>" withString:@"<name>Whole2</name>"], b);
+}
+
+// the "Stages:" pop-up of the export panel starts on the last choice; the panel names a folder or a .gpx file
+- (void)testStagesExportPopUpRemembersChoice
+{
+    NSUserDefaults *ud = [[NSUserDefaults alloc] initWithSuiteName:@"bp-tests-export"];
+    [ud removePersistentDomainForName:@"bp-tests-export"];
+    [mc setExportDefaults:ud];
+    NSPopUpButton *popup = [mc stagesExportPopUp];
+    XCTAssertEqualObjects(popup.accessibilityIdentifier, @"exportStages");
+    XCTAssertEqual(popup.numberOfItems, 3);
+    XCTAssertEqual(popup.selectedTag, 0, @"in a folder the first time");
+    [popup selectItemWithTag:2];
+    [popup sendAction:popup.action to:popup.target];
+    XCTAssertEqual([mc stagesExportPopUp].selectedTag, 2);
+    [ud setInteger:7 forKey:@"BPExportStagesMode"];
+    XCTAssertEqual([mc stagesExportPopUp].selectedTag, 0, @"unknown value");
+
+    NSSavePanel *panel = [NSSavePanel savePanel];
+    panel.nameFieldStringValue = @"Trip.gpx";
+    [mc applyStagesExportMode:0 toPanel:panel];
+    XCTAssertEqualObjects(panel.nameFieldStringValue, @"Trip");
+    [mc applyStagesExportMode:2 toPanel:panel];
+    XCTAssertEqualObjects(panel.nameFieldStringValue, @"Trip.gpx");
+    [mc setExportDefaults:nil];
+    [ud removePersistentDomainForName:@"bp-tests-export"];
+}
+
+// c/ a folder the user allowed is remembered (security-scoped bookmark); a write refused by the sandbox asks for it
+- (void)testExportFolderAccessRemembered
+{
+    NSUserDefaults *ud = [[NSUserDefaults alloc] initWithSuiteName:@"bp-tests-export"];
+    [ud removePersistentDomainForName:@"bp-tests-export"];
+    [mc setExportDefaults:ud];
+    NSURL *dir = [self emptyTemporaryDirectory:@"bp-stages-access"];
+    XCTAssertNil([mc rememberedFolderAccess:dir]);
+    [mc rememberFolderAccess:dir];
+    NSURL *scoped = [mc rememberedFolderAccess:dir];
+    XCTAssertEqualObjects(scoped.URLByStandardizingPath.path.stringByResolvingSymlinksInPath, dir.URLByStandardizingPath.path.stringByResolvingSymlinksInPath);
+
+    NSError *denied = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileWriteNoPermissionError userInfo:nil];
+    XCTAssertTrue([mc isNoPermissionError:denied]);
+    NSError *posix = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileWriteUnknownError
+                                     userInfo:@{ NSUnderlyingErrorKey: [NSError errorWithDomain:NSPOSIXErrorDomain code:EPERM userInfo:nil] }];
+    XCTAssertTrue([mc isNoPermissionError:posix]);
+    XCTAssertFalse([mc isNoPermissionError:[NSError errorWithDomain:NSCocoaErrorDomain code:NSFileWriteOutOfSpaceError userInfo:nil]]);
+    XCTAssertFalse([mc isNoPermissionError:nil]);
+    [mc setExportDefaults:nil];
+    [ud removePersistentDomainForName:@"bp-tests-export"];
 }
 
 // printing is not implemented (#59): File ▸ Print… / Page Setup… and the Print toolbar button are disabled, and a

@@ -266,8 +266,14 @@ waypoint undo (previous arrays) and `replaceWaypointAtIndex:by:` (keeps the clas
 `plan.setStageEnd:atWaypointIndex:` → undo `undoStages:` (no route request) → `fullRefresh:NO`. `refreshPoly:` draws
 `plan.stagesRoutePoints` (cut at `stageEndRouteIndexes`: each waypoint's nearest route point, in order, via
 `+routeIndexesOfWaypoints:inRoute:`) and sets `elevationView.stageEndIndexes`. Export:
-`exportStagesToDirectory:baseName:withPOI:error:` (POIs by `plan.stageOfCoordinate:`); the export panel has the
-per-stage checkbox, which switches the panel to a folder name (`exportPerStageChanged:`).
+`exportStagesToDirectory:baseName:withPOI:error:` (POIs by `plan.stageOfCoordinate:`). The export panel has a
+*Stages:* pop-up (#69, `stagesExportPopUp`, last choice in the `BPExportStagesMode` default) that switches the panel
+between a folder name and a .gpx name (`applyStagesExportMode:toPanel:`); `exportGPXToURL:mode:withPOI:error:` writes
+a/ a new folder of stage files, b/ the whole route (`_gpxData`: one BRouter request, the same file as without stages),
+c/ stage files next to the chosen name. For c/ the sandbox only grants the file named in the save panel:
+`exportStageFilesNextTo:withPOI:` uses a remembered security-scoped bookmark of the folder (`BPExportFolderBookmarks`,
+entitlement `files.bookmarks.app-scope`), else, on a permission error, opens a folder panel on it (*Export Here*) and
+remembers the folder.
 
 ### 6.6 Undo / redo
 `undoableWP:desc:` registers `undoAction:` with the **previous waypoint array** on the document's undo manager.

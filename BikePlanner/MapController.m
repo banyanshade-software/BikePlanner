@@ -26,6 +26,15 @@
 
 // Secret.h is not commited, see Secret.h.example
 
+// GPX export of a route in stages (#31, #69), tag of the "Stages:" pop-up
+typedef NS_ENUM(NSInteger, BPStagesExportMode) {
+    BPStagesExportFolder = 0,   // one file per stage, in a new folder
+    BPStagesExportWhole  = 1,   // the whole route in one file, as without stages
+    BPStagesExportFiles  = 2,   // one file per stage, next to each other in the chosen folder
+};
+static NSString * const BPExportStagesModeKey = @"BPExportStagesMode";
+static NSString * const BPExportFolderBookmarksKey = @"BPExportFolderBookmarks";
+
 
 @implementation BPSearchPinAnnotation
 @end
@@ -57,7 +66,8 @@
     BOOL initialRegionPending;              // new plan: recenter on the first user location (#26)
     CLLocationCoordinate2D initialCenter;   // center set by showInitialRegion, to detect a map moved by the user
     NSURLSessionDataTask *routeTask;        // route request in flight
-    __weak NSSavePanel *exportPanel;         // while the export panel is open (#31: per-stage checkbox)
+    __weak NSSavePanel *exportPanel;         // while the export panel is open (#31, #69: stages pop-up)
+    NSUserDefaults *exportDefaults;         // last stages export choice, folder bookmarks (#69); nil: standard, set by tests
     NSUInteger routeGeneration;             // incremented by each request and cancel: older answers are ignored (#9)
 }
 
@@ -1370,20 +1380,152 @@ static NSString *xmlEscaped(NSString * _Nullable s)
     return [[NSFileManager defaultManager] fileExistsAtPath:url.path isDirectory:&dir] && dir;
 }
 
-// per stage: a folder name (no extension); else a .gpx file
-- (void) exportPerStageChanged:(NSButton *)sender
+// the export panel of a route in stages (#31, #69): a folder name (no extension) for one file per stage in a
+// folder; else a .gpx file name (the whole route, or the base name of the stage files)
+- (void) applyStagesExportMode:(BPStagesExportMode)mode toPanel:(NSSavePanel *)panel
 {
-    NSSavePanel *panel = exportPanel;
-    if (!panel) return;
     NSString *base = [panel.nameFieldStringValue stringByDeletingPathExtension];
     if (!base.length) base = @"plan";
-    if (sender.state == NSControlStateValueOn) {
+    if (mode == BPStagesExportFolder) {
         panel.allowedContentTypes = @[UTTypeFolder];
         panel.nameFieldStringValue = base;
     } else {
         panel.allowedContentTypes = @[[UTType typeWithFilenameExtension:@"gpx"]];
         panel.nameFieldStringValue = [base stringByAppendingPathExtension:@"gpx"];
     }
+}
+
+- (void) exportStagesModeChanged:(NSPopUpButton *)sender
+{
+    [self.exportDefaults setInteger:sender.selectedTag forKey:BPExportStagesModeKey];
+    NSSavePanel *panel = exportPanel;
+    if (panel) [self applyStagesExportMode:sender.selectedTag toPanel:panel];
+}
+
+// "Stages:" pop-up of the export panel, on the last choice (#69)
+- (NSPopUpButton *) stagesExportPopUp
+{
+    NSPopUpButton *popup = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
+    NSArray *titles = @[NSLocalizedString(@"One file per stage, in a folder", @"export"),
+                        NSLocalizedString(@"Whole route, one file", @"export"),
+                        NSLocalizedString(@"One file per stage, no folder", @"export")];
+    for (NSUInteger i = 0; i < titles.count; i++) {
+        [popup addItemWithTitle:titles[i]];
+        popup.lastItem.tag = (NSInteger)i;
+    }
+    NSInteger mode = [self.exportDefaults integerForKey:BPExportStagesModeKey];
+    if (![popup selectItemWithTag:mode]) [popup selectItemWithTag:BPStagesExportFolder];
+    popup.target = self;
+    popup.action = @selector(exportStagesModeChanged:);
+    popup.accessibilityIdentifier = @"exportStages";
+    [popup sizeToFit];
+    return popup;
+}
+
+- (NSUserDefaults *) exportDefaults
+{
+    return exportDefaults ?: [NSUserDefaults standardUserDefaults];
+}
+
+- (void) setExportDefaults:(nullable NSUserDefaults *)defaults
+{
+    exportDefaults = defaults;
+}
+
+// writes the GPX of the route at url: a new folder of stage files, one file, or stage files next to url ("<name> -
+// stage <n>.gpx", url itself is not written)
+- (BOOL) exportGPXToURL:(NSURL *)url mode:(BPStagesExportMode)mode withPOI:(BOOL)inclPOI error:(NSError **)error
+{
+    NSString *name = [[url lastPathComponent] stringByDeletingPathExtension];
+    switch (mode) {
+        case BPStagesExportFolder: {
+            NSError *err = nil;
+            BOOL ok = [[NSFileManager defaultManager] createDirectoryAtURL:url withIntermediateDirectories:NO attributes:nil error:&err]
+                      || [url hasDirectoryPath] || [self isDirectory:url];
+            if (!ok) {
+                if (error) *error = err;
+                return NO;
+            }
+            return [self exportStagesToDirectory:url baseName:name withPOI:inclPOI error:error];
+        }
+        case BPStagesExportFiles:
+            return [self exportStagesToDirectory:url.URLByDeletingLastPathComponent baseName:name withPOI:inclPOI error:error];
+        case BPStagesExportWhole:
+        default:
+            return [[self exportGpxDataWithPOI:inclPOI trackName:name] writeToURL:url options:NSDataWritingAtomic error:error];
+    }
+}
+
+- (BOOL) isNoPermissionError:(nullable NSError *)error
+{
+    if ([error.domain isEqualToString:NSCocoaErrorDomain] && error.code == NSFileWriteNoPermissionError) return YES;
+    NSError *posix = error.userInfo[NSUnderlyingErrorKey];
+    return [posix.domain isEqualToString:NSPOSIXErrorDomain] && (posix.code == EPERM || posix.code == EACCES);
+}
+
+// folders where the user let the app write stage files (#69): security-scoped bookmarks, by path
+- (nullable NSURL *) rememberedFolderAccess:(NSURL *)dir
+{
+    NSData *bookmark = [self.exportDefaults dictionaryForKey:BPExportFolderBookmarksKey][dir.URLByStandardizingPath.path];
+    if (!bookmark) return nil;
+    BOOL stale = NO;
+    NSURL *url = [NSURL URLByResolvingBookmarkData:bookmark options:NSURLBookmarkResolutionWithSecurityScope
+                                     relativeToURL:nil bookmarkDataIsStale:&stale error:NULL];
+    if (stale && url) [self rememberFolderAccess:url];
+    return url;
+}
+
+- (void) rememberFolderAccess:(NSURL *)dir
+{
+    NSData *bookmark = [dir bookmarkDataWithOptions:NSURLBookmarkCreationWithSecurityScope includingResourceValuesForKeys:nil
+                                      relativeToURL:nil error:NULL];
+    if (!bookmark) return;
+    NSMutableDictionary *d = [[self.exportDefaults dictionaryForKey:BPExportFolderBookmarksKey] mutableCopy] ?: [NSMutableDictionary dictionary];
+    d[dir.URLByStandardizingPath.path] = bookmark;
+    [self.exportDefaults setObject:d forKey:BPExportFolderBookmarksKey];
+}
+
+// one file per stage, no folder (#69): the save panel only lets the sandboxed app write the file it names, so the
+// folder needs its own permission: a folder panel opened on it (one click), remembered for the next exports
+- (void) exportStageFilesNextTo:(NSURL *)fileURL withPOI:(BOOL)inclPOI
+{
+    NSURL *dir = fileURL.URLByDeletingLastPathComponent;
+    NSString *name = fileURL.lastPathComponent;
+    NSURL *scoped = [self rememberedFolderAccess:dir];
+    BOOL accessing = [scoped startAccessingSecurityScopedResource];
+    NSError *error = nil;
+    BOOL ok = [self exportGPXToURL:fileURL mode:BPStagesExportFiles withPOI:inclPOI error:&error];
+    if (accessing) [scoped stopAccessingSecurityScopedResource];
+    if (ok) return;
+    if (![self isNoPermissionError:error]) {
+        [self showExportError:error];
+        return;
+    }
+    NSOpenPanel *panel = [NSOpenPanel openPanel];
+    panel.directoryURL = dir;
+    panel.canChooseFiles = NO;
+    panel.canChooseDirectories = YES;
+    panel.canCreateDirectories = YES;
+    panel.prompt = NSLocalizedString(@"Export Here", @"folder panel of the stage files");
+    panel.message = NSLocalizedString(@"Allow BikePlanner to write one GPX file per stage in this folder (asked once per folder).",
+                                      @"folder panel of the stage files");
+    [panel beginWithCompletionHandler:^(NSModalResponse result) {
+        if (result != NSModalResponseOK || !panel.URL) return;
+        NSURL *chosen = panel.URL;
+        [self rememberFolderAccess:chosen];
+        NSError *err = nil;
+        if (![self exportGPXToURL:[chosen URLByAppendingPathComponent:name] mode:BPStagesExportFiles withPOI:inclPOI error:&err]) {
+            [self showExportError:err];
+        }
+    }];
+}
+
+- (void) showExportError:(nullable NSError *)error
+{
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = @"Export failed";
+    alert.informativeText = error.localizedDescription ?: @"";
+    [alert runModal];
 }
 
 - (IBAction) exportGPX:(id)sender
@@ -1399,51 +1541,39 @@ static NSString *xmlEscaped(NSString * _Nullable s)
     ExportAccessoryViewController *accessoryVC = [[ExportAccessoryViewController alloc] initWithNibName:@"ExportAccessoryView" bundle:nil];
     savePanel.accessoryView = accessoryVC.view;
     accessoryVC.savePanel = savePanel;
-    // a route in stages (#31): one GPX per stage (default), in a folder named in the panel (the sandbox only lets
-    // the app write where the user chose), or the whole route
-    NSButton *perStage = nil;
+    // a route in stages (#31, #69): one GPX per stage in a folder named in the panel, the whole route, or one GPX per
+    // stage next to each other; the last choice is kept
+    NSPopUpButton *stagesMode = nil;
     if (_document.plan.stagesRoutePoints.count > 1) {
         NSView *acc = accessoryVC.view;
-        perStage = [NSButton checkboxWithTitle:NSLocalizedString(@"One file per stage, in a folder", @"export")
-                                        target:self action:@selector(exportPerStageChanged:)];
-        perStage.state = NSControlStateValueOn;
-        NSView *box = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, NSWidth(acc.frame), NSHeight(acc.frame) + 26)];
-        acc.frame = NSMakeRect(0, 26, NSWidth(acc.frame), NSHeight(acc.frame));
-        [perStage sizeToFit];
-        perStage.frameOrigin = NSMakePoint(20, 4);
+        stagesMode = [self stagesExportPopUp];
+        NSTextField *label = [NSTextField labelWithString:NSLocalizedString(@"Stages:", @"export")];
+        CGFloat h = MAX(NSHeight(stagesMode.frame), NSHeight(label.frame)) + 8;
+        NSView *box = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, NSWidth(acc.frame), NSHeight(acc.frame) + h)];
+        acc.frame = NSMakeRect(0, h, NSWidth(acc.frame), NSHeight(acc.frame));
+        label.frameOrigin = NSMakePoint(20, 4 + (NSHeight(stagesMode.frame) - NSHeight(label.frame)) / 2);
+        stagesMode.frameOrigin = NSMakePoint(NSMaxX(label.frame) + 6, 4);
         [box addSubview:acc];
-        [box addSubview:perStage];
+        [box addSubview:label];
+        [box addSubview:stagesMode];
         savePanel.accessoryView = box;
         exportPanel = savePanel;
-        [self exportPerStageChanged:perStage];
+        [self applyStagesExportMode:stagesMode.selectedTag toPanel:savePanel];
     }
     
     [savePanel beginWithCompletionHandler:^(NSModalResponse result) {
         self->exportPanel = nil;
-        if (result == NSModalResponseOK) {
-            NSURL *destinationURL = savePanel.URL;
-            NSString *trackname = [[destinationURL lastPathComponent] stringByDeletingPathExtension];
-            NSError *error = nil;
-            BOOL includePOI = (accessoryVC.poiCheckbox.state == NSControlStateValueOn);
-
-            BOOL ok;
-            if (perStage.state == NSControlStateValueOn) {
-                ok = [[NSFileManager defaultManager] createDirectoryAtURL:destinationURL withIntermediateDirectories:NO
-                                                               attributes:nil error:&error]
-                     || [destinationURL hasDirectoryPath] || [self isDirectory:destinationURL];
-                if (ok) error = nil;
-                ok = ok && [self exportStagesToDirectory:destinationURL baseName:trackname withPOI:includePOI error:&error];
-            } else {
-                NSData *gpxdta = [self exportGpxDataWithPOI:includePOI trackName:trackname];
-                ok = [gpxdta writeToURL:destinationURL options:NSDataWritingAtomic error:&error];
-            }
-            if (!ok) {
-                NSAlert *alert = [[NSAlert alloc] init];
-                alert.messageText = @"Export failed";
-                alert.informativeText = error.localizedDescription;
-                [alert runModal];
-            }
+        if (result != NSModalResponseOK) return;
+        NSURL *destinationURL = savePanel.URL;
+        BOOL includePOI = (accessoryVC.poiCheckbox.state == NSControlStateValueOn);
+        BPStagesExportMode mode = stagesMode ? stagesMode.selectedTag : BPStagesExportWhole;
+        if (mode == BPStagesExportFiles) {
+            // after the save panel is closed: it may open a folder panel
+            dispatch_async(dispatch_get_main_queue(), ^{ [self exportStageFilesNextTo:destinationURL withPOI:includePOI]; });
+            return;
         }
+        NSError *error = nil;
+        if (![self exportGPXToURL:destinationURL mode:mode withPOI:includePOI error:&error]) [self showExportError:error];
     }];
 }
 
