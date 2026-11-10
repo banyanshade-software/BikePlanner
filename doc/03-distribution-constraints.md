@@ -54,8 +54,10 @@ app anyway: each needs its own server, a paid provider, or a per-user setting.
 ### 1.3 Thunderforest (OpenCycleMap)
 - Requires an API key; the free “Hobby Project” tier has a monthly tile limit and is for non-commercial use.
 - A key embedded in a distributed binary can be extracted and abused (it is billed to the owner). Since #51 it is
-  stored obfuscated (`BPSecrets`, XOR at compile time; not visible with `strings`): this stops a casual look only —
-  the key is sent in clear in every tile request and can be read by anyone debugging the app.
+  stored obfuscated (`BPSecrets`; not visible with `strings`), more strongly since #57 (keystream seeded by the
+  compile time, bytes out of order, split in two shares; no simple decoding finds it, checked by `SecretsTests` and
+  `make_dmg.sh`): this raises the cost of extraction only — the key is sent in clear in every tile request and can
+  be read by anyone debugging the app.
 - Attribution: “Maps © Thunderforest, Data © OpenStreetMap contributors” — **today** only “provided by
   thunderforest.com” in the About window Credits, nothing on the map.
 - **To do**: pick the right plan, display the attribution; consider letting each user enter their own key
@@ -122,9 +124,11 @@ if bundled, and a check of each icon's origin.
 ## 4. Secrets
 
 - API keys must never be committed (already handled by `Secret.h` + `.gitignore`). Keys compiled in are obfuscated
-  (`BPSecrets`, #51) and `scripts/make_dmg.sh` refuses an app with a key in clear.
-- Any key compiled into a distributed app is public in practice: prefer per-user keys or a server-side proxy
-  ([#57](https://github.com/banyanshade-software/BikePlanner/issues/57)).
+  (`BPSecrets`, #51, stronger encoding #57) and `scripts/make_dmg.sh` refuses an app with a key in clear or found by
+  a simple decoding (reversed, XOR with one byte, the fixed mask of #51).
+- Any key compiled into a distributed app is public in practice. Decision for #57 (November 2026): stronger
+  obfuscation only, the keys stay in the DMG, which therefore is still not shared; per-user keys (Preferences +
+  Keychain) or a server-side proxy remain the options if the app is ever distributed.
 
 ## 5. Checklist — minimum set before sharing the app with anyone
 
@@ -132,7 +136,7 @@ if bundled, and a check of each icon's origin.
 |---|---|---|---|
 | 1 | Street View through an official Google API (or an alternative provider) | 🟡 Maps Embed API when a key is set; drop the Google Maps web app fallback | #49 |
 | 2 | Identifying User-Agent + “© OpenStreetMap contributors” on the map for OSM tiles | 🟡 User-Agent done; attribution missing | — |
-| 3 | Thunderforest attribution and key strategy (per-user key in Keychain?) | 🟡 key obfuscated; no attribution on the map | #51, #57 |
+| 3 | Thunderforest attribution and key strategy (per-user key in Keychain?) | 🟡 key obfuscated (stronger since #57); no attribution on the map | #51, #57 |
 | 4 | Overpass backoff, User-Agent, smaller queries | ✅ | #12 |
 | 5 | Configurable BRouter server (local or the user's own) | 🟡 hidden default only | #2 |
 | 6 | Real location usage string; acknowledgments in the About window | ✅ string (location asked only for *My location*, #65); 🟡 exact attributions in the README, not yet in the About window | #64 |

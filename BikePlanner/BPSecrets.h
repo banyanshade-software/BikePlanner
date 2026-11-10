@@ -2,8 +2,9 @@
 //  BPSecrets.h
 //  BikePlanner
 //
-//  API keys of Secret.h, stored obfuscated in the binary (#51): not visible with `strings`. A rough protection only
-//  (the key is also sent in clear in the tile requests); never log the key.
+//  API keys of Secret.h, stored obfuscated in the binary (#51; stronger encoding #57: keystream seeded at compile
+//  time, bytes out of order, split in two shares). It raises the cost of extraction only: the key is still in the
+//  binary for anyone with a debugger, and sent in clear in the tile and Street View requests. Never log the key.
 //
 
 #import <Foundation/Foundation.h>

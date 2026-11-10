@@ -46,9 +46,13 @@ for name in ("THUNDERFOREST_API_KEY", "GOOGLE_MAPS_API_KEY", "GOOGLE_API_KEY"):
     m = re.search(r'#define\s+' + name + r'\s+"([^"]*)"', src)
     key = m.group(1).encode() if m else b""
     if len(key) < 8: continue   # example key, or no key
+    # in clear, or found by a simple decoding: reversed, the fixed mask of #51, XOR with one byte (#57)
+    encodings = [key, key[::-1], bytes(c ^ (0xA7 ^ ((i * 29) & 0xFF)) for i, c in enumerate(key))]
+    encodings += [bytes(c ^ x for c in key) for x in range(1, 256)]
     for f in os.listdir(sys.argv[2]):
-        if key in open(os.path.join(sys.argv[2], f), "rb").read():
-            print(f"{name} in clear in {f}: not packaged (#51)", file=sys.stderr)
+        data = open(os.path.join(sys.argv[2], f), "rb").read()
+        if any(e in data for e in encodings):
+            print(f"{name} in clear or simply encoded in {f}: not packaged (#51, #57)", file=sys.stderr)
             sys.exit(1)
 PYEOF
     then exit 1; fi

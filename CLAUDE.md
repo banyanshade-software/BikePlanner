@@ -19,7 +19,7 @@ One-time setup: `cp BikePlanner/Secret.h.example BikePlanner/Secret.h` (git-igno
 put a real Thunderforest key in it for the OSM+cycle map, optionally a Google Maps Embed API key for Street View, #49:
 `GOOGLE_MAPS_API_KEY`, or `GOOGLE_API_KEY` as in the owner's `Secret.h`. The app checks the Google key at the first
 Street View and falls back to the Google Maps web app if Google rejects it).
-Only `BPSecrets.m` includes `Secret.h`: it stores the keys obfuscated (#51); use `+[BPSecrets thunderforestAPIKey]` /
+Only `BPSecrets.m` includes `Secret.h`: it stores the keys obfuscated (#51, stronger encoding #57); use `+[BPSecrets thunderforestAPIKey]` /
 `+googleMapsAPIKey`, never the macros, and never log a key.
 UI tests also need macOS Automation Mode, enabled once by the owner in Terminal.app:
 `sudo automationmodetool enable-automationmode-without-authentication` (`automationmodetool` shows the status).
@@ -158,7 +158,7 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
 from `main` or `dev` (after the batch branch is merged), never from a batch or feature branch: if the owner asks for
 one on another branch, say so first. Its Finder layout step uses
 AppleScript, which needs the owner's Automation permission for Finder and does not work from Claude's sandboxed
-shell: let the owner run it (`! scripts/make_dmg.sh`). The DMG embeds the Thunderforest key (obfuscated, #51: the script refuses an app containing it in clear): don't
+shell: let the owner run it (`! scripts/make_dmg.sh`). The DMG embeds the Thunderforest key (obfuscated, #51, #57: the script refuses an app containing it in clear or under a simple decoding): don't
 publish it. The script also refuses an app built with the start sites editor (#67).
 
 ## Running the app

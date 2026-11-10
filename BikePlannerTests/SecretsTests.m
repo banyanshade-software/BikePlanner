@@ -2,7 +2,8 @@
 //  SecretsTests.m
 //  BikePlannerTests
 //
-//  The Thunderforest and Google Maps keys of Secret.h must not appear in clear in the app binaries (#51).
+//  The Thunderforest and Google Maps keys of Secret.h must not appear in clear in the app binaries (#51), nor under a
+//  simple decoding (#57).
 //  The assertion messages never print the key.
 //
 
@@ -44,6 +45,41 @@
 {
     [self assertNotInClear:[self key] name:@"Thunderforest"];
     if (strlen(GOOGLE_MAPS_API_KEY) > 0) [self assertNotInClear:@GOOGLE_MAPS_API_KEY name:@"Google Maps"];
+}
+
+// stronger obfuscation (#57): the key is not found either with simple decodings of the binaries — a constant byte
+// XOR, the reversed key, or the fixed mask of #51 (0xA7 ^ 29 i, in the order of the key)
+- (void)testKeyNotFoundWithSimpleDecodings
+{
+    [self assertNotEncoded:[self key] name:@"Thunderforest"];
+    if (strlen(GOOGLE_MAPS_API_KEY) > 0) [self assertNotEncoded:@GOOGLE_MAPS_API_KEY name:@"Google Maps"];
+}
+
+- (void)assertNotEncoded:(NSString *)keyString name:(NSString *)name
+{
+    NSData *key = [keyString dataUsingEncoding:NSUTF8StringEncoding];
+    const unsigned char *k = key.bytes;
+    NSUInteger n = key.length;
+    NSMutableArray<NSData *> *encodings = [NSMutableArray array];
+    NSMutableData *e = [NSMutableData dataWithLength:n];
+    unsigned char *b = e.mutableBytes;
+    for (NSUInteger i = 0; i < n; i++) b[i] = k[i] ^ (unsigned char)(0xA7 ^ (i * 29));
+    [encodings addObject:[e copy]];
+    for (NSUInteger i = 0; i < n; i++) b[i] = k[n - 1 - i];
+    [encodings addObject:[e copy]];
+    for (unsigned x = 1; x < 256; x++) {
+        for (NSUInteger i = 0; i < n; i++) b[i] = k[i] ^ (unsigned char)x;
+        [encodings addObject:[e copy]];
+    }
+    NSString *dir = [NSBundle mainBundle].executablePath.stringByDeletingLastPathComponent;
+    for (NSString *f in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:dir error:NULL]) {
+        NSData *bin = [NSData dataWithContentsOfFile:[dir stringByAppendingPathComponent:f]];
+        [encodings enumerateObjectsUsingBlock:^(NSData *enc, NSUInteger idx, BOOL *stop) {
+            BOOL found = [bin rangeOfData:enc options:0 range:NSMakeRange(0, bin.length)].location != NSNotFound;
+            XCTAssertFalse(found, @"%@ key found in %@ with simple decoding #%lu (#57)", name, f, (unsigned long)idx);
+            if (found) *stop = YES;
+        }];
+    }
 }
 
 - (void)assertNotInClear:(NSString *)keyString name:(NSString *)name

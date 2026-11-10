@@ -52,7 +52,8 @@ BikePlanner/                 App target
   Base.lproj/Document.xib    Document window (split views, map, tabs, profile, toolbar)
   Base.lproj/MainMenu.xib    Menus
   Secret.h.example           Template for Secret.h (Thunderforest and optional Google Maps API keys, git-ignored)
-  BPSecrets.*                The only includer of Secret.h: keys XOR-ed at compile time, decoded at run time (#51)
+  BPSecrets.*                The only includer of Secret.h: keys encoded at compile time (non-linear keystream seeded
+                             by the compile time, bytes out of order, two shares; #51, #57), decoded at run time
   BPRemarkableSites.*, RemarkableSites.plist
                              Start sites of a new document (#65); writing the plist back (header comment kept, #67)
   BPSiteEditorController.*   Start sites editor (#67), a developer tool: compiled only with BP_SITE_EDITOR=1
