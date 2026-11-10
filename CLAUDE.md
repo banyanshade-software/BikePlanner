@@ -72,7 +72,10 @@ New files go in the anchor's group/directory. Use `SupportClasses/` + `--anchor 
 XIB files (`Document.xib`, `MainMenu.xib`, …) should be edited in Xcode by the owner when possible; if a change is
 needed, keep it minimal and say so.
 A target is removed with `scripts/xcode_remove_target.py <target name>…` (its phases, configurations, dependencies
-and product; source files are kept).
+and product; source files are kept); an app extension target embedded in the app is added with
+`scripts/xcode_add_target.py` (see its header; used for `BikePlannerQuickLook`, #70). Model sources the Quick Look
+extension needs are also in its target (`--target BikePlannerQuickLook --anchor PreviewProvider.m`): a model file
+that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
 
 ## Code conventions
 
@@ -175,7 +178,7 @@ committing). The Debug build is `~/Library/Developer/Xcode/DerivedData/BikePlann
 - The owner tests at the end of a batch; commit when the unit tests pass (if asked), push / close issues only when
   asked, with a closing comment giving the commit. Read the issue body and comments first (`gh issue view N` then
   `gh issue view N --comments`: with `--comments`, `gh` prints only the comments).
-- Version: `MARKETING_VERSION` (2 lines of `project.pbxproj`, app target), bumped by the owner's request; the build
+- Version: `MARKETING_VERSION` (4 lines of `project.pbxproj`: app target and Quick Look extension, which must match), bumped by the owner's request; the build
   number and commit are set at build time (`scripts/set_build_info.sh`).
 - Docs, code comments, commit messages and issues are in **English**; the owner talks in French.
 - Don't commit, push or create issues/PRs without being asked. Ask when in doubt about intended behavior —

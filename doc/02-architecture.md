@@ -80,6 +80,13 @@ SupportClasses/              Reusable/support components
   SafeOSMTileOverlay.*, SafeTileRenderer.*   MKTileOverlay/Renderer subclasses; the overlay fetches the tiles itself
                              (app User-Agent); older custom code kept disabled with #if 0
   BikeMapView.*              MKMapView subclass (currently empty)
+  BPRoutePreview.*           Quick Look preview of a document or a GPX file (#70): reads it (BikePlan archive or
+                             GPXParser), summary, map snapshot, drawing; in the app (tests) and the extension
+BikePlannerQuickLook/        Quick Look Preview Extension target (#70), embedded in the app (Contents/PlugIns):
+  PreviewProvider.*          data-based preview (QLPreviewProvider): BPRoutePreview drawn in a QLPreviewReply
+  Info.plist, *.entitlements NSExtension (QLSupportedContentTypes: bikeplan, com.topografix.gpx); sandbox + network
+                             (Apple Maps snapshot). Also compiles the model: BikePlan, POILocation, GPXParser,
+                             TaggedPoly, RouteAnnotation, BPEnvironment (no UI, no key)
 BSSUI/, DCO/                 Third-party / older own code for the About window (DCOAboutWindow, MIT-like LICENSE)
 BikePlannerTests/, BikePlannerUITests/   Xcode template tests (empty)
 testurl.sh                   Manual curl experiments against brouter.de
@@ -301,8 +308,10 @@ before `</gpx>` by string manipulation.
 
 ## 8. Build & configuration
 
-- Xcode project `BikePlanner.xcodeproj`, scheme `BikePlanner`, targets: app, unit tests, UI tests (the leftover
-  `BikePlanner_org*` targets of an earlier project were removed, #18).
+- Xcode project `BikePlanner.xcodeproj`, scheme `BikePlanner`, targets: app, unit tests, UI tests, Quick Look
+  extension `BikePlannerQuickLook` (#70; a dependency of the app, copied by its *Embed Foundation Extensions* phase,
+  also built and signed by `make_dmg.sh`; the leftover `BikePlanner_org*` targets of an earlier project were removed,
+  #18). Targets are added with `scripts/xcode_add_target.py`, removed with `scripts/xcode_remove_target.py`.
 - DMG: `scripts/make_dmg.sh` (Release build, ad hoc signed, or `--app <path>`) → `build/BikePlanner-<version>.dmg`
   (`build/` is git-ignored). The Finder window shows a background drawn at packaging time by
   `packaging/dmg/make_background.swift` with the app's version (1x + 2x PNG merged into a multi-resolution TIFF;
@@ -334,9 +343,11 @@ before `</gpx>` by string manipulation.
   server, read-write in `/private/tmp/` to exchange files with the app.
 - New source files are added to the project with `scripts/xcode_add_files.py`, Run Script phases with
   `scripts/xcode_add_run_script.py`.
-- Build info: the *Set build info* Run Script phase of the app target (`scripts/set_build_info.sh`, runs on every
-  build, after Copy Bundle Resources) writes into the **built** Info.plist `CFBundleVersion` = number of commits,
-  `BPGitCommit` = short hash (+ `-dirty`), `BPGitBranch`; no-op without git. `MARKETING_VERSION` stays manual.
+- Build info: the *Set build info* Run Script phase of the app target and of the Quick Look extension
+  (`scripts/set_build_info.sh`, runs on every build, after Copy Bundle Resources; an extension must have the version
+  and build of its app) writes into the **built** Info.plist `CFBundleVersion` = number of commits,
+  `BPGitCommit` = short hash (+ `-dirty`), `BPGitBranch`; no-op without git. `MARKETING_VERSION` stays manual (app and
+  extension: 4 lines; `BPRoutePreviewTests` checks that they match).
   `+[AppDelegate versionStringWithInfo:]` formats the About window version.
 - macOS deployment target 12.7, ARC on.
 - **Before building**: copy `BikePlanner/Secret.h.example` to `BikePlanner/Secret.h` and set `THUNDERFOREST_API_KEY`

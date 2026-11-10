@@ -81,6 +81,17 @@
 		EB00DFBB48006DBD7729B1D8 /* BPRoadTypesView.m in Sources */ = {isa = PBXBuildFile; fileRef = 80A6BA70B19383BE05B7CBC3 /* BPRoadTypesView.m */; };
 		949CB3D93AD36A7CE146AC7F /* BPSiteEditorController.m in Sources */ = {isa = PBXBuildFile; fileRef = 63C9593517DCDE440E18CD32 /* BPSiteEditorController.m */; };
 		0E3D178A8C323DBAC9A99B60 /* BPSiteEditorTests.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3E3406BA3F7FDC5B190C96 /* BPSiteEditorTests.m */; };
+		2144FCD0E9BFE90D09DA2FFD /* PreviewProvider.m in Sources */ = {isa = PBXBuildFile; fileRef = 995FBB8DAC9731965A844F4F /* PreviewProvider.m */; };
+		45E1BFA87E2FE345DE4C824A /* BikePlannerQuickLook.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 048AA6F85BE17ABEC521A201 /* BikePlannerQuickLook.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		177CD87DC3FFCDC304E8DB00 /* BPRoutePreview.m in Sources */ = {isa = PBXBuildFile; fileRef = B99A1E4C965CB6F32B0ADE2F /* BPRoutePreview.m */; };
+		241CA545F49C120926BDEB30 /* BPRoutePreview.m in Sources */ = {isa = PBXBuildFile; fileRef = B99A1E4C965CB6F32B0ADE2F /* BPRoutePreview.m */; };
+		B389436C1E50F2B12E9934F3 /* GPXParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE812E47B860001F2966 /* GPXParser.m */; };
+		4FDCA1285D4F847B06D620DB /* POILocation.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B53B7C72E53B5BA00C9470F /* POILocation.m */; };
+		5A4CD3DAB70A3EB2069413EF /* TaggedPoly.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B22D632E50B1360078F4BC /* TaggedPoly.m */; };
+		BE0396B12081701BB5D98C8C /* RouteAnnotation.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F366142E4FA4F30046B03D /* RouteAnnotation.m */; };
+		43ECACC673FCC213E27F73DF /* BikePlan.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F366112E4FA3DF0046B03D /* BikePlan.m */; };
+		A2353570BBD0ED047788FDC3 /* BPEnvironment.m in Sources */ = {isa = PBXBuildFile; fileRef = AA16AA45F8CA631E7FEBC6B6 /* BPEnvironment.m */; };
+		322D9DAFC44A46990937196E /* BPRoutePreviewTests.m in Sources */ = {isa = PBXBuildFile; fileRef = B4F35C4F6BFB455BB05E5896 /* BPRoutePreviewTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -98,7 +109,28 @@
 			remoteGlobalIDString = 65F365902E4F6BD40046B03D;
 			remoteInfo = BikePlanner;
 		};
+		3BD4BA88A318FE4AC68FB3FC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 65B8EE3C2E479821001F2966 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 402D4CB9F9D9C7EAA6CA46EE;
+			remoteInfo = BikePlannerQuickLook;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		42080CEA35DCE7A65C792CBF /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				45E1BFA87E2FE345DE4C824A /* BikePlannerQuickLook.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		1B53B7C02E51EC3A00C9470F /* POIAnnotation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = POIAnnotation.h; sourceTree = "<group>"; };
@@ -218,6 +250,14 @@
 		63C9593517DCDE440E18CD32 /* BPSiteEditorController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPSiteEditorController.m; sourceTree = "<group>"; };
 		E942189C5B87C3781CC41A15 /* BPSiteEditorController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPSiteEditorController.h; sourceTree = "<group>"; };
 		AC3E3406BA3F7FDC5B190C96 /* BPSiteEditorTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPSiteEditorTests.m; sourceTree = "<group>"; };
+		995FBB8DAC9731965A844F4F /* PreviewProvider.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PreviewProvider.m; sourceTree = "<group>"; };
+		E25E66448237B4B5B709CA80 /* PreviewProvider.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PreviewProvider.h; sourceTree = "<group>"; };
+		B8B0867140D5AD4C0713B487 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		31E4575F03BE3C3D0406AC24 /* BikePlannerQuickLook.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BikePlannerQuickLook.entitlements; sourceTree = "<group>"; };
+		048AA6F85BE17ABEC521A201 /* BikePlannerQuickLook.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BikePlannerQuickLook.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B99A1E4C965CB6F32B0ADE2F /* BPRoutePreview.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRoutePreview.m; sourceTree = "<group>"; };
+		FD2A4568341BD38684795022 /* BPRoutePreview.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPRoutePreview.h; sourceTree = "<group>"; };
+		B4F35C4F6BFB455BB05E5896 /* BPRoutePreviewTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRoutePreviewTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -238,6 +278,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		65F365B02E4F6BE30046B03D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6714D61609E7160F463C6A86 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -284,6 +331,7 @@
 				65F365B62E4F6BE30046B03D /* BikePlannerUITests */,
 				65B8EE452E479821001F2966 /* Products */,
 				65B8EE762E479A77001F2966 /* Frameworks */,
+				35E6746A5E4D0462C767D0AF /* BikePlannerQuickLook */,
 			);
 			sourceTree = "<group>";
 		};
@@ -293,6 +341,7 @@
 				65F365912E4F6BD40046B03D /* BikePlanner.app */,
 				65F365A92E4F6BE30046B03D /* BikePlannerTests.xctest */,
 				65F365B32E4F6BE30046B03D /* BikePlannerUITests.xctest */,
+				048AA6F85BE17ABEC521A201 /* BikePlannerQuickLook.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -346,6 +395,8 @@
 				5BC720DD72F72937C575B9DC /* BRouterGeoJSON.h */,
 				80A6BA70B19383BE05B7CBC3 /* BPRoadTypesView.m */,
 				F19EC713A6F99C103A02957A /* BPRoadTypesView.h */,
+				B99A1E4C965CB6F32B0ADE2F /* BPRoutePreview.m */,
+				FD2A4568341BD38684795022 /* BPRoutePreview.h */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -419,6 +470,7 @@
 				B6E717394B6A8172F6C038F5 /* BRouterGeoJSONTests.m */,
 				D8997E3CAA336BA565381E10 /* BPRemarkableSitesTests.m */,
 				AC3E3406BA3F7FDC5B190C96 /* BPSiteEditorTests.m */,
+				B4F35C4F6BFB455BB05E5896 /* BPRoutePreviewTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -434,6 +486,17 @@
 			path = BikePlannerUITests;
 			sourceTree = "<group>";
 		};
+		35E6746A5E4D0462C767D0AF /* BikePlannerQuickLook */ = {
+			isa = PBXGroup;
+			children = (
+				995FBB8DAC9731965A844F4F /* PreviewProvider.m */,
+				E25E66448237B4B5B709CA80 /* PreviewProvider.h */,
+				B8B0867140D5AD4C0713B487 /* Info.plist */,
+				31E4575F03BE3C3D0406AC24 /* BikePlannerQuickLook.entitlements */,
+			);
+			path = BikePlannerQuickLook;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -444,11 +507,13 @@
 				65F3658D2E4F6BD40046B03D /* Sources */,
 				65F3658E2E4F6BD40046B03D /* Frameworks */,
 				65F3658F2E4F6BD40046B03D /* Resources */,
+				42080CEA35DCE7A65C792CBF /* Embed Foundation Extensions */,
 				15C008442F0CFFD64B6E3EE8 /* Set build info */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				7BC2788F399CA6B2A260382B /* PBXTargetDependency */,
 			);
 			name = BikePlanner;
 			productName = BikePlanner;
@@ -491,6 +556,24 @@
 			productReference = 65F365B32E4F6BE30046B03D /* BikePlannerUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		402D4CB9F9D9C7EAA6CA46EE /* BikePlannerQuickLook */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 28D74CD2695E6040A8EC8FDD /* Build configuration list for PBXNativeTarget "BikePlannerQuickLook" */;
+			buildPhases = (
+				D59CED74AF48FF54F9584D0C /* Sources */,
+				6714D61609E7160F463C6A86 /* Frameworks */,
+				2FCF7C32B9BB367ACAA91BEE /* Resources */,
+				B506043E83239777257E8B84 /* Set build info */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BikePlannerQuickLook;
+			productName = BikePlannerQuickLook;
+			productReference = 048AA6F85BE17ABEC521A201 /* BikePlannerQuickLook.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -500,6 +583,9 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1420;
 				TargetAttributes = {
+					402D4CB9F9D9C7EAA6CA46EE = {
+						CreatedOnToolsVersion = 14.2;
+					};
 					65F365902E4F6BD40046B03D = {
 						CreatedOnToolsVersion = 14.2;
 					};
@@ -529,6 +615,7 @@
 				65F365902E4F6BD40046B03D /* BikePlanner */,
 				65F365A82E4F6BE30046B03D /* BikePlannerTests */,
 				65F365B22E4F6BE30046B03D /* BikePlannerUITests */,
+				402D4CB9F9D9C7EAA6CA46EE /* BikePlannerQuickLook */,
 			);
 		};
 /* End PBXProject section */
@@ -563,6 +650,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		2FCF7C32B9BB367ACAA91BEE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
@@ -585,6 +679,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${SRCROOT}/scripts/set_build_info.sh\"\n";
+		};
+		B506043E83239777257E8B84 /* Set build info */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Set build info";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/scripts/set_build_info.sh\"";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -629,6 +743,7 @@
 				B100AEFBF44EAE67DE1EBDBF /* BPRemarkableSites.m in Sources */,
 				EB00DFBB48006DBD7729B1D8 /* BPRoadTypesView.m in Sources */,
 				949CB3D93AD36A7CE146AC7F /* BPSiteEditorController.m in Sources */,
+				177CD87DC3FFCDC304E8DB00 /* BPRoutePreview.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -660,6 +775,7 @@
 				04E8FE91159AC178E5EF30EF /* BRouterGeoJSONTests.m in Sources */,
 				A91D29A9CDC0B46D1C6C54EC /* BPRemarkableSitesTests.m in Sources */,
 				0E3D178A8C323DBAC9A99B60 /* BPSiteEditorTests.m in Sources */,
+				322D9DAFC44A46990937196E /* BPRoutePreviewTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -671,6 +787,21 @@
 				65F365B82E4F6BE30046B03D /* BikePlannerUITests.m in Sources */,
 				31D2ACEC6E33F240F24DF444 /* BPStubServer.m in Sources */,
 				EBE95D8BBF9581EE067F7691 /* BPUITestCase.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D59CED74AF48FF54F9584D0C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2144FCD0E9BFE90D09DA2FFD /* PreviewProvider.m in Sources */,
+				241CA545F49C120926BDEB30 /* BPRoutePreview.m in Sources */,
+				B389436C1E50F2B12E9934F3 /* GPXParser.m in Sources */,
+				4FDCA1285D4F847B06D620DB /* POILocation.m in Sources */,
+				5A4CD3DAB70A3EB2069413EF /* TaggedPoly.m in Sources */,
+				BE0396B12081701BB5D98C8C /* RouteAnnotation.m in Sources */,
+				43ECACC673FCC213E27F73DF /* BikePlan.m in Sources */,
+				A2353570BBD0ED047788FDC3 /* BPEnvironment.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -686,6 +817,11 @@
 			isa = PBXTargetDependency;
 			target = 65F365902E4F6BD40046B03D /* BikePlanner */;
 			targetProxy = 65F365B42E4F6BE30046B03D /* PBXContainerItemProxy */;
+		};
+		7BC2788F399CA6B2A260382B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 402D4CB9F9D9C7EAA6CA46EE /* BikePlannerQuickLook */;
+			targetProxy = 3BD4BA88A318FE4AC68FB3FC /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -938,6 +1074,50 @@
 			};
 			name = Release;
 		};
+		C5AC133C0C44DB01C5C6EDF7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BikePlannerQuickLook/BikePlannerQuickLook.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BikePlannerQuickLook/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "BikePlanner Quick Look";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2025–2026 Daniel Braun. All rights reserved.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 0.9.7;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlanner.QuickLook;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		27DAE39CC3CC629E1A6AED74 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BikePlannerQuickLook/BikePlannerQuickLook.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BikePlannerQuickLook/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "BikePlanner Quick Look";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2025–2026 Daniel Braun. All rights reserved.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 0.9.7;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.BikePlanner.QuickLook;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -973,6 +1153,15 @@
 			buildConfigurations = (
 				65F365C22E4F6BE30046B03D /* Debug */,
 				65F365C32E4F6BE30046B03D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		28D74CD2695E6040A8EC8FDD /* Build configuration list for PBXNativeTarget "BikePlannerQuickLook" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C5AC133C0C44DB01C5C6EDF7 /* Debug */,
+				27DAE39CC3CC629E1A6AED74 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

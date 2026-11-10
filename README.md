@@ -25,6 +25,8 @@ BikePlanner is a **personal project**, not distributed yet (see
 - **GPX**: import a trace as a reference or as an editable route; export the route, optionally with the POIs as
   Garmin-compatible waypoints (see [README.POI.GARMIN.txt](README.POI.GARMIN.txt)).
 - Documents (`.bikeplan`) with autosave and versions; Preferences (default position, initial map radius…).
+- **Quick Look**: the space bar in the Finder previews a `.bikeplan` document or a GPX file (route on a map, length,
+  ascent, stages).
 
 ## Requirements
 

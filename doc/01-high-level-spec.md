@@ -264,6 +264,12 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F9.2 A document stores: waypoints, computed route points (with altitude), the reference GPX trace,
   route length & ascent, riding time, fetched POIs, custom POIs.
 - F9.3 On open, the map zooms to the route (or to the user's location if there is no route).
+- F9.4 Quick Look (#70): the space bar in the Finder (and the Finder preview pane) shows a `.bikeplan` document or a
+  `.gpx` file without opening it: its name, a summary (length, ascent, riding time, number of stages, POIs, "reference
+  trace"; for a GPX, length and ascent from the BRouter comment, else computed from the points, ascent with climbs of
+  more than 5 m), and the route on an Apple Maps snapshot (stages in blue / purple, reference trace orange, start
+  green, end red; POIs are only counted; a document without a computed route: its waypoints), 680 × 480. No map after 8 s or offline: the
+  route on a plain background. No Finder thumbnails (could come later).
 
 ### F10 — Export
 - F10.1 *File ▸ Export to GPX* (or toolbar) saves the route as GPX. The track name is the file name.
