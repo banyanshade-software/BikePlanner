@@ -109,6 +109,14 @@ parameters (Params tab) on the length, time and speed of the route is seen (#43)
   e.g. “Mont Ventoux — famous climb”, and Street View shows it with the site's heading), *My location*
   (F1.5; Street View follows the first location), or *Default position*. The location is asked only with
   *My location*.
+  The list is edited with the **start sites editor** (#67), a developer tool not in the delivered app (built with
+  `scripts/build_site_editor.sh`, menu *Develop ▸ Start Sites Editor…*): a panel acting on the front document
+  window — list of the sites; *Go to* (as a new document starts on it; also double-click); *Add Here* / *Set
+  Position Here* (map center); name, kind, latitude, longitude; heading with a field and a slider, Street View
+  previewed live; reorder, remove (the first site, Mont Ventoux, stays first: the tests start on it); the problems
+  that would fail the tests (outside metropolitan France, empty or duplicate name) are listed; *Revert*; *Export
+  Plist…* writes `RemarkableSites.plist` (header comment kept) to be saved over the one of the source tree, then the
+  app is rebuilt.
 
 ### F2 — Click modes
 The map has four click modes, selectable with the segmented control or the *Edit ▸ Mode* menu items

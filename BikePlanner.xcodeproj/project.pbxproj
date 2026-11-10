@@ -79,6 +79,8 @@
 		A91D29A9CDC0B46D1C6C54EC /* BPRemarkableSitesTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D8997E3CAA336BA565381E10 /* BPRemarkableSitesTests.m */; };
 		F918EABD954C135DE301F046 /* RemarkableSites.plist in Resources */ = {isa = PBXBuildFile; fileRef = AF37C4A38C3D74E24B3D3F40 /* RemarkableSites.plist */; };
 		EB00DFBB48006DBD7729B1D8 /* BPRoadTypesView.m in Sources */ = {isa = PBXBuildFile; fileRef = 80A6BA70B19383BE05B7CBC3 /* BPRoadTypesView.m */; };
+		949CB3D93AD36A7CE146AC7F /* BPSiteEditorController.m in Sources */ = {isa = PBXBuildFile; fileRef = 63C9593517DCDE440E18CD32 /* BPSiteEditorController.m */; };
+		0E3D178A8C323DBAC9A99B60 /* BPSiteEditorTests.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3E3406BA3F7FDC5B190C96 /* BPSiteEditorTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -213,6 +215,9 @@
 		AF37C4A38C3D74E24B3D3F40 /* RemarkableSites.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = RemarkableSites.plist; sourceTree = "<group>"; };
 		80A6BA70B19383BE05B7CBC3 /* BPRoadTypesView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRoadTypesView.m; sourceTree = "<group>"; };
 		F19EC713A6F99C103A02957A /* BPRoadTypesView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPRoadTypesView.h; sourceTree = "<group>"; };
+		63C9593517DCDE440E18CD32 /* BPSiteEditorController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPSiteEditorController.m; sourceTree = "<group>"; };
+		E942189C5B87C3781CC41A15 /* BPSiteEditorController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPSiteEditorController.h; sourceTree = "<group>"; };
+		AC3E3406BA3F7FDC5B190C96 /* BPSiteEditorTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPSiteEditorTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -379,6 +384,8 @@
 				A1C9865B43FA92585091A816 /* BPRemarkableSites.m */,
 				8EC8FEDD026DE4A231BDF414 /* BPRemarkableSites.h */,
 				AF37C4A38C3D74E24B3D3F40 /* RemarkableSites.plist */,
+				63C9593517DCDE440E18CD32 /* BPSiteEditorController.m */,
+				E942189C5B87C3781CC41A15 /* BPSiteEditorController.h */,
 			);
 			path = BikePlanner;
 			sourceTree = "<group>";
@@ -411,6 +418,7 @@
 				ECBF9870ED7DC9BB75B9F399 /* SecretsTests.m */,
 				B6E717394B6A8172F6C038F5 /* BRouterGeoJSONTests.m */,
 				D8997E3CAA336BA565381E10 /* BPRemarkableSitesTests.m */,
+				AC3E3406BA3F7FDC5B190C96 /* BPSiteEditorTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -620,6 +628,7 @@
 				A146C78EBDFEBE3B5F048C37 /* BRouterGeoJSON.m in Sources */,
 				B100AEFBF44EAE67DE1EBDBF /* BPRemarkableSites.m in Sources */,
 				EB00DFBB48006DBD7729B1D8 /* BPRoadTypesView.m in Sources */,
+				949CB3D93AD36A7CE146AC7F /* BPSiteEditorController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -650,6 +659,7 @@
 				C85D91D5D5C5955832DE3936 /* SecretsTests.m in Sources */,
 				04E8FE91159AC178E5EF30EF /* BRouterGeoJSONTests.m in Sources */,
 				A91D29A9CDC0B46D1C6C54EC /* BPRemarkableSitesTests.m in Sources */,
+				0E3D178A8C323DBAC9A99B60 /* BPSiteEditorTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

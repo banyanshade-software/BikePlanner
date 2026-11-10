@@ -54,6 +54,12 @@ PYEOF
     then exit 1; fi
 fi
 
+# the start sites editor (#67) is a developer tool, built only with BP_SITE_EDITOR=1 (scripts/build_site_editor.sh)
+if grep -aq "BPSiteEditorController" "$APP/Contents/MacOS/"*; then
+    echo "the app contains the start sites editor (built with BP_SITE_EDITOR): not packaged (#67)" >&2
+    exit 1
+fi
+
 INFO="$APP/Contents/Info.plist"
 VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO")
 BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO")

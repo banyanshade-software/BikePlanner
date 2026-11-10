@@ -47,6 +47,9 @@ xcrun xccov view --report --files-for-target BikePlanner.app <scratch>/r.xcresul
   -only-testing:BikePlannerTests/GPXParserTests[/testParsesTrackPointsWithElevation]
 ```
 (in zsh, `$SIGN`/`$DEST` are not word-split: write the options out, or use `${=SIGN}`.)
+Start sites editor (#67, developer tool, never in the DMG): `scripts/build_site_editor.sh` builds the app with
+`BP_SITE_EDITOR=1` in `build/SiteEditor` (menu *Develop ▸ Start Sites Editor…*); `scripts/build_site_editor.sh test`
+runs the unit tests with it (`BPSiteEditorTests` is empty otherwise). Code of the editor stays inside `#if BP_SITE_EDITOR`.
 Failure details: add `-resultBundlePath <scratch>/r.xcresult`, then
 `xcrun xcresulttool get test-results tests --path <scratch>/r.xcresult`.
 
@@ -153,7 +156,7 @@ from `main` or `dev` (after the batch branch is merged), never from a batch or f
 one on another branch, say so first. Its Finder layout step uses
 AppleScript, which needs the owner's Automation permission for Finder and does not work from Claude's sandboxed
 shell: let the owner run it (`! scripts/make_dmg.sh`). The DMG embeds the Thunderforest key (obfuscated, #51: the script refuses an app containing it in clear): don't
-publish it.
+publish it. The script also refuses an app built with the start sites editor (#67).
 
 ## Running the app
 

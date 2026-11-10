@@ -53,6 +53,10 @@ BikePlanner/                 App target
   Base.lproj/MainMenu.xib    Menus
   Secret.h.example           Template for Secret.h (Thunderforest and optional Google Maps API keys, git-ignored)
   BPSecrets.*                The only includer of Secret.h: keys XOR-ed at compile time, decoded at run time (#51)
+  BPRemarkableSites.*, RemarkableSites.plist
+                             Start sites of a new document (#65); writing the plist back (header comment kept, #67)
+  BPSiteEditorController.*   Start sites editor (#67), a developer tool: compiled only with BP_SITE_EDITOR=1
+                             (scripts/build_site_editor.sh), menu Develop ▸ Start Sites Editor…, never in the DMG
   Assets.xcassets            App icon, POI icons (SVG from mapbox/maki)
 SupportClasses/              Reusable/support components
   BRouterClient.*            HTTP client for BRouter

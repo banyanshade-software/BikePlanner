@@ -34,6 +34,17 @@ typedef NS_ENUM(NSInteger, BPSiteKind) {
 + (NSArray<BPRemarkableSite *> *) sitesFromPropertyList:(nullable id)plist;
 /// a site at random, nil if the list is empty; the test hook BPRemarkableSiteIndex (BPEnvironment) chooses it
 + (nullable BPRemarkableSite *) randomSite;
+
+// for the start sites editor (#67, built on demand) and its tests
+/// RemarkableSites.plist of the app bundle, as is
++ (nullable NSData *) bundledPropertyListData;
+/// the first XML comment of a property list file (the header of RemarkableSites.plist), nil if none
++ (nullable NSString *) headerCommentOfPropertyListData:(NSData *)data;
+/// XML property list of these entries (format of RemarkableSites.plist; whole headings as integers), with this
+/// comment after the DOCTYPE line
++ (nullable NSData *) propertyListDataForEntries:(NSArray<NSDictionary *> *)entries headerComment:(nullable NSString *)comment;
+/// the bounding box of metropolitan France (with Corsica), the area where the sites must be (checked by a test)
++ (BOOL) isInMetropolitanFrance:(CLLocationCoordinate2D)c;
 @end
 
 NS_ASSUME_NONNULL_END

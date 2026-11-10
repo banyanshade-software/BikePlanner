@@ -23,43 +23,43 @@
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>89</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Col du Tourmalet</string>
 		<key>latitude</key>
-		<real>42.9086</real>
+		<real>42.90715</real>
 		<key>longitude</key>
-		<real>0.1453</real>
+		<real>0.14516</real>
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>228</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Col du Galibier</string>
 		<key>latitude</key>
-		<real>45.0642</real>
+		<real>45.06241</real>
 		<key>longitude</key>
-		<real>6.4078</real>
+		<real>6.40967</real>
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>171</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Alpe d'Huez</string>
 		<key>latitude</key>
-		<real>45.0917</real>
+		<real>45.08908</real>
 		<key>longitude</key>
-		<real>6.0697</real>
+		<real>6.05679</real>
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>260</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -77,13 +77,13 @@
 		<key>name</key>
 		<string>Col d'Aubisque</string>
 		<key>latitude</key>
-		<real>42.9767</real>
+		<real>42.9773</real>
 		<key>longitude</key>
-		<real>-0.3386</real>
+		<real>-0.34246</real>
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>186</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -101,13 +101,13 @@
 		<key>name</key>
 		<string>Col de la Croix de Fer</string>
 		<key>latitude</key>
-		<real>45.2269</real>
+		<real>45.23013</real>
 		<key>longitude</key>
-		<real>6.2039</real>
+		<real>6.20818</real>
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>194</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -119,15 +119,15 @@
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>271</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Col du Télégraphe</string>
 		<key>latitude</key>
-		<real>45.2031</real>
+		<real>45.20107</real>
 		<key>longitude</key>
-		<real>6.4442</real>
+		<real>6.44533</real>
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
@@ -137,13 +137,13 @@
 		<key>name</key>
 		<string>Col du Lautaret</string>
 		<key>latitude</key>
-		<real>45.0353</real>
+		<real>45.03351</real>
 		<key>longitude</key>
-		<real>6.4053</real>
+		<real>6.40505</real>
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>280</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -155,7 +155,7 @@
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>148</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -167,7 +167,7 @@
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>193</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -179,67 +179,43 @@
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>321</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Col de Peyresourde</string>
 		<key>latitude</key>
-		<real>42.7975</real>
+		<real>42.80261</real>
 		<key>longitude</key>
-		<real>0.4497</real>
+		<real>0.46479</real>
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
-	</dict>
-	<dict>
-		<key>name</key>
-		<string>Hautacam</string>
-		<key>latitude</key>
-		<real>43.0217</real>
-		<key>longitude</key>
-		<real>-0.0003</real>
-		<key>kind</key>
-		<string>climb</string>
-		<key>heading</key>
-		<integer>0</integer>
-	</dict>
-	<dict>
-		<key>name</key>
-		<string>Superbagnères</string>
-		<key>latitude</key>
-		<real>42.76</real>
-		<key>longitude</key>
-		<real>0.5847</real>
-		<key>kind</key>
-		<string>climb</string>
-		<key>heading</key>
-		<integer>0</integer>
+		<integer>139</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Puy de Dôme</string>
 		<key>latitude</key>
-		<real>45.7725</real>
+		<real>45.77233</real>
 		<key>longitude</key>
-		<real>2.9644</real>
+		<real>2.96498</real>
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>164</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Puy Mary (Pas de Peyrol)</string>
 		<key>latitude</key>
-		<real>45.1103</real>
+		<real>45.10709</real>
 		<key>longitude</key>
-		<real>2.6703</real>
+		<real>2.671</real>
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>263</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -251,43 +227,31 @@
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
-	</dict>
-	<dict>
-		<key>name</key>
-		<string>La Planche des Belles Filles</string>
-		<key>latitude</key>
-		<real>47.7722</real>
-		<key>longitude</key>
-		<real>6.7778</real>
-		<key>kind</key>
-		<string>climb</string>
-		<key>heading</key>
-		<integer>0</integer>
+		<integer>306</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Grand Ballon</string>
 		<key>latitude</key>
-		<real>47.9017</real>
+		<real>47.9014</real>
 		<key>longitude</key>
-		<real>7.0983</real>
+		<real>7.10329</real>
 		<key>kind</key>
 		<string>climb</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>18</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Mont-Saint-Michel</string>
 		<key>latitude</key>
-		<real>48.6361</real>
+		<real>48.62993</real>
 		<key>longitude</key>
-		<real>-1.5115</real>
+		<real>-1.50588</real>
 		<key>kind</key>
 		<string>monument</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>287</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -299,43 +263,43 @@
 		<key>kind</key>
 		<string>monument</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>170</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Pont du Gard</string>
 		<key>latitude</key>
-		<real>43.9475</real>
+		<real>43.947</real>
 		<key>longitude</key>
-		<real>4.5353</real>
+		<real>4.53635</real>
 		<key>kind</key>
 		<string>monument</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>255</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Château de Chambord</string>
 		<key>latitude</key>
-		<real>47.6161</real>
+		<real>47.61517</real>
 		<key>longitude</key>
-		<real>1.517</real>
+		<real>1.51839</real>
 		<key>kind</key>
 		<string>monument</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>327</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Château de Chenonceau</string>
 		<key>latitude</key>
-		<real>47.3249</real>
+		<real>47.32592</real>
 		<key>longitude</key>
-		<real>1.0703</real>
+		<real>1.07053</real>
 		<key>kind</key>
 		<string>monument</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>166</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -365,13 +329,13 @@
 		<key>name</key>
 		<string>Rocamadour</string>
 		<key>latitude</key>
-		<real>44.7994</real>
+		<real>44.80387</real>
 		<key>longitude</key>
-		<real>1.6178</real>
+		<real>1.6271</real>
 		<key>kind</key>
 		<string>monument</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>332</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -383,7 +347,7 @@
 		<key>kind</key>
 		<string>monument</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>341</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -425,13 +389,13 @@
 		<key>name</key>
 		<string>Cathédrale de Chartres</string>
 		<key>latitude</key>
-		<real>48.4477</real>
+		<real>48.4478</real>
 		<key>longitude</key>
-		<real>1.4878</real>
+		<real>1.48785</real>
 		<key>kind</key>
 		<string>monument</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>19</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -483,75 +447,63 @@
 	</dict>
 	<dict>
 		<key>name</key>
-		<string>Saint-Émilion</string>
-		<key>latitude</key>
-		<real>44.8936</real>
-		<key>longitude</key>
-		<real>-0.1553</real>
-		<key>kind</key>
-		<string>monument</string>
-		<key>heading</key>
-		<integer>0</integer>
-	</dict>
-	<dict>
-		<key>name</key>
 		<string>Gorges du Verdon</string>
 		<key>latitude</key>
-		<real>43.7967</real>
+		<real>43.78136</real>
 		<key>longitude</key>
-		<real>6.3983</real>
+		<real>6.2699</real>
 		<key>kind</key>
 		<string>nature</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>36</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Dune du Pilat</string>
 		<key>latitude</key>
-		<real>44.5892</real>
+		<real>44.5969</real>
 		<key>longitude</key>
-		<real>-1.2128</real>
+		<real>-1.20696</real>
 		<key>kind</key>
 		<string>nature</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>307</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Lac d'Annecy</string>
 		<key>latitude</key>
-		<real>45.85</real>
+		<real>45.80079</real>
 		<key>longitude</key>
-		<real>6.17</real>
+		<real>6.22905</real>
 		<key>kind</key>
 		<string>nature</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>309</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Seuil de Naurouze (Canal du Midi)</string>
 		<key>latitude</key>
-		<real>43.3492</real>
+		<real>43.3508</real>
 		<key>longitude</key>
-		<real>1.8128</real>
+		<real>1.81831</real>
 		<key>kind</key>
 		<string>nature</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>181</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Gorges du Tarn</string>
 		<key>latitude</key>
-		<real>44.3653</real>
+		<real>44.37235</real>
 		<key>longitude</key>
-		<real>3.4119</real>
+		<real>3.55681</real>
 		<key>kind</key>
 		<string>nature</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>300</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -563,7 +515,7 @@
 		<key>kind</key>
 		<string>nature</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>291</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -581,21 +533,21 @@
 		<key>name</key>
 		<string>Pointe du Raz</string>
 		<key>latitude</key>
-		<real>48.0397</real>
+		<real>48.03884</real>
 		<key>longitude</key>
-		<real>-4.7397</real>
+		<real>-4.7314</real>
 		<key>kind</key>
 		<string>nature</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>305</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Falaises d'Étretat</string>
 		<key>latitude</key>
-		<real>49.7069</real>
+		<real>49.71131</real>
 		<key>longitude</key>
-		<real>0.2003</real>
+		<real>0.20526</real>
 		<key>kind</key>
 		<string>nature</string>
 		<key>heading</key>
@@ -623,7 +575,7 @@
 		<key>kind</key>
 		<string>nature</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>156</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -635,7 +587,7 @@
 		<key>kind</key>
 		<string>nature</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>207</integer>
 	</dict>
 	<dict>
 		<key>name</key>
@@ -647,19 +599,43 @@
 		<key>kind</key>
 		<string>nature</string>
 		<key>heading</key>
-		<integer>0</integer>
+		<integer>137</integer>
 	</dict>
 	<dict>
 		<key>name</key>
 		<string>Île de Ré</string>
 		<key>latitude</key>
-		<real>46.2031</real>
+		<real>46.21692</real>
 		<key>longitude</key>
-		<real>-1.3664</real>
+		<real>-1.43807</real>
 		<key>kind</key>
 		<string>nature</string>
 		<key>heading</key>
+		<integer>80</integer>
+	</dict>
+	<dict>
+		<key>name</key>
+		<string>Clues de barles</string>
+		<key>latitude</key>
+		<real>44.23383</real>
+		<key>longitude</key>
+		<real>6.25596</real>
+		<key>kind</key>
+		<string>climb</string>
+		<key>heading</key>
 		<integer>0</integer>
+	</dict>
+	<dict>
+		<key>name</key>
+		<string>Capitole, Toulouse</string>
+		<key>latitude</key>
+		<real>43.60436</real>
+		<key>longitude</key>
+		<real>1.44316</real>
+		<key>kind</key>
+		<string>climb</string>
+		<key>heading</key>
+		<integer>85</integer>
 	</dict>
 </array>
 </plist>

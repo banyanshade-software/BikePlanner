@@ -10,6 +10,9 @@
 #import "BPEnvironment.h"
 #import "BPPreferences.h"
 #import "BPPreferencesWindowController.h"
+#if BP_SITE_EDITOR
+#import "BPSiteEditorController.h"
+#endif
 
 @interface AppDelegate ()
 @property (nonatomic, strong) BSSUI_AboutWindowController *aboutWindowController;
@@ -35,6 +38,9 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     // Insert code here to initialize your application
+#if BP_SITE_EDITOR
+    [BPSiteEditorController installMenu]; // developer build only (#67, scripts/build_site_editor.sh)
+#endif
     //[self installRunLoopLogger];
     //[self installRunLoopModeLogger];
 }

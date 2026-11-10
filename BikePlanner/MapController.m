@@ -354,6 +354,15 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
 // radius around a remarkable site (#65): close enough to recognize it
 static const double kBPSiteRadiusKm = 15;
 
+// a remarkable site as a new document starts on it (#65): map around it, its name, Street View with its heading
+- (void) showSite:(BPRemarkableSite *)site
+{
+    double d = 2 * 1000 * kBPSiteRadiusKm;
+    [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(site.coordinate, d, d) animated:NO];
+    [self showMapMessage:site.displayText];
+    [self.svCtrl viewCoord:site.coordinate lookingAt:site.heading coalesce:NO]; // not the default position
+}
+
 - (void) showInitialRegion
 {
     BPStartPosition start = [BPEnvironment startPosition];
@@ -361,10 +370,7 @@ static const double kBPSiteRadiusKm = 15;
         initialRegionPending = NO;
         BPRemarkableSite *site = (start == BPStartPositionRemarkableSite) ? [BPRemarkableSites randomSite] : nil;
         if (site) {
-            double d = 2 * 1000 * kBPSiteRadiusKm;
-            [self.mapView setRegion:MKCoordinateRegionMakeWithDistance(site.coordinate, d, d) animated:NO];
-            [self showMapMessage:site.displayText];
-            [self.svCtrl viewCoord:site.coordinate lookingAt:site.heading coalesce:NO]; // not the default position
+            [self showSite:site];
         } else {
             [self.mapView setRegion:[self initialRegionAround:[BPEnvironment defaultPosition]] animated:NO];
         }

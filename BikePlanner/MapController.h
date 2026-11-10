@@ -11,6 +11,7 @@
 #import "StreetViewController.h"
 #import "ElevationProfileView.h"
 #import "Document.h"
+#import "BPRemarkableSites.h"
 NS_ASSUME_NONNULL_BEGIN
 
 // what a click on the map does; values are the segment indexes of the clickMode control
@@ -64,6 +65,8 @@ typedef NS_ENUM(int, BPClickMode) {
 - (void) fullRefresh:(BOOL)fromLoad; // called after load
 
 - (void) initializeMapview;
+/// shows a remarkable site as a new document starts on it (#65; also the start sites editor, #67)
+- (void) showSite:(BPRemarkableSite *)site;
 - (void) planReplaced; // document.plan was replaced (Revert to Saved)
 /// the parts of the route of this kind, highlighted over the route (#54): "road:<road class>" or
 /// "surface:<surface class>" (classes: BRouterGeoJSON.h; see BPRoadTypeKindKey); nil: none. Drawn again on each
