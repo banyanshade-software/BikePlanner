@@ -86,7 +86,7 @@ extern NSString *const BPRoadTypePercentKey;   // "50 %"
 @property (readonly,nonatomic) NSArray<POILocation *> *poiloc;
 @property (readonly,nonatomic) NSMutableArray<POILocation *> *customPoiloc;
 @property (nonatomic, copy) void (^poiAvailableCallback)(void);
-- (void) addCustomPoiAt:(CLLocationCoordinate2D)coord;   // POI_warning, no name
+- (void) addCustomPoiAt:(CLLocationCoordinate2D)coord;   // default type (Information, #74), no name
 // typed custom POIs (#3); an empty name is no name
 - (POILocation *) addCustomPoiAt:(CLLocationCoordinate2D)coord type:(PoiType_t)type name:(nullable NSString *)name;
 - (POILocation *) replaceCustomPoi:(POILocation *)poi type:(PoiType_t)type name:(nullable NSString *)name;

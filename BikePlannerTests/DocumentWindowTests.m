@@ -57,6 +57,13 @@
 - (void)loadGPXAsRouteFromURL:(NSURL *)url;
 - (BOOL)gestureRecognizer:(NSGestureRecognizer *)gestureRecognizer shouldAttemptToRecognizeWithEvent:(NSEvent *)event;
 - (CLLocationDistance)distanceAtCoordinate:(CLLocationCoordinate2D)coord segstart:(NSUInteger *)psegstart;
+- (void)refreshPOI;
+- (void)setPoiPasteboard:(nullable NSPasteboard *)pb;
+- (void)setPoiURLOpener:(nullable void (^)(NSURL *url))opener;
+@end
+
+@interface BikePlan (WindowTesting)
+- (void)setPoiloc:(NSArray<POILocation *> *)pl;
 @end
 
 @interface PlannerWindowController : NSWindowController
@@ -433,7 +440,7 @@
     NSTextField *name = (NSTextField *)[self viewWithIdentifier:@"poiName" in:sheet.contentView];
     XCTAssertNotNil(type);
     XCTAssertNotNil(name);
-    XCTAssertEqual(type.selectedTag, POI_warning, @"default type");
+    XCTAssertEqual(type.selectedTag, POI_info, @"default type (#74)");
     [self endSheet:NSAlertSecondButtonReturn]; // Cancel
     XCTAssertEqual(doc.plan.customPoiloc.count, 0u);
 
@@ -474,7 +481,7 @@
     [NSApp sendAction:edit.action to:edit.target from:edit];
     NSWindow *sheet = [self waitForSheet];
     NSPopUpButton *type = (NSPopUpButton *)[self viewWithIdentifier:@"poiType" in:sheet.contentView];
-    XCTAssertEqual(type.selectedTag, POI_warning, @"current type");
+    XCTAssertEqual(type.selectedTag, POI_info, @"current type");
     [type selectItemWithTag:POI_shelter];
     ((NSTextField *)[self viewWithIdentifier:@"poiName" in:sheet.contentView]).stringValue = @"Abri";
     [um beginUndoGrouping];
@@ -484,7 +491,7 @@
     XCTAssertEqualObjects(doc.plan.customPoiloc[0].title, @"Abri");
     XCTAssertEqualObjects(um.undoActionName, @"edit POI");
     [um undo];
-    XCTAssertEqual(doc.plan.customPoiloc[0].poiType, POI_warning);
+    XCTAssertEqual(doc.plan.customPoiloc[0].poiType, POI_info);
 
     ann = [self annotationsOfClass:[POIAnnotation class]].firstObject;
     view = [mc mapView:map viewForAnnotation:ann];
@@ -542,6 +549,123 @@
     XCTAssertEqualObjects(um.undoActionName, @"exclude POI");
     [um undo];
     XCTAssertEqual(doc.plan.excludedPOIKeys.count, 0u);
+}
+
+// POI callout (#72): readable view instead of the raw tags dictionary
+- (POICalloutView *)calloutOfPOIWithKey:(NSString *)key annotation:(POIAnnotation * __autoreleasing *)pann
+{
+    POIAnnotation *ann = nil;
+    for (POIAnnotation *a in [self annotationsOfClass:[POIAnnotation class]]) if ([a.poiKey isEqualToString:key]) ann = a;
+    XCTAssertNotNil(ann);
+    if (pann) *pann = ann;
+    MKAnnotationView *view = [mc mapView:map viewForAnnotation:ann];
+    [mc mapView:map didSelectAnnotationView:view]; // the position on the route is computed when the callout opens
+    return (POICalloutView *)view.detailCalloutAccessoryView;
+}
+
+- (POILocation *)waterPOI
+{
+    NSDictionary *info = @{ @"id": @4242, @"amenity": @"drinking_water", @"name": @"Fontaine du village",
+                            @"drinking_water": @"yes", @"seasonal": @"no", @"source": @"survey" };
+    return [[POILocation alloc] initWithLatitude:44.05 longitude:0.56 ofType:POI_drinking_water info:info custom:NO];
+}
+
+- (void)testPOICalloutIsReadable
+{
+    doc.plan.fetchPOI = NO;
+    [self makeRoute];
+    POILocation *water = [self waterPOI];
+    [doc.plan setPoiloc:@[water]];
+    [mc refreshPOI];
+    POIAnnotation *ann = nil;
+    POICalloutView *callout = [self calloutOfPOIWithKey:water.poiKey annotation:&ann];
+    XCTAssertEqualObjects(ann.subtitle, @"Fontaine du village", @"the name under the type (title)");
+    NSString *text = callout.displayedText;
+    XCTAssertFalse([text containsString:@"{"], @"no raw dictionary: %@", text);
+    XCTAssertFalse([text containsString:@"source = survey"], @"all tags collapsed: %@", text);
+    XCTAssertTrue([text hasPrefix:@"km "], @"position on the route: %@", text);
+    XCTAssertTrue([text containsString:@"m off route"], @"%@", text);
+    XCTAssertFalse([text containsString:@"stage"], @"no stages: %@", text);
+    XCTAssertTrue([text containsString:@"Drinking water yes"], @"%@", text);
+    XCTAssertTrue([text containsString:@"Seasonal no"], @"%@", text);
+    XCTAssertTrue([text containsString:@"All OSM tags (5)"], @"%@", text);
+    CGFloat collapsed = callout.frame.size.height;
+    XCTAssertEqualWithAccuracy(callout.frame.size.width, 300, 0.5);
+    callout.showsAllTags = YES;
+    XCTAssertTrue([callout.displayedText containsString:@"source = survey"]);
+    XCTAssertGreaterThan(callout.frame.size.height, collapsed + 30, @"the view grows with the tags");
+    XCTAssertFalse(callout.osmButton.hidden);
+    XCTAssertTrue(callout.editButton.hidden, @"Edit… only for custom POIs");
+    XCTAssertFalse(callout.excludeControl.hidden);
+}
+
+- (void)testPOICalloutButtons
+{
+    doc.plan.fetchPOI = NO;
+    [self makeRoute];
+    POILocation *water = [self waterPOI];
+    [doc.plan setPoiloc:@[water]];
+    [mc refreshPOI];
+    POICalloutView *callout = [self calloutOfPOIWithKey:water.poiKey annotation:NULL];
+
+    __block NSURL *opened = nil;
+    [mc setPoiURLOpener:^(NSURL *url) { opened = url; }];
+    [NSApp sendAction:callout.osmButton.action to:callout.osmButton.target from:callout.osmButton];
+    XCTAssertEqualObjects(opened.absoluteString, @"https://www.openstreetmap.org/node/4242");
+    [mc setPoiURLOpener:nil];
+
+    NSPasteboard *pb = [NSPasteboard pasteboardWithUniqueName];
+    [mc setPoiPasteboard:pb];
+    [NSApp sendAction:callout.coordinatesButton.action to:callout.coordinatesButton.target from:callout.coordinatesButton];
+    XCTAssertEqualObjects([pb stringForType:NSPasteboardTypeString], @"44.050000, 0.560000");
+    [mc setPoiPasteboard:nil];
+    [pb releaseGlobally];
+
+    // Street View from the nearest point of the route, looking at the POI (east of the route going north-east)
+    [NSApp sendAction:callout.streetViewButton.action to:callout.streetViewButton.target from:callout.streetViewButton];
+    CLLocationCoordinate2D c = mc.svCtrl.lastCoord;
+    NSUInteger seg = 0;
+    double along = [mc distanceAtCoordinate:c segstart:&seg];
+    XCTAssertEqualWithAccuracy(along, [mc distanceAtCoordinate:water.coordinate segstart:&seg], 5, @"on the route, abreast of the POI");
+    XCTAssertGreaterThan(mc.svCtrl.lastHeading, 90);
+    XCTAssertLessThan(mc.svCtrl.lastHeading, 160);
+    XCTAssertEqualWithAccuracy(mc.elevationView.highlightDistance, along, 5, @"the profile cursor goes there");
+}
+
+- (void)testCustomPOICallout
+{
+    doc.plan.fetchPOI = NO;
+    [self makeRoute];
+    POILocation *p = [doc.plan addCustomPoiAt:CLLocationCoordinate2DMake(44.05, 0.55) type:POI_shelter name:@"Abri"];
+    [mc refreshPOI];
+    POIAnnotation *ann = nil;
+    POICalloutView *callout = [self calloutOfPOIWithKey:p.poiKey annotation:&ann];
+    XCTAssertEqualObjects(ann.title, @"Abri");
+    XCTAssertEqualObjects(ann.subtitle, @"Shelter", @"the type under the name");
+    XCTAssertTrue([callout.displayedText containsString:@"on the route"], @"%@", callout.displayedText);
+    XCTAssertFalse([callout.displayedText containsString:@"OSM"], @"%@", callout.displayedText);
+    XCTAssertTrue(callout.osmButton.hidden);
+    XCTAssertFalse(callout.editButton.hidden);
+    [NSApp sendAction:callout.editButton.action to:callout.editButton.target from:callout.editButton];
+    NSWindow *sheet = [self waitForSheet];
+    NSPopUpButton *type = (NSPopUpButton *)[self viewWithIdentifier:@"poiType" in:sheet.contentView];
+    XCTAssertEqual(type.selectedTag, POI_shelter, @"the same sheet as Edit POI…");
+    [self endSheet:NSAlertSecondButtonReturn];
+}
+
+// with stages, the stage of the POI
+- (void)testPOICalloutShowsStage
+{
+    doc.plan.fetchPOI = NO;
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.5)];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.05, 0.55)];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.1, 0.6)];
+    XCTAssertTrue([self waitForRouteWithPoints:21]);
+    (void)[doc.plan setStageEnd:YES atWaypointIndex:1];
+    POILocation *p = [doc.plan addCustomPoiAt:CLLocationCoordinate2DMake(44.08, 0.58) type:POI_info name:nil];
+    [mc refreshPOI];
+    POICalloutView *callout = [self calloutOfPOIWithKey:p.poiKey annotation:NULL];
+    XCTAssertTrue([callout.displayedText containsString:@"(stage 2)"], @"%@", callout.displayedText);
 }
 
 - (void)testFetchedPOIsAreDisplayed
@@ -847,6 +971,8 @@
     XCTAssertEqualWithAccuracy(wps.lastObject.coordinate.longitude, 0.58, 1e-6);
     XCTAssertEqual(doc.plan.gpxDisplayed.count, 21u, @"original track kept as the reference trace");
     XCTAssertEqual(doc.plan.customPoiloc.count, 2u, @"DANGER and untyped waypoints become custom POIs");
+    XCTAssertEqual(doc.plan.customPoiloc[0].poiType, POI_warning, @"the GPX type is kept (#74)");
+    XCTAssertEqual(doc.plan.customPoiloc[1].poiType, POI_info, @"no type: the default type (#74)");
     XCTAssertTrue([self waitForRouteWithPoints:10 * (wps.count - 1) + 1], @"route requested from BRouter (stub: 10 steps per leg)");
     XCTAssertTrue([[server requestsWithPath:@"/brouter"].lastObject.query[@"lonlats"] hasPrefix:@"0.520000,44.020000|"]);
     XCTAssertEqualObjects(um.undoActionName, @"import GPX as route");

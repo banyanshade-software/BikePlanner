@@ -236,14 +236,21 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F7.2 Requests are throttled (≥ ~2.8 s apart). A retry on error is intended but does not work today (#12).
 - F7.3 “View POI” toggles display of fetched POIs. Custom POIs are always shown.
 - F7.4 Each POI type has its own icon and color; the POI under the mouse is highlighted.
-- F7.5 Clicking a POI shows a callout with its raw OSM tags and an Include/Exclude control. An excluded POI stays
+- F7.5 Clicking a POI shows a callout (#72): the type icon, the type as title and the name under it (for a custom POI
+  with a name: the name, then the type); its position on the route (“km 12.4 (stage 2) · 180 m off route”, computed
+  when the callout opens; “on the route” under 20 m); the useful OSM tags translated (drinking water, seasonal,
+  opening hours, fee, wheelchair, pump/tools of a repair station, operator, note…) and *All OSM tags (n)*, collapsed
+  (key = value, selectable); buttons *OpenStreetMap* (the node, or the way of a cemetery area, on openstreetmap.org;
+  fetched POIs only), *Street View* (from the nearest point of the route, looking at the POI; the profile cursor goes
+  there), *Copy* (“lat, lon”, 6 decimals); an Include/Exclude control and, for a custom POI, *Edit…* (the sheet of
+  F7.6). An excluded POI stays
   on the map, greyed, and is **not exported** to GPX (fetched and custom POIs). Exclusions are saved with the
   document (by OSM id + position, since fetched POIs are re-created at each route change) and undoable (#5).
 - F7.6 In *Add POI* mode, a click on the route opens a sheet asking the **type** and an optional **name** of the
   custom POI; Cancel adds nothing (#3).
-- F7.7 Custom POI types: Danger (default), Water, Food, Toilets, Bike repair, Shelter, Viewpoint, Campsite, Store,
-  Information, Other — exported with the Garmin `<type>` DANGER, WATER, FOOD, TOILET, SERVICE, SHELTER, OVERLOOK,
-  CAMPSITE, STORE, INFO, GENERIC (see `README.POI.GARMIN.txt`). The exported `<name>` is the POI name, else the type
+- F7.7 Custom POI types: Information (default, #74), Danger, Water, Food, Toilets, Bike repair, Shelter, Viewpoint,
+  Campsite, Store, Other — exported with the Garmin `<type>` INFO, DANGER, WATER, FOOD, TOILET, SERVICE, SHELTER,
+  OVERLOOK, CAMPSITE, STORE, GENERIC (see `README.POI.GARMIN.txt`). The exported `<name>` is the POI name, else the type
   name. Right-click on a custom POI: *Edit POI…* (same sheet) and *Remove POI*. Add / edit / remove are undoable and
   mark the document as edited.
 
@@ -256,7 +263,7 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   kept), route points (`<rte>`) or a file of `<wpt>` only are used as waypoints as is; then the route is requested
   from BRouter. The original GPX becomes the reference trace (F8.1) to compare with the computed route. `<wpt>`
   become custom POIs, except those with a fetched-POI type (WATER, TOILET, SERVICE, GENERIC), fetched again along
-  the new route. If the plan is not empty, a confirmation sheet asks before replacing it. One undoable action.
+  the new route; their `<type>` gives the custom POI type (F7.7), Information when none or unknown (#74). If the plan is not empty, a confirmation sheet asks before replacing it. One undoable action.
 
 ### F9 — Documents
 - F9.1 A plan is a document of type `.bikeplan` (UTI `fr.free.daniel.braun.bikeplan`), saved with

@@ -261,7 +261,7 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     [plan addCustomPoiAt:CLLocationCoordinate2DMake(44, 0.5)];
     XCTAssertEqual(plan.customPoiloc.count, 1u);
     POILocation *p = plan.customPoiloc[0];
-    XCTAssertEqual(p.poiType, POI_warning);
+    XCTAssertEqual(p.poiType, POI_info, @"default type (#74)");
     XCTAssertEqualWithAccuracy(p.coordinate.latitude, 44, 1e-9);
 }
 
@@ -290,7 +290,7 @@ static NSArray<CLLocation *> *BPLine(CLLocationCoordinate2D a, CLLocationCoordin
     XCTAssertEqual(r.brouterInfo.meters, 14994);
     XCTAssertEqual(r.brouterInfo.seconds, 3435);
     XCTAssertEqual(r.customPoiloc.count, 1u);
-    XCTAssertEqual(r.customPoiloc[0].poiType, POI_warning);
+    XCTAssertEqual(r.customPoiloc[0].poiType, POI_info);
 }
 
 // BRouter parameters are saved with the document (#44); none = the profile defaults

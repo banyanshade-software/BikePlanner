@@ -23,7 +23,7 @@
         [popup addItemWithTitle:[POILocation displayNameForType:t.intValue]];
         popup.lastItem.tag = t.intValue;
     }
-    if (![popup selectItemWithTag:type]) [popup selectItemWithTag:POI_warning];
+    if (![popup selectItemWithTag:type]) [popup selectItemWithTag:[POILocation defaultCustomPoiType]];
 
     NSTextField *field = [NSTextField textFieldWithString:name ?: @""];
     field.frame = NSMakeRect(0, 0, 240, 22);

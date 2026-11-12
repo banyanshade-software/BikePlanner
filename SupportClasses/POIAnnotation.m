@@ -9,7 +9,7 @@
 
 @implementation POIAnnotation
 
-- (void) configureAnnotViewIcon:(MKMarkerAnnotationView *)view
++ (nullable NSImage *) glyphImageForType:(PoiType_t)type
 {
     static NSImage *tpl_toilets = nil;
     static NSImage *tpl_water = nil;
@@ -30,51 +30,56 @@
         tpl_warning = [NSImage imageNamed:@"icon_warning"];
         [tpl_warning setTemplate:YES];
     });
-    
+    switch (type) {
+        case POI_drinking_water:         return tpl_water;
+        case POI_toilets:                return tpl_toilets;
+        case POI_cemetery:               return tpl_cemetery;
+        case POI_bicycle_repair_station: return tpl_repair;
+        case POI_warning:                return tpl_warning;
+        case POI_food:      return [NSImage imageWithSystemSymbolName:@"fork.knife" accessibilityDescription:nil];
+        case POI_shelter:   return [NSImage imageWithSystemSymbolName:@"house" accessibilityDescription:nil];
+        case POI_viewpoint: return [NSImage imageWithSystemSymbolName:@"binoculars" accessibilityDescription:nil];
+        case POI_campsite:  return [NSImage imageWithSystemSymbolName:@"flame" accessibilityDescription:nil];
+        case POI_store:     return [NSImage imageWithSystemSymbolName:@"cart" accessibilityDescription:nil];
+        case POI_info:      return [NSImage imageWithSystemSymbolName:@"info" accessibilityDescription:nil];
+        case POI_generic:   return [NSImage imageWithSystemSymbolName:@"mappin" accessibilityDescription:nil];
+        case POI_unknown:   return nil;
+    }
+    return nil;
+}
+
++ (nullable NSColor *) tintColorForType:(PoiType_t)type
+{
+    switch (type) {
+        case POI_drinking_water:         return [NSColor systemBlueColor];
+        case POI_toilets:                return [NSColor greenColor];
+        case POI_cemetery:               return [NSColor colorWithRed:0. green:0. blue:1. alpha:0.2];
+        case POI_bicycle_repair_station: return [NSColor cyanColor];
+        case POI_warning:                return [NSColor orangeColor];
+        case POI_food:                   return [NSColor systemBrownColor];
+        case POI_shelter:                return [NSColor systemTealColor];
+        case POI_viewpoint:              return [NSColor systemPurpleColor];
+        case POI_campsite:               return [NSColor systemGreenColor];
+        case POI_store:                  return [NSColor systemPinkColor];
+        case POI_info:                   return [NSColor systemIndigoColor];
+        case POI_generic:                return [NSColor systemGrayColor];
+        case POI_unknown:                return nil;
+    }
+    return nil;
+}
+
+- (void) configureAnnotViewIcon:(MKMarkerAnnotationView *)view
+{
     NSAssert(view.annotation, @"no annotation");
     NSAssert([view.annotation isKindOfClass:[self class]], @"bad class");
     NSAssert(view.annotation==self, @"should be self");
-    
-    switch (_poiType) {
-        case POI_drinking_water:
-            view.glyphImage = tpl_water;
-            view.displayPriority = MKFeatureDisplayPriorityDefaultHigh;
-            view.markerTintColor = [NSColor systemBlueColor];
-            break;
-        case POI_toilets:
-            view.glyphImage = tpl_toilets;
-            view.displayPriority = MKFeatureDisplayPriorityDefaultLow+1.;
-            view.markerTintColor = [NSColor greenColor];
-            break;
-        case POI_cemetery:
-            view.glyphImage = tpl_cemetery;
-            view.markerTintColor = [NSColor colorWithRed:0. green:0. blue:1. alpha:0.2];
-            break;
-        case POI_bicycle_repair_station:
-            view.glyphImage = tpl_repair;
-            view.markerTintColor = [NSColor cyanColor];
-            break;
-        case POI_warning:
-            view.glyphImage = tpl_warning;
-            view.markerTintColor = [NSColor orangeColor];
-            break;
-        case POI_food:      view.glyphImage = [NSImage imageWithSystemSymbolName:@"fork.knife" accessibilityDescription:nil];
-                            view.markerTintColor = [NSColor systemBrownColor]; break;
-        case POI_shelter:   view.glyphImage = [NSImage imageWithSystemSymbolName:@"house" accessibilityDescription:nil];
-                            view.markerTintColor = [NSColor systemTealColor]; break;
-        case POI_viewpoint: view.glyphImage = [NSImage imageWithSystemSymbolName:@"binoculars" accessibilityDescription:nil];
-                            view.markerTintColor = [NSColor systemPurpleColor]; break;
-        case POI_campsite:  view.glyphImage = [NSImage imageWithSystemSymbolName:@"flame" accessibilityDescription:nil];
-                            view.markerTintColor = [NSColor systemGreenColor]; break;
-        case POI_store:     view.glyphImage = [NSImage imageWithSystemSymbolName:@"cart" accessibilityDescription:nil];
-                            view.markerTintColor = [NSColor systemPinkColor]; break;
-        case POI_info:      view.glyphImage = [NSImage imageWithSystemSymbolName:@"info" accessibilityDescription:nil];
-                            view.markerTintColor = [NSColor systemIndigoColor]; break;
-        case POI_generic:   view.glyphImage = [NSImage imageWithSystemSymbolName:@"mappin" accessibilityDescription:nil];
-                            view.markerTintColor = [NSColor systemGrayColor]; break;
-        default:
-            break;
-    }
+
+    NSImage *glyph = [[self class] glyphImageForType:_poiType];
+    NSColor *tint = [[self class] tintColorForType:_poiType];
+    if (glyph) view.glyphImage = glyph;
+    if (tint) view.markerTintColor = tint;
+    if (_poiType == POI_drinking_water) view.displayPriority = MKFeatureDisplayPriorityDefaultHigh;
+    if (_poiType == POI_toilets) view.displayPriority = MKFeatureDisplayPriorityDefaultLow+1.;
     // excluded from the export (#5): greyed (views are reused: always set)
     if (_excluded) view.markerTintColor = [NSColor systemGrayColor];
     view.alphaValue = _excluded ? 0.6 : 1.0;

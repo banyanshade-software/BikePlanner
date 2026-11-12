@@ -144,7 +144,8 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
 - UI tests: controls created in code have `accessibilityIdentifier`s (`map`, `clickMode`, `mapType`, `clickModeHelp`,
   `zoomIn`…, `profileZoomIn`/`profileZoomOut`/`profileZoomFit` (elevation profile, #62), `exportStages` (GPX export panel, #69), `brf.<parameter>` in the Params tab, `routeRoadTypes` (Info section, a `BPRoadTypesView`: radio buttons `roadType.<kind>` / `roadType.none`, #66; selecting a
   road type or a surface highlights it on the map, #54), `poiType`/`poiName` (custom POI
-  sheet), `prefLatitude`/`prefLongitude`/`prefRadius`/`prefSearch` (Preferences), `routeLength`/`routeAscent`/`routeTime`/`routeSpeed` in the XIB — on the cell: unit tests find them with
+  sheet), `poiPosition`/`poiTags`/`poiAllTagsToggle`/`poiAllTags`/`poiOpenOSM`/`poiStreetView`/`poiCopy`/`poiExclude`/`poiEdit`
+  (POI callout, #72), `prefLatitude`/`prefLongitude`/`prefRadius`/`prefSearch` (Preferences), `routeLength`/`routeAscent`/`routeTime`/`routeSpeed` in the XIB — on the cell: unit tests find them with
   `-[DocumentWindowTests panelControlWithIdentifier:]`). POI markers and callouts are not exposed to accessibility:
   check POI behavior through its effects (stub requests, undo menu items). Files exchanged with the app go in
   `/private/tmp/bp-uitests/`.
@@ -169,10 +170,27 @@ Diagnostics of a run: temporary `NSLog(@"DIAGxx …")`, then `/usr/bin/log show 
 --predicate 'process == "BikePlanner" AND eventMessage CONTAINS "DIAGxx"'` (read-only; remove the logs before
 committing). The Debug build is `~/Library/Developer/Xcode/DerivedData/BikePlanner-*/Build/Products/Debug/`.
 
+Quick Look extension (`BikePlannerQuickLook`, #70; shared code `SupportClasses/BPRoutePreview`): built and embedded
+with the app (`Contents/PlugIns`). The owner tests it: launch the app once (registers the extension), `! qlmanage -r`,
+then space bar on a `.bikeplan` / `.gpx` in the Finder. Every copy of the app on disk (DerivedData Debug,
+`build/SiteEditor`, `build/DerivedData` of the DMG, /Applications) registers its extension; the one in use:
+`pluginkit -m -v -p com.apple.quicklook.preview | grep -i bike`. Its logs: `process == "BikePlannerQuickLook"`; its
+sandbox denials: `process == "kernel" AND eventMessage CONTAINS "BikePlannerQuickLook"` (the Quick Look sandbox
+blocked MapKit: temporary exceptions in `BikePlannerQuickLook.entitlements`). `qlmanage -p` crashes in Claude's
+shell. To look at a rendering, compile a small tool in the scratchpad with `BPRoutePreview.m` + the model sources
+(BikePlan, POILocation, GPXParser, TaggedPoly, RouteAnnotation, BPEnvironment) and write a PNG
+(`-bitmapOfSize:mapImage:` after `-takeMapSnapshotForSize:…`).
+
+After a `git checkout` that rewrites files of the extension, a test build may fail with "Entitlements file
+`BikePlannerQuickLook.entitlements` was modified during the build": delete the build description cache
+`~/Library/Developer/Xcode/DerivedData/BikePlanner-*/Build/Intermediates.noindex/XCBuildData` (or, in Xcode, Product ▸
+Clean Build Folder); never set `CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION`.
+
 ## Workflow
 
 - Branch `dev` for work, `main` is the default branch for PRs. A batch of issues may get its own branch (`v08`, `v09`…;
-  current batch: `v10`, from `dev` at 0.9.2), merged into `dev` (then `main`) when the owner asks — usually a
+  current batch: `v10`, from `dev` at 0.9.2; state of the batch, versions and pending items: Claude's project memory),
+  merged into `dev` (then `main`) when the owner asks — usually a
   fast-forward. The owner builds the DMG (`scripts/make_dmg.sh`) after a merge. Branch `brouter`: embedded BRouter
   engine (long-running).
 - The owner tests at the end of a batch; commit when the unit tests pass (if asked), push / close issues only when

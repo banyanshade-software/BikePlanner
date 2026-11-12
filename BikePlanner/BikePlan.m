@@ -816,7 +816,7 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
 
 - (void) addCustomPoiAt:(CLLocationCoordinate2D)coord
 {
-    (void)[self addCustomPoiAt:coord type:POI_warning name:nil];
+    (void)[self addCustomPoiAt:coord type:[POILocation defaultCustomPoiType] name:nil];
 }
 
 - (POILocation *) customPoiAt:(CLLocationCoordinate2D)coord type:(PoiType_t)type name:(nullable NSString *)name

@@ -48,6 +48,10 @@ typedef NS_ENUM(int, PoiType_t) {
 + (PoiType_t) poiTypeForAmenity:(NSString *)s;
 // types offered for custom POIs, default first (#3)
 + (NSArray<NSNumber *> *) customPoiTypes;
+// type of a new custom POI: Information (#74)
++ (PoiType_t) defaultCustomPoiType;
+// custom POI type of an imported GPX waypoint from its <type> (case-insensitive); unknown or none: the default type
++ (PoiType_t) customPoiTypeForGPXType:(nullable NSString *)gpxType;
 + (NSString *) displayNameForType:(PoiType_t)type;
 
 @end

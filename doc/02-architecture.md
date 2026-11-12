@@ -75,7 +75,8 @@ SupportClasses/              Reusable/support components
   POILocation.*              Model class for a POI (CLLocation subclass, NSSecureCoding)
   POIAnnotation.*            MKPointAnnotation for POIs, icon configuration
   POIAnnotationView.*        MKMarkerAnnotationView subclass (highlight color)
-  POICalloutView.*           Callout content (tags + Include/Exclude)
+  POICalloutView.*           Callout content (#72: position, tags, buttons, Include/Exclude)
+  BPPOIDescription.*         What the callout shows (translated tags, OSM URL, position text), no UI
   RouteAnnotation.*          MKPointAnnotation for waypoints (carries its index)
   TaggedPoly.*               MKPolyline with a tag (0 route, 1 waypoints, 2 reference GPX, 3 road class highlight)
   SafeOSMTileOverlay.*, SafeTileRenderer.*   MKTileOverlay/Renderer subclasses; the overlay fetches the tiles itself

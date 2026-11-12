@@ -18,6 +18,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic) BOOL excluded;                    // excluded from the export (#5): greyed
 
 - (void) configureAnnotViewIcon:(MKMarkerAnnotationView *)view;
+// glyph and color of the marker of a POI type (also the icon of the callout, #72)
++ (nullable NSImage *) glyphImageForType:(PoiType_t)type;
++ (nullable NSColor *) tintColorForType:(PoiType_t)type;
 @end
 
 @interface POICustomAnnotation : POIAnnotation

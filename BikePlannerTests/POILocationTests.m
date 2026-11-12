@@ -66,7 +66,8 @@
 {
     NSArray<NSNumber *> *types = [POILocation customPoiTypes];
     XCTAssertEqual(types.count, 11u);
-    XCTAssertEqual(types.firstObject.intValue, POI_warning, @"default type first");
+    XCTAssertEqual(types.firstObject.intValue, POI_info, @"default type first (#74)");
+    XCTAssertEqual([POILocation defaultCustomPoiType], POI_info, @"#74");
     NSDictionary *garmin = @{ @(POI_warning): @"DANGER", @(POI_drinking_water): @"WATER", @(POI_food): @"FOOD",
                               @(POI_toilets): @"TOILET", @(POI_bicycle_repair_station): @"SERVICE",
                               @(POI_shelter): @"SHELTER", @(POI_viewpoint): @"OVERLOOK", @(POI_campsite): @"CAMPSITE",
@@ -79,6 +80,21 @@
     }
     // archived values of the existing types do not change
     XCTAssertEqual(POI_warning, 5);
+}
+
+// GPX <type> of an imported waypoint → custom POI type; unknown or no type → the default type (#74)
+- (void)testCustomPoiTypeForGPXType
+{
+    for (NSNumber *t in [POILocation customPoiTypes]) {
+        if (t.intValue == POI_generic) continue; // GENERIC is also the type of fetched cemeteries
+        POILocation *p = [[POILocation alloc] initWithLatitude:1 longitude:2 ofType:t.intValue info:@{} custom:YES];
+        XCTAssertEqual([POILocation customPoiTypeForGPXType:p.gpxType], t.intValue, @"%@", p.gpxType);
+    }
+    XCTAssertEqual([POILocation customPoiTypeForGPXType:@"danger"], POI_warning, @"case-insensitive");
+    XCTAssertEqual([POILocation customPoiTypeForGPXType:@"GENERIC"], POI_generic);
+    XCTAssertEqual([POILocation customPoiTypeForGPXType:@""], POI_info);
+    XCTAssertEqual([POILocation customPoiTypeForGPXType:@"ENERGY GEL"], POI_info);
+    XCTAssertEqual([POILocation customPoiTypeForGPXType:nil], POI_info);
 }
 
 - (void)testCustomPoiNameIsTitle

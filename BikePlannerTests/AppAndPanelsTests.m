@@ -13,6 +13,7 @@
 #import "POIAnnotation.h"
 #import "POIAnnotationView.h"
 #import "POICalloutView.h"
+#import "BPPOIDescription.h"
 #import "TestFixtures.h"
 
 @interface AppDelegate (Testing)
@@ -138,10 +139,12 @@
     POICalloutView *c = [[POICalloutView alloc] initWithFrame:NSMakeRect(0, 0, 200, 200)];
     XCTAssertNotNil(c.excludeControl);
     XCTAssertEqual(c.excludeControl.segmentCount, 2);
-    c.infodic = @{ @"amenity": @"toilets" };
-    NSTextField *label = nil;
-    for (NSView *v in c.subviews) if ([v isKindOfClass:[NSTextField class]]) label = (NSTextField *)v;
-    XCTAssertTrue([label.stringValue containsString:@"toilets"]);
+    // readable view (#72): translated tags, all OSM tags collapsed
+    NSDictionary *info = @{ @"id": @1, @"amenity": @"toilets", @"unisex": @"yes" };
+    [c configureWithDescription:[[BPPOIDescription alloc] initWithType:POI_toilets info:info custom:NO] position:nil];
+    XCTAssertEqualObjects(c.displayedText, @"Unisex yes\nAll OSM tags (2)");
+    c.showsAllTags = YES;
+    XCTAssertTrue([c.displayedText containsString:@"amenity = toilets"]);
 }
 
 // the location permission prompt shows a real explanation, not "1" (#18)

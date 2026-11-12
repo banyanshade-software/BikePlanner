@@ -92,6 +92,8 @@
 		43ECACC673FCC213E27F73DF /* BikePlan.m in Sources */ = {isa = PBXBuildFile; fileRef = 65F366112E4FA3DF0046B03D /* BikePlan.m */; };
 		A2353570BBD0ED047788FDC3 /* BPEnvironment.m in Sources */ = {isa = PBXBuildFile; fileRef = AA16AA45F8CA631E7FEBC6B6 /* BPEnvironment.m */; };
 		322D9DAFC44A46990937196E /* BPRoutePreviewTests.m in Sources */ = {isa = PBXBuildFile; fileRef = B4F35C4F6BFB455BB05E5896 /* BPRoutePreviewTests.m */; };
+		CD5E2C38139C3C65A3ECFAA9 /* BPPOIDescription.m in Sources */ = {isa = PBXBuildFile; fileRef = BD42814359523007690FA32A /* BPPOIDescription.m */; };
+		2D2B933561833E69814BD74E /* BPPOIDescriptionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 0ECF239711814AD316A561E3 /* BPPOIDescriptionTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -258,6 +260,9 @@
 		B99A1E4C965CB6F32B0ADE2F /* BPRoutePreview.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRoutePreview.m; sourceTree = "<group>"; };
 		FD2A4568341BD38684795022 /* BPRoutePreview.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPRoutePreview.h; sourceTree = "<group>"; };
 		B4F35C4F6BFB455BB05E5896 /* BPRoutePreviewTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPRoutePreviewTests.m; sourceTree = "<group>"; };
+		BD42814359523007690FA32A /* BPPOIDescription.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPPOIDescription.m; sourceTree = "<group>"; };
+		3A071300C27D55BA551C02A3 /* BPPOIDescription.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPPOIDescription.h; sourceTree = "<group>"; };
+		0ECF239711814AD316A561E3 /* BPPOIDescriptionTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPPOIDescriptionTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -397,6 +402,8 @@
 				F19EC713A6F99C103A02957A /* BPRoadTypesView.h */,
 				B99A1E4C965CB6F32B0ADE2F /* BPRoutePreview.m */,
 				FD2A4568341BD38684795022 /* BPRoutePreview.h */,
+				BD42814359523007690FA32A /* BPPOIDescription.m */,
+				3A071300C27D55BA551C02A3 /* BPPOIDescription.h */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -471,6 +478,7 @@
 				D8997E3CAA336BA565381E10 /* BPRemarkableSitesTests.m */,
 				AC3E3406BA3F7FDC5B190C96 /* BPSiteEditorTests.m */,
 				B4F35C4F6BFB455BB05E5896 /* BPRoutePreviewTests.m */,
+				0ECF239711814AD316A561E3 /* BPPOIDescriptionTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -744,6 +752,7 @@
 				EB00DFBB48006DBD7729B1D8 /* BPRoadTypesView.m in Sources */,
 				949CB3D93AD36A7CE146AC7F /* BPSiteEditorController.m in Sources */,
 				177CD87DC3FFCDC304E8DB00 /* BPRoutePreview.m in Sources */,
+				CD5E2C38139C3C65A3ECFAA9 /* BPPOIDescription.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -776,6 +785,7 @@
 				A91D29A9CDC0B46D1C6C54EC /* BPRemarkableSitesTests.m in Sources */,
 				0E3D178A8C323DBAC9A99B60 /* BPSiteEditorTests.m in Sources */,
 				322D9DAFC44A46990937196E /* BPRoutePreviewTests.m in Sources */,
+				2D2B933561833E69814BD74E /* BPPOIDescriptionTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

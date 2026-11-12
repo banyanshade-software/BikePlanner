@@ -19,6 +19,7 @@
 #import "POIAnnotationView.h"
 #import "ExportAccessoryViewController.h"
 #import "BPPOIEditor.h"
+#import "BPPOIDescription.h"
 #import "BPPlaceSearch.h"
 #import "BPSecrets.h"
 #import "BPEnvironment.h"
@@ -69,6 +70,8 @@ static NSString * const BPExportFolderBookmarksKey = @"BPExportFolderBookmarks";
     __weak NSSavePanel *exportPanel;         // while the export panel is open (#31, #69: stages pop-up)
     NSUserDefaults *exportDefaults;         // last stages export choice, folder bookmarks (#69); nil: standard, set by tests
     NSUInteger routeGeneration;             // incremented by each request and cancel: older answers are ignored (#9)
+    NSPasteboard *poiPasteboard;            // POI callout Copy (#72); nil: general pasteboard, set by tests
+    void (^poiURLOpener)(NSURL *url);       // POI callout OpenStreetMap (#72); nil: NSWorkspace, set by tests
 }
 
 - (void) initializeMapview
@@ -434,6 +437,10 @@ static const double kBPSiteRadiusKm = 15;
 
 // When a pin is selected/deselected:
 - (void)mapView:(MKMapView *)mapView didSelectAnnotationView:(MKAnnotationView *)view {
+    // the position on the route is computed when the callout opens: the route may have changed since (#72)
+    if ([view.annotation isKindOfClass:[POIAnnotation class]] && [view.detailCalloutAccessoryView isKindOfClass:[POICalloutView class]]) {
+        [self configurePOICallout:(POICalloutView *)view.detailCalloutAccessoryView forAnnotation:(POIAnnotation *)view.annotation];
+    }
     self.activeCalloutView = view.detailCalloutAccessoryView;
 }
 
@@ -701,7 +708,7 @@ static const double kBPSiteRadiusKm = 15;
         CLLocationCoordinate2D rcoord;
         if ([self clickNearPolylineAt:locInView tolerence:50. nearestPoint:&rcoord]) {
             // type and optional name asked first (#3)
-            [BPPOIEditor editType:POI_warning name:nil
+            [BPPOIEditor editType:[POILocation defaultCustomPoiType] name:nil
                             title:NSLocalizedString(@"Add a point of interest", @"custom POI editor")
                          okButton:NSLocalizedString(@"Add", @"custom POI editor") window:self.mapView.window
                        completion:^(PoiType_t type, NSString *name) {
@@ -880,6 +887,9 @@ static const double kBPSiteRadiusKm = 15;
     ann.info = loc.info;
     ann.coordinate = loc.coordinate;
     ann.title = loc.title;
+    // callout (#72): the name under the type; a custom POI with a name has it as title: its type under it
+    BPPOIDescription *d = [[BPPOIDescription alloc] initWithType:loc.poiType info:loc.info custom:[loc.poiKey hasPrefix:@"custom:"]];
+    ann.subtitle = d.custom ? (d.name ? d.typeName : nil) : d.name;
     ann.poiType = loc.poiType;
     ann.poiKey = loc.poiKey;
     ann.excluded = [_document.plan isPOIExcluded:loc];
@@ -1975,10 +1985,19 @@ static const BOOL useMarker = NO;
             view = [[POIAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:identifier];
             view.canShowCallout = YES;
             view.calloutOffset = CGPointMake(0, 4);
-            POICalloutView *detailView = [[POICalloutView alloc] initWithFrame:NSMakeRect(0, 0, 200, 200)];
+            POICalloutView *detailView = [[POICalloutView alloc] initWithFrame:NSMakeRect(0, 0, 300, 200)];
             view.detailCalloutAccessoryView = detailView;
             detailView.excludeControl.target = self;
             detailView.excludeControl.action = @selector(excludeControlChanged:);
+            // #72
+            for (NSButton *b in @[detailView.osmButton, detailView.streetViewButton, detailView.coordinatesButton, detailView.editButton]) {
+                b.target = self;
+            }
+            detailView.osmButton.action = @selector(openPOIInOSM:);
+            detailView.streetViewButton.action = @selector(streetViewAtPOI:);
+            detailView.coordinatesButton.action = @selector(copyPOICoordinates:);
+            detailView.editButton.action = @selector(editPOIFromCallout:);
+            view.leftCalloutAccessoryView = [[NSImageView alloc] initWithFrame:NSMakeRect(0, 0, 28, 28)];
             detailView.annotview = view;
         } else {
             view.annotation = annotation;
@@ -1986,8 +2005,8 @@ static const BOOL useMarker = NO;
         
         POIAnnotation *poi = (POIAnnotation *)annotation;
         [poi configureAnnotViewIcon:view];
-        ((POICalloutView *)view.detailCalloutAccessoryView).infodic = poi.info; //XXX TODO
-        ((POICalloutView *)view.detailCalloutAccessoryView).excludeControl.selectedSegment = poi.excluded ? 1 : 0;
+        [self configurePOICallout:(POICalloutView *)view.detailCalloutAccessoryView forAnnotation:poi];
+        ((NSImageView *)view.leftCalloutAccessoryView).image = [self calloutIconForPOIType:poi.poiType];
         // custom POIs: Edit / Remove on right-click (#3); views are reused: always set
         if ([poi.poiKey hasPrefix:@"custom:"]) {
             NSMenu *menu = [[NSMenu alloc] initWithTitle:@"POI"];
@@ -2010,14 +2029,127 @@ static const BOOL useMarker = NO;
     return nil;
 }
 
+#pragma mark - POI callout (#72)
+
+- (void) configurePOICallout:(POICalloutView *)callout forAnnotation:(POIAnnotation *)poi
+{
+    callout.infodic = poi.info;
+    callout.excludeControl.selectedSegment = poi.excluded ? 1 : 0;
+    BPPOIDescription *d = [[BPPOIDescription alloc] initWithType:poi.poiType info:poi.info custom:[poi.poiKey hasPrefix:@"custom:"]];
+    [callout configureWithDescription:d position:[self routePositionStringForCoordinate:poi.coordinate]];
+}
+
+// "km 12.4 (stage 2) · 180 m off route", nil without route
+- (nullable NSString *) routePositionStringForCoordinate:(CLLocationCoordinate2D)coord
+{
+    BikePlan *plan = _document.plan;
+    if (plan.routePoints.count < 2) return nil;
+    NSUInteger segstart = 0;
+    double along = [self distanceAtCoordinate:coord segstart:&segstart];
+    CLLocationCoordinate2D onRoute = [self coordinateAtDistance:along];
+    CLLocation *a = [[CLLocation alloc] initWithLatitude:coord.latitude longitude:coord.longitude];
+    CLLocation *b = [[CLLocation alloc] initWithLatitude:onRoute.latitude longitude:onRoute.longitude];
+    NSInteger stage = plan.stagesRoutePoints.count > 1 ? (NSInteger)[plan stageOfCoordinate:onRoute] : -1;
+    return [BPPOIDescription positionStringForDistance:along offset:[a distanceFromLocation:b] stage:stage];
+}
+
+// the marker of the type: its glyph in white on a disc of its color
+- (NSImage *) calloutIconForPOIType:(PoiType_t)type
+{
+    NSImage *glyph = [POIAnnotation glyphImageForType:type];
+    NSColor *tint = [POIAnnotation tintColorForType:type] ?: [NSColor systemGrayColor];
+    return [NSImage imageWithSize:NSMakeSize(28, 28) flipped:NO drawingHandler:^BOOL(NSRect r) {
+        [[tint colorWithAlphaComponent:fmax(tint.alphaComponent, 0.6)] setFill];
+        [[NSBezierPath bezierPathWithOvalInRect:NSInsetRect(r, 1, 1)] fill];
+        if (glyph) {
+            NSImage *white = [NSImage imageWithSize:glyph.size flipped:NO drawingHandler:^BOOL(NSRect gr) {
+                [glyph drawInRect:gr];
+                [[NSColor whiteColor] set];
+                NSRectFillUsingOperation(gr, NSCompositingOperationSourceAtop);
+                return YES;
+            }];
+            [white drawInRect:NSInsetRect(r, 7, 7)];
+        }
+        return YES;
+    }];
+}
+
+// the POI whose callout holds this control
+- (nullable POIAnnotation *) poiAnnotationOfCalloutControl:(NSView *)control
+{
+    NSView *v = control;
+    while (v && ![v isKindOfClass:[POICalloutView class]]) v = v.superview;
+    id<MKAnnotation> annotation = ((POICalloutView *)v).annotview.annotation;
+    return [annotation isKindOfClass:[POIAnnotation class]] ? (POIAnnotation *)annotation : nil;
+}
+
+- (void) openPOIInOSM:(NSButton *)sender
+{
+    POIAnnotation *poi = [self poiAnnotationOfCalloutControl:sender];
+    if (!poi) return;
+    NSURL *url = [[BPPOIDescription alloc] initWithType:poi.poiType info:poi.info custom:[poi.poiKey hasPrefix:@"custom:"]].osmURL;
+    if (!url) return;
+    if (poiURLOpener) poiURLOpener(url);
+    else [[NSWorkspace sharedWorkspace] openURL:url];
+}
+
+// tests
+- (void) setPoiPasteboard:(nullable NSPasteboard *)pb
+{
+    poiPasteboard = pb;
+}
+
+- (void) setPoiURLOpener:(nullable void (^)(NSURL *url))opener
+{
+    poiURLOpener = opener;
+}
+
+// Street View from the nearest point of the route, looking at the POI; the profile cursor goes there
+- (void) streetViewAtPOI:(NSButton *)sender
+{
+    POIAnnotation *poi = [self poiAnnotationOfCalloutControl:sender];
+    if (!poi) return;
+    CLLocationCoordinate2D target = poi.coordinate;
+    if (_document.plan.routePoints.count < 2) {
+        [self.svCtrl viewCoord:target lookingAt:0 coalesce:NO];
+        return;
+    }
+    NSUInteger segstart = 0;
+    double along = [self distanceAtCoordinate:target segstart:&segstart];
+    CLLocationCoordinate2D onRoute = [self coordinateAtDistance:along];
+    CLLocation *a = [[CLLocation alloc] initWithLatitude:target.latitude longitude:target.longitude];
+    CLLocation *b = [[CLLocation alloc] initWithLatitude:onRoute.latitude longitude:onRoute.longitude];
+    // on the route: no direction to the POI, look along the route
+    double bearing = [a distanceFromLocation:b] < 10 ? [self bearingAtDistance:along] : [self bearingFrom:onRoute to:target];
+    scrubberMarker.coordinate = onRoute;
+    self.elevationView.highlightDistance = along;
+    [self.elevationView setNeedsDisplay:YES];
+    [self.svCtrl viewCoord:onRoute lookingAt:bearing coalesce:NO];
+}
+
+- (void) copyPOICoordinates:(NSButton *)sender
+{
+    POIAnnotation *poi = [self poiAnnotationOfCalloutControl:sender];
+    if (!poi) return;
+    NSPasteboard *pb = poiPasteboard ?: [NSPasteboard generalPasteboard];
+    [pb clearContents];
+    [pb setString:[BPPOIDescription coordinateString:poi.coordinate] forType:NSPasteboardTypeString];
+}
+
+- (void) editPOIFromCallout:(NSButton *)sender
+{
+    POIAnnotation *poi = [self poiAnnotationOfCalloutControl:sender];
+    if (!poi.poiKey) return;
+    [self.mapView deselectAnnotation:poi animated:NO];
+    [self editCustomPOIWithKey:poi.poiKey];
+}
+
 // Include / Exclude in the POI callout (#5): an excluded POI is not exported, and shown greyed
 - (void)excludeControlChanged:(NSSegmentedControl *)sender
 {
-    NSView *v = sender;
-    while (v && ![v isKindOfClass:[POICalloutView class]]) v = v.superview;
-    id<MKAnnotation> annotation = ((POICalloutView *)v).annotview.annotation;
-    if (![annotation isKindOfClass:[POIAnnotation class]]) return;
-    NSString *key = ((POIAnnotation *)annotation).poiKey;
+    POIAnnotation *annotation = [self poiAnnotationOfCalloutControl:sender];
+    if (!annotation) return;
+    NSString *key = annotation.poiKey;
     if (!key) return;
     [self setPOIKey:key excluded:(sender.selectedSegment == 1)];
 }
@@ -2386,11 +2518,15 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     // route points (or a file of waypoints only) are already waypoints
     BOOL isTrack = [pgpx.traceSource isEqualToString:@"trk"];
     NSArray<CLLocation *> *wps = isTrack || [trace count] > kBPImportMaxWaypoints ? [BikePlan waypointsForTrace:trace] : trace;
-    NSMutableArray<CLLocation *> *pois = [NSMutableArray array];
+    NSMutableArray<POILocation *> *pois = [NSMutableArray array];
     if (![pgpx.traceSource isEqualToString:@"wpt"]) {
         NSSet *fetchedTypes = [NSSet setWithObjects:@"WATER", @"TOILET", @"SERVICE", @"GENERIC", nil];
         [pgpx.waypoints enumerateObjectsUsingBlock:^(CLLocation *w, NSUInteger i, BOOL *stop) {
-            if (![fetchedTypes containsObject:pgpx.waypointTypes[i]]) [pois addObject:w];
+            if ([fetchedTypes containsObject:pgpx.waypointTypes[i]]) return;
+            // the GPX type is kept (#74)
+            PoiType_t type = [POILocation customPoiTypeForGPXType:pgpx.waypointTypes[i]];
+            [pois addObject:[[POILocation alloc] initWithLatitude:w.coordinate.latitude longitude:w.coordinate.longitude
+                                                           ofType:type info:@{} custom:YES]];
         }];
     }
     NSWindow *window = _mapView.window;
@@ -2408,13 +2544,13 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     }];
 }
 
-- (void) setRouteFromTrace:(NSArray<CLLocation *> *)trace waypoints:(NSArray<CLLocation *> *)wps pois:(NSArray<CLLocation *> *)pois
+- (void) setRouteFromTrace:(NSArray<CLLocation *> *)trace waypoints:(NSArray<CLLocation *> *)wps pois:(NSArray<POILocation *> *)pois
 {
     NSUndoManager *um = _document.undoManager;
     [um beginUndoGrouping];
     [self setRouteState:nil desc:nil]; // undo restores the whole previous route
     [_document.plan undoSetWayPt:wps];
-    for (CLLocation *p in pois) [_document.plan addCustomPoiAt:p.coordinate];
+    for (POILocation *p in pois) (void)[_document.plan addCustomPoiAt:p.coordinate type:p.poiType name:nil];
     [self setGpxDisplayed:trace desc:nil];
     [um setActionName:@"import GPX as route"];
     [um endUndoGrouping];
@@ -2480,7 +2616,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 
 - (void) addCustomPoiAt:(CLLocationCoordinate2D)coord
 {
-    [self addCustomPoiAt:coord type:POI_warning name:nil];
+    [self addCustomPoiAt:coord type:[POILocation defaultCustomPoiType] name:nil];
 }
 
 - (void) addCustomPoiAt:(CLLocationCoordinate2D)coord type:(PoiType_t)type name:(nullable NSString *)name
@@ -2499,7 +2635,13 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 // right-click menu of a custom POI (#3)
 - (void) editCustomPOIMenuAction:(NSMenuItem *)sender
 {
-    POILocation *poi = [self customPoiWithKey:sender.representedObject];
+    [self editCustomPOIWithKey:sender.representedObject];
+}
+
+// also the Edit… button of the callout (#72)
+- (void) editCustomPOIWithKey:(NSString *)key
+{
+    POILocation *poi = [self customPoiWithKey:key];
     if (!poi) return;
     [BPPOIEditor editType:poi.poiType name:poi.name
                     title:NSLocalizedString(@"Edit the point of interest", @"custom POI editor")

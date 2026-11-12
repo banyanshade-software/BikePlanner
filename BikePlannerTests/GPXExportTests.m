@@ -86,11 +86,11 @@
     XCTAssertFalse([s containsString:@"<wpt"]);
 }
 
-- (void)testCustomPOIIsExportedAsDanger
+- (void)testCustomPOIIsExportedWithItsType
 {
     [doc.plan addCustomPoiAt:CLLocationCoordinate2DMake(44.2, 0.5)];
     NSString *s = [self export:YES name:@"t"];
-    XCTAssertTrue([s containsString:@"<type>DANGER</type>"]);
+    XCTAssertTrue([s containsString:@"<type>INFO</type>"], @"default type: Information (#74)");
 }
 
 // custom POIs have no title: they must not be exported as "<name>(null)</name>" (#11)
@@ -99,8 +99,8 @@
     [doc.plan addCustomPoiAt:CLLocationCoordinate2DMake(44.2, 0.5)];
     NSString *s = [self export:YES name:@"t"];
     XCTAssertFalse([s containsString:@"(null)"]);
-    NSString *danger = [NSString stringWithFormat:@"<name>%@</name>", [POILocation displayNameForType:POI_warning]];
-    XCTAssertTrue([s containsString:danger], @"the type name when the POI has no name (#3)");
+    NSString *info = [NSString stringWithFormat:@"<name>%@</name>", [POILocation displayNameForType:POI_info]];
+    XCTAssertTrue([s containsString:info], @"the type name when the POI has no name (#3)");
 }
 
 // text is XML-escaped (#11)

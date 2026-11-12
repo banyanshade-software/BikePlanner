@@ -54,8 +54,26 @@
 
 + (NSArray<NSNumber *> *) customPoiTypes
 {
-    return @[ @(POI_warning), @(POI_drinking_water), @(POI_food), @(POI_toilets), @(POI_bicycle_repair_station),
-              @(POI_shelter), @(POI_viewpoint), @(POI_campsite), @(POI_store), @(POI_info), @(POI_generic) ];
+    return @[ @(POI_info), @(POI_warning), @(POI_drinking_water), @(POI_food), @(POI_toilets),
+              @(POI_bicycle_repair_station), @(POI_shelter), @(POI_viewpoint), @(POI_campsite), @(POI_store),
+              @(POI_generic) ];
+}
+
++ (PoiType_t) defaultCustomPoiType
+{
+    return POI_info;
+}
+
++ (PoiType_t) customPoiTypeForGPXType:(nullable NSString *)gpxType
+{
+    NSString *t = gpxType.uppercaseString;
+    if (t.length) {
+        for (NSNumber *n in [self customPoiTypes]) {
+            POILocation *p = [[POILocation alloc] initWithLatitude:0 longitude:0 ofType:n.intValue info:@{} custom:YES];
+            if ([p.gpxType isEqualToString:t]) return n.intValue;
+        }
+    }
+    return [self defaultCustomPoiType];
 }
 
 + (NSString *) displayNameForType:(PoiType_t)type
