@@ -15,12 +15,24 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class BPPOIDescription;
 
+/// actions of the callout controls (MapController); the sender is the control
+@protocol POICalloutActions <NSObject>
+- (void) openPOIInOSM:(NSButton *)sender;
+- (void) streetViewAtPOI:(NSButton *)sender;
+- (void) copyPOICoordinates:(NSButton *)sender;
+- (void) editPOIFromCallout:(NSButton *)sender;
+- (void) includeCheckboxChanged:(NSButton *)sender;
+@end
+
 @interface POICalloutView : NSView
 
 @property (strong,nonatomic) NSDictionary *infodic;
-/// checked: the POI is exported with the track (#5); unchecked: excluded
+/// target of the controls; set before the content is built (first fill, #78)
+@property (weak,nonatomic) id<POICalloutActions> actionTarget;
+/// the state of the checkbox (it may not be built yet)
+@property (nonatomic) BOOL included;
+/// checked: the POI is exported with the track (#5); unchecked: excluded. The controls build the content (#78)
 @property (readonly,nonatomic) NSButton *includeCheckbox;
-// targets and actions are set by MapController
 @property (readonly,nonatomic) NSButton *osmButton;
 @property (readonly,nonatomic) NSButton *streetViewButton;
 @property (readonly,nonatomic) NSButton *coordinatesButton;

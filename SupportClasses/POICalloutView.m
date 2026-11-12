@@ -23,8 +23,6 @@ static const CGFloat kBPCalloutWidth = 300;
     NSButton *_osmButton, *_streetViewButton, *_coordinatesButton, *_editButton;
 }
 
-@synthesize includeCheckbox = _includeCheckbox;
-@synthesize osmButton = _osmButton, streetViewButton = _streetViewButton, coordinatesButton = _coordinatesButton, editButton = _editButton;
 
 static NSTextField *BPLabel(NSFont *font, NSColor *color)
 {
@@ -56,6 +54,16 @@ static NSBox *BPSeparator(void)
 - (instancetype)initWithFrame:(NSRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
+        _included = YES;
+    }
+    return self;
+}
+
+// the content is built when the callout is filled (it opens), not for every POI marker: ~6 ms per callout (#78)
+- (void) buildContentIfNeeded
+{
+    if (_stack) return;
+    {
         NSFont *small = [NSFont systemFontOfSize:[NSFont smallSystemFontSize]];
         _positionLabel = BPLabel(small, [NSColor secondaryLabelColor]);
         _positionLabel.accessibilityIdentifier = @"poiPosition";
@@ -91,13 +99,22 @@ static NSBox *BPSeparator(void)
         NSStackView *buttons = [NSStackView stackViewWithViews:@[_osmButton, _streetViewButton, _coordinatesButton]];
         buttons.spacing = 4;
 
-        _includeCheckbox = [NSButton checkboxWithTitle:NSLocalizedString(@"Include in track", @"POI callout") target:nil action:nil];
+        id<POICalloutActions> target = self.actionTarget;
+        _osmButton.target = _streetViewButton.target = _coordinatesButton.target = target;
+        _osmButton.action = @selector(openPOIInOSM:);
+        _streetViewButton.action = @selector(streetViewAtPOI:);
+        _coordinatesButton.action = @selector(copyPOICoordinates:);
+
+        _includeCheckbox = [NSButton checkboxWithTitle:NSLocalizedString(@"Include in track", @"POI callout")
+                                                target:target action:@selector(includeCheckboxChanged:)];
         _includeCheckbox.controlSize = NSControlSizeSmall;
         _includeCheckbox.font = [NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSControlSizeSmall]];
-        _includeCheckbox.state = NSControlStateValueOn;
+        _includeCheckbox.state = _included ? NSControlStateValueOn : NSControlStateValueOff;
         _includeCheckbox.toolTip = NSLocalizedString(@"Exported with the track to GPX (when POIs are exported)", @"POI callout");
         _includeCheckbox.accessibilityIdentifier = @"poiInclude";
         _editButton = BPSmallButton(NSLocalizedString(@"Edit…", @"POI callout button"), @"poiEdit");
+        _editButton.target = target;
+        _editButton.action = @selector(editPOIFromCallout:);
         NSStackView *bottom = [NSStackView stackViewWithViews:@[_includeCheckbox, _editButton]];
         bottom.spacing = 8;
 
@@ -122,11 +139,23 @@ static NSBox *BPSeparator(void)
             [_separator2.widthAnchor constraintEqualToAnchor:_stack.widthAnchor],
         ]];
     }
-    return self;
+}
+
+- (NSButton *) includeCheckbox    { [self buildContentIfNeeded]; return _includeCheckbox; }
+- (NSButton *) osmButton          { [self buildContentIfNeeded]; return _osmButton; }
+- (NSButton *) streetViewButton   { [self buildContentIfNeeded]; return _streetViewButton; }
+- (NSButton *) coordinatesButton  { [self buildContentIfNeeded]; return _coordinatesButton; }
+- (NSButton *) editButton         { [self buildContentIfNeeded]; return _editButton; }
+
+- (void) setIncluded:(BOOL)included
+{
+    _included = included;
+    _includeCheckbox.state = included ? NSControlStateValueOn : NSControlStateValueOff;
 }
 
 - (void) configureWithDescription:(BPPOIDescription *)d position:(nullable NSString *)position
 {
+    [self buildContentIfNeeded];
     _positionLabel.stringValue = position ?: @"";
     _positionLabel.hidden = (position.length == 0);
 
@@ -209,6 +238,7 @@ static NSBox *BPSeparator(void)
 
 - (void) setShowsAllTags:(BOOL)show
 {
+    [self buildContentIfNeeded];
     _showsAllTags = show;
     _allTagsToggle.state = show ? NSControlStateValueOn : NSControlStateValueOff;
     _allTagsLabel.hidden = _allTagsRow.hidden || !show;
@@ -237,6 +267,7 @@ static NSBox *BPSeparator(void)
 
 - (NSString *) displayedText
 {
+    if (!_stack) return @"";
     NSMutableArray *parts = [NSMutableArray array];
     if (!_positionLabel.hidden) [parts addObject:_positionLabel.stringValue];
     for (NSInteger r = 0; r < _grid.numberOfRows; r++) {

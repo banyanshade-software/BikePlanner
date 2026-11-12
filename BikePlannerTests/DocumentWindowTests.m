@@ -673,6 +673,35 @@
     XCTAssertTrue([callout.displayedText containsString:@"(stage 2)"], @"%@", callout.displayedText);
 }
 
+// many POIs along a long route: the marker views are created quickly; the callout is filled when it opens (#78:
+// filling it for every marker computed the position on the route each time, 5 s for 300 POIs on 5,000 points)
+- (void)testManyPOIViewsAreFast
+{
+    doc.plan.fetchPOI = NO;
+    NSMutableArray *pts = [NSMutableArray array];
+    for (int i = 0; i < 5000; i++) [pts addObject:BPLocAlt(44.0 + i * 0.0001, 0.5 + i * 0.0001, 100)];
+    doc.plan.routePoints = pts;
+    NSMutableArray *pois = [NSMutableArray array];
+    for (int i = 0; i < 300; i++) {
+        [pois addObject:[[POILocation alloc] initWithLatitude:44.0 + i * 0.0016 longitude:0.505 + i * 0.0016 ofType:POI_drinking_water
+                                                         info:@{ @"id": @(i), @"amenity": @"drinking_water", @"name": @"x" } custom:NO]];
+    }
+    [doc.plan setPoiloc:pois];
+    NSDate *t0 = [NSDate date];
+    [mc refreshPOI];
+    NSArray<POIAnnotation *> *anns = [self annotationsOfClass:[POIAnnotation class]];
+    XCTAssertEqual(anns.count, 300u);
+    for (POIAnnotation *a in anns) (void)[mc mapView:map viewForAnnotation:a];
+    NSTimeInterval t = [[NSDate date] timeIntervalSinceDate:t0];
+    XCTAssertLessThan(t, 1.0, @"300 POI views: %.2f s", t);
+    // not filled before it opens; filled when it opens
+    MKAnnotationView *v = [mc mapView:map viewForAnnotation:anns.firstObject];
+    POICalloutView *callout = (POICalloutView *)v.detailCalloutAccessoryView;
+    XCTAssertEqualObjects(callout.displayedText, @"");
+    [mc mapView:map didSelectAnnotationView:v];
+    XCTAssertTrue([callout.displayedText hasPrefix:@"km "], @"%@", callout.displayedText);
+}
+
 - (void)testFetchedPOIsAreDisplayed
 {
     [self makeRoute];

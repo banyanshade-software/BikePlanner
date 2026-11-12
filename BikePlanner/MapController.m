@@ -38,6 +38,9 @@ static NSString * const BPExportStagesModeKey = @"BPExportStagesMode";
 static NSString * const BPExportFolderBookmarksKey = @"BPExportFolderBookmarks";
 
 
+@interface MapController () <POICalloutActions>
+@end
+
 @implementation BPSearchPinAnnotation
 @end
 
@@ -872,7 +875,7 @@ static const double kBPSiteRadiusKm = 15;
     // under the route (#71: the Compare color scheme draws an opaque route over a wider trace)
     TaggedPoly *firstRoute = nil;
     for (id<MKOverlay> ov in self.mapView.overlays) {
-        if ([ov isKindOfClass:[TaggedPoly class]] && 0 == ((TaggedPoly *)ov).tag) { firstRoute = ov; break; }
+        if ([ov isKindOfClass:[TaggedPoly class]] && 0 == ((TaggedPoly *)ov).tag) { firstRoute = (TaggedPoly *)ov; break; }
     }
     if (firstRoute) {
         [self.mapView insertOverlay:gpxpoly belowOverlay:firstRoute];
@@ -2026,16 +2029,7 @@ static const BOOL useMarker = NO;
             view.calloutOffset = CGPointMake(0, 4);
             POICalloutView *detailView = [[POICalloutView alloc] initWithFrame:NSMakeRect(0, 0, 300, 200)];
             view.detailCalloutAccessoryView = detailView;
-            detailView.includeCheckbox.target = self;
-            detailView.includeCheckbox.action = @selector(includeCheckboxChanged:);
-            // #72
-            for (NSButton *b in @[detailView.osmButton, detailView.streetViewButton, detailView.coordinatesButton, detailView.editButton]) {
-                b.target = self;
-            }
-            detailView.osmButton.action = @selector(openPOIInOSM:);
-            detailView.streetViewButton.action = @selector(streetViewAtPOI:);
-            detailView.coordinatesButton.action = @selector(copyPOICoordinates:);
-            detailView.editButton.action = @selector(editPOIFromCallout:);
+            detailView.actionTarget = self; // #72; its content is built when it opens (#78)
             view.leftCalloutAccessoryView = [[NSImageView alloc] initWithFrame:NSMakeRect(0, 0, 28, 28)];
             detailView.annotview = view;
         } else {
@@ -2044,7 +2038,11 @@ static const BOOL useMarker = NO;
         
         POIAnnotation *poi = (POIAnnotation *)annotation;
         [poi configureAnnotViewIcon:view];
-        [self configurePOICallout:(POICalloutView *)view.detailCalloutAccessoryView forAnnotation:poi];
+        // the callout content is filled when it opens (didSelectAnnotationView:): filling it here, for every marker,
+        // computed the position on the route each time (#78)
+        POICalloutView *callout = (POICalloutView *)view.detailCalloutAccessoryView;
+        callout.infodic = poi.info;
+        callout.included = !poi.excluded;
         ((NSImageView *)view.leftCalloutAccessoryView).image = [self calloutIconForPOIType:poi.poiType];
         // custom POIs: Edit / Remove on right-click (#3); views are reused: always set
         if ([poi.poiKey hasPrefix:@"custom:"]) {
@@ -2073,7 +2071,7 @@ static const BOOL useMarker = NO;
 - (void) configurePOICallout:(POICalloutView *)callout forAnnotation:(POIAnnotation *)poi
 {
     callout.infodic = poi.info;
-    callout.includeCheckbox.state = poi.excluded ? NSControlStateValueOff : NSControlStateValueOn;
+    callout.included = !poi.excluded;
     BPPOIDescription *d = [[BPPOIDescription alloc] initWithType:poi.poiType info:poi.info custom:[poi.poiKey hasPrefix:@"custom:"]];
     [callout configureWithDescription:d position:[self routePositionStringForCoordinate:poi.coordinate]];
 }
