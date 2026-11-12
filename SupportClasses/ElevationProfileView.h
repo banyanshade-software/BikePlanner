@@ -28,6 +28,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, weak) id<ElevationProfileViewDelegate> delegate;
 /// indexes of the points (of setGpxPoints:) where a stage ends (#31): a vertical line with the number of the next stage
 @property (nonatomic, copy) NSArray<NSNumber *> *stageEndIndexes;
+/// color of the stage-end markers (#71: from the color scheme); purple by default
+@property (nonatomic, strong) NSColor *stageEndColor;
 /// distances (m) of the stage ends, from stageEndIndexes and the points
 @property (nonatomic, readonly) NSArray<NSNumber *> *stageEndDistances;
 

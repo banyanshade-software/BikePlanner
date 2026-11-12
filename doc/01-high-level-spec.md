@@ -153,8 +153,8 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   other: km and %, longest first) and, under *Surface*, paved / unpaved / unknown (km and %; classes without
   distance are not listed), from the way tags of the BRouter answer; saved with the document. The Info section is
   in a scroll view (#53).
-  Each row has a small radio button: the selected road type or surface is highlighted on the map (pink, over the
-  route, #54), one at a time; the last row, *None*, removes the highlight (the default). The selection stays while
+  Each row has a small radio button: the selected road type or surface is highlighted on the map (highlight color of the
+  color scheme, F12.4, pink by default, over the route, #54), one at a time; the last row, *None*, removes the highlight (the default). The selection stays while
   the map is used, and on a new route when that route has the type (else back to *None*); it is not saved (#66,
   was a hover on the text). Not available for a route whose road types are unknown (imported trace, document saved
   before #54).
@@ -171,8 +171,8 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   (no new BRouter request).
 - F3.10 **Stages** (#31, e.g. one per day): right-click on an intermediate waypoint ▸ *End Stage Here* (checked when
   the waypoint ends a stage; again to remove it). The route stays one BRouter request and is cut at those waypoints
-  (no new request): stages alternate blue / purple on the map, a stage-end waypoint has a purple pin, and the
-  elevation profile shows a purple line with the number of the next stage. Undoable, saved with the document. A
+  (no new request): stages alternate two colors on the map (color scheme, F12.4: blue / purple by default), a stage-end
+  waypoint has a pin of the stage-end color (purple by default), and the elevation profile shows a line of that color with the number of the next stage. Undoable, saved with the document. A
   moved stage end still ends its stage; on the start or the end of the route (after a removal or an insertion) it
   has no effect.
 
@@ -258,7 +258,7 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 
 ### F8 — Reference GPX trace
 - F8.1 *File ▸ Import GPX as display* (or toolbar “Import trace”) loads a GPX file and draws it in
-  orange under the route, for reference only (it is not used for routing). Importing another trace replaces it.
+  the trace color of the color scheme (F12.4, orange by default) under the route, for reference only (it is not used for routing). Importing another trace replaces it.
 - F8.2 *File ▸ Remove Displayed GPX Trace* (enabled when a trace is shown) removes it; undoable.
 - F8.3 *File ▸ Import GPX as Route…* converts a GPX into an editable plan: a track (`<trk>`) is simplified into
   waypoints (Douglas–Peucker, 50 m tolerance, at most 3 km between two waypoints along the track, first/last points
@@ -276,7 +276,8 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F9.4 Quick Look (#70): the space bar in the Finder (and the Finder preview pane) shows a `.bikeplan` document or a
   `.gpx` file without opening it: its name, a summary (length, ascent, riding time, number of stages, POIs, "reference
   trace"; for a GPX, length and ascent from the BRouter comment, else computed from the points, ascent with climbs of
-  more than 5 m), and the route on an Apple Maps snapshot (stages in blue / purple, reference trace orange, start
+  more than 5 m), and the route on an Apple Maps snapshot (Classic colors whatever the color scheme, F12.4, which
+  the extension cannot read: stages in blue / purple, reference trace orange, start
   green, end red; POIs are only counted; a document without a computed route: its waypoints), 680 × 480. No map after 8 s or offline: the
   route on a plain background. No Finder thumbnails (could come later).
 
@@ -303,9 +304,20 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F12.2 **Default position** (F1.5): latitude / longitude fields, *Use Current Map Center* (map of the front document
   window), or *Find a place* (Apple place search: one result is used directly, several are proposed in a menu, none
   gives a message). **Initial radius** (km, default 80). **Start position** (F1.6): radio buttons.
-- F12.3 Stored in the user defaults (`BPDefaultPosition`, `BPInitialRadiusKm`, `BPStartPosition`, defaults registered at launch), so
+- F12.3 Stored in the user defaults (`BPDefaultPosition`, `BPInitialRadiusKm`, `BPStartPosition`, `BPColorScheme`, defaults registered at launch), so
   that launch-argument overrides (tests) still apply. Later candidates: BRouter server (#2), routing engine,
   default profile (#1), POI types to fetch.
+- F12.4 **Route colors** (#71): a pop-up of color schemes (with a swatch), one for every map type, global (not saved
+  in the document); a change redraws the open maps. Each scheme gives the alternating stage colors, the route
+  opacity, the stage-end color (pin, profile marker), the reference trace color and the road type / surface highlight
+  color:
+  *Classic* (default, the colors before #71: blue / purple, alpha 0.5, purple, orange, pink), *Vivid (OSM+cycle map)*
+  (magenta / green, alpha 0.75, magenta, dark gray, yellow), *Dark* (near-black / dark red, alpha 0.75, dark red,
+  cyan, yellow), *Satellite* (yellow / cyan, alpha 0.85, cyan, white, magenta), *Compare with trace* (to compare a
+  real track, imported as the reference trace, with the planned route: the trace bright red, opaque, 10 pt, and the
+  route opaque, 5 pt, blue / purple, drawn over it: where they coincide, the route with a red border; purple stage
+  ends, highlight yellow). In the other schemes the route is 8 pt and the trace 6 pt at alpha 0.5. The trace is always
+  drawn under the route.
 
 ## 7. Non-functional requirements (targets)
 

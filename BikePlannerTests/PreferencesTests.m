@@ -12,6 +12,7 @@
 #import "BPPlaceSearch.h"
 #import "AppDelegate.h"
 #import "TestFixtures.h"
+#import "BPColorScheme.h"
 
 @interface BPPreferencesWindowController (Testing)
 @property (strong) NSTextField *latitudeField;
@@ -20,6 +21,7 @@
 @property (strong) NSArray<NSButton *> *startButtons;
 @property (strong) NSSearchField *searchField;
 @property (strong) NSTextField *messageLabel;
+@property (strong) NSPopUpButton *colorSchemePopUp;
 - (void)positionChanged:(id)sender;
 - (void)radiusChanged:(id)sender;
 - (void)useMapCenter:(id)sender;
@@ -111,7 +113,37 @@ static MKMapItem *BPItem(NSString *name, double lat, double lon)
     XCTAssertEqual(prefs.startPosition, BPStartPositionRemarkableSite, @"unknown value: the default");
 }
 
+// route colors (#71): global preference, the key read by BPColorScheme; a change is notified (open maps redraw)
+- (void)testColorScheme
+{
+    XCTAssertEqualObjects(prefs.colorScheme.identifier, @"classic", @"default when unset");
+    __block NSUInteger notified = 0;
+    id obs = [[NSNotificationCenter defaultCenter] addObserverForName:BPColorSchemeDidChangeNotification object:nil queue:nil
+                                                           usingBlock:^(NSNotification *n) { notified++; }];
+    prefs.colorScheme = [BPColorScheme schemeWithIdentifier:@"dark"];
+    XCTAssertEqualObjects([defaults stringForKey:@"BPColorScheme"], @"dark");
+    XCTAssertEqualObjects(prefs.colorScheme.identifier, @"dark");
+    XCTAssertEqual(notified, 1u);
+    prefs.colorScheme = [BPColorScheme schemeWithIdentifier:@"dark"];
+    XCTAssertEqual(notified, 1u, @"no change: no notification");
+    [[NSNotificationCenter defaultCenter] removeObserver:obs];
+}
+
 #pragma mark - window
+
+- (void)testColorSchemePopUp
+{
+    prefs.colorScheme = [BPColorScheme schemeWithIdentifier:@"vivid"];
+    [self window];
+    NSPopUpButton *p = wc.colorSchemePopUp;
+    XCTAssertEqualObjects(p.accessibilityIdentifier, @"prefColorScheme");
+    XCTAssertEqual(p.numberOfItems, 5);
+    XCTAssertEqualObjects(p.selectedItem.representedObject, @"vivid");
+    XCTAssertNotNil(p.itemArray.firstObject.image, @"a swatch of the colors");
+    [p selectItemAtIndex:3];
+    [NSApp sendAction:p.action to:p.target from:p];
+    XCTAssertEqualObjects(prefs.colorScheme.identifier, @"satellite", @"applied at once");
+}
 
 - (void)testStartPositionRadioButtons
 {

@@ -16,6 +16,7 @@
 @property (strong) NSButton *mapCenterButton;
 @property (strong) NSSearchField *searchField;
 @property (strong) NSTextField *messageLabel;
+@property (strong) NSPopUpButton *colorSchemePopUp; // #71
 @property (strong, nullable) NSMenu *resultsMenu;
 @end
 
@@ -23,7 +24,7 @@
 
 - (instancetype)initWithPreferences:(BPPreferences *)preferences
 {
-    NSWindow *w = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 500, 320)
+    NSWindow *w = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 500, 360)
                                               styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
                                                 backing:NSBackingStoreBuffered defer:YES];
     w.title = NSLocalizedString(@"Preferences", @"Preferences window");
@@ -120,6 +121,19 @@
     start.alignment = NSLayoutAttributeLeading;
     start.spacing = 4;
 
+    // route colors (#71): one scheme for every map type
+    self.colorSchemePopUp = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
+    for (BPColorScheme *s in [BPColorScheme allSchemes]) {
+        [self.colorSchemePopUp addItemWithTitle:s.localizedName];
+        self.colorSchemePopUp.lastItem.representedObject = s.identifier;
+        self.colorSchemePopUp.lastItem.image = [s swatchImage];
+    }
+    self.colorSchemePopUp.target = self;
+    self.colorSchemePopUp.action = @selector(colorSchemeChanged:);
+    self.colorSchemePopUp.accessibilityIdentifier = @"prefColorScheme";
+    self.colorSchemePopUp.toolTip = NSLocalizedString(@"Colors of the stages, of the reference trace and of the highlighted road types",
+                                                      @"Preferences");
+
     NSStackView *position = [NSStackView stackViewWithViews:@[ self.latitudeField, self.longitudeField ]];
     NSStackView *radius = [NSStackView stackViewWithViews:@[ self.radiusField,
                                                              [NSTextField labelWithString:NSLocalizedString(@"km", @"Preferences")] ]];
@@ -130,6 +144,7 @@
         @[ [self label:NSLocalizedString(@"Find a place:", @"Preferences")], self.searchField ],
         @[ [NSGridCell emptyContentView], self.messageLabel ],
         @[ [self label:NSLocalizedString(@"Initial radius:", @"Preferences")], radius ],
+        @[ [self label:NSLocalizedString(@"Route colors:", @"Preferences")], self.colorSchemePopUp ],
     ]];
     grid.rowSpacing = 10;
     grid.columnSpacing = 8;
@@ -157,6 +172,7 @@
     for (NSButton *b in self.startButtons) {
         b.state = (b.tag == self.preferences.startPosition) ? NSControlStateValueOn : NSControlStateValueOff;
     }
+    [self.colorSchemePopUp selectItemAtIndex:[self.colorSchemePopUp indexOfItemWithRepresentedObject:self.preferences.colorScheme.identifier]];
 }
 
 - (void)showMessage:(NSString *)message
@@ -179,6 +195,12 @@
 - (void)startPositionChanged:(NSButton *)sender
 {
     self.preferences.startPosition = (BPStartPosition)sender.tag;
+    [self refreshFields];
+}
+
+- (void)colorSchemeChanged:(NSPopUpButton *)sender
+{
+    self.preferences.colorScheme = [BPColorScheme schemeWithIdentifier:sender.selectedItem.representedObject];
     [self refreshFields];
 }
 

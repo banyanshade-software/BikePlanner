@@ -29,6 +29,7 @@
 #import "TestFixtures.h"
 #import "BPRemarkableSites.h"
 #import "BPEnvironment.h"
+#import "BPColorScheme.h"
 
 @interface MapController (WindowTesting)
 - (void)setSearchCompletionTitles:(NSArray<NSString *> *)titles;
@@ -58,6 +59,9 @@
 - (BOOL)gestureRecognizer:(NSGestureRecognizer *)gestureRecognizer shouldAttemptToRecognizeWithEvent:(NSEvent *)event;
 - (CLLocationDistance)distanceAtCoordinate:(CLLocationCoordinate2D)coord segstart:(NSUInteger *)psegstart;
 - (void)refreshPOI;
+- (void)fullRefresh:(BOOL)fromLoad;
+- (void)refreshPoly:(BOOL)changeVisibleRect;
+- (void)highlightKind:(nullable NSString *)kind;
 - (void)setPoiPasteboard:(nullable NSPasteboard *)pb;
 - (void)setPoiURLOpener:(nullable void (^)(NSURL *url))opener;
 @end
@@ -118,7 +122,8 @@
                           @"BPDisableStreetView": @YES,
                           @"BPDisableTiles": @YES,
                           @"BPInitialRegion": @"44.05,0.55,0.2",
-                          @"BPProfileOverrides": @{} }); // not the owner's default BRouter parameters
+                          @"BPProfileOverrides": @{}, // not the owner's default BRouter parameters
+                          @"BPColorScheme": @"classic" }); // nor the owner's route colors (#71)
     doc = [[Document alloc] init];
     [self openWindow];
 }
@@ -1209,6 +1214,82 @@
     MKPolylineRenderer *g = (MKPolylineRenderer *)[mc mapView:map rendererForOverlay:doc.plan.gpxDisplayedPoly];
     XCTAssertEqual(g.lineWidth, 6.0);
     XCTAssertNotNil([mc mapView:map rendererForOverlay:[[MKTileOverlay alloc] initWithURLTemplate:@"x"]]);
+}
+
+// route colors (#71): the scheme of the Preferences, and a change redraws the open maps
+- (void)testOverlayRenderersFollowColorScheme
+{
+    doc.plan.fetchPOI = NO;
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.5)];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.05, 0.55)];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.1, 0.6)];
+    XCTAssertTrue([self waitForRouteWithPoints:21]);
+    (void)[doc.plan setStageEnd:YES atWaypointIndex:1];
+    doc.plan.gpxDisplayed = @[BPLoc(44, 0.5), BPLoc(44.1, 0.5)];
+    [mc fullRefresh:NO];
+    BPColorScheme *classic = [BPColorScheme defaultScheme];
+    NSArray<TaggedPoly *> *stages = [self polysWithTag:0];
+    XCTAssertEqual(stages.count, 2u);
+    MKPolylineRenderer *r = (MKPolylineRenderer *)[mc mapView:map rendererForOverlay:stages[1]];
+    XCTAssertEqualObjects(r.strokeColor, [classic colorForStage:1]);
+    XCTAssertEqual(r.alpha, classic.routeAlpha);
+
+    // the Preferences change the scheme: the overlays are drawn again with it
+    BPOverrideDefaults(@{ @"BPBRouterServer": server.baseURL.absoluteString,
+                          @"BPOverpassURL": server.overpassURL.absoluteString,
+                          @"BPDisableStreetView": @YES, @"BPDisableTiles": @YES,
+                          @"BPInitialRegion": @"44.05,0.55,0.2", @"BPProfileOverrides": @{},
+                          @"BPColorScheme": @"satellite" });
+    BPColorScheme *sat = [BPColorScheme schemeWithIdentifier:@"satellite"];
+    [[NSNotificationCenter defaultCenter] postNotificationName:BPColorSchemeDidChangeNotification object:sat];
+    NSArray<TaggedPoly *> *before = stages;
+    stages = [self polysWithTag:0];
+    XCTAssertEqual(stages.count, 2u);
+    XCTAssertFalse([stages containsObject:before[0]], @"the route is drawn again (MapKit keeps a renderer per overlay)");
+    MKPolylineRenderer *r0 = (MKPolylineRenderer *)[mc mapView:map rendererForOverlay:stages[0]];
+    MKPolylineRenderer *r1 = (MKPolylineRenderer *)[mc mapView:map rendererForOverlay:stages[1]];
+    XCTAssertEqualObjects(r0.strokeColor, [sat colorForStage:0]);
+    XCTAssertEqualObjects(r1.strokeColor, [sat colorForStage:1]);
+    XCTAssertEqual(r1.alpha, sat.routeAlpha);
+    TaggedPoly *trace = [self polysWithTag:2].firstObject;
+    XCTAssertNotNil(trace);
+    XCTAssertEqualObjects(((MKPolylineRenderer *)[mc mapView:map rendererForOverlay:trace]).strokeColor, sat.referenceTraceColor);
+    // stage-end pin and profile marker
+    RouteAnnotation *mid = nil;
+    for (RouteAnnotation *a in [self annotationsOfClass:[RouteAnnotation class]]) if (a.idx == 1) mid = a;
+    MKAnnotationView *v = [mc mapView:map viewForAnnotation:mid];
+    XCTAssertTrue([v isKindOfClass:[MKPinAnnotationView class]]);
+    XCTAssertEqualObjects(((MKPinAnnotationView *)v).pinTintColor, sat.stageEndColor);
+    XCTAssertEqualObjects(mc.elevationView.stageEndColor, sat.stageEndColor);
+    // road type highlight (#54)
+    [mc highlightKind:@"road:track"];
+    TaggedPoly *h = [self polysWithTag:3].firstObject;
+    XCTAssertNotNil(h);
+    XCTAssertEqualObjects(((MKPolylineRenderer *)[mc mapView:map rendererForOverlay:h]).strokeColor, sat.highlightColor);
+    [mc highlightKind:nil];
+
+    // trace above the route with the Compare scheme
+    NSUInteger (^indexOfTrace)(void) = ^NSUInteger { return [self->map.overlays indexOfObject:[self polysWithTag:2].firstObject]; };
+    NSUInteger (^indexOfRoute)(void) = ^NSUInteger { return [self->map.overlays indexOfObject:[self polysWithTag:0].lastObject]; };
+    XCTAssertLessThan(indexOfTrace(), indexOfRoute(), @"Satellite: trace under the route");
+    BPOverrideDefaults(@{ @"BPBRouterServer": server.baseURL.absoluteString,
+                          @"BPOverpassURL": server.overpassURL.absoluteString,
+                          @"BPDisableStreetView": @YES, @"BPDisableTiles": @YES,
+                          @"BPInitialRegion": @"44.05,0.55,0.2", @"BPProfileOverrides": @{},
+                          @"BPColorScheme": @"compare" });
+    BPColorScheme *cmp = [BPColorScheme schemeWithIdentifier:@"compare"];
+    [[NSNotificationCenter defaultCenter] postNotificationName:BPColorSchemeDidChangeNotification object:cmp];
+    XCTAssertLessThan(indexOfTrace(), indexOfRoute(), @"Compare: the route over the trace");
+    MKPolylineRenderer *tr = (MKPolylineRenderer *)[mc mapView:map rendererForOverlay:[self polysWithTag:2].firstObject];
+    XCTAssertEqualObjects(tr.strokeColor, cmp.referenceTraceColor);
+    XCTAssertEqual(tr.alpha, cmp.traceAlpha);
+    XCTAssertEqual(tr.lineWidth, cmp.traceWidth);
+    MKPolylineRenderer *rr = (MKPolylineRenderer *)[mc mapView:map rendererForOverlay:[self polysWithTag:0].firstObject];
+    XCTAssertEqual(rr.lineWidth, cmp.routeWidth);
+    [mc fullRefresh:NO];
+    XCTAssertLessThan(indexOfTrace(), indexOfRoute(), @"also when everything is drawn again");
+    [mc refreshPoly:NO]; // a new route
+    XCTAssertLessThan(indexOfTrace(), indexOfRoute(), @"also after a new route");
 }
 
 - (void)testElevationScrubbingMovesMap

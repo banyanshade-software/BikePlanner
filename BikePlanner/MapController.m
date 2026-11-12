@@ -24,6 +24,7 @@
 #import "BPSecrets.h"
 #import "BPEnvironment.h"
 #import "BPRemarkableSites.h"
+#import "BPColorScheme.h"
 
 // Secret.h is not commited, see Secret.h.example
 
@@ -79,6 +80,10 @@ static NSString * const BPExportFolderBookmarksKey = @"BPExportFolderBookmarks";
 {
     NSAssert(_document.plan, @"no plan");
     animateDropPins = NO; //YES;
+    // route colors changed in the Preferences (#71)
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(colorSchemeChanged:)
+                                                 name:BPColorSchemeDidChangeNotification object:nil];
+    self.elevationView.stageEndColor = [BPColorScheme currentScheme].stageEndColor;
     NSView *content = [_mapView superview];// self.window.contentView;
     //_document.plan.waypointsLocations = [[NSMutableArray alloc]initWithCapacity:32];
     waypointsRouteAnnotations = [[NSMutableArray alloc]initWithCapacity:32];
@@ -631,7 +636,7 @@ static const double kBPSiteRadiusKm = 15;
 - (NSColor *) pinColorForWaypointIdx:(NSUInteger)idx
 {
     NSColor *c;
-    if ([_document.plan isStageEndAtWaypointIndex:idx]) c = [NSColor systemPurpleColor]; // #31
+    if ([_document.plan isStageEndAtWaypointIndex:idx]) c = [BPColorScheme currentScheme].stageEndColor; // #31, #71
     else if (0==idx) c = [NSColor grayColor];
     else if (idx >= [waypointsRouteAnnotations count]-1) c = [NSColor whiteColor];
     else c = [NSColor yellowColor];
@@ -845,6 +850,16 @@ static const double kBPSiteRadiusKm = 15;
     [self refreshSideView];
 }
 
+// the Preferences changed the route colors (#71): MapKit keeps a renderer per overlay, so the overlays are added
+// again; the pins are created again (stage-end color)
+- (void) colorSchemeChanged:(NSNotification *)note
+{
+    self.elevationView.stageEndColor = [BPColorScheme currentScheme].stageEndColor;
+    [self refreshAnnot:NO];
+    [self refreshPoly:NO];
+    [self refreshGpxDisplayed];
+}
+
 - (void) refreshGpxDisplayed
 {
     for (id<MKOverlay> ov in [self.mapView.overlays copy]) {
@@ -854,7 +869,16 @@ static const double kBPSiteRadiusKm = 15;
     }
     if (![_document.plan.gpxDisplayed count]) return; // no trace: no empty overlay
     TaggedPoly *gpxpoly = _document.plan.gpxDisplayedPoly;
-    [self.mapView addOverlay:gpxpoly level:MKOverlayLevelAboveLabels];
+    // under the route (#71: the Compare color scheme draws an opaque route over a wider trace)
+    TaggedPoly *firstRoute = nil;
+    for (id<MKOverlay> ov in self.mapView.overlays) {
+        if ([ov isKindOfClass:[TaggedPoly class]] && 0 == ((TaggedPoly *)ov).tag) { firstRoute = ov; break; }
+    }
+    if (firstRoute) {
+        [self.mapView insertOverlay:gpxpoly belowOverlay:firstRoute];
+    } else {
+        [self.mapView addOverlay:gpxpoly level:MKOverlayLevelAboveLabels];
+    }
  
 }
 - (void) refreshSideView
@@ -1116,23 +1140,24 @@ static const double kBPSiteRadiusKm = 15;
     if ([overlay isKindOfClass:[TaggedPoly class]]) {
         TaggedPoly *pl = (TaggedPoly *) overlay;
         MKPolylineRenderer *r = [[MKPolylineRenderer alloc] initWithPolyline:pl];
+        BPColorScheme *scheme = [BPColorScheme currentScheme]; // #71
         
         if (pl.tag == 0) {
             // route being built
-            r.lineWidth = 8.0;
-            r.alpha = 0.5;
-            r.strokeColor = (pl.stage % 2) ? [NSColor systemPurpleColor] : [NSColor blueColor]; // stages (#31)
+            r.lineWidth = scheme.routeWidth;
+            r.alpha = scheme.routeAlpha;
+            r.strokeColor = [scheme colorForStage:pl.stage]; // stages (#31)
         } else if (pl.tag == 3) {
             // road class hovered in the Info section (#54)
             r.lineWidth = 9.0;
             r.alpha = 0.9;
-            r.strokeColor = [NSColor systemPinkColor];
+            r.strokeColor = scheme.highlightColor;
         } else {
             // gpx loaded
-            r.lineWidth = 6.0;
-            r.alpha = 0.5;
+            r.lineWidth = scheme.traceWidth;
+            r.alpha = scheme.traceAlpha;
             //r.strokeColor = [NSColor darkGrayColor];
-            r.strokeColor = [NSColor orangeColor];
+            r.strokeColor = scheme.referenceTraceColor;
         }
         return r;
     }

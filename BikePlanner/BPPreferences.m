@@ -86,4 +86,16 @@ static const double kBPDefaultRadiusKm = 80;
     [ud setInteger:p forKey:BPStartPositionKey];
 }
 
+- (BPColorScheme *)colorScheme
+{
+    return [BPColorScheme schemeWithIdentifier:[ud stringForKey:BPColorSchemeKey]];
+}
+
+- (void)setColorScheme:(BPColorScheme *)scheme
+{
+    if ([self.colorScheme.identifier isEqualToString:scheme.identifier]) return;
+    [ud setObject:scheme.identifier forKey:BPColorSchemeKey];
+    [[NSNotificationCenter defaultCenter] postNotificationName:BPColorSchemeDidChangeNotification object:scheme];
+}
+
 @end

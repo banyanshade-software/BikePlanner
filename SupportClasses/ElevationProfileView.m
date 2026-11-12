@@ -19,6 +19,7 @@ typedef NS_ENUM(NSInteger, BPProfileDrag) {
 };
 
 @implementation ElevationProfileView {
+    NSColor *_stageEndColor;    // #71
     double _maxDist;
     double _minElev, _maxElev;
     CGRect _plotRect;
@@ -260,6 +261,17 @@ typedef NS_ENUM(NSInteger, BPProfileDrag) {
     *high = hi;
 }
 
+- (NSColor *) stageEndColor
+{
+    return _stageEndColor ?: [NSColor systemPurpleColor];
+}
+
+- (void) setStageEndColor:(NSColor *)c
+{
+    _stageEndColor = c;
+    [self setNeedsDisplay:YES];
+}
+
 - (void) setStageEndIndexes:(NSArray<NSNumber *> *)stageEndIndexes
 {
     _stageEndIndexes = [stageEndIndexes copy] ?: @[];
@@ -446,13 +458,13 @@ static const double kBPSlopeHalfWindow = 50; // m
     // stage ends (#31): a vertical line, the number of the next stage at the top; a click on it zooms on the stage
     if (!_stageLabels) _stageLabels = [NSMutableArray array];
     NSDictionary *stageAttrs = @{ NSFontAttributeName: [NSFont boldSystemFontOfSize:10],
-                                  NSForegroundColorAttributeName: [NSColor systemPurpleColor] };
+                                  NSForegroundColorAttributeName: self.stageEndColor };
     NSArray<NSNumber *> *ends = self.stageEndDistances;
     for (NSUInteger k = 0; k < ends.count; k++) {
         double d = ends[k].doubleValue;
         if (d < from || d > to) continue;
         CGFloat sx = [self xForDistance:d];
-        [[NSColor systemPurpleColor] setStroke];
+        [self.stageEndColor setStroke];
         CGContextSetLineWidth(ctx, 1.5);
         CGContextMoveToPoint(ctx, sx, plotRect.origin.y);
         CGContextAddLineToPoint(ctx, sx, NSMaxY(plotRect));

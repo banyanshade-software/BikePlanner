@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <CoreLocation/CoreLocation.h>
 #import "BPEnvironment.h"
+#import "BPColorScheme.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -30,6 +31,8 @@ extern NSString *const BPStartPositionKey;     // BPStartPosition
 @property (nonatomic) double initialRadiusKm;
 /// where a new document starts (#65)
 @property (nonatomic) BPStartPosition startPosition;
+/// colors of the route on the map (#71); setting a new one posts BPColorSchemeDidChangeNotification
+@property (nonatomic) BPColorScheme *colorScheme;
 
 @end
 

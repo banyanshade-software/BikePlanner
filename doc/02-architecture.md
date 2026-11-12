@@ -42,7 +42,7 @@ in XIB files. There is no third-party dependency manager: everything uses Apple 
 ```
 BikePlanner/                 App target
   main.m, AppDelegate.*      App entry, About window, Preferences menu
-  BPPreferences.*            Typed user settings (default position, initial radius; #27)
+  BPPreferences.*            Typed user settings (default position, initial radius; #27; color scheme, #71)
   BPPreferencesWindowController.*  Preferences window, built in code
   Document.*                 NSDocument subclass: load/save, menu relays
   PlannerWindowController.*  Window setup, wires MapController / StreetView / BRF editor
@@ -76,6 +76,7 @@ SupportClasses/              Reusable/support components
   POIAnnotation.*            MKPointAnnotation for POIs, icon configuration
   POIAnnotationView.*        MKMarkerAnnotationView subclass (highlight color)
   POICalloutView.*           Callout content (#72: position, tags, buttons, Include/Exclude)
+  BPColorScheme.*            Route color schemes (#71): stage, stage-end, trace and highlight colors; change notification
   BPPOIDescription.*         What the callout shows (translated tags, OSM URL, position text), no UI
   RouteAnnotation.*          MKPointAnnotation for waypoints (carries its index)
   TaggedPoly.*               MKPolyline with a tag (0 route, 1 waypoints, 2 reference GPX, 3 road class highlight)
