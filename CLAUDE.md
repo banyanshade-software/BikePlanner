@@ -144,7 +144,7 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
 - UI tests: controls created in code have `accessibilityIdentifier`s (`map`, `clickMode`, `mapType`, `clickModeHelp`,
   `zoomIn`…, `profileZoomIn`/`profileZoomOut`/`profileZoomFit` (elevation profile, #62), `exportStages` (GPX export panel, #69), `brf.<parameter>` in the Params tab, `routeRoadTypes` (Info section, a `BPRoadTypesView`: radio buttons `roadType.<kind>` / `roadType.none`, #66; selecting a
   road type or a surface highlights it on the map, #54), `poiType`/`poiName` (custom POI
-  sheet), `poiPosition`/`poiTags`/`poiAllTagsToggle`/`poiAllTags`/`poiOpenOSM`/`poiStreetView`/`poiCopy`/`poiExclude`/`poiEdit`
+  sheet), `poiPosition`/`poiTags`/`poiAllTagsToggle`/`poiAllTags`/`poiOpenOSM`/`poiStreetView`/`poiCopy`/`poiInclude`/`poiEdit`
   (POI callout, #72), `prefLatitude`/`prefLongitude`/`prefRadius`/`prefSearch` (Preferences), `routeLength`/`routeAscent`/`routeTime`/`routeSpeed` in the XIB — on the cell: unit tests find them with
   `-[DocumentWindowTests panelControlWithIdentifier:]`). POI markers and callouts are not exposed to accessibility:
   check POI behavior through its effects (stub requests, undo menu items). Files exchanged with the app go in

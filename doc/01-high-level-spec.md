@@ -240,10 +240,12 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   with a name: the name, then the type); its position on the route (“km 12.4 (stage 2) · 180 m off route”, computed
   when the callout opens; “on the route” under 20 m); the useful OSM tags translated (drinking water, seasonal,
   opening hours, fee, wheelchair, pump/tools of a repair station, operator, note…) and *All OSM tags (n)*, collapsed
-  (key = value, selectable); buttons *OpenStreetMap* (the node, or the way of a cemetery area, on openstreetmap.org;
+  (key = value, selectable); a value that is a web address (`website` of a shop or a repair station…) is a link;
+  buttons *OpenStreetMap* (the node, or the way of a cemetery area, on openstreetmap.org;
   fetched POIs only), *Street View* (from the nearest point of the route, looking at the POI; the profile cursor goes
-  there), *Copy* (“lat, lon”, 6 decimals); an Include/Exclude control and, for a custom POI, *Edit…* (the sheet of
-  F7.6). An excluded POI stays
+  there), *Copy* (“lat, lon”, 6 decimals); a checkbox *Include in track* (checked by default) and, for a custom POI,
+  *Edit…* (the sheet of F7.6). A click outside the open callout closes it and does nothing else (on another POI: opens
+  that one). An excluded (unchecked) POI stays
   on the map, greyed, and is **not exported** to GPX (fetched and custom POIs). Exclusions are saved with the
   document (by OSM id + position, since fetched POIs are re-created at each route change) and undoable (#5).
 - F7.6 In *Add POI* mode, a click on the route opens a sheet asking the **type** and an optional **name** of the

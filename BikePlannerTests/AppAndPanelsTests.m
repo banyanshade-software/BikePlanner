@@ -137,14 +137,26 @@
 - (void)testCalloutShowsInfo
 {
     POICalloutView *c = [[POICalloutView alloc] initWithFrame:NSMakeRect(0, 0, 200, 200)];
-    XCTAssertNotNil(c.excludeControl);
-    XCTAssertEqual(c.excludeControl.segmentCount, 2);
+    XCTAssertNotNil(c.includeCheckbox);
+    XCTAssertEqual(c.includeCheckbox.state, NSControlStateValueOn, @"included by default (#72)");
     // readable view (#72): translated tags, all OSM tags collapsed
     NSDictionary *info = @{ @"id": @1, @"amenity": @"toilets", @"unisex": @"yes" };
     [c configureWithDescription:[[BPPOIDescription alloc] initWithType:POI_toilets info:info custom:NO] position:nil];
     XCTAssertEqualObjects(c.displayedText, @"Unisex yes\nAll OSM tags (2)");
     c.showsAllTags = YES;
     XCTAssertTrue([c.displayedText containsString:@"amenity = toilets"]);
+}
+
+// URL values are clickable links (#72), in the tags and in All OSM tags
+- (void)testCalloutLinks
+{
+    POICalloutView *c = [[POICalloutView alloc] initWithFrame:NSMakeRect(0, 0, 200, 200)];
+    NSDictionary *info = @{ @"id": @1, @"amenity": @"bicycle_repair_station", @"website": @"https://www.cyclostand.fr/" };
+    [c configureWithDescription:[[BPPOIDescription alloc] initWithType:POI_bicycle_repair_station info:info custom:NO] position:nil];
+    c.showsAllTags = YES;
+    NSArray<NSURL *> *links = c.displayedLinks;
+    NSArray *expected = @[ [NSURL URLWithString:@"https://www.cyclostand.fr/"], [NSURL URLWithString:@"https://www.cyclostand.fr/"] ];
+    XCTAssertEqualObjects(links, expected, @"the Website row and the website tag");
 }
 
 // the location permission prompt shows a real explanation, not "1" (#18)

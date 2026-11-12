@@ -72,6 +72,7 @@ static NSString * const BPExportFolderBookmarksKey = @"BPExportFolderBookmarks";
     NSUInteger routeGeneration;             // incremented by each request and cancel: older answers are ignored (#9)
     NSPasteboard *poiPasteboard;            // POI callout Copy (#72); nil: general pasteboard, set by tests
     void (^poiURLOpener)(NSURL *url);       // POI callout OpenStreetMap (#72); nil: NSWorkspace, set by tests
+    NSTimeInterval calloutOpenedAt;         // the click that opens a callout must not close it (#72)
 }
 
 - (void) initializeMapview
@@ -442,6 +443,7 @@ static const double kBPSiteRadiusKm = 15;
         [self configurePOICallout:(POICalloutView *)view.detailCalloutAccessoryView forAnnotation:(POIAnnotation *)view.annotation];
     }
     self.activeCalloutView = view.detailCalloutAccessoryView;
+    calloutOpenedAt = [NSDate timeIntervalSinceReferenceDate];
 }
 
 - (void)mapView:(MKMapView *)mapView didDeselectAnnotationView:(MKAnnotationView *)view {
@@ -669,6 +671,18 @@ static const double kBPSiteRadiusKm = 15;
         // should not happen
         return;
     }*/
+    // a click outside the open callout closes it and does nothing else (#72), except on another POI: that one opens.
+    // A click inside the callout does not get here (gestureRecognizer:shouldAttemptToRecognizeWithEvent:)
+    if (self.activeCalloutView) {
+        // the click that opened it, seen again (MapKit selected the POI, then this recognizer), or a double click
+        if ([NSDate timeIntervalSinceReferenceDate] - calloutOpenedAt < 0.4) return;
+        id<MKAnnotation> poi = [self nearestPOIToScreenPoint:locInView maxPixelRadius:MOUSE_RADIUS];
+        BOOL other = poi && ![self.mapView.selectedAnnotations containsObject:poi];
+        for (id<MKAnnotation> a in [self.mapView.selectedAnnotations copy]) [self.mapView deselectAnnotation:a animated:YES];
+        self.activeCalloutView = nil;
+        if (other) [self.mapView selectAnnotation:poi animated:YES];
+        return;
+    }
     // check if POI is selected (standard mechanism require tricky click right on the bottom of annotation view)
     if (!self.activeCalloutView) {
         float radius = MOUSE_RADIUS;
@@ -1987,8 +2001,8 @@ static const BOOL useMarker = NO;
             view.calloutOffset = CGPointMake(0, 4);
             POICalloutView *detailView = [[POICalloutView alloc] initWithFrame:NSMakeRect(0, 0, 300, 200)];
             view.detailCalloutAccessoryView = detailView;
-            detailView.excludeControl.target = self;
-            detailView.excludeControl.action = @selector(excludeControlChanged:);
+            detailView.includeCheckbox.target = self;
+            detailView.includeCheckbox.action = @selector(includeCheckboxChanged:);
             // #72
             for (NSButton *b in @[detailView.osmButton, detailView.streetViewButton, detailView.coordinatesButton, detailView.editButton]) {
                 b.target = self;
@@ -2034,7 +2048,7 @@ static const BOOL useMarker = NO;
 - (void) configurePOICallout:(POICalloutView *)callout forAnnotation:(POIAnnotation *)poi
 {
     callout.infodic = poi.info;
-    callout.excludeControl.selectedSegment = poi.excluded ? 1 : 0;
+    callout.includeCheckbox.state = poi.excluded ? NSControlStateValueOff : NSControlStateValueOn;
     BPPOIDescription *d = [[BPPOIDescription alloc] initWithType:poi.poiType info:poi.info custom:[poi.poiKey hasPrefix:@"custom:"]];
     [callout configureWithDescription:d position:[self routePositionStringForCoordinate:poi.coordinate]];
 }
@@ -2144,14 +2158,14 @@ static const BOOL useMarker = NO;
     [self editCustomPOIWithKey:poi.poiKey];
 }
 
-// Include / Exclude in the POI callout (#5): an excluded POI is not exported, and shown greyed
-- (void)excludeControlChanged:(NSSegmentedControl *)sender
+// "Include in track" in the POI callout (#5, checkbox #72): an excluded POI is not exported, and shown greyed
+- (void)includeCheckboxChanged:(NSButton *)sender
 {
     POIAnnotation *annotation = [self poiAnnotationOfCalloutControl:sender];
     if (!annotation) return;
     NSString *key = annotation.poiKey;
     if (!key) return;
-    [self setPOIKey:key excluded:(sender.selectedSegment == 1)];
+    [self setPOIKey:key excluded:(sender.state != NSControlStateValueOn)];
 }
 
 - (void)setPOIKey:(NSString *)key excluded:(BOOL)excluded

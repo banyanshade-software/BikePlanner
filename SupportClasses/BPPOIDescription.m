@@ -45,6 +45,8 @@ typedef NS_ENUM(int, BPTagKind) {
             @[ @"description",                 NSLocalizedString(@"Description", @"POI tag"),    @(BPTagText) ],
             @[ @"note",                        NSLocalizedString(@"Note", @"POI tag"),           @(BPTagText) ],
             @[ @"website",                     NSLocalizedString(@"Website", @"POI tag"),        @(BPTagText) ],
+            @[ @"contact:website",             NSLocalizedString(@"Website", @"POI tag"),        @(BPTagText) ],
+            @[ @"url",                         NSLocalizedString(@"Website", @"POI tag"),        @(BPTagText) ],
             @[ @"check_date",                  NSLocalizedString(@"Last checked", @"POI tag"),   @(BPTagText) ],
         ];
     });
@@ -114,6 +116,17 @@ typedef NS_ENUM(int, BPTagKind) {
                offsetMeters / 1000.0];
     }
     return [NSString stringWithFormat:@"%@ · %@", km, off];
+}
+
++ (nullable NSURL *)linkURLForValue:(NSString *)value
+{
+    NSString *v = [value stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+    if ([v rangeOfCharacterFromSet:[NSCharacterSet whitespaceCharacterSet]].location != NSNotFound) return nil;
+    NSString *lower = v.lowercaseString;
+    if ([lower hasPrefix:@"www."]) v = [@"https://" stringByAppendingString:v];
+    else if (![lower hasPrefix:@"http://"] && ![lower hasPrefix:@"https://"]) return nil;
+    NSURL *url = [NSURL URLWithString:v];
+    return url.host.length ? url : nil;
 }
 
 + (NSString *)coordinateString:(CLLocationCoordinate2D)coord

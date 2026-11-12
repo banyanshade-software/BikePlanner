@@ -30,6 +30,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// "km 12.4 (stage 2) · 180 m off route"; stage < 0: no stage (route not cut in stages)
 + (NSString *)positionStringForDistance:(double)alongMeters offset:(double)offsetMeters stage:(NSInteger)stage;
+/// the link of a tag value that is a web address (http/https, or starting with "www."), nil otherwise
++ (nullable NSURL *)linkURLForValue:(NSString *)value;
 /// "44.123456, 0.543210"
 + (NSString *)coordinateString:(CLLocationCoordinate2D)coord;
 

@@ -42,6 +42,24 @@
     XCTAssertNil(d.name);
 }
 
+// a value that is a URL is a link (#72), e.g. the website of a repair station (node 8894672388)
+- (void)testURLValues
+{
+    NSDictionary *info = @{ @"id": @8894672388, @"amenity": @"bicycle_repair_station", @"name": @"CycloStand",
+                            @"service:bicycle:pump": @"no", @"website": @"https://www.cyclostand.fr/" };
+    BPPOIDescription *d = [[BPPOIDescription alloc] initWithType:POI_bicycle_repair_station info:info custom:NO];
+    XCTAssertTrue([d.rows containsObject:(@[@"Website", @"https://www.cyclostand.fr/"])], @"%@", d.rows);
+    XCTAssertEqualObjects([BPPOIDescription linkURLForValue:@"https://www.cyclostand.fr/"].absoluteString, @"https://www.cyclostand.fr/");
+    XCTAssertEqualObjects([BPPOIDescription linkURLForValue:@"http://example.org/a?b=c"].absoluteString, @"http://example.org/a?b=c");
+    XCTAssertEqualObjects([BPPOIDescription linkURLForValue:@"www.example.org"].absoluteString, @"https://www.example.org");
+    XCTAssertNil([BPPOIDescription linkURLForValue:@"yes"]);
+    XCTAssertNil([BPPOIDescription linkURLForValue:@"Mo-Su 08:00-20:00"]);
+    XCTAssertNil([BPPOIDescription linkURLForValue:@"ftp://example.org"]);
+    // other website tags
+    d = [[BPPOIDescription alloc] initWithType:POI_toilets info:@{ @"id": @1, @"contact:website": @"https://a.fr" } custom:NO];
+    XCTAssertTrue([d.rows containsObject:(@[@"Website", @"https://a.fr"])], @"%@", d.rows);
+}
+
 - (void)testCemeteryAreaIsAWay
 {
     NSDictionary *info = @{ @"id": @987, @"landuse": @"cemetery" };

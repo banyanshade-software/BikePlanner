@@ -19,11 +19,11 @@ static const CGFloat kBPCalloutWidth = 300;
     NSButton *_allTagsToggle;
     NSTextField *_allTagsTitle;
     NSTextField *_allTagsLabel;
-    NSSegmentedControl *_excludeControl;
+    NSButton *_includeCheckbox;
     NSButton *_osmButton, *_streetViewButton, *_coordinatesButton, *_editButton;
 }
 
-@synthesize excludeControl = _excludeControl;
+@synthesize includeCheckbox = _includeCheckbox;
 @synthesize osmButton = _osmButton, streetViewButton = _streetViewButton, coordinatesButton = _coordinatesButton, editButton = _editButton;
 
 static NSTextField *BPLabel(NSFont *font, NSColor *color)
@@ -91,15 +91,14 @@ static NSBox *BPSeparator(void)
         NSStackView *buttons = [NSStackView stackViewWithViews:@[_osmButton, _streetViewButton, _coordinatesButton]];
         buttons.spacing = 4;
 
-        _excludeControl = [NSSegmentedControl segmentedControlWithLabels:@[ NSLocalizedString(@"Include", @"POI callout"),
-                                                                            NSLocalizedString(@"Exclude", @"POI callout") ]
-                                                            trackingMode:NSSegmentSwitchTrackingSelectOne target:nil action:nil];
-        _excludeControl.controlSize = NSControlSizeSmall;
-        _excludeControl.selectedSegment = 0;
-        _excludeControl.toolTip = NSLocalizedString(@"An excluded point of interest is not exported to GPX", @"POI callout");
-        _excludeControl.accessibilityIdentifier = @"poiExclude";
+        _includeCheckbox = [NSButton checkboxWithTitle:NSLocalizedString(@"Include in track", @"POI callout") target:nil action:nil];
+        _includeCheckbox.controlSize = NSControlSizeSmall;
+        _includeCheckbox.font = [NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSControlSizeSmall]];
+        _includeCheckbox.state = NSControlStateValueOn;
+        _includeCheckbox.toolTip = NSLocalizedString(@"Exported with the track to GPX (when POIs are exported)", @"POI callout");
+        _includeCheckbox.accessibilityIdentifier = @"poiInclude";
         _editButton = BPSmallButton(NSLocalizedString(@"Edit…", @"POI callout button"), @"poiEdit");
-        NSStackView *bottom = [NSStackView stackViewWithViews:@[_excludeControl, _editButton]];
+        NSStackView *bottom = [NSStackView stackViewWithViews:@[_includeCheckbox, _editButton]];
         bottom.spacing = 8;
 
         _separator1 = BPSeparator();
@@ -139,16 +138,25 @@ static NSBox *BPSeparator(void)
         label.font = small;
         label.textColor = [NSColor secondaryLabelColor];
         NSTextField *value = BPLabel(small, [NSColor labelColor]);
-        value.stringValue = row[1];
         value.selectable = YES;
+        value.allowsEditingTextAttributes = YES; // links are clickable
+        value.attributedStringValue = [self linkedString:row[1] font:small];
         value.preferredMaxLayoutWidth = kBPCalloutWidth / 2;
         [_grid addRowWithViews:@[label, value]];
     }
     _grid.hidden = (d.rows.count == 0);
 
-    NSMutableArray *lines = [NSMutableArray array];
-    for (NSArray<NSString *> *t in d.allTags) [lines addObject:[NSString stringWithFormat:@"%@ = %@", t[0], t[1]]];
-    _allTagsLabel.stringValue = [lines componentsJoinedByString:@"\n"];
+    NSFont *mono = _allTagsLabel.font;
+    NSMutableAttributedString *all = [[NSMutableAttributedString alloc] init];
+    for (NSArray<NSString *> *t in d.allTags) {
+        if (all.length) [all appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n" attributes:@{ NSFontAttributeName: mono }]];
+        NSString *key = [NSString stringWithFormat:@"%@ = ", t[0]];
+        [all appendAttributedString:[[NSAttributedString alloc] initWithString:key attributes:@{ NSFontAttributeName: mono,
+                                                                                                 NSForegroundColorAttributeName: [NSColor labelColor] }]];
+        [all appendAttributedString:[self linkedString:t[1] font:mono]];
+    }
+    _allTagsLabel.allowsEditingTextAttributes = YES;
+    _allTagsLabel.attributedStringValue = all;
     _allTagsTitle.stringValue = [NSString localizedStringWithFormat:NSLocalizedString(@"All OSM tags (%lu)", @"POI callout"),
                                  (unsigned long)d.allTags.count];
     _allTagsRow.hidden = (d.allTags.count == 0);
@@ -167,6 +175,36 @@ static NSBox *BPSeparator(void)
     [self invalidateIntrinsicContentSize];
     [self layoutSubtreeIfNeeded];
     [self setFrameSize:NSMakeSize(kBPCalloutWidth, _stack.fittingSize.height + 8)];
+}
+
+// the value, a link if it is a web address
+- (NSAttributedString *) linkedString:(NSString *)value font:(NSFont *)font
+{
+    NSMutableDictionary *attrs = [@{ NSFontAttributeName: font, NSForegroundColorAttributeName: [NSColor labelColor] } mutableCopy];
+    NSURL *url = [BPPOIDescription linkURLForValue:value];
+    if (url) {
+        attrs[NSLinkAttributeName] = url;
+        attrs[NSForegroundColorAttributeName] = [NSColor linkColor];
+        attrs[NSUnderlineStyleAttributeName] = @(NSUnderlineStyleSingle);
+        attrs[NSCursorAttributeName] = [NSCursor pointingHandCursor];
+    }
+    return [[NSAttributedString alloc] initWithString:value attributes:attrs];
+}
+
+- (NSArray<NSURL *> *) displayedLinks
+{
+    NSMutableArray *links = [NSMutableArray array];
+    NSMutableArray<NSTextField *> *fields = [NSMutableArray array];
+    for (NSInteger r = 0; r < _grid.numberOfRows; r++) [fields addObject:(NSTextField *)[_grid cellAtColumnIndex:1 rowIndex:r].contentView];
+    if (!_allTagsLabel.hidden) [fields addObject:_allTagsLabel];
+    for (NSTextField *f in fields) {
+        NSAttributedString *s = f.attributedStringValue;
+        [s enumerateAttribute:NSLinkAttributeName inRange:NSMakeRange(0, s.length) options:0
+                   usingBlock:^(id value, NSRange range, BOOL *stop) {
+            if ([value isKindOfClass:[NSURL class]]) [links addObject:value];
+        }];
+    }
+    return links;
 }
 
 - (void) setShowsAllTags:(BOOL)show

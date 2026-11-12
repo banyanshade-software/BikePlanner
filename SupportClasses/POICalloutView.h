@@ -4,8 +4,8 @@
 //
 //  Created by Daniel Braun on 20/08/2025.
 //
-//  Detail view of the POI callout (#72): position on the route, useful tags, all OSM tags (collapsed), buttons
-//  OpenStreetMap / Street View / Copy, Include / Exclude (#5), Edit… (custom POIs). MapKit shows the title (type)
+//  Detail view of the POI callout (#72): position on the route, useful tags, all OSM tags (collapsed), web addresses
+//  as links, buttons OpenStreetMap / Street View / Copy, "Include in track" (#5), Edit… (custom POIs). MapKit shows the title (type)
 //  and the subtitle (name) above it.
 //
 
@@ -18,7 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 @interface POICalloutView : NSView
 
 @property (strong,nonatomic) NSDictionary *infodic;
-@property (readonly,nonatomic) NSSegmentedControl *excludeControl;
+/// checked: the POI is exported with the track (#5); unchecked: excluded
+@property (readonly,nonatomic) NSButton *includeCheckbox;
 // targets and actions are set by MapController
 @property (readonly,nonatomic) NSButton *osmButton;
 @property (readonly,nonatomic) NSButton *streetViewButton;
@@ -30,6 +31,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void) configureWithDescription:(BPPOIDescription *)description position:(nullable NSString *)position;
 /// the text shown (tests)
 @property (readonly,nonatomic) NSString *displayedText;
+/// links shown, in order (tests)
+@property (readonly,nonatomic) NSArray<NSURL *> *displayedLinks;
 /// "All OSM tags" expanded
 @property (nonatomic) BOOL showsAllTags;
 

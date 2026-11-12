@@ -532,12 +532,12 @@
     POIAnnotation *ann = [self annotationsOfClass:[POIAnnotation class]].firstObject;
     POIAnnotationView *view = (POIAnnotationView *)[mc mapView:map viewForAnnotation:ann];
     POICalloutView *callout = (POICalloutView *)view.detailCalloutAccessoryView;
-    XCTAssertEqual(callout.excludeControl.selectedSegment, 0, @"included");
+    XCTAssertEqual(callout.includeCheckbox.state, NSControlStateValueOn, @"included");
     NSUndoManager *um = doc.undoManager;
     um.groupsByEvent = NO;
     [um beginUndoGrouping];
-    callout.excludeControl.selectedSegment = 1;
-    [NSApp sendAction:callout.excludeControl.action to:callout.excludeControl.target from:callout.excludeControl];
+    callout.includeCheckbox.state = NSControlStateValueOff;
+    [NSApp sendAction:callout.includeCheckbox.action to:callout.includeCheckbox.target from:callout.includeCheckbox];
     [um endUndoGrouping];
     XCTAssertEqual(doc.plan.excludedPOIKeys.count, 1u);
     POIAnnotation *after = nil;
@@ -545,7 +545,7 @@
     XCTAssertTrue(after.excluded, @"still on the map, marked excluded");
     POIAnnotationView *v2 = (POIAnnotationView *)[mc mapView:map viewForAnnotation:after];
     XCTAssertEqualObjects(v2.markerTintColor, [NSColor systemGrayColor], @"greyed");
-    XCTAssertEqual(((POICalloutView *)v2.detailCalloutAccessoryView).excludeControl.selectedSegment, 1);
+    XCTAssertEqual(((POICalloutView *)v2.detailCalloutAccessoryView).includeCheckbox.state, NSControlStateValueOff);
     XCTAssertEqualObjects(um.undoActionName, @"exclude POI");
     [um undo];
     XCTAssertEqual(doc.plan.excludedPOIKeys.count, 0u);
@@ -596,7 +596,7 @@
     XCTAssertGreaterThan(callout.frame.size.height, collapsed + 30, @"the view grows with the tags");
     XCTAssertFalse(callout.osmButton.hidden);
     XCTAssertTrue(callout.editButton.hidden, @"Edit… only for custom POIs");
-    XCTAssertFalse(callout.excludeControl.hidden);
+    XCTAssertFalse(callout.includeCheckbox.hidden);
 }
 
 - (void)testPOICalloutButtons
@@ -685,9 +685,44 @@
     [self waitForPOIs];
     POIAnnotation *poi = [self annotationsOfClass:[POIAnnotation class]].firstObject;
     [self clickAtCoordinate:poi.coordinate];
-    BPSpin(0.3);
+    // the same click seen again just after opening (MapKit selection + our recognizer, or a double click) does not
+    // close it (#72)
+    XCTAssertNotNil(mc.activeCalloutView);
+    [self clickAtCoordinate:poi.coordinate];
+    XCTAssertTrue([map.selectedAnnotations containsObject:poi], @"just opened: kept open");
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.6)];
+    XCTAssertTrue([map.selectedAnnotations containsObject:poi], @"just opened: kept open");
+    BPSpin(0.5);
     XCTAssertEqual(doc.plan.waypointsLocations.count, 2u, @"a click on a POI does not add a waypoint");
     XCTAssertTrue([map.selectedAnnotations containsObject:poi]);
+    // a click outside the callout closes it (#72), and does nothing else (no waypoint added)
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.6)];
+    BPSpin(0.5);
+    XCTAssertFalse([map.selectedAnnotations containsObject:poi]);
+    XCTAssertNil(mc.activeCalloutView);
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
+    // also a click on the POI itself
+    [self clickAtCoordinate:poi.coordinate];
+    BPSpin(0.5);
+    XCTAssertTrue([map.selectedAnnotations containsObject:poi]);
+    [self clickAtCoordinate:poi.coordinate];
+    BPSpin(0.5);
+    XCTAssertFalse([map.selectedAnnotations containsObject:poi]);
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
+    // a click on another POI opens that one
+    [self clickAtCoordinate:poi.coordinate];
+    BPSpin(0.5);
+    POIAnnotation *other = nil;
+    for (POIAnnotation *a in [self annotationsOfClass:[POIAnnotation class]]) {
+        CGPoint pa = [map convertCoordinate:a.coordinate toPointToView:map], pp = [map convertCoordinate:poi.coordinate toPointToView:map];
+        if (hypot(pa.x - pp.x, pa.y - pp.y) > 80) other = a;
+    }
+    if (other) {
+        [self clickAtCoordinate:other.coordinate];
+        BPSpin(0.5);
+        XCTAssertTrue([map.selectedAnnotations containsObject:other]);
+        XCTAssertFalse([map.selectedAnnotations containsObject:poi]);
+    }
 }
 
 - (void)testMouseOverPOIHighlightsIt
