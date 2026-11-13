@@ -96,6 +96,8 @@
 		2D2B933561833E69814BD74E /* BPPOIDescriptionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 0ECF239711814AD316A561E3 /* BPPOIDescriptionTests.m */; };
 		E5D4C0DABDC00026BCD11287 /* BPColorScheme.m in Sources */ = {isa = PBXBuildFile; fileRef = 51310F71904FF83F4ACF7222 /* BPColorScheme.m */; };
 		2E2794F725157A7ED52AB5F1 /* BPColorSchemeTests.m in Sources */ = {isa = PBXBuildFile; fileRef = E588CD5FC65C23396BE4B571 /* BPColorSchemeTests.m */; };
+		B5A78DFFCE8269069088B7A6 /* BPTrackReader.m in Sources */ = {isa = PBXBuildFile; fileRef = 9050DCEC0CA9C5C726696D24 /* BPTrackReader.m */; };
+		FF18C551CEC1F4F2DFA6F3E1 /* BPTrackReaderTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AE9D5CAC963079A1E40BE64 /* BPTrackReaderTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -268,6 +270,9 @@
 		51310F71904FF83F4ACF7222 /* BPColorScheme.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPColorScheme.m; sourceTree = "<group>"; };
 		9C10CBD31B6127AA4C40202A /* BPColorScheme.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPColorScheme.h; sourceTree = "<group>"; };
 		E588CD5FC65C23396BE4B571 /* BPColorSchemeTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPColorSchemeTests.m; sourceTree = "<group>"; };
+		9050DCEC0CA9C5C726696D24 /* BPTrackReader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPTrackReader.m; sourceTree = "<group>"; };
+		10273E0207CF0C84D9046F8E /* BPTrackReader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPTrackReader.h; sourceTree = "<group>"; };
+		4AE9D5CAC963079A1E40BE64 /* BPTrackReaderTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPTrackReaderTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -411,6 +416,8 @@
 				3A071300C27D55BA551C02A3 /* BPPOIDescription.h */,
 				51310F71904FF83F4ACF7222 /* BPColorScheme.m */,
 				9C10CBD31B6127AA4C40202A /* BPColorScheme.h */,
+				9050DCEC0CA9C5C726696D24 /* BPTrackReader.m */,
+				10273E0207CF0C84D9046F8E /* BPTrackReader.h */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -487,6 +494,7 @@
 				B4F35C4F6BFB455BB05E5896 /* BPRoutePreviewTests.m */,
 				0ECF239711814AD316A561E3 /* BPPOIDescriptionTests.m */,
 				E588CD5FC65C23396BE4B571 /* BPColorSchemeTests.m */,
+				4AE9D5CAC963079A1E40BE64 /* BPTrackReaderTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -762,6 +770,7 @@
 				177CD87DC3FFCDC304E8DB00 /* BPRoutePreview.m in Sources */,
 				CD5E2C38139C3C65A3ECFAA9 /* BPPOIDescription.m in Sources */,
 				E5D4C0DABDC00026BCD11287 /* BPColorScheme.m in Sources */,
+				B5A78DFFCE8269069088B7A6 /* BPTrackReader.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -796,6 +805,7 @@
 				322D9DAFC44A46990937196E /* BPRoutePreviewTests.m in Sources */,
 				2D2B933561833E69814BD74E /* BPPOIDescriptionTests.m in Sources */,
 				2E2794F725157A7ED52AB5F1 /* BPColorSchemeTests.m in Sources */,
+				FF18C551CEC1F4F2DFA6F3E1 /* BPTrackReaderTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

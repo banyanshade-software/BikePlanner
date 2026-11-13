@@ -12,9 +12,12 @@
     NSMutableArray<CLLocation *> *_rtePoints;  // rtept
     NSMutableArray<CLLocation *> *_wptPoints;  // wpt: kept out of the trace (#28)
     NSMutableArray<NSString *> *_wptTypes;     // <type> of each wpt, @"" when none
+    NSMutableArray<NSString *> *_wptNames;     // <name> of each wpt, @"" when none (#76)
     NSString *stringEle;
     NSString *stringType;                      // text of <type>, inside a wpt
     NSString *curType;
+    NSString *stringName;                      // text of <name>, inside a wpt
+    NSString *curName;
     BOOL inWpt;
     CLLocation *curloc;
     NSMutableDictionary<NSString *, NSString *> *brouterInfo;
@@ -30,6 +33,7 @@
     _rtePoints = [NSMutableArray array];
     _wptPoints = [NSMutableArray array];
     _wptTypes = [NSMutableArray array];
+    _wptNames = [NSMutableArray array];
     inWpt = NO;
 
     NSXMLParser *parser = [[NSXMLParser alloc] initWithData:data];
@@ -61,6 +65,11 @@
     return [_wptTypes copy] ?: @[];
 }
 
+- (NSArray<NSString *> *)waypointNames
+{
+    return [_wptNames copy] ?: @[];
+}
+
 - (NSArray<CLLocation *> *)waypoints
 {
     return [_wptPoints copy] ?: @[];
@@ -78,6 +87,8 @@
         stringEle = @"";
     } else if (inWpt && [elementName isEqualToString:@"type"]) {
         stringType = @"";
+    } else if (inWpt && [elementName isEqualToString:@"name"]) {
+        stringName = @"";
     } else if ([elementName isEqualToString:@"trkpt"] ||
         [elementName isEqualToString:@"wpt"] ||
         [elementName isEqualToString:@"rtept"]) {
@@ -91,6 +102,7 @@
         }
         inWpt = [elementName isEqualToString:@"wpt"];
         curType = nil;
+        curName = nil;
     }
 }
 
@@ -101,6 +113,9 @@
     }
     if (stringType) {
         stringType = [stringType stringByAppendingString:string];
+    }
+    if (stringName) {
+        stringName = [stringName stringByAppendingString:string];
     }
 }
 - (void)parser:(NSXMLParser *)parser didEndElement:(nonnull NSString *)elementName namespaceURI:(nullable NSString *)namespaceURI qualifiedName:(nullable NSString *)qName
@@ -120,6 +135,10 @@
         curType = [stringType stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
         stringType = nil;
     }
+    if (stringName && [elementName isEqualToString:@"name"]) {
+        curName = [stringName stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        stringName = nil;
+    }
     if ([elementName isEqualToString:@"wpt"]) inWpt = NO;
     if (curloc) {
         if ([elementName isEqualToString:@"trkpt"]) {
@@ -131,6 +150,7 @@
         } else if ([elementName isEqualToString:@"wpt"]) {
             [_wptPoints addObject:curloc];
             [_wptTypes addObject:curType ?: @""];
+            [_wptNames addObject:curName ?: @""];
             curloc = nil;
         }
     }

@@ -10,6 +10,7 @@
 
 #import "SafeTileRenderer.h"
 #import "SafeOSMTileOverlay.h"
+#import "BPTrackReader.h"
 #import "GPXParser.h"
 #import "RouteAnnotation.h"
 #import "POIAnnotation.h"
@@ -2509,11 +2510,11 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 - (IBAction) importGPXTraceForDisplay:(id)sender
 {
     NSOpenPanel *panel = [NSOpenPanel openPanel];
-    panel.allowedContentTypes = @[[UTType typeWithFilenameExtension:@"gpx"]];
+    panel.allowedContentTypes = [BPTrackReader importContentTypes]; // GPX, TCX (#76)
     //panel.allowedFileTypes = @[@"gpx"];
     panel.allowsMultipleSelection = NO;
     panel.canChooseDirectories = NO;
-    panel.title = @"Choose a GPX file";
+    panel.title = NSLocalizedString(@"Choose a GPX or TCX file", @"");
     
     [panel beginWithCompletionHandler:^(NSModalResponse result) {
         if (result == NSModalResponseOK) {
@@ -2523,16 +2524,17 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     }];
 }
 
-// Import GPX as route (#29): the track becomes waypoints (simplified) and the route is requested from BRouter;
-// the original track stays as the reference trace to compare; <wpt> become custom POIs, except those of the types
-// BikePlanner exports for fetched POIs (fetched again along the new route). One undoable action.
+// Import Track as Route (#29; TCX too, #76): the track becomes waypoints (simplified) and the route is requested
+// from BRouter; the original track stays as the reference trace to compare; GPX <wpt> / TCX course points become
+// custom POIs with their type and name, except the GPX waypoints of the types BikePlanner exports for fetched POIs
+// (fetched again along the new route). One undoable action.
 - (IBAction) importGPXAsRoute:(id)sender
 {
     NSOpenPanel *panel = [NSOpenPanel openPanel];
-    panel.allowedContentTypes = @[[UTType typeWithFilenameExtension:@"gpx"]];
+    panel.allowedContentTypes = [BPTrackReader importContentTypes];
     panel.allowsMultipleSelection = NO;
     panel.canChooseDirectories = NO;
-    panel.title = NSLocalizedString(@"Choose a GPX file to convert into a route", @"");
+    panel.title = NSLocalizedString(@"Choose a GPX or TCX file to convert into a route", @"");
     [panel beginWithCompletionHandler:^(NSModalResponse result) {
         if (result == NSModalResponseOK) [self loadGPXAsRouteFromURL:panel.URL];
     }];
@@ -2541,29 +2543,27 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 - (void) loadGPXAsRouteFromURL:(NSURL *)url
 {
     NSError *error = nil;
-    NSData *data = [NSData dataWithContentsOfURL:url options:0 error:&error];
-    if (!data) {
-        NSLog(@"Failed to read GPX file: %@", error);
-        return;
-    }
-    GPXParser *pgpx = [[GPXParser alloc] init];
-    NSArray<CLLocation *> *trace = [pgpx parseGPXData:data error:&error];
+    BPTrackReader *reader = [BPTrackReader readerWithContentsOfURL:url error:&error];
+    NSArray<CLLocation *> *trace = reader.trace;
     if ([trace count] < 2) {
-        NSLog(@"parse gpx err : %@", error);
+        NSLog(@"import track as route: %@", error);
         return;
     }
     // route points (or a file of waypoints only) are already waypoints
-    BOOL isTrack = [pgpx.traceSource isEqualToString:@"trk"];
+    BOOL isTrack = [reader.traceSource isEqualToString:@"trk"];
     NSArray<CLLocation *> *wps = isTrack || [trace count] > kBPImportMaxWaypoints ? [BikePlan waypointsForTrace:trace] : trace;
     NSMutableArray<POILocation *> *pois = [NSMutableArray array];
-    if (![pgpx.traceSource isEqualToString:@"wpt"]) {
-        NSSet *fetchedTypes = [NSSet setWithObjects:@"WATER", @"TOILET", @"SERVICE", @"GENERIC", nil];
-        [pgpx.waypoints enumerateObjectsUsingBlock:^(CLLocation *w, NSUInteger i, BOOL *stop) {
-            if ([fetchedTypes containsObject:pgpx.waypointTypes[i]]) return;
-            // the GPX type is kept (#74)
-            PoiType_t type = [POILocation customPoiTypeForGPXType:pgpx.waypointTypes[i]];
+    if (![reader.traceSource isEqualToString:@"wpt"]) {
+        // only a GPX may be a BikePlanner export
+        NSSet *fetchedTypes = [reader.format isEqualToString:@"gpx"]
+            ? [NSSet setWithObjects:@"WATER", @"TOILET", @"SERVICE", @"GENERIC", nil] : [NSSet set];
+        [reader.waypoints enumerateObjectsUsingBlock:^(CLLocation *w, NSUInteger i, BOOL *stop) {
+            if ([fetchedTypes containsObject:reader.waypointTypes[i]]) return;
+            // the type (#74) and the name (#76) are kept
+            PoiType_t type = [POILocation customPoiTypeForGPXType:reader.waypointTypes[i]];
+            NSString *name = reader.waypointNames[i];
             [pois addObject:[[POILocation alloc] initWithLatitude:w.coordinate.latitude longitude:w.coordinate.longitude
-                                                           ofType:type info:@{} custom:YES]];
+                                                           ofType:type info:(name.length ? @{ @"name": name } : @{}) custom:YES]];
         }];
     }
     NSWindow *window = _mapView.window;
@@ -2573,7 +2573,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     }
     NSAlert *alert = [[NSAlert alloc] init];
     alert.messageText = NSLocalizedString(@"Replace the current route?", @"");
-    alert.informativeText = NSLocalizedString(@"The imported GPX replaces the waypoints, route and POIs. This can be undone.", @"");
+    alert.informativeText = NSLocalizedString(@"The imported track replaces the waypoints, route and POIs. This can be undone.", @"");
     [alert addButtonWithTitle:NSLocalizedString(@"Replace", @"")];
     [alert addButtonWithTitle:NSLocalizedString(@"Cancel", @"")];
     [alert beginSheetModalForWindow:window completionHandler:^(NSModalResponse response) {
@@ -2587,7 +2587,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     [um beginUndoGrouping];
     [self setRouteState:nil desc:nil]; // undo restores the whole previous route
     [_document.plan undoSetWayPt:wps];
-    for (POILocation *p in pois) (void)[_document.plan addCustomPoiAt:p.coordinate type:p.poiType name:nil];
+    for (POILocation *p in pois) (void)[_document.plan addCustomPoiAt:p.coordinate type:p.poiType name:p.name];
     [self setGpxDisplayed:trace desc:nil];
     [um setActionName:@"import GPX as route"];
     [um endUndoGrouping];
@@ -2597,18 +2597,9 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 
 - (void)loadGPXFromURL:(NSURL *)url {
     NSError *error = nil;
-    NSData *data = [NSData dataWithContentsOfURL:url options:0 error:&error];
-    if (!data) {
-        NSLog(@"Failed to read GPX file: %@", error);
-        return;
-    }
-    // Pass data to your parser
-    
-    GPXParser *pgpx = [[GPXParser alloc]init];
-    NSError *parseError = nil;
-    NSArray<CLLocation *> *points = [pgpx parseGPXData:data error:&parseError];
-    if (!points || ![points count]) {
-        NSLog(@"parse gpx err : %@", parseError);
+    NSArray<CLLocation *> *points = [BPTrackReader readerWithContentsOfURL:url error:&error].trace; // GPX or TCX (#76)
+    if (![points count]) {
+        NSLog(@"import track: %@", error);
         return;
     }
     [self setGpxDisplayed:points desc:@"import trace"];

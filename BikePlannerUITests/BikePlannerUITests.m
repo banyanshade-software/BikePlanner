@@ -250,7 +250,7 @@ static BOOL BPWaitWindows(XCUIApplication *app, NSUInteger n)
     NSString *file = [dir stringByAppendingPathComponent:@"ref.gpx"];
     [[BPStubServer gpxForLonLats:@"0.5,44.0|0.6,44.1"] writeToFile:file atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 
-    [self clickMenu:@"File" item:@"Import GPX as display"];
+    [self clickMenu:@"File" item:@"Import Track as Display…"];
     [NSThread sleepForTimeInterval:1.0];
     [self goToPath:file];
     [self.app typeKey:XCUIKeyboardKeyReturn modifierFlags:0];

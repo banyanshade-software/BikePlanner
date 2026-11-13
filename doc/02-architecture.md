@@ -62,6 +62,7 @@ BikePlanner/                 App target
 SupportClasses/              Reusable/support components
   BRouterClient.*            HTTP client for BRouter
   GPXParser.*                NSXMLParser-based GPX reader + BRouter comment parser; minimal GPX writer
+  BPTrackReader.*            track to import (#76): GPX (via GPXParser) or TCX (own NSXMLParser delegate), by content
   BRouterGeoJSON.*           BRouter route in GeoJSON: points, statistics, distance by road / surface class (#53),
                              road / surface class along the route (runs of points, #54)
   BPRoadTypesView.*          Info section distance by road type and surface, one radio button per class; reports
@@ -195,8 +196,8 @@ Recalculate (#55): *Edit ▸ Recalculate Route* → `requestRouteUndoable:@"reca
 `plan.routeState` (the current state, nothing erased) in its own undo group; the exported GPX is kept meanwhile.
 Clear: *Edit ▸ Clear Route* → confirmation sheet (`NSAlert`) → `setRouteState:nil` → `plan.clearRoute` (returns the previous state, + BRouter GPX)
 → undo registers `undoRouteState:` with it → `fullRefresh:NO`; undo calls `plan.restoreRoute:` (no new request).
-Import GPX as route: *File ▸ Import GPX as Route…* → `loadGPXAsRouteFromURL:` → `GPXParser` (`traceSource`,
-`waypointTypes`) → `+[BikePlan waypointsForTrace:]` (track only) → confirmation sheet if the plan is not empty →
+Import track as route: *File ▸ Import Track as Route…* → `loadGPXAsRouteFromURL:` → `BPTrackReader` (GPX or TCX,
+#76: `traceSource`, `waypointTypes`, `waypointNames`; *Import Track as Display…* → `loadGPXFromURL:` uses its `trace`) → `+[BikePlan waypointsForTrace:]` (track only) → confirmation sheet if the plan is not empty →
 `setRouteFromTrace:…` in one undo group: `setRouteState:nil` (undo restores the previous route), waypoints, custom
 POIs, `setGpxDisplayed:` (reference trace) → `shouldRecalcRoute`.
 

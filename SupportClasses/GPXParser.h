@@ -16,6 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable NSArray<CLLocation *> *)parseGPXData:(NSData *)data error:(NSError * _Nullable *)error;
 @property (readonly, nonatomic) NSArray<CLLocation *> *waypoints; // wpt of the last parsed file (e.g. POIs)
 @property (readonly, nonatomic) NSArray<NSString *> *waypointTypes; // <type> of each wpt, @"" when none
+@property (readonly, nonatomic) NSArray<NSString *> *waypointNames; // <name> of each wpt (trimmed), @"" when none
 @property (readonly, nonatomic) NSString *traceSource; // what the trace is made of: @"trk", @"rte" or @"wpt"
 - (NSDictionary *)brouterInfo;
 /// minimal GPX 1.1 track with elevations (export of a route, #10, #53); comment: XML comment after the declaration

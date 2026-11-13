@@ -257,15 +257,22 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   mark the document as edited.
 
 ### F8 — Reference GPX trace
-- F8.1 *File ▸ Import GPX as display* (or toolbar “Import trace”) loads a GPX file and draws it in
+Both imports read GPX and TCX files (Garmin Training Center XML, activity or course, #76), recognized from the
+content. A TCX gives the trackpoints that have a position (all laps, in order); its course points are handled like
+GPX `<wpt>` (F8.3).
+- F8.1 *File ▸ Import Track as Display…* (or toolbar “Import trace”) loads a GPX or TCX file and draws it in
   the trace color of the color scheme (F12.4, orange by default) under the route, for reference only (it is not used for routing). Importing another trace replaces it.
 - F8.2 *File ▸ Remove Displayed GPX Trace* (enabled when a trace is shown) removes it; undoable.
-- F8.3 *File ▸ Import GPX as Route…* converts a GPX into an editable plan: a track (`<trk>`) is simplified into
+- F8.3 *File ▸ Import Track as Route…* converts a GPX or TCX into an editable plan: a track (`<trk>`) is simplified into
   waypoints (Douglas–Peucker, 50 m tolerance, at most 3 km between two waypoints along the track, first/last points
   kept), route points (`<rte>`) or a file of `<wpt>` only are used as waypoints as is; then the route is requested
   from BRouter. The original GPX becomes the reference trace (F8.1) to compare with the computed route. `<wpt>`
   become custom POIs, except those with a fetched-POI type (WATER, TOILET, SERVICE, GENERIC), fetched again along
-  the new route; their `<type>` gives the custom POI type (F7.7), Information when none or unknown (#74). If the plan is not empty, a confirmation sheet asks before replacing it. One undoable action.
+  the new route; their `<type>` gives the custom POI type (F7.7), Information when none or unknown (#74), and their
+  `<name>` the POI name (#76; none when it is just the type, as BikePlanner exports a nameless POI). A TCX track is
+  simplified like a `<trk>`; its course points become custom POIs (all types: a TCX is not a BikePlanner export):
+  PointType Water → Water, Food → Food, Danger → Danger, Summit → Viewpoint, the others → Information; turn cues
+  (Left, Right, Straight) are skipped; the `<Name>` is kept unless it is the point type. If the plan is not empty, a confirmation sheet asks before replacing it. One undoable action.
 
 ### F9 — Documents
 - F9.1 A plan is a document of type `.bikeplan` (UTI `fr.free.daniel.braun.bikeplan`), saved with

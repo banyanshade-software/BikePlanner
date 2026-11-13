@@ -1042,6 +1042,8 @@
     XCTAssertEqual(doc.plan.customPoiloc.count, 2u, @"DANGER and untyped waypoints become custom POIs");
     XCTAssertEqual(doc.plan.customPoiloc[0].poiType, POI_warning, @"the GPX type is kept (#74)");
     XCTAssertEqual(doc.plan.customPoiloc[1].poiType, POI_info, @"no type: the default type (#74)");
+    XCTAssertNil(doc.plan.customPoiloc[0].name, @"the name BikePlanner exports for a nameless POI (its type) is not kept");
+    XCTAssertEqualObjects(doc.plan.customPoiloc[1].name, @"mine", @"the <wpt> name is kept (#76)");
     XCTAssertTrue([self waitForRouteWithPoints:10 * (wps.count - 1) + 1], @"route requested from BRouter (stub: 10 steps per leg)");
     XCTAssertTrue([[server requestsWithPath:@"/brouter"].lastObject.query[@"lonlats"] hasPrefix:@"0.520000,44.020000|"]);
     XCTAssertEqualObjects(um.undoActionName, @"import GPX as route");
@@ -1101,6 +1103,89 @@
     [mc loadGPXAsRouteFromURL:bad];
     [mc loadGPXAsRouteFromURL:[NSURL fileURLWithPath:@"/nonexistent/x.gpx"]];
     XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
+    XCTAssertFalse(doc.undoManager.canUndo);
+    [[NSFileManager defaultManager] removeItemAtURL:bad error:NULL];
+}
+
+#pragma mark - import TCX (#76)
+
+// a TCX course from (44.02, 0.52) to (44.08, 0.58), with a Water and a Danger course point and a turn cue
+- (NSURL *)writeTCXCourseToImport
+{
+    NSMutableString *tcx = [NSMutableString stringWithString:
+        @"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<TrainingCenterDatabase xmlns=\"http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2\">"
+        @"<Courses><Course><Name>c</Name><Track>"];
+    for (int i = 0; i <= 20; i++) {
+        [tcx appendFormat:@"<Trackpoint><Position><LatitudeDegrees>%f</LatitudeDegrees><LongitudeDegrees>%f</LongitudeDegrees>"
+                          @"</Position><AltitudeMeters>%d</AltitudeMeters></Trackpoint>", 44.02 + i * 0.003, 0.52 + i * 0.003, 100 + i];
+    }
+    [tcx appendString:@"</Track>"
+        @"<CoursePoint><Name>Fountain</Name><Position><LatitudeDegrees>44.05</LatitudeDegrees><LongitudeDegrees>0.55</LongitudeDegrees></Position><PointType>Water</PointType></CoursePoint>"
+        @"<CoursePoint><Name>Left</Name><Position><LatitudeDegrees>44.06</LatitudeDegrees><LongitudeDegrees>0.56</LongitudeDegrees></Position><PointType>Left</PointType></CoursePoint>"
+        @"<CoursePoint><Name>Danger</Name><Position><LatitudeDegrees>44.07</LatitudeDegrees><LongitudeDegrees>0.57</LongitudeDegrees></Position><PointType>Danger</PointType></CoursePoint>"
+        @"</Course></Courses></TrainingCenterDatabase>"];
+    NSURL *url = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-import-course.tcx"]];
+    XCTAssertTrue([[tcx dataUsingEncoding:NSUTF8StringEncoding] writeToURL:url atomically:YES]);
+    return url;
+}
+
+- (void)testImportTCXAsRoute
+{
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    NSURL *url = [self writeTCXCourseToImport];
+    [um beginUndoGrouping];
+    [mc loadGPXAsRouteFromURL:url];
+    [um endUndoGrouping];
+
+    NSArray<CLLocation *> *wps = doc.plan.waypointsLocations;
+    XCTAssertGreaterThanOrEqual(wps.count, 2u, @"the course track is simplified into waypoints");
+    XCTAssertLessThan(wps.count, 21u);
+    XCTAssertEqualWithAccuracy(wps.firstObject.coordinate.latitude, 44.02, 1e-6);
+    XCTAssertEqualWithAccuracy(wps.lastObject.coordinate.longitude, 0.58, 1e-6);
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 21u, @"original track kept as the reference trace");
+    XCTAssertEqual(doc.plan.customPoiloc.count, 2u, @"the turn cue is not a POI");
+    // even a course point of a type BikePlanner fetches (Water) is kept: a TCX is not a BikePlanner export
+    XCTAssertEqual(doc.plan.customPoiloc[0].poiType, POI_drinking_water);
+    XCTAssertEqualObjects(doc.plan.customPoiloc[0].name, @"Fountain");
+    XCTAssertEqual(doc.plan.customPoiloc[1].poiType, POI_warning);
+    XCTAssertNil(doc.plan.customPoiloc[1].name);
+    XCTAssertTrue([self waitForRouteWithPoints:10 * (wps.count - 1) + 1], @"route requested from BRouter");
+    XCTAssertEqualObjects(um.undoActionName, @"import GPX as route");
+    [um undo];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 0u);
+    XCTAssertEqual(doc.plan.customPoiloc.count, 0u);
+    [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
+}
+
+- (void)testImportTCXForDisplay
+{
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    NSURL *url = [self writeTCXCourseToImport];
+    [um beginUndoGrouping];
+    [mc loadGPXFromURL:url];
+    [um endUndoGrouping];
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 21u);
+    XCTAssertEqualWithAccuracy(doc.plan.gpxDisplayed[3].altitude, 103, 1e-9);
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 0u, @"display only");
+    XCTAssertEqual(doc.plan.customPoiloc.count, 0u);
+    XCTAssertEqualObjects(um.undoActionName, @"import trace");
+    [um undo];
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 0u);
+    [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
+}
+
+// a malformed TCX: nothing changes
+- (void)testImportTCXBadFile
+{
+    NSURL *bad = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-import-bad.tcx"]];
+    XCTAssertTrue([BPData(@"<TrainingCenterDatabase><Courses><Course>") writeToURL:bad atomically:YES]);
+    [mc loadGPXAsRouteFromURL:bad];
+    [mc loadGPXFromURL:bad];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 0u);
     XCTAssertFalse(doc.undoManager.canUndo);
     [[NSFileManager defaultManager] removeItemAtURL:bad error:NULL];
 }

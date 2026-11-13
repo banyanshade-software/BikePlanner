@@ -113,13 +113,13 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="CMg-Fm-s1H"/>
-                            <menuItem title="Import GPX as display" id="uSg-ju-z4l">
+                            <menuItem title="Import Track as Display…" id="uSg-ju-z4l">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="importGPXTraceForDisplay:" target="-1" id="lhp-U7-3w1"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Import GPX as Route…" id="bpI-mR-Itm">
+                            <menuItem title="Import Track as Route…" id="bpI-mR-Itm">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="importGPXAsRoute:" target="-1" id="bpI-mR-Act"/>
