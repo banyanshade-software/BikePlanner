@@ -58,6 +58,12 @@ PYEOF
     then exit 1; fi
 fi
 
+# the encoding of the keys must be the private one (#57): the committed example is a plain XOR
+if [ ! -f "$ROOT/BikePlanner/SecretEncoding.h" ]; then
+    echo "no private BikePlanner/SecretEncoding.h: the app uses the example key encoding, not packaged (#57)" >&2
+    exit 1
+fi
+
 # the start sites editor (#67) is a developer tool, built only with BP_SITE_EDITOR=1 (scripts/build_site_editor.sh)
 if grep -aq "BPSiteEditorController" "$APP/Contents/MacOS/"*; then
     echo "the app contains the start sites editor (built with BP_SITE_EDITOR): not packaged (#67)" >&2

@@ -3,7 +3,7 @@
 //  BikePlannerTests
 //
 //  The Thunderforest and Google Maps keys of Secret.h must not appear in clear in the app binaries (#51), nor under a
-//  simple decoding (#57).
+//  simple decoding (#57; with the private encoding of SecretEncoding.h only).
 //  The assertion messages never print the key.
 //
 
@@ -51,6 +51,10 @@
 // XOR, the reversed key, or the fixed mask of #51 (0xA7 ^ 29 i, in the order of the key)
 - (void)testKeyNotFoundWithSimpleDecodings
 {
+    if (![BPSecrets usesPrivateEncoding]) {
+        // fresh clone: the committed example encoding is a plain XOR, found here by design (make_dmg.sh refuses it)
+        XCTSkip(@"built with SecretEncodingExample.h (no private BikePlanner/SecretEncoding.h)");
+    }
     [self assertNotEncoded:[self key] name:@"Thunderforest"];
     if (strlen(GOOGLE_MAPS_API_KEY) > 0) [self assertNotEncoded:@GOOGLE_MAPS_API_KEY name:@"Google Maps"];
 }

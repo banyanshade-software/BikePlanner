@@ -52,8 +52,9 @@ BikePlanner/                 App target
   Base.lproj/Document.xib    Document window (split views, map, tabs, profile, toolbar)
   Base.lproj/MainMenu.xib    Menus
   Secret.h.example           Template for Secret.h (Thunderforest and optional Google Maps API keys, git-ignored)
-  BPSecrets.*                The only includer of Secret.h: keys encoded at compile time (non-linear keystream seeded
-                             by the compile time, bytes out of order, two shares; #51, #57), decoded at run time
+  BPSecrets.*                The only includer of Secret.h: keys encoded at compile time, decoded at run time (#51,
+                             #57) with the private encoding of SecretEncoding.h (git-ignored: the sources are public),
+                             else the committed SecretEncodingExample.h (plain XOR, interface of the private file)
   BPRemarkableSites.*, RemarkableSites.plist
                              Start sites of a new document (#65); writing the plist back (header comment kept, #67)
   BPSiteEditorController.*   Start sites editor (#67), a developer tool: compiled only with BP_SITE_EDITOR=1
@@ -328,7 +329,8 @@ before `</gpx>` by string manipulation.
   Control-click ▸ Open; or `xattr -dr com.apple.quarantine`). The volume and the
   `.dmg` file get the app icon. The layout is set with AppleScript (Finder automation permission needed; it
   does not work from a sandboxed shell). Not notarized, and it embeds the Thunderforest and Google Maps keys of
-  `Secret.h` (obfuscated; the script stops if a key is found in clear in the binaries).
+  `Secret.h` (obfuscated; the script stops if a key is found in clear or simply encoded in the binaries, or if the
+  private `SecretEncoding.h` is missing, #57).
 - Tests (see `CLAUDE.md` for commands and conventions):
   - unit tests `BikePlannerTests` (hosted in the app) — model, parsing, geometry, export, network clients, panels,
     and integration tests of a real document window (`DocumentWindowTests`);
@@ -358,7 +360,8 @@ before `</gpx>` by string manipulation.
   `+[AppDelegate versionStringWithInfo:]` formats the About window version.
 - macOS deployment target 12.7, ARC on.
 - **Before building**: copy `BikePlanner/Secret.h.example` to `BikePlanner/Secret.h` and set `THUNDERFOREST_API_KEY`
-  (the build fails without `Secret.h`), and optionally `GOOGLE_MAPS_API_KEY` (Maps Embed API, for Street View, #49:
+  (the build fails without `Secret.h`); for a DMG, also a private `BikePlanner/SecretEncoding.h` (git-ignored, #57:
+  the encoding of the keys, interface in `SecretEncodingExample.h`, used when it is missing), and optionally `GOOGLE_MAPS_API_KEY` (Maps Embed API, for Street View, #49:
   restrict it to that API and to the referrer `https://bikeplanner.invalid/*`, the base URL of the local page that
   holds the iframe; without it, the Google Maps web app is shown).
 - Entitlements: App Sandbox, user-selected files read/write, outgoing network, location.

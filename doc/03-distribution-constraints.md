@@ -54,9 +54,9 @@ app anyway: each needs its own server, a paid provider, or a per-user setting.
 ### 1.3 Thunderforest (OpenCycleMap)
 - Requires an API key; the free “Hobby Project” tier has a monthly tile limit and is for non-commercial use.
 - A key embedded in a distributed binary can be extracted and abused (it is billed to the owner). Since #51 it is
-  stored obfuscated (`BPSecrets`; not visible with `strings`), more strongly since #57 (keystream seeded by the
-  compile time, bytes out of order, split in two shares; no simple decoding finds it, checked by `SecretsTests` and
-  `make_dmg.sh`): this raises the cost of extraction only — the key is sent in clear in every tile request and can
+  stored obfuscated (`BPSecrets`; not visible with `strings`), more strongly since #57 (the encoding is private,
+  `SecretEncoding.h`, git-ignored, since the sources are public; no simple decoding finds the key, checked by
+  `SecretsTests` and `make_dmg.sh`): this raises the cost of extraction only — the key is sent in clear in every tile request and can
   be read by anyone debugging the app.
 - Attribution: “Maps © Thunderforest, Data © OpenStreetMap contributors” — **today** only “provided by
   thunderforest.com” in the About window Credits, nothing on the map.
@@ -124,8 +124,11 @@ if bundled, and a check of each icon's origin.
 ## 4. Secrets
 
 - API keys must never be committed (already handled by `Secret.h` + `.gitignore`). Keys compiled in are obfuscated
-  (`BPSecrets`, #51, stronger encoding #57) and `scripts/make_dmg.sh` refuses an app with a key in clear or found by
-  a simple decoding (reversed, XOR with one byte, the fixed mask of #51).
+  (`BPSecrets`, #51, #57) with a private encoding: `BikePlanner/SecretEncoding.h`, git-ignored like `Secret.h`
+  (November 2026: the sources are public, so a committed mechanism protects nothing; the commits before it contain
+  the earlier mechanisms, no longer used). A clone without it builds with the committed `SecretEncodingExample.h`
+  (plain XOR). `scripts/make_dmg.sh` refuses an app built without the private file, or with a key in clear or found
+  by a simple decoding (reversed, XOR with one byte, the fixed mask of #51).
 - Any key compiled into a distributed app is public in practice. Decision for #57 (November 2026): stronger
   obfuscation only, the keys stay in the DMG, which therefore is still not shared; per-user keys (Preferences +
   Keychain) or a server-side proxy remain the options if the app is ever distributed.

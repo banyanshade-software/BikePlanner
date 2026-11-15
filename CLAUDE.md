@@ -19,8 +19,11 @@ One-time setup: `cp BikePlanner/Secret.h.example BikePlanner/Secret.h` (git-igno
 put a real Thunderforest key in it for the OSM+cycle map, optionally a Google Maps Embed API key for Street View, #49:
 `GOOGLE_MAPS_API_KEY`, or `GOOGLE_API_KEY` as in the owner's `Secret.h`. The app checks the Google key at the first
 Street View and falls back to the Google Maps web app if Google rejects it).
-Only `BPSecrets.m` includes `Secret.h`: it stores the keys obfuscated (#51, stronger encoding #57); use `+[BPSecrets thunderforestAPIKey]` /
-`+googleMapsAPIKey`, never the macros, and never log a key.
+Only `BPSecrets.m` includes `Secret.h`: it stores the keys obfuscated (#51, #57); use `+[BPSecrets thunderforestAPIKey]` /
+`+googleMapsAPIKey`, never the macros, and never log a key. The encoding is private (#57, the sources are public):
+`BikePlanner/SecretEncoding.h`, git-ignored, never committed, shown or described in issues; without it the build uses
+the committed `SecretEncodingExample.h` (plain XOR; `SecretsTests` skips its obfuscation test, `make_dmg.sh` refuses).
+Never overwrite `SecretEncoding.h` either (the owner's private mechanism).
 UI tests also need macOS Automation Mode, enabled once by the owner in Terminal.app:
 `sudo automationmodetool enable-automationmode-without-authentication` (`automationmodetool` shows the status).
 

@@ -39,6 +39,7 @@ BikePlanner is a **personal project**, not distributed yet (see
 
 ```sh
 cp BikePlanner/Secret.h.example BikePlanner/Secret.h   # git-ignored; put your API keys in it
+# optional, git-ignored: your own encoding of the keys, BikePlanner/SecretEncoding.h (see SecretEncodingExample.h)
 open BikePlanner.xcodeproj                             # then Run (⌘R) / Test (⌘U)
 ```
 
