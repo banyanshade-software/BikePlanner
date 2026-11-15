@@ -2510,11 +2510,11 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 - (IBAction) importGPXTraceForDisplay:(id)sender
 {
     NSOpenPanel *panel = [NSOpenPanel openPanel];
-    panel.allowedContentTypes = [BPTrackReader importContentTypes]; // GPX, TCX (#76)
+    panel.allowedContentTypes = [BPTrackReader importContentTypes]; // GPX, TCX, FIT (#76)
     //panel.allowedFileTypes = @[@"gpx"];
     panel.allowsMultipleSelection = NO;
     panel.canChooseDirectories = NO;
-    panel.title = NSLocalizedString(@"Choose a GPX or TCX file", @"");
+    panel.title = NSLocalizedString(@"Choose a GPX, TCX or FIT file", @"");
     
     [panel beginWithCompletionHandler:^(NSModalResponse result) {
         if (result == NSModalResponseOK) {
@@ -2524,8 +2524,8 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     }];
 }
 
-// Import Track as Route (#29; TCX too, #76): the track becomes waypoints (simplified) and the route is requested
-// from BRouter; the original track stays as the reference trace to compare; GPX <wpt> / TCX course points become
+// Import Track as Route (#29; TCX and FIT too, #76): the track becomes waypoints (simplified) and the route is requested
+// from BRouter; the original track stays as the reference trace to compare; GPX <wpt> / TCX, FIT course points become
 // custom POIs with their type and name, except the GPX waypoints of the types BikePlanner exports for fetched POIs
 // (fetched again along the new route). One undoable action.
 - (IBAction) importGPXAsRoute:(id)sender
@@ -2534,7 +2534,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     panel.allowedContentTypes = [BPTrackReader importContentTypes];
     panel.allowsMultipleSelection = NO;
     panel.canChooseDirectories = NO;
-    panel.title = NSLocalizedString(@"Choose a GPX or TCX file to convert into a route", @"");
+    panel.title = NSLocalizedString(@"Choose a GPX, TCX or FIT file to convert into a route", @"");
     [panel beginWithCompletionHandler:^(NSModalResponse result) {
         if (result == NSModalResponseOK) [self loadGPXAsRouteFromURL:panel.URL];
     }];
@@ -2547,6 +2547,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     NSArray<CLLocation *> *trace = reader.trace;
     if ([trace count] < 2) {
         NSLog(@"import track as route: %@", error);
+        [self reportImportFailureOfURL:url reader:reader error:error];
         return;
     }
     // route points (or a file of waypoints only) are already waypoints
@@ -2581,6 +2582,20 @@ didChangeDragState:(MKAnnotationViewDragState)newState
     }];
 }
 
+// an import that gives nothing: say why (unreadable / malformed file, or no position: indoor activity, GPS off)
+- (void) reportImportFailureOfURL:(NSURL *)url reader:(nullable BPTrackReader *)reader error:(nullable NSError *)error
+{
+    NSWindow *window = _mapView.window;
+    if (!window) return;
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = [NSString stringWithFormat:NSLocalizedString(@"“%@” could not be imported.", @"import track"),
+                         url.lastPathComponent];
+    if (!reader) alert.informativeText = error.localizedDescription ?: NSLocalizedString(@"The file could not be read.", @"");
+    else if (!reader.trace.count) alert.informativeText = NSLocalizedString(@"The file contains no position.", @"import track");
+    else alert.informativeText = NSLocalizedString(@"The file contains a single position.", @"import track");
+    [alert beginSheetModalForWindow:window completionHandler:nil];
+}
+
 - (void) setRouteFromTrace:(NSArray<CLLocation *> *)trace waypoints:(NSArray<CLLocation *> *)wps pois:(NSArray<POILocation *> *)pois
 {
     NSUndoManager *um = _document.undoManager;
@@ -2597,9 +2612,11 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 
 - (void)loadGPXFromURL:(NSURL *)url {
     NSError *error = nil;
-    NSArray<CLLocation *> *points = [BPTrackReader readerWithContentsOfURL:url error:&error].trace; // GPX or TCX (#76)
+    BPTrackReader *reader = [BPTrackReader readerWithContentsOfURL:url error:&error]; // GPX, TCX or FIT (#76)
+    NSArray<CLLocation *> *points = reader.trace;
     if (![points count]) {
         NSLog(@"import track: %@", error);
+        [self reportImportFailureOfURL:url reader:reader error:error];
         return;
     }
     [self setGpxDisplayed:points desc:@"import trace"];

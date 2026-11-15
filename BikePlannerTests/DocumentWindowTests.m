@@ -27,6 +27,7 @@
 #import "GPXParser.h"
 #import "BPPlaceSearch.h"
 #import "TestFixtures.h"
+#import "BPFITBuilder.h"
 #import "BPRemarkableSites.h"
 #import "BPEnvironment.h"
 #import "BPColorScheme.h"
@@ -1095,13 +1096,17 @@
     [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
 }
 
-// unreadable file or empty trace: nothing changes
+// unreadable file or empty trace: nothing changes, an alert says why (#76)
 - (void)testImportGPXAsRouteBadFile
 {
     NSURL *bad = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-import-bad.gpx"]];
     XCTAssertTrue([BPData(@"<gpx></gpx>") writeToURL:bad atomically:YES]);
     [mc loadGPXAsRouteFromURL:bad];
+    NSString *text = [self dismissImportAlert];
+    XCTAssertTrue([text containsString:@"bp-import-bad.gpx"], @"%@", text);
+    XCTAssertTrue([text containsString:@"no position"], @"%@", text);
     [mc loadGPXAsRouteFromURL:[NSURL fileURLWithPath:@"/nonexistent/x.gpx"]];
+    XCTAssertTrue([[self dismissImportAlert] containsString:@"x.gpx"]);
     XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
     XCTAssertFalse(doc.undoManager.canUndo);
     [[NSFileManager defaultManager] removeItemAtURL:bad error:NULL];
@@ -1183,11 +1188,97 @@
     NSURL *bad = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-import-bad.tcx"]];
     XCTAssertTrue([BPData(@"<TrainingCenterDatabase><Courses><Course>") writeToURL:bad atomically:YES]);
     [mc loadGPXAsRouteFromURL:bad];
+    XCTAssertNotNil([self dismissImportAlert]);
     [mc loadGPXFromURL:bad];
+    XCTAssertNotNil([self dismissImportAlert]);
     XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
     XCTAssertEqual(doc.plan.gpxDisplayed.count, 0u);
     XCTAssertFalse(doc.undoManager.canUndo);
     [[NSFileManager defaultManager] removeItemAtURL:bad error:NULL];
+}
+
+#pragma mark - import FIT (#76)
+
+// the texts of the alert sheet shown when an import fails, after closing it; nil if none
+- (nullable NSString *)dismissImportAlert
+{
+    NSWindow *window = doc.windowControllers.firstObject.window;
+    if (!BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet != nil); })) return nil;
+    NSWindow *sheet = window.attachedSheet;
+    NSMutableArray<NSString *> *texts = [NSMutableArray array];
+    NSMutableArray<NSView *> *views = [NSMutableArray arrayWithObject:sheet.contentView];
+    while (views.count) {
+        NSView *v = views.lastObject;
+        [views removeLastObject];
+        if ([v isKindOfClass:[NSTextField class]]) [texts addObject:((NSTextField *)v).stringValue];
+        [views addObjectsFromArray:v.subviews];
+    }
+    [window endSheet:sheet returnCode:NSAlertFirstButtonReturn];
+    BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet == nil); });
+    return [texts componentsJoinedByString:@"\n"];
+}
+
+// a FIT activity from (44.02, 0.52) to (44.08, 0.58), 21 records with position and 2 without
+- (NSURL *)writeFITActivityToImport
+{
+    BPFITBuilder *b = [[BPFITBuilder alloc] init];
+    [b defineLocal:0 global:20 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @0, @4, @(BPFITSInt32) ],
+                                         @[ @1, @4, @(BPFITSInt32) ], @[ @2, @2, @(BPFITUInt16) ] ]];
+    for (int i = 0; i <= 20; i++) {
+        [b dataLocal:0 values:@[ @(1000000000 + i), @([BPFITBuilder semicircles:44.02 + i * 0.003]),
+                                 @([BPFITBuilder semicircles:0.52 + i * 0.003]), @((100 + i + 500) * 5) ]];
+        if (i == 5 || i == 6) [b dataLocal:0 values:@[ @(1000000000 + i), @0x7FFFFFFF, @0x7FFFFFFF, @0xFFFF ]];
+    }
+    NSURL *url = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-import-activity.fit"]];
+    XCTAssertTrue([b.data writeToURL:url atomically:YES]);
+    return url;
+}
+
+- (void)testImportFITAsRoute
+{
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    NSURL *url = [self writeFITActivityToImport];
+    [um beginUndoGrouping];
+    [mc loadGPXAsRouteFromURL:url];
+    [um endUndoGrouping];
+    NSArray<CLLocation *> *wps = doc.plan.waypointsLocations;
+    XCTAssertGreaterThanOrEqual(wps.count, 2u);
+    XCTAssertEqualWithAccuracy(wps.firstObject.coordinate.latitude, 44.02, 1e-6);
+    XCTAssertEqualWithAccuracy(wps.lastObject.coordinate.longitude, 0.58, 1e-6);
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 21u, @"records without position skipped");
+    XCTAssertTrue([self waitForRouteWithPoints:10 * (wps.count - 1) + 1]);
+    [um undo];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
+    [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
+}
+
+- (void)testImportFITForDisplay
+{
+    NSURL *url = [self writeFITActivityToImport];
+    [mc loadGPXFromURL:url];
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 21u);
+    XCTAssertEqualWithAccuracy(doc.plan.gpxDisplayed[20].altitude, 120, 0.1);
+    [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
+}
+
+// a FIT without any position (indoor, GPS off): an alert, nothing imported
+- (void)testImportFITWithoutPosition
+{
+    BPFITBuilder *b = [[BPFITBuilder alloc] init];
+    [b defineLocal:0 global:20 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @0, @4, @(BPFITSInt32) ], @[ @1, @4, @(BPFITSInt32) ] ]];
+    for (int i = 0; i < 5; i++) [b dataLocal:0 values:@[ @(1000000000 + i), @0x7FFFFFFF, @0x7FFFFFFF ]];
+    NSURL *url = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-indoor.fit"]];
+    XCTAssertTrue([b.data writeToURL:url atomically:YES]);
+    [mc loadGPXFromURL:url];
+    NSString *text = [self dismissImportAlert];
+    XCTAssertTrue([text containsString:@"no position"], @"%@", text);
+    [mc loadGPXAsRouteFromURL:url];
+    XCTAssertTrue([[self dismissImportAlert] containsString:@"no position"]);
+    XCTAssertEqual(doc.plan.gpxDisplayed.count, 0u);
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 0u);
+    XCTAssertFalse(doc.undoManager.canUndo);
+    [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
 }
 
 #pragma mark - initial region (#26)
@@ -2200,9 +2291,11 @@
 {
     NSURL *missing = [NSURL fileURLWithPath:@"/nonexistent/bp.gpx"];
     [mc loadGPXFromURL:missing];
+    XCTAssertTrue([[self dismissImportAlert] containsString:@"bp.gpx"]);
     NSURL *bad = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-bad.gpx"]];
     XCTAssertTrue([BPData(@"<gpx><trk>") writeToURL:bad atomically:YES]);
     [mc loadGPXFromURL:bad];
+    XCTAssertTrue([[self dismissImportAlert] containsString:@"bp-bad.gpx"]);
     XCTAssertEqual(doc.plan.gpxDisplayed.count, 0u);
     XCTAssertFalse(doc.undoManager.canUndo);
     [[NSFileManager defaultManager] removeItemAtURL:bad error:NULL];

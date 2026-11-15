@@ -7,6 +7,7 @@
 
 #import "BPTrackReader.h"
 #import "GPXParser.h"
+#import "BPFITDecoder.h"
 
 static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
 
@@ -35,10 +36,15 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
         || [s rangeOfString:@":TrainingCenterDatabase"].location != NSNotFound;
 }
 
++ (BOOL)isFITData:(NSData *)data
+{
+    return [BPFITDecoder isFITData:data];
+}
+
 + (NSArray<UTType *> *)importContentTypes
 {
     NSMutableArray<UTType *> *types = [NSMutableArray array];
-    for (NSString *ext in @[ @"gpx", @"tcx" ]) {
+    for (NSString *ext in @[ @"gpx", @"tcx", @"fit" ]) {
         UTType *t = [UTType typeWithFilenameExtension:ext];
         if (t) [types addObject:t];
     }
@@ -60,7 +66,8 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
         return nil;
     }
     BPTrackReader *r = [[BPTrackReader alloc] init];
-    BOOL ok = [self isTCXData:data] ? [r parseTCX:data error:error] : [r parseGPX:data error:error];
+    BOOL ok = [self isFITData:data] ? [r parseFIT:data error:error]
+            : [self isTCXData:data] ? [r parseTCX:data error:error] : [r parseGPX:data error:error];
     return ok ? r : nil;
 }
 
@@ -80,6 +87,48 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     [p.waypointNames enumerateObjectsUsingBlock:^(NSString *name, NSUInteger i, BOOL *stop) {
         [names addObject:[name caseInsensitiveCompare:p.waypointTypes[i]] == NSOrderedSame ? @"" : name];
     }];
+    _waypointNames = names;
+    return YES;
+}
+
+#pragma mark - FIT
+
+// GPX type of the custom POI for a FIT course_point type; nil: a turn cue (left, right, straight, forks, slight /
+// sharp turns, U-turn), not a POI; @"": the default custom POI type
++ (nullable NSString *)gpxTypeForFITCoursePointType:(NSUInteger)type
+{
+    switch (type) {
+        case 1:  return @"OVERLOOK"; // summit
+        case 3:  return @"WATER";
+        case 4:  return @"FOOD";
+        case 5:  return @"DANGER";
+        case 9:  return @"INFO";     // first aid
+        case 6: case 7: case 8:      // left, right, straight
+        case 16: case 17: case 18:   // left / right / middle fork
+        case 19: case 20: case 21: case 22: case 23: // slight / sharp left / right, U-turn
+            return nil;
+        default: return @"";
+    }
+}
+
+- (BOOL)parseFIT:(NSData *)data error:(NSError * _Nullable *)error
+{
+    BPFITDecoder *d = [[BPFITDecoder alloc] init];
+    if (![d decodeData:data error:error]) return NO;
+    _format = @"fit";
+    _trace = d.records;
+    _traceSource = @"trk";
+    NSMutableArray<CLLocation *> *points = [NSMutableArray array];
+    NSMutableArray<NSString *> *types = [NSMutableArray array], *names = [NSMutableArray array];
+    [d.coursePoints enumerateObjectsUsingBlock:^(CLLocation *p, NSUInteger i, BOOL *stop) {
+        NSString *type = [BPTrackReader gpxTypeForFITCoursePointType:d.coursePointTypes[i].unsignedIntegerValue];
+        if (!type) return;
+        [points addObject:p];
+        [types addObject:type];
+        [names addObject:d.coursePointNames[i]];
+    }];
+    _waypoints = points;
+    _waypointTypes = types;
     _waypointNames = names;
     return YES;
 }

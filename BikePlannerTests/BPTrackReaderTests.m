@@ -9,6 +9,7 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import "BPTrackReader.h"
 #import "TestFixtures.h"
+#import "BPFITBuilder.h"
 
 // a TCX activity: two laps, a trackpoint without position (pause) between them
 static NSString *const kTCXActivity =
@@ -142,6 +143,145 @@ static NSString *const kTCXCourse =
     NSArray<UTType *> *types = [BPTrackReader importContentTypes];
     XCTAssertTrue([types containsObject:[UTType typeWithFilenameExtension:@"gpx"]]);
     XCTAssertTrue([types containsObject:[UTType typeWithFilenameExtension:@"tcx"]]);
+    XCTAssertTrue([types containsObject:[UTType typeWithFilenameExtension:@"fit"]]);
+}
+
+#pragma mark - FIT
+
+static const int32_t kNoPos = 0x7FFFFFFF;
+
+// a FIT activity covering what real files contain: file_id, records with a developer field, a record without
+// position, a big-endian redefinition with enhanced_altitude, compressed timestamps, an unknown message
+- (NSData *)fitActivity
+{
+    BPFITBuilder *b = [[BPFITBuilder alloc] init];
+    NSDate *t0 = [NSDate dateWithTimeIntervalSince1970:1762000000]; // 2025-11-01
+    uint32_t ts = [BPFITBuilder fitTimestamp:t0];
+    // file_id: type activity
+    [b defineLocal:0 global:0 fields:@[ @[ @0, @1, @(BPFITEnum) ], @[ @1, @2, @(BPFITUInt16) ] ]];
+    [b dataLocal:0 values:@[ @4, @1 ]];
+    // unknown message 233 with a string
+    [b defineLocal:1 global:233 fields:@[ @[ @2, @3, @(BPFITUInt8) ], @[ @3, @5, @(BPFITString) ] ]];
+    [b dataLocal:1 values:@[ @7, @"abcd" ]];
+    // record: timestamp, lat, lon, altitude, + a 2-byte developer field
+    [b defineLocal:2 global:20 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @0, @4, @(BPFITSInt32) ],
+                                         @[ @1, @4, @(BPFITSInt32) ], @[ @2, @2, @(BPFITUInt16) ] ]
+         bigEndian:NO developerSizes:@[ @2 ]];
+    [b dataLocal:2 values:@[ @(ts), @([BPFITBuilder semicircles:44.01]), @([BPFITBuilder semicircles:0.51]), @((120.4 + 500) * 5) ]];
+    [b dataLocal:2 values:@[ @(ts + 5), @(kNoPos), @(kNoPos), @0xFFFF ]]; // GPS lost
+    [b dataLocal:1 values:@[ @9, @"xyz" ]];
+    // big-endian redefinition of local 2: enhanced_altitude, no altitude
+    [b defineLocal:2 global:20 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @0, @4, @(BPFITSInt32) ],
+                                         @[ @1, @4, @(BPFITSInt32) ], @[ @78, @4, @(BPFITUInt32) ] ]
+         bigEndian:YES developerSizes:nil];
+    [b dataLocal:2 values:@[ @(ts + 10), @([BPFITBuilder semicircles:44.02]), @([BPFITBuilder semicircles:-0.52]), @((1250.2 + 500) * 5) ]];
+    // compressed timestamps: a record without timestamp field and without altitude
+    [b defineLocal:3 global:20 fields:@[ @[ @0, @4, @(BPFITSInt32) ], @[ @1, @4, @(BPFITSInt32) ] ]];
+    uint8_t low = (ts + 10) & 0x1F;
+    [b compressedLocal:3 timeOffset:(low + 3) & 0x1F values:@[ @([BPFITBuilder semicircles:44.03]), @([BPFITBuilder semicircles:0.53]) ]];
+    return b.data;
+}
+
+- (void)testReadsFITActivity
+{
+    NSError *err = nil;
+    BPTrackReader *r = [BPTrackReader readerWithData:[self fitActivity] error:&err];
+    XCTAssertNotNil(r, @"%@", err);
+    XCTAssertEqualObjects(r.format, @"fit");
+    XCTAssertEqualObjects(r.traceSource, @"trk");
+    XCTAssertEqual(r.trace.count, 3u, @"the record without position is skipped");
+    XCTAssertEqualWithAccuracy(r.trace[0].coordinate.latitude, 44.01, 1e-6);
+    XCTAssertEqualWithAccuracy(r.trace[0].coordinate.longitude, 0.51, 1e-6);
+    XCTAssertEqualWithAccuracy(r.trace[0].altitude, 120.4, 0.1);
+    XCTAssertEqualObjects(r.trace[0].timestamp, [NSDate dateWithTimeIntervalSince1970:1762000000]);
+    XCTAssertEqualWithAccuracy(r.trace[1].coordinate.longitude, -0.52, 1e-6, @"big-endian, negative");
+    XCTAssertEqualWithAccuracy(r.trace[1].altitude, 1250.2, 0.1, @"enhanced_altitude");
+    XCTAssertEqualWithAccuracy(r.trace[2].coordinate.latitude, 44.03, 1e-6);
+    XCTAssertEqual(r.trace[2].altitude, 0, @"no altitude field");
+    XCTAssertEqualWithAccuracy([r.trace[2].timestamp timeIntervalSinceDate:r.trace[1].timestamp], 3, 1e-9, @"compressed timestamp");
+    XCTAssertEqual(r.waypoints.count, 0u);
+}
+
+// compressed timestamp offset smaller than the low bits of the last timestamp: the 32 s rollover
+- (void)testFITCompressedTimestampRollover
+{
+    BPFITBuilder *b = [[BPFITBuilder alloc] init];
+    uint32_t ts = 1000000000 | 0x1E; // low 5 bits: 30
+    [b defineLocal:0 global:20 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @0, @4, @(BPFITSInt32) ], @[ @1, @4, @(BPFITSInt32) ] ]];
+    [b dataLocal:0 values:@[ @(ts), @([BPFITBuilder semicircles:1]), @([BPFITBuilder semicircles:2]) ]];
+    [b defineLocal:1 global:20 fields:@[ @[ @0, @4, @(BPFITSInt32) ], @[ @1, @4, @(BPFITSInt32) ] ]];
+    [b compressedLocal:1 timeOffset:2 values:@[ @([BPFITBuilder semicircles:1.1]), @([BPFITBuilder semicircles:2.1]) ]];
+    BPTrackReader *r = [BPTrackReader readerWithData:b.data error:NULL];
+    XCTAssertEqual(r.trace.count, 2u);
+    XCTAssertEqualWithAccuracy([r.trace[1].timestamp timeIntervalSinceDate:r.trace[0].timestamp], 4, 1e-9, @"30 → 34 (offset 2)");
+}
+
+- (void)testReadsFITCourseWithCoursePoints
+{
+    BPFITBuilder *b = [[BPFITBuilder alloc] init];
+    [b defineLocal:0 global:0 fields:@[ @[ @0, @1, @(BPFITEnum) ] ]];
+    [b dataLocal:0 values:@[ @6 ]]; // course
+    [b defineLocal:1 global:20 fields:@[ @[ @0, @4, @(BPFITSInt32) ], @[ @1, @4, @(BPFITSInt32) ] ]];
+    for (int i = 0; i < 3; i++) [b dataLocal:1 values:@[ @([BPFITBuilder semicircles:45.1 + i * 0.1]), @([BPFITBuilder semicircles:1.1 + i * 0.1]) ]];
+    // course_point: timestamp, lat, lon, type, name
+    [b defineLocal:2 global:32 fields:@[ @[ @1, @4, @(BPFITUInt32) ], @[ @2, @4, @(BPFITSInt32) ], @[ @3, @4, @(BPFITSInt32) ],
+                                         @[ @5, @1, @(BPFITEnum) ], @[ @6, @16, @(BPFITString) ] ]];
+    NSArray *points = @[ @[ @3, @"Fountain" ], @[ @6, @"Left" ], @[ @4, @"" ], @[ @5, @"Steep descent" ], @[ @1, @"Col" ],
+                         @[ @19, @"" ], @[ @0, @"Bakery" ], @[ @0xFF, @"" ] ];
+    [points enumerateObjectsUsingBlock:^(NSArray *p, NSUInteger i, BOOL *stop) {
+        [b dataLocal:2 values:@[ @1, @([BPFITBuilder semicircles:45.11 + i * 0.01]), @([BPFITBuilder semicircles:1.11]), p[0], p[1] ]];
+    }];
+    NSError *err = nil;
+    BPTrackReader *r = [BPTrackReader readerWithData:b.data error:&err];
+    XCTAssertNotNil(r, @"%@", err);
+    XCTAssertEqual(r.trace.count, 3u);
+    XCTAssertEqual(r.waypoints.count, 6u, @"turn cues (left, slight left) are skipped");
+    NSArray *types = @[ @"WATER", @"FOOD", @"DANGER", @"OVERLOOK", @"", @"" ];
+    XCTAssertEqualObjects(r.waypointTypes, types);
+    NSArray *names = @[ @"Fountain", @"", @"Steep descent", @"Col", @"Bakery", @"" ];
+    XCTAssertEqualObjects(r.waypointNames, names);
+    XCTAssertEqualWithAccuracy(r.waypoints[2].coordinate.latitude, 45.14, 1e-6);
+}
+
+- (void)testFITWithoutPositionGivesAnEmptyTrace
+{
+    BPFITBuilder *b = [[BPFITBuilder alloc] init];
+    [b defineLocal:0 global:20 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @0, @4, @(BPFITSInt32) ], @[ @1, @4, @(BPFITSInt32) ] ]];
+    for (int i = 0; i < 5; i++) [b dataLocal:0 values:@[ @(1000000000 + i), @(kNoPos), @(kNoPos) ]];
+    BPTrackReader *r = [BPTrackReader readerWithData:b.data error:NULL];
+    XCTAssertNotNil(r);
+    XCTAssertEqual(r.trace.count, 0u);
+}
+
+- (void)testRejectsBadFIT
+{
+    NSData *good = [self fitActivity];
+    XCTAssertTrue([BPTrackReader isFITData:good]);
+    XCTAssertFalse([BPTrackReader isFITData:BPData(kTCXCourse)]);
+    NSError *err = nil;
+
+    NSMutableData *badCRC = [good mutableCopy];
+    ((uint8_t *)badCRC.mutableBytes)[40] ^= 0x55;
+    XCTAssertNil([BPTrackReader readerWithData:badCRC error:&err], @"corrupted data");
+    XCTAssertNotNil(err);
+
+    err = nil;
+    XCTAssertNil([BPTrackReader readerWithData:[good subdataWithRange:NSMakeRange(0, good.length - 30)] error:&err], @"truncated");
+    XCTAssertNotNil(err);
+
+    // a data message whose local type has no definition
+    BPFITBuilder *b = [[BPFITBuilder alloc] init];
+    [b defineLocal:0 global:20 fields:@[ @[ @0, @4, @(BPFITSInt32) ], @[ @1, @4, @(BPFITSInt32) ] ]];
+    [b dataLocal:0 values:@[ @1, @2 ]];
+    NSMutableData *undefined = [[b data] mutableCopy];
+    // replace the data header (local 0) by local 5, then fix the CRC
+    NSUInteger dataHeader = 14 + 1 + 5 + 2 * 3; // file header, then the definition: record header, 5 bytes, 2 fields
+    ((uint8_t *)undefined.mutableBytes)[dataHeader] = 5;
+    uint16_t crc = [BPFITBuilder crcOfData:[undefined subdataWithRange:NSMakeRange(0, undefined.length - 2)]];
+    [undefined replaceBytesInRange:NSMakeRange(undefined.length - 2, 2) withBytes:&crc];
+    err = nil;
+    XCTAssertNil([BPTrackReader readerWithData:undefined error:&err], @"undefined local message type");
+    XCTAssertNotNil(err);
 }
 
 @end
