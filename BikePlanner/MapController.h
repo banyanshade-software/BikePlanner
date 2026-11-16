@@ -74,6 +74,11 @@ typedef NS_ENUM(int, BPClickMode) {
 - (void) highlightKind:(nullable NSString *)kind;
 
 
+/// what a guided tour step points at (#63): "waypoint" (an intermediate waypoint pin, else the last one),
+/// "routeLine" (a point of the route, a third of the way), "waterPOI" (a visible drinking water POI); nil if none
+/// (no route, nothing visible). *rect: in the returned view's coordinates
+- (nullable NSView *) tourAnchorForKey:(NSString *)key rect:(NSRect *)rect;
+
 - (IBAction) setClickModeToEdit:(id)sender;
 - (IBAction) setClickModeToInterm:(id)sender;
 - (IBAction) setClickModeToView:(id)sender;

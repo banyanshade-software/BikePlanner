@@ -100,6 +100,8 @@
 		FF18C551CEC1F4F2DFA6F3E1 /* BPTrackReaderTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AE9D5CAC963079A1E40BE64 /* BPTrackReaderTests.m */; };
 		F6DDDA543EA6D2722D446F71 /* BPFITDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = 12A0CFCC52A21CD646A0F2DB /* BPFITDecoder.m */; };
 		58B63D5F1EAE2477515FB81D /* BPFITBuilder.m in Sources */ = {isa = PBXBuildFile; fileRef = C0E3F74750DE07CB5843A5F8 /* BPFITBuilder.m */; };
+		158DEE0B1642428EBE18A3A8 /* BPGuidedTour.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BAD2B4CA291D1F78D39191F /* BPGuidedTour.m */; };
+		43FF8E79DD1CE33642C46287 /* TourSample.bikeplan in Resources */ = {isa = PBXBuildFile; fileRef = 79EDB6BFDB5347989E0CB5E7 /* TourSample.bikeplan */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -279,6 +281,9 @@
 		D1D9B994A1E1A76DAA605856 /* BPFITDecoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPFITDecoder.h; sourceTree = "<group>"; };
 		C0E3F74750DE07CB5843A5F8 /* BPFITBuilder.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPFITBuilder.m; sourceTree = "<group>"; };
 		F934EBD71A391CA4747FAEA7 /* BPFITBuilder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPFITBuilder.h; sourceTree = "<group>"; };
+		4BAD2B4CA291D1F78D39191F /* BPGuidedTour.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPGuidedTour.m; sourceTree = "<group>"; };
+		6DCDE49176B96A360FF526BD /* BPGuidedTour.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPGuidedTour.h; sourceTree = "<group>"; };
+		79EDB6BFDB5347989E0CB5E7 /* TourSample.bikeplan */ = {isa = PBXFileReference; lastKnownFileType = file; path = TourSample.bikeplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -426,6 +431,8 @@
 				10273E0207CF0C84D9046F8E /* BPTrackReader.h */,
 				12A0CFCC52A21CD646A0F2DB /* BPFITDecoder.m */,
 				D1D9B994A1E1A76DAA605856 /* BPFITDecoder.h */,
+				4BAD2B4CA291D1F78D39191F /* BPGuidedTour.m */,
+				6DCDE49176B96A360FF526BD /* BPGuidedTour.h */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -466,6 +473,7 @@
 				AF37C4A38C3D74E24B3D3F40 /* RemarkableSites.plist */,
 				63C9593517DCDE440E18CD32 /* BPSiteEditorController.m */,
 				E942189C5B87C3781CC41A15 /* BPSiteEditorController.h */,
+				79EDB6BFDB5347989E0CB5E7 /* TourSample.bikeplan */,
 			);
 			path = BikePlanner;
 			sourceTree = "<group>";
@@ -667,6 +675,7 @@
 				1B53B84E2E5CDEFD00C9470F /* ExportAccessoryView.xib in Resources */,
 				65F365C72E4F73200046B03D /* BRFProfileEditor.xib in Resources */,
 				F918EABD954C135DE301F046 /* RemarkableSites.plist in Resources */,
+				43FF8E79DD1CE33642C46287 /* TourSample.bikeplan in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -782,6 +791,7 @@
 				E5D4C0DABDC00026BCD11287 /* BPColorScheme.m in Sources */,
 				B5A78DFFCE8269069088B7A6 /* BPTrackReader.m in Sources */,
 				F6DDDA543EA6D2722D446F71 /* BPFITDecoder.m in Sources */,
+				158DEE0B1642428EBE18A3A8 /* BPGuidedTour.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

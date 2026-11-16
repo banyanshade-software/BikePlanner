@@ -67,8 +67,8 @@ scripts/xcode_add_files.py --target BikePlanner      --anchor MapController.m   
 scripts/xcode_add_files.py --target BikePlannerTests --anchor BikePlannerTests.m BikePlannerTests/NewTests.m
 scripts/xcode_add_files.py --target BikePlannerUITests --anchor BikePlannerUITests.m BikePlannerUITests/NewUITests.m
 ```
-Resources (`.plist`, `.json`) go to the target's Resources build phase (e.g. `BikePlanner/RemarkableSites.plist`, the
-list of start sites, #65). A file already in the project can be added to another target the same way (e.g. `BikePlannerTests/BPStubServer.m`
+Resources (`.plist`, `.json`, `.bikeplan`) go to the target's Resources build phase (e.g. `BikePlanner/RemarkableSites.plist`, the
+list of start sites, #65; `BikePlanner/TourSample.bikeplan`, the route of the guided tour, #63). A file already in the project can be added to another target the same way (e.g. `BikePlannerTests/BPStubServer.m`
 is in both test targets). Removing a file: delete its lines from `project.pbxproj` (grep its name).
 A Run Script phase: `scripts/xcode_add_run_script.py --target … --name … --script …` (see its header).
 New files go in the anchor's group/directory. Use `SupportClasses/` + `--anchor GPXParser.m` for support classes.
@@ -149,7 +149,8 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
   road type or a surface highlights it on the map, #54), `poiType`/`poiName` (custom POI
   sheet), map context menu items (#80, `NSMenuItem.identifier`, from `-[MapController contextMenuForMapPoint:]`):
   `mapAddPOI`/`mapInsertWaypoint`/`mapStreetView`/`mapCopyCoordinates`, `poiPosition`/`poiTags`/`poiAllTagsToggle`/`poiAllTags`/`poiOpenOSM`/`poiStreetView`/`poiCopy`/`poiInclude`/`poiEdit`
-  (POI callout, #72), `prefLatitude`/`prefLongitude`/`prefRadius`/`prefSearch`/`prefColorScheme` (Preferences), `routeLength`/`routeAscent`/`routeTime`/`routeSpeed` in the XIB — on the cell: unit tests find them with
+  (POI callout, #72), guided tour (#63): anchors `infoSection`/`elevationProfile`/`sideTabs`, bubble `tourTitle`/`tourText`/`tourPrevious`/`tourEnd`/`tourNext`;
+  `prefLatitude`/`prefLongitude`/`prefRadius`/`prefSearch`/`prefColorScheme` (Preferences), `routeLength`/`routeAscent`/`routeTime`/`routeSpeed` in the XIB — on the cell: unit tests find them with
   `-[DocumentWindowTests panelControlWithIdentifier:]`). POI markers and callouts are not exposed to accessibility:
   check POI behavior through its effects (stub requests, undo menu items). Files exchanged with the app go in
   `/private/tmp/bp-uitests/`.

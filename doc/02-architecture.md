@@ -83,6 +83,9 @@ SupportClasses/              Reusable/support components
   POICalloutView.*           Callout content (#72: position, tags, buttons, Include/Exclude)
   BPColorScheme.*            Route color schemes (#71): stage, stage-end, trace and highlight colors; change notification
   BPPOIDescription.*         What the callout shows (translated tags, OSM URL, position text), no UI
+  BPGuidedTour.*             Help ▸ Guided Tour (#63): popovers anchored to controls by accessibility identifier and
+                             to route elements (-[MapController tourAnchorForKey:rect:]); runs on the bundled
+                             TourSample.bikeplan (temporary copy); started by PlannerWindowController
   RouteAnnotation.*          MKPointAnnotation for waypoints (carries its index)
   TaggedPoly.*               MKPolyline with a tag (0 route, 1 waypoints, 2 reference GPX, 3 road class highlight)
   SafeOSMTileOverlay.*, SafeTileRenderer.*   MKTileOverlay/Renderer subclasses; the overlay fetches the tiles itself

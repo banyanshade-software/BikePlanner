@@ -28,6 +28,7 @@
 #import "BPPlaceSearch.h"
 #import "TestFixtures.h"
 #import "BPFITBuilder.h"
+#import "BPGuidedTour.h"
 #import "BPRemarkableSites.h"
 #import "BPEnvironment.h"
 #import "BPColorScheme.h"
@@ -77,6 +78,9 @@
 
 @interface PlannerWindowController : NSWindowController
 @property (strong, nonatomic) id brfEditor;
+@property (strong, nonatomic, nullable) BPGuidedTour *guidedTour;
+- (void)startGuidedTour;
++ (void)showGuidedTourOnSampleWithCompletion:(nullable void (^)(PlannerWindowController * _Nullable controller))completion;
 @end
 
 @interface Document (WindowTesting)
@@ -437,6 +441,210 @@
     NSWindow *window = doc.windowControllers.firstObject.window;
     [window endSheet:window.attachedSheet returnCode:response];
     XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet == nil); }));
+}
+
+#pragma mark - guided tour (#63)
+
+- (NSString *)textOfPopover:(NSPopover *)popover identifier:(NSString *)identifier
+{
+    NSView *v = [self viewWithIdentifier:identifier in:popover.contentViewController.view];
+    return [v isKindOfClass:[NSTextField class]] ? ((NSTextField *)v).stringValue : nil;
+}
+
+- (NSButton *)buttonOfPopover:(NSPopover *)popover identifier:(NSString *)identifier
+{
+    NSView *v = [self viewWithIdentifier:identifier in:popover.contentViewController.view];
+    return [v isKindOfClass:[NSButton class]] ? (NSButton *)v : nil;
+}
+
+// a passive tour: one bubble per step, anchored to its control, Previous / Next / End
+- (void)testGuidedTourSteps
+{
+    NSWindow *window = doc.windowControllers.firstObject.window;
+    BPGuidedTour *tour = [[BPGuidedTour alloc] initWithWindow:window];
+    XCTAssertGreaterThanOrEqual(tour.stepCount, 8u);
+    // every step points at a control of this window
+    for (NSUInteger i = 0; i < tour.stepCount; i++) {
+        NSView *anchor = [tour anchorViewForStep:i];
+        XCTAssertNotNil(anchor, @"step %lu", (unsigned long)i);
+        XCTAssertEqual(anchor.window, window, @"step %lu", (unsigned long)i);
+    }
+    NSArray *expected = @[ @"map", @"clickMode", @"mapType", @"infoSection", @"elevationProfile", @"sideTabs" ];
+    NSMutableArray *anchors = [NSMutableArray array];
+    for (NSUInteger i = 0; i < tour.stepCount; i++) {
+        NSString *ident = [tour anchorViewForStep:i].accessibilityIdentifier;
+        if (ident && ![anchors containsObject:ident]) [anchors addObject:ident];
+    }
+    for (NSString *ident in expected) XCTAssertTrue([anchors containsObject:ident], @"%@ in %@", ident, anchors);
+    // the last step points at the Export GPX button of the toolbar
+    NSView *files = [tour anchorViewForStep:tour.stepCount - 1];
+    XCTAssertTrue([files isKindOfClass:[NSControl class]] && ((NSControl *)files).action == @selector(exportGPX:), @"%@", files);
+
+    [tour start];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)tour.popover.isShown; }));
+    XCTAssertEqual(tour.currentStep, 0u);
+    NSPopover *pop = tour.popover;
+    NSString *title = [self textOfPopover:pop identifier:@"tourTitle"];
+    XCTAssertTrue([title hasPrefix:@"1/"], @"%@", title);
+    XCTAssertGreaterThan([self textOfPopover:pop identifier:@"tourText"].length, 20u);
+    XCTAssertFalse([self buttonOfPopover:pop identifier:@"tourPrevious"].isEnabled, @"first step");
+    // a margin of at least 20 pt around the text, inside the bubble
+    NSView *content = pop.contentViewController.view;
+    [content layoutSubtreeIfNeeded];
+    NSView *textView = [self viewWithIdentifier:@"tourText" in:content];
+    NSRect t = [content convertRect:textView.bounds fromView:textView];
+    XCTAssertGreaterThanOrEqual(NSMinX(t), 20, @"%@ in %@", NSStringFromRect(t), NSStringFromRect(content.bounds));
+    XCTAssertGreaterThanOrEqual(NSWidth(content.bounds) - NSMaxX(t), 20, @"%@ in %@", NSStringFromRect(t), NSStringFromRect(content.bounds));
+    XCTAssertEqualWithAccuracy(pop.contentSize.width, NSWidth(content.bounds), 1);
+
+    NSButton *next = [self buttonOfPopover:pop identifier:@"tourNext"];
+    [next performClick:nil];
+    XCTAssertEqual(tour.currentStep, 1u);
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)tour.popover.isShown; }));
+    XCTAssertTrue([[self textOfPopover:tour.popover identifier:@"tourTitle"] hasPrefix:@"2/"]);
+    [[self buttonOfPopover:tour.popover identifier:@"tourPrevious"] performClick:nil];
+    XCTAssertEqual(tour.currentStep, 0u);
+
+    // up to the last step: Next becomes Done and ends the tour
+    while (tour.currentStep + 1 < tour.stepCount) [tour next];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)tour.popover.isShown; }));
+    NSButton *done = [self buttonOfPopover:tour.popover identifier:@"tourNext"];
+    XCTAssertEqualObjects(done.title, @"Done");
+    [done performClick:nil];
+    XCTAssertFalse(tour.isShowing);
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)!pop.isShown; }));
+
+    // End at any step
+    [tour start];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)tour.popover.isShown; }));
+    [tour next];
+    NSPopover *shown = tour.popover;
+    [[self buttonOfPopover:shown identifier:@"tourEnd"] performClick:nil];
+    XCTAssertFalse(tour.isShowing);
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)!shown.isShown; }));
+}
+
+// offered by itself once (first document window), never in the unit test host; Help ▸ Guided Tour
+- (void)testGuidedTourOfferedOnceAndInHelpMenu
+{
+    NSUserDefaults *ud = [[NSUserDefaults alloc] initWithSuiteName:@"bp-tests-tour"];
+    [ud removePersistentDomainForName:@"bp-tests-tour"];
+    XCTAssertTrue([BPGuidedTour shouldOfferAutomaticallyWithDefaults:ud]);
+    [BPGuidedTour markOfferedInDefaults:ud];
+    XCTAssertFalse([BPGuidedTour shouldOfferAutomaticallyWithDefaults:ud]);
+    [ud removePersistentDomainForName:@"bp-tests-tour"];
+    BPSpin(1.5);
+    for (NSDocument *d in [NSDocumentController sharedDocumentController].documents) {
+        XCTAssertFalse([d.fileURL.lastPathComponent isEqualToString:@"BikePlanner Tour.bikeplan"],
+                       @"not started by itself in the unit test host");
+    }
+
+    NSMenu *help = [NSApp.mainMenu itemWithTitle:@"Help"].submenu;
+    NSInteger i = [help indexOfItemWithTarget:nil andAction:NSSelectorFromString(@"showGuidedTour:")];
+    XCTAssertNotEqual(i, -1);
+    XCTAssertEqualObjects([help itemAtIndex:i].title, @"Guided Tour");
+    XCTAssertTrue([NSApp.delegate respondsToSelector:NSSelectorFromString(@"showGuidedTour:")], @"handled by the app delegate");
+}
+
+// the sample route of the tour, bundled with the app
+- (void)testGuidedTourSampleRoute
+{
+    NSURL *url = [BPGuidedTour sampleURL];
+    XCTAssertNotNil(url);
+    BikePlan *plan = [NSKeyedUnarchiver unarchivedObjectOfClass:[BikePlan class] fromData:[NSData dataWithContentsOfURL:url] error:NULL];
+    XCTAssertGreaterThanOrEqual(plan.waypointsLocations.count, 3u, @"an intermediate waypoint to point at");
+    XCTAssertGreaterThan(plan.routePoints.count, 100u);
+    XCTAssertFalse(plan.fetchPOI, @"no Overpass request: the POIs are in the document");
+    NSUInteger water = 0;
+    for (POILocation *p in plan.poiloc) if (p.poiType == POI_drinking_water) water++;
+    XCTAssertGreaterThan(water, 0u);
+}
+
+// Help ▸ Guided Tour: the sample opens in its own window (a temporary copy, View mode) and the tour starts there,
+// pointing at its waypoint and its route
+- (void)testGuidedTourOpensSample
+{
+    __block PlannerWindowController *wc = nil;
+    __block BOOL done = NO;
+    [PlannerWindowController showGuidedTourOnSampleWithCompletion:^(PlannerWindowController *c) { wc = c; done = YES; }];
+    XCTAssertTrue(BPWaitUntil(10, ^{ return done; }));
+    XCTAssertNotNil(wc);
+    Document *sample = (Document *)wc.document;
+    XCTAssertEqualObjects(sample.fileURL.lastPathComponent, @"BikePlanner Tour.bikeplan");
+    XCTAssertTrue([sample.fileURL.path hasPrefix:NSTemporaryDirectory().stringByResolvingSymlinksInPath]
+                  || [sample.fileURL.path hasPrefix:NSTemporaryDirectory()], @"%@", sample.fileURL.path);
+    XCTAssertNotEqual(sample, doc, @"its own window");
+    XCTAssertEqual(sample.mapController.clickMode, BPClickModeView);
+    BPGuidedTour *tour = wc.guidedTour;
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)tour.popover.isShown; }));
+    for (NSUInteger step = 0; step < tour.stepCount; step++) {
+        if ([[tour anchorKeyForStep:step] isEqualToString:@"waypoint"]) {
+            XCTAssertTrue([[tour anchorViewForStep:step] isKindOfClass:[MKAnnotationView class]], @"the waypoint pin");
+        }
+        if ([[tour anchorKeyForStep:step] isEqualToString:@"routeLine"]) {
+            XCTAssertEqual([tour anchorViewForStep:step], sample.mapController.mapView);
+        }
+    }
+    // again: the same window, not a second copy
+    __block PlannerWindowController *again = nil;
+    done = NO;
+    [PlannerWindowController showGuidedTourOnSampleWithCompletion:^(PlannerWindowController *c) { again = c; done = YES; }];
+    XCTAssertTrue(BPWaitUntil(10, ^{ return done; }));
+    XCTAssertEqual(again, wc);
+    [tour end];
+    [sample close];
+}
+
+// what the steps point at on a route: a waypoint pin, a point of the line, a drinking water POI
+- (void)testTourAnchorsOnRoute
+{
+    NSRect r = NSZeroRect;
+    XCTAssertNil([mc tourAnchorForKey:@"routeLine" rect:&r], @"no route");
+    doc.plan.fetchPOI = NO;
+    [self makeRoute];
+    [doc.plan setPoiloc:@[[self waterPOI]]];
+    [mc refreshPOI];
+    BPSpin(0.3);
+    NSView *pin = [mc tourAnchorForKey:@"waypoint" rect:&r];
+    XCTAssertTrue([pin isKindOfClass:[MKAnnotationView class]]);
+    XCTAssertTrue([((MKAnnotationView *)pin).annotation isKindOfClass:[RouteAnnotation class]]);
+    NSView *line = [mc tourAnchorForKey:@"routeLine" rect:&r];
+    XCTAssertEqual(line, map);
+    XCTAssertTrue(NSContainsRect(map.bounds, r));
+    NSView *poi = [mc tourAnchorForKey:@"waterPOI" rect:&r];
+    XCTAssertTrue([((MKAnnotationView *)poi).annotation isKindOfClass:[POIAnnotation class]]);
+    XCTAssertNil([mc tourAnchorForKey:@"other" rect:&r]);
+}
+
+// every control of the window has a tooltip (#63)
+- (void)testControlsHaveTooltips
+{
+    for (NSString *ident in @[ @"zoomIn", @"zoomOut", @"userLocation" ]) {
+        NSView *v = [self viewWithIdentifier:ident in:self.content];
+        XCTAssertGreaterThan(v.toolTip.length, 0u, @"%@", ident);
+    }
+    for (NSString *ident in @[ @"clickMode", @"mapType" ]) {
+        NSSegmentedControl *seg = (NSSegmentedControl *)[self viewWithIdentifier:ident in:self.content];
+        for (NSInteger i = 0; i < seg.segmentCount; i++) {
+            XCTAssertGreaterThan([seg toolTipForSegment:i].length, 0u, @"%@ segment %ld", ident, (long)i);
+        }
+    }
+    NSView *info = [self viewWithIdentifier:@"infoSection" in:doc.windowControllers.firstObject.window.contentView];
+    XCTAssertNotNil(info);
+    NSMutableArray<NSSwitch *> *switches = [NSMutableArray array];
+    NSMutableArray<NSView *> *views = [NSMutableArray arrayWithObject:info];
+    while (views.count) {
+        NSView *v = views.lastObject;
+        [views removeLastObject];
+        if ([v isKindOfClass:[NSSwitch class]]) [switches addObject:(NSSwitch *)v];
+        [views addObjectsFromArray:v.subviews];
+    }
+    XCTAssertEqual(switches.count, 2u, @"Fetch POI, View POI");
+    for (NSSwitch *sw in switches) XCTAssertGreaterThan(sw.toolTip.length, 0u);
+    for (NSToolbarItem *item in doc.windowControllers.firstObject.window.toolbar.items) {
+        if ([item.itemIdentifier hasPrefix:@"NSToolbar"]) continue; // spaces, standard Print item
+        XCTAssertGreaterThan(item.toolTip.length, 0u, @"toolbar item %@", item.label);
+    }
 }
 
 #pragma mark - map context menu (#80)

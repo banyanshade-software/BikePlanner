@@ -3,7 +3,7 @@
 
 The new files are put in the same group as an existing "anchor" file that already
 belongs to the target, and added to the target's Sources build phase
-(.m / .c files), to its Resources build phase (.plist / .json files), or just to the group (.h files).
+(.m / .c files), to its Resources build phase (.plist / .json / .bikeplan files), or just to the group (.h files).
 
 Usage:
     scripts/xcode_add_files.py --target BikePlannerTests --anchor BikePlannerTests.m \
@@ -23,8 +23,8 @@ import sys
 PBXPROJ = os.path.join(os.path.dirname(__file__), "..", "BikePlanner.xcodeproj", "project.pbxproj")
 
 FILE_TYPES = {".m": "sourcecode.c.objc", ".h": "sourcecode.c.h", ".c": "sourcecode.c.c",
-              ".plist": "text.plist.xml", ".json": "text.json"}
-RESOURCE_TYPES = {".plist", ".json"}
+              ".plist": "text.plist.xml", ".json": "text.json", ".bikeplan": "file"}
+RESOURCE_TYPES = {".plist", ".json", ".bikeplan"}
 
 
 def new_id(text):

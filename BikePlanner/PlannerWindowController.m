@@ -11,6 +11,8 @@
 #import "BRFProfileEditor.h"
 #import "BikePlan.h"
 #import "BPRoadTypesView.h"
+#import "BPGuidedTour.h"
+#import "BPEnvironment.h"
 
 @interface PlannerWindowController ()
 
@@ -81,6 +83,9 @@
     [doc addSubview:stack];
     scroll.documentView = doc;
     [infoPane addSubview:scroll];
+    scroll.accessibilityIdentifier = @"infoSection"; // guided tour (#63)
+    tabs.accessibilityIdentifier = @"sideTabs";
+    [self setTooltipsIn:doc];
     NSClipView *clip = scroll.contentView;
     [NSLayoutConstraint activateConstraints:@[
         [doc.leadingAnchor constraintEqualToAnchor:clip.leadingAnchor],
@@ -93,6 +98,88 @@
         [roads.leadingAnchor constraintEqualToAnchor:stack.leadingAnchor constant:12],
         [roads.widthAnchor constraintEqualToConstant:240],
     ]];
+}
+
+// tooltips of the controls of Document.xib (#63), set here so that the XIB is unchanged
+- (void) setTooltipsIn:(NSView *)root
+{
+    NSDictionary<NSString *, NSString *> *byBinding = @{
+        @"plan.fetchPOI": NSLocalizedString(@"Look for drinking water, toilets and bicycle repair stations along the route (OpenStreetMap)", @"tooltip"),
+        @"mapController.viewPOI": NSLocalizedString(@"Show the points of interest on the map", @"tooltip"),
+    };
+    NSDictionary<NSString *, NSString *> *byIdentifier = @{
+        @"routeLength": NSLocalizedString(@"Length of the route", @"tooltip"),
+        @"routeAscent": NSLocalizedString(@"Cumulative elevation gain (filtered by BRouter)", @"tooltip"),
+        @"routeTime": NSLocalizedString(@"Riding time estimated by BRouter", @"tooltip"),
+        @"routeSpeed": NSLocalizedString(@"Average speed: length / riding time", @"tooltip"),
+    };
+    NSMutableArray<NSView *> *views = [NSMutableArray arrayWithObject:root];
+    while (views.count) {
+        NSView *v = views.lastObject;
+        [views removeLastObject];
+        NSString *keyPath = [v infoForBinding:NSValueBinding][NSObservedKeyPathKey];
+        // the identifiers of the Info fields are on their cells
+        NSString *ident = v.accessibilityIdentifier.length ? v.accessibilityIdentifier
+                        : [v isKindOfClass:[NSControl class]] ? ((NSControl *)v).cell.accessibilityIdentifier : nil;
+        NSString *tip = (keyPath ? byBinding[keyPath] : nil) ?: (ident ? byIdentifier[ident] : nil);
+        if (tip && !v.toolTip.length) v.toolTip = tip;
+        [views addObjectsFromArray:v.subviews];
+    }
+}
+
+- (void) setToolbarTooltips
+{
+    for (NSToolbarItem *item in self.window.toolbar.items) {
+        if (item.toolTip.length) continue;
+        if (item.action == @selector(importGPXTraceForDisplay:)) {
+            item.toolTip = NSLocalizedString(@"Show a GPX, TCX or FIT track on the map, to compare with the route", @"tooltip");
+        } else if (item.action == @selector(exportGPX:)) {
+            item.toolTip = NSLocalizedString(@"Export the route to GPX for a GPS (whole route or one file per stage)", @"tooltip");
+        } else if ([item isKindOfClass:[NSSearchToolbarItem class]]) {
+            item.toolTip = NSLocalizedString(@"Find a place by name", @"tooltip");
+        }
+    }
+}
+
+- (void)startGuidedTour
+{
+    if (!self.guidedTour) {
+        self.guidedTour = [[BPGuidedTour alloc] initWithWindow:self.window];
+        __weak MapController *mc = ((Document *)self.document).mapController;
+        self.guidedTour.routeAnchorProvider = ^NSView *(NSString *key, NSRect *rect) {
+            return [mc tourAnchorForKey:key rect:rect];
+        };
+    }
+    [self.guidedTour end];
+    [self.guidedTour start];
+}
+
++ (void)showGuidedTourOnSampleWithCompletion:(nullable void (^)(PlannerWindowController * _Nullable controller))completion
+{
+    [BPGuidedTour openSampleWithCompletion:^(NSDocument *document, NSError *error) {
+        PlannerWindowController *wc = (PlannerWindowController *)document.windowControllers.firstObject;
+        if (![wc isKindOfClass:[PlannerWindowController class]]) {
+            NSLog(@"guided tour: cannot open the sample route: %@", error);
+            if (completion) completion(nil);
+            return;
+        }
+        // after the map has zoomed to the route
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.6 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [wc startGuidedTour];
+            if (completion) completion(wc);
+        });
+    }];
+}
+
+// offered by itself once, after the first document window opens (never in the unit test host)
+- (void) offerGuidedTourIfNeeded
+{
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    if ([BPEnvironment isUnitTestHost] || ![BPGuidedTour shouldOfferAutomaticallyWithDefaults:ud]) return;
+    [BPGuidedTour markOfferedInDefaults:ud];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [PlannerWindowController showGuidedTourOnSampleWithCompletion:nil];
+    });
 }
 
 - (void)windowDidLoad
@@ -114,7 +201,10 @@
     [d.mapController fullRefresh:YES];
     [self setupBrfEditor];
     [self setupInfoSection];
+    [self setToolbarTooltips];
+    d.mapController.elevationView.accessibilityIdentifier = @"elevationProfile";
     [self.window makeKeyAndOrderFront:nil];
+    [self offerGuidedTourIfNeeded];
 }
 
 

@@ -335,6 +335,21 @@ changes nothing.
   ends, highlight yellow). In the other schemes the route is 8 pt and the trace 6 pt at alpha 0.5. The trace is always
   drawn under the route.
 
+### F13 — Help (#63)
+- F13.1 *Help ▸ Guided Tour*: a series of bubbles (popovers) pointing at the main controls of a document window and
+  at the elements of its route — welcome, click modes, a waypoint pin, the route line (map context menu), a drinking
+  water POI, map types, search, route information, elevation profile, Street View / Params tabs, files and GPS (the Export GPX button) —
+  with *Previous*, *End* (Esc) and *Next* (Return; *Done* on the last step). Passive: it only explains. The text has
+  a wide margin.
+- F13.2 The tour runs on a sample route bundled with the app (`TourSample.bikeplan`, 128 km, POIs included): a
+  temporary copy, “BikePlanner Tour.bikeplan”, opened in its own window in View mode (the open one if already
+  there), whatever window the tour is started from. A step whose route element is not visible points at the center
+  of the map.
+- F13.3 The tour starts by itself once, about a second after the first document window opens (user default
+  `BPGuidedTourShown`), never in the unit test host; the UI tests pass `-BPGuidedTourShown YES`.
+- F13.4 Every control of the window has a tooltip (zoom, location, click mode and map type segments, Info fields,
+  Fetch / View POI, toolbar items), besides those of the Params tab, the profile and the POI callout.
+
 ## 7. Non-functional requirements (targets)
 
 - **Responsiveness**: the UI must never block on network; all requests are asynchronous.

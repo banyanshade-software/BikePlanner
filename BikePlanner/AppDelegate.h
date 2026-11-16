@@ -12,6 +12,7 @@
 @property (nonatomic, assign) BOOL useTextView;
 
 - (IBAction)showPreferences:(id)sender;   // BikePlanner ▸ Preferences… (#27)
+- (IBAction)showGuidedTour:(id)sender;    // Help ▸ Guided Tour (#63): on the sample route
 
 @end
 

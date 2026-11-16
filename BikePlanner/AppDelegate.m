@@ -10,6 +10,8 @@
 #import "BPEnvironment.h"
 #import "BPPreferences.h"
 #import "BPPreferencesWindowController.h"
+#import "BPGuidedTour.h"
+#import "PlannerWindowController.h"
 #if BP_SITE_EDITOR
 #import "BPSiteEditorController.h"
 #endif
@@ -36,8 +38,13 @@
     [self.preferencesWindowController showWindow:sender];
 }
 
+- (IBAction)showGuidedTour:(id)sender
+{
+    [PlannerWindowController showGuidedTourOnSampleWithCompletion:nil];
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-    // Insert code here to initialize your application
+    [BPGuidedTour installMenuItem]; // Help ▸ Guided Tour (#63)
 #if BP_SITE_EDITOR
     [BPSiteEditorController installMenu]; // developer build only (#67, scripts/build_site_editor.sh)
 #endif

@@ -285,6 +285,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     btnZoomOut.action = @selector(zoomOut:);
     btnZoomOut.target = self;
     btnZoomOut.accessibilityIdentifier = @"zoomOut";
+    btnZoomOut.toolTip = NSLocalizedString(@"Zoom out", @"tooltip");
     //btnZoomOut.contentTintColor = [NSColor labelColor];
     [content addSubview:btnZoomOut];
     
@@ -298,6 +299,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     btnZoomIn.action = @selector(zoomIn:);
     btnZoomIn.target = self;
     btnZoomIn.accessibilityIdentifier = @"zoomIn";
+    btnZoomIn.toolTip = NSLocalizedString(@"Zoom in", @"tooltip");
     [content addSubview:btnZoomIn];
     addBackdrop(NSUnionRect(btnZoomOut.frame, btnZoomIn.frame), @"zoomBackdrop", btnZoomOut, content); // they touch: one backdrop
     
@@ -312,6 +314,7 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     btnCurloc.action = @selector(centerOnUserLocation:);
     btnCurloc.bezelStyle = bzstyle;
     btnCurloc.accessibilityIdentifier = @"userLocation";
+    btnCurloc.toolTip = NSLocalizedString(@"Show my location", @"tooltip");
     
     //btnCurloc.contentTintColor = [NSColor orangeColor];
     [content addSubview:btnCurloc];
@@ -329,6 +332,12 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     [maptype setLabel:@"Apple" forSegment:2];
     [maptype setLabel:@"Sat+Rd" forSegment:3];
     [maptype setLabel:@"Sat" forSegment:4];
+    // tooltips (#63)
+    [maptype setToolTip:NSLocalizedString(@"OpenStreetMap", @"tooltip") forSegment:0];
+    [maptype setToolTip:NSLocalizedString(@"OpenStreetMap with the cycle routes (Thunderforest OpenCycleMap)", @"tooltip") forSegment:1];
+    [maptype setToolTip:NSLocalizedString(@"Apple Maps", @"tooltip") forSegment:2];
+    [maptype setToolTip:NSLocalizedString(@"Satellite images with roads and names", @"tooltip") forSegment:3];
+    [maptype setToolTip:NSLocalizedString(@"Satellite images", @"tooltip") forSegment:4];
     maptype.selectedSegmentBezelColor = selectedSegmentColor();
     //maptype.backgroundColor = [NSColor grayColor];
     maptype.segmentStyle = NSSegmentStyleRoundRect;
@@ -358,6 +367,12 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     [clickmodeseg setLabel:@"Edit" forSegment:BPClickModeEdit];
     [clickmodeseg setLabel:@"Add interm." forSegment:BPClickModeInterm];
     [clickmodeseg setLabel:@"View" forSegment:BPClickModeView];
+    [clickmodeseg setToolTip:NSLocalizedString(@"Click on the map to add the start, then destinations; on the route to insert a waypoint (⌘1)", @"tooltip")
+                  forSegment:BPClickModeEdit];
+    [clickmodeseg setToolTip:NSLocalizedString(@"Click on the route to insert an intermediate waypoint (⌘2)", @"tooltip")
+                  forSegment:BPClickModeInterm];
+    [clickmodeseg setToolTip:NSLocalizedString(@"Click on the route to move Street View and the profile cursor; drag waypoints (⌘3)", @"tooltip")
+                  forSegment:BPClickModeView];
     clickmodeseg.selectedSegmentBezelColor = selectedSegmentColor();
     clickmodeseg.segmentStyle = NSSegmentStyleRoundRect;
     //clickmode.bezelColor = [NSColor redColor];
@@ -766,6 +781,48 @@ static const double kBPSiteRadiusKm = 15;
     [waypointsRouteAnnotations insertObject:a atIndex:idx];
     [self recalcAnnotIndexesFrom:idx];
     [self.mapView addAnnotation:a];
+}
+
+#pragma mark - guided tour (#63)
+
+- (nullable NSView *) tourAnchorForKey:(NSString *)key rect:(NSRect *)rect
+{
+    NSRect visible = self.mapView.bounds;
+    if ([key isEqualToString:@"waypoint"] && waypointsRouteAnnotations.count) {
+        NSUInteger i = MIN((NSUInteger)1, waypointsRouteAnnotations.count - 1);
+        NSView *pin = [self.mapView viewForAnnotation:waypointsRouteAnnotations[i]];
+        if (pin && NSIntersectsRect([self.mapView convertRect:pin.bounds fromView:pin], visible)) {
+            *rect = pin.bounds;
+            return pin;
+        }
+        return nil;
+    }
+    if ([key isEqualToString:@"routeLine"]) {
+        NSArray<CLLocation *> *pts = _document.plan.routePoints;
+        if (pts.count < 2) return nil;
+        // the first point of the route inside the map, from a third of the way
+        for (NSUInteger k = 0; k < pts.count; k++) {
+            NSUInteger i = (pts.count / 3 + k) % pts.count;
+            NSPoint p = [self.mapView convertCoordinate:pts[i].coordinate toPointToView:self.mapView];
+            if (NSPointInRect(p, NSInsetRect(visible, 60, 60))) {
+                *rect = NSMakeRect(p.x - 3, p.y - 3, 6, 6);
+                return self.mapView;
+            }
+        }
+        return nil;
+    }
+    if ([key isEqualToString:@"waterPOI"]) {
+        for (id<MKAnnotation> a in self.mapView.annotations) {
+            if (![a isKindOfClass:[POIAnnotation class]] || ((POIAnnotation *)a).poiType != POI_drinking_water) continue;
+            NSView *v = [self.mapView viewForAnnotation:a];
+            if (v && !v.isHidden && NSContainsRect(NSInsetRect(visible, 40, 40), [self.mapView convertRect:v.bounds fromView:v])) {
+                *rect = v.bounds;
+                return v;
+            }
+        }
+        return nil;
+    }
+    return nil;
 }
 
 #pragma mark - map context menu (#80)
