@@ -128,7 +128,9 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
   suite, never the owner's defaults. The test host reads the owner's real user defaults (Preferences, my default
   BRouter parameters): a test that depends on `BPDefaultPosition`, `BPInitialRadiusKm`, `BPStartPosition`, `BPProfileOverrides`… must
   override it with `BPOverrideDefaults`. `BPOverrideDefaults` is not cumulative: each call starts again from the
-  original values, so a second call in a test drops the overrides of `setUp` — repeat them.
+  original values, so a second call in a test drops the overrides of `setUp` — repeat them. The app launched by the
+  UI tests reads them too: `BPUITestCase` overrides them with launch arguments (e.g. `-BPProfileOverrides {}`: the
+  owner's default BRouter parameters have keys the stub's profile lacks, so *Apply* started enabled).
 - Waiting: prefer `BPWaitUntil(timeout, condition)` to a fixed `BPSpin` for anything animated or asynchronous (map
   region animations made a test flaky). A cancelled request may still reach the in-process stub after the test:
   spin a little at the end of such a test so it does not consume the next test's `failCount`.

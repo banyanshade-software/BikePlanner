@@ -27,6 +27,9 @@
         @"-BPInitialRegion", @"44.05,0.55,0.2",
         @"-ApplePersistenceIgnoreState", @"YES",
         @"-BPGuidedTourShown", @"YES", // no guided tour at the first window (#63)
+        // not the owner's default BRouter parameters (Params tab ▸ My defaults): a new document starts without
+        // overrides, as on a fresh install
+        @"-BPProfileOverrides", @"{}",
     ] mutableCopy];
     [args addObjectsFromArray:[self extraLaunchArguments]];
     self.app.launchArguments = args;
