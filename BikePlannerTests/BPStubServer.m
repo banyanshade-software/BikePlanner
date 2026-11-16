@@ -514,6 +514,19 @@ static double BPDistance(double lat1, double lon1, double lat2, double lon2)
                @"tags": @{ @"landuse": @"cemetery" } },
         ]
     };
+    if ([q containsString:@"nwr(around:"]) {
+        // sights (#81): a castle (a way) ~55 m north of the first point, a viewpoint ~640 m east, a cafe ~300 m south
+        NSMutableArray *els = [json[@"elements"] mutableCopy];
+        [els addObjectsFromArray:@[
+            @{ @"type": @"way", @"id": @2001, @"center": @{ @"lat": @(lat + 0.0005), @"lon": @(lon) },
+               @"tags": @{ @"historic": @"castle", @"name": @"Château de Test" } },
+            @{ @"type": @"node", @"id": @2002, @"lat": @(lat), @"lon": @(lon + 0.008),
+               @"tags": @{ @"tourism": @"viewpoint", @"name": @"Belvédère" } },
+            @{ @"type": @"node", @"id": @2003, @"lat": @(lat - 0.0027), @"lon": @(lon),
+               @"tags": @{ @"amenity": @"cafe", @"name": @"Café du Pont" } },
+        ]];
+        json = @{ @"elements": els };
+    }
     NSData *d = [NSJSONSerialization dataWithJSONObject:json options:0 error:NULL];
     return [[NSString alloc] initWithData:d encoding:NSUTF8StringEncoding];
 }

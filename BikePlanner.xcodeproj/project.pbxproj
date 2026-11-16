@@ -102,6 +102,10 @@
 		58B63D5F1EAE2477515FB81D /* BPFITBuilder.m in Sources */ = {isa = PBXBuildFile; fileRef = C0E3F74750DE07CB5843A5F8 /* BPFITBuilder.m */; };
 		158DEE0B1642428EBE18A3A8 /* BPGuidedTour.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BAD2B4CA291D1F78D39191F /* BPGuidedTour.m */; };
 		43FF8E79DD1CE33642C46287 /* TourSample.bikeplan in Resources */ = {isa = PBXBuildFile; fileRef = 79EDB6BFDB5347989E0CB5E7 /* TourSample.bikeplan */; };
+		EB9A85B2E9362CBB632C8822 /* BPSights.m in Sources */ = {isa = PBXBuildFile; fileRef = CB280961CF803D588E20594C /* BPSights.m */; };
+		D9C1BA8839B9031E4B702619 /* BPSights.m in Sources */ = {isa = PBXBuildFile; fileRef = CB280961CF803D588E20594C /* BPSights.m */; };
+		C9656E62681F019F1DC188AE /* BPSightsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = DA8347079EAF031DE9E11995 /* BPSightsTests.m */; };
+		3F26CE69B6015E0CE8CC0710 /* BPSightsView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B16C7A775566757041F0198 /* BPSightsView.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -284,6 +288,11 @@
 		4BAD2B4CA291D1F78D39191F /* BPGuidedTour.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPGuidedTour.m; sourceTree = "<group>"; };
 		6DCDE49176B96A360FF526BD /* BPGuidedTour.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPGuidedTour.h; sourceTree = "<group>"; };
 		79EDB6BFDB5347989E0CB5E7 /* TourSample.bikeplan */ = {isa = PBXFileReference; lastKnownFileType = file; path = TourSample.bikeplan; sourceTree = "<group>"; };
+		CB280961CF803D588E20594C /* BPSights.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPSights.m; sourceTree = "<group>"; };
+		EFBD737376B8972674E9DF6F /* BPSights.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPSights.h; sourceTree = "<group>"; };
+		DA8347079EAF031DE9E11995 /* BPSightsTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPSightsTests.m; sourceTree = "<group>"; };
+		4B16C7A775566757041F0198 /* BPSightsView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPSightsView.m; sourceTree = "<group>"; };
+		CBA771607A5062D9EB1FE72F /* BPSightsView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPSightsView.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -433,6 +442,10 @@
 				D1D9B994A1E1A76DAA605856 /* BPFITDecoder.h */,
 				4BAD2B4CA291D1F78D39191F /* BPGuidedTour.m */,
 				6DCDE49176B96A360FF526BD /* BPGuidedTour.h */,
+				CB280961CF803D588E20594C /* BPSights.m */,
+				EFBD737376B8972674E9DF6F /* BPSights.h */,
+				4B16C7A775566757041F0198 /* BPSightsView.m */,
+				CBA771607A5062D9EB1FE72F /* BPSightsView.h */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -513,6 +526,7 @@
 				4AE9D5CAC963079A1E40BE64 /* BPTrackReaderTests.m */,
 				C0E3F74750DE07CB5843A5F8 /* BPFITBuilder.m */,
 				F934EBD71A391CA4747FAEA7 /* BPFITBuilder.h */,
+				DA8347079EAF031DE9E11995 /* BPSightsTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -792,6 +806,8 @@
 				B5A78DFFCE8269069088B7A6 /* BPTrackReader.m in Sources */,
 				F6DDDA543EA6D2722D446F71 /* BPFITDecoder.m in Sources */,
 				158DEE0B1642428EBE18A3A8 /* BPGuidedTour.m in Sources */,
+				EB9A85B2E9362CBB632C8822 /* BPSights.m in Sources */,
+				3F26CE69B6015E0CE8CC0710 /* BPSightsView.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -828,6 +844,7 @@
 				2E2794F725157A7ED52AB5F1 /* BPColorSchemeTests.m in Sources */,
 				FF18C551CEC1F4F2DFA6F3E1 /* BPTrackReaderTests.m in Sources */,
 				58B63D5F1EAE2477515FB81D /* BPFITBuilder.m in Sources */,
+				C9656E62681F019F1DC188AE /* BPSightsTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -854,6 +871,7 @@
 				BE0396B12081701BB5D98C8C /* RouteAnnotation.m in Sources */,
 				43ECACC673FCC213E27F73DF /* BikePlan.m in Sources */,
 				A2353570BBD0ED047788FDC3 /* BPEnvironment.m in Sources */,
+				D9C1BA8839B9031E4B702619 /* BPSights.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -29,6 +29,7 @@
 #import "TestFixtures.h"
 #import "BPFITBuilder.h"
 #import "BPGuidedTour.h"
+#import "BPSightsView.h"
 #import "BPRemarkableSites.h"
 #import "BPEnvironment.h"
 #import "BPColorScheme.h"
@@ -79,6 +80,7 @@
 @interface PlannerWindowController : NSWindowController
 @property (strong, nonatomic) id brfEditor;
 @property (strong, nonatomic, nullable) BPGuidedTour *guidedTour;
+@property (strong, nonatomic, nullable) BPSightsView *sightsView;
 - (void)startGuidedTour;
 + (void)showGuidedTourOnSampleWithCompletion:(nullable void (^)(PlannerWindowController * _Nullable controller))completion;
 @end
@@ -131,7 +133,8 @@
                           @"BPDisableTiles": @YES,
                           @"BPInitialRegion": @"44.05,0.55,0.2",
                           @"BPProfileOverrides": @{}, // not the owner's default BRouter parameters
-                          @"BPColorScheme": @"classic" }); // nor the owner's route colors (#71)
+                          @"BPColorScheme": @"classic", // nor the owner's route colors (#71)
+                          @"BPSightCategories": @[] }); // no sights (#81) unless a test asks for them
     doc = [[Document alloc] init];
     [self openWindow];
 }
@@ -441,6 +444,184 @@
     NSWindow *window = doc.windowControllers.firstObject.window;
     [window endSheet:window.attachedSheet returnCode:response];
     XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet == nil); }));
+}
+
+#pragma mark - sights near the route (#81)
+
+- (BPSightsView *)sightsView
+{
+    return ((PlannerWindowController *)doc.windowControllers.firstObject).sightsView;
+}
+
+- (void)toggleSightCategory:(NSString *)category
+{
+    for (NSMenuItem *item in [self sightsView].categoriesMenu.itemArray) {
+        if ([item.representedObject isEqual:category]) [NSApp sendAction:item.action to:item.target from:item];
+    }
+}
+
+- (nullable POILocation *)poiNamed:(NSString *)name
+{
+    for (POILocation *p in doc.plan.poiloc) if ([p.info[@"name"] isEqual:name]) return p;
+    return nil;
+}
+
+// Info section: the categories (undoable, the POIs fetched again), the sights along the route by km, included in
+// the track within the distance; a checkbox includes one; a click on its name shows it on the map
+- (void)testSightsInInfoSection
+{
+    BPSightsView *view = [self sightsView];
+    XCTAssertNotNil(view);
+    XCTAssertNotNil([self viewWithIdentifier:@"sightsSection" in:doc.windowControllers.firstObject.window.contentView]);
+    XCTAssertEqualObjects(view.categoriesMenu.itemArray.firstObject.title, @"None", @"no sights in the tests' defaults");
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    [um beginUndoGrouping];
+    [self toggleSightCategory:@"culture"];
+    [um endUndoGrouping];
+    XCTAssertEqualObjects(doc.plan.sightCategories, @[ @"culture" ]);
+    XCTAssertEqualObjects(um.undoActionName, @"change sights");
+    [um undo];
+    XCTAssertEqualObjects(doc.plan.sightCategories, @[]);
+    XCTAssertEqualObjects(view.categoriesMenu.itemArray.firstObject.title, @"None");
+    [um beginUndoGrouping];
+    [self toggleSightCategory:@"culture"];
+    [self toggleSightCategory:@"viewpoint"];
+    XCTAssertEqualObjects(view.categoriesMenu.itemArray.firstObject.title, @"Culture, Viewpoints");
+    [self makeRoute];
+    [um endUndoGrouping];
+    XCTAssertTrue(BPWaitUntil(10, ^{ return (BOOL)([self poiNamed:@"Belvédère"] != nil); }), @"sights fetched with the route");
+    XCTAssertNil([self poiNamed:@"Café du Pont"], @"food not selected");
+    XCTAssertTrue([[server requestsWithPath:@"/api/interpreter"].lastObject.body containsString:@"nwr(around:1000,"]);
+    POILocation *castle = [self poiNamed:@"Château de Test"], *viewpoint = [self poiNamed:@"Belvédère"];
+    XCTAssertEqual(castle.poiType, POI_culture);
+
+    // the list, by km; none included by default
+    NSArray *keys = [view.rows valueForKey:BPSightRowKey];
+    XCTAssertEqualObjects(keys, (@[ castle.poiKey, viewpoint.poiKey ]));
+    XCTAssertEqual(view.distanceMenu.selectedTag, 0, @"None by default");
+    XCTAssertEqualObjects(view.rows[0][BPSightRowIncluded], @NO);
+    XCTAssertEqual([view includeCheckboxForKey:castle.poiKey].state, NSControlStateValueOff);
+    XCTAssertEqual([view includeCheckboxForKey:viewpoint.poiKey].state, NSControlStateValueOff);
+    // within 100 m: the castle (~55 m) included, the viewpoint (~640 m) not
+    [um beginUndoGrouping];
+    [view.distanceMenu selectItemWithTag:100];
+    [NSApp sendAction:view.distanceMenu.action to:view.distanceMenu.target from:view.distanceMenu];
+    [um endUndoGrouping];
+    XCTAssertEqual([view includeCheckboxForKey:castle.poiKey].state, NSControlStateValueOn);
+    XCTAssertEqual([view includeCheckboxForKey:viewpoint.poiKey].state, NSControlStateValueOff);
+    XCTAssertEqualObjects(view.rows[0][BPSightRowIncluded], @YES);
+    XCTAssertEqualObjects(view.rows[1][BPSightRowIncluded], @NO);
+    XCTAssertEqualObjects(view.rows[0][BPSightRowName], @"Château de Test");
+    XCTAssertEqualObjects(view.rows[0][BPSightRowType], @"Culture");
+    XCTAssertEqual(view.distanceMenu.selectedTag, 100);
+    XCTAssertEqualObjects([view.distanceMenu.itemArray valueForKey:@"title"], (@[ @"None", @"100 m", @"500 m", @"2 km", @"5 km" ]));
+
+    // include the viewpoint with its checkbox, undoable
+    NSButton *check = [view includeCheckboxForKey:viewpoint.poiKey];
+    XCTAssertEqualObjects(check.accessibilityIdentifier, [@"sightInclude." stringByAppendingString:viewpoint.poiKey]);
+    XCTAssertEqual(check.state, NSControlStateValueOff);
+    [um beginUndoGrouping];
+    [check performClick:nil];
+    [um endUndoGrouping];
+    XCTAssertFalse([doc.plan isPOIExcluded:viewpoint]);
+    XCTAssertEqualObjects(view.rows[1][BPSightRowIncluded], @YES, @"the list follows");
+    XCTAssertEqualObjects(um.undoActionName, @"include POI");
+    NSString *gpx = [[NSString alloc] initWithData:[mc exportGpxDataWithPOI:YES trackName:@"t"] encoding:NSUTF8StringEncoding];
+    XCTAssertTrue([gpx containsString:@"Château de Test"]);
+    XCTAssertTrue([gpx containsString:@"Belvédère"]);
+    [um undo];
+    XCTAssertTrue([doc.plan isPOIExcluded:viewpoint]);
+    gpx = [[NSString alloc] initWithData:[mc exportGpxDataWithPOI:YES trackName:@"t"] encoding:NSUTF8StringEncoding];
+    XCTAssertFalse([gpx containsString:@"Belvédère"], @"not exported when not included");
+
+    // the distance: none
+    [um beginUndoGrouping];
+    [view.distanceMenu selectItemWithTag:0];
+    [NSApp sendAction:view.distanceMenu.action to:view.distanceMenu.target from:view.distanceMenu];
+    [um endUndoGrouping];
+    XCTAssertEqual(doc.plan.sightIncludeDistance, 0);
+    XCTAssertTrue([doc.plan isPOIExcluded:castle]);
+    XCTAssertEqualObjects(view.rows[0][BPSightRowIncluded], @NO);
+    XCTAssertEqual([view includeCheckboxForKey:castle.poiKey].state, NSControlStateValueOff);
+    [um undo];
+    XCTAssertEqual(doc.plan.sightIncludeDistance, 100);
+    XCTAssertEqual(view.distanceMenu.selectedTag, 100);
+
+    // a click on its row: the map centered and zoomed on the sight, its callout open
+    MKCoordinateRegion wide = map.region;
+    wide.span.latitudeDelta = 0.5; wide.span.longitudeDelta = 0.5;
+    [map setRegion:wide animated:NO];
+    [view selectRowWithKey:castle.poiKey];
+    BPSpin(0.3);
+    XCTAssertGreaterThan(map.region.span.latitudeDelta, 0.03, @"a progressive zoom (about 1 s), not a jump");
+    XCTAssertTrue(BPWaitUntil(3, ^{
+        id<MKAnnotation> a = self->map.selectedAnnotations.firstObject;
+        return (BOOL)([a isKindOfClass:[POIAnnotation class]] && [((POIAnnotation *)a).poiKey isEqualToString:castle.poiKey]);
+    }));
+    XCTAssertLessThanOrEqual(map.region.span.latitudeDelta, 0.03, @"zoomed in so that the sight is visible");
+    XCTAssertEqualWithAccuracy(map.centerCoordinate.latitude, castle.coordinate.latitude, 0.002);
+    BPSpin(0.5);
+
+    // removing a category: its sights go at once, without a new request
+    NSUInteger requests = [server requestsWithPath:@"/api/interpreter"].count;
+    [um beginUndoGrouping];
+    [self toggleSightCategory:@"viewpoint"];
+    [um endUndoGrouping];
+    XCTAssertNil([self poiNamed:@"Belvédère"], @"removed at once");
+    XCTAssertNotNil([self poiNamed:@"Château de Test"]);
+    XCTAssertEqualObjects([view.rows valueForKey:BPSightRowKey], @[ castle.poiKey ]);
+    for (POIAnnotation *a in [self annotationsOfClass:[POIAnnotation class]]) XCTAssertNotEqual(a.poiType, POI_viewpoint);
+    BPSpin(3.5);
+    XCTAssertEqual([server requestsWithPath:@"/api/interpreter"].count, requests, @"no fetch for a removal");
+    [um undo];
+    XCTAssertTrue(BPWaitUntil(10, ^{ return (BOOL)([self poiNamed:@"Belvédère"] != nil); }), @"undo: fetched again");
+    BPSpin(0.3);
+}
+
+// hundreds of sights: the list is a table (rows made when visible), set again only when it changes (#81: a grid of
+// every row took ~0.8 s at each POI refresh, the View POI switch was slow)
+- (void)testManySightsListIsFast
+{
+    NSMutableArray *rows = [NSMutableArray array];
+    for (int i = 0; i < 400; i++) {
+        [rows addObject:@{ BPSightRowKey: [NSString stringWithFormat:@"osm:%d", i], BPSightRowAlong: @(i * 300),
+                           BPSightRowOff: @(i % 900), BPSightRowName: @"Café", BPSightRowType: @"Food",
+                           BPSightRowIncluded: @(i % 2) }];
+    }
+    BPSightsView *view = [self sightsView];
+    NSDate *t0 = [NSDate date];
+    view.rows = rows;
+    [view.window layoutIfNeeded];
+    [view.window displayIfNeeded];
+    NSTimeInterval t = -[t0 timeIntervalSinceNow];
+    XCTAssertLessThan(t, 0.3, @"400 rows: %.2f s", t);
+    XCTAssertEqual(view.tableView.numberOfRows, 400);
+    // one vertical scroll: the table is in the scroll view of the Info section, as tall as its rows
+    NSScrollView *info = (NSScrollView *)[self viewWithIdentifier:@"infoSection" in:view.window.contentView];
+    XCTAssertEqual(view.tableView.enclosingScrollView, info, @"no scroll view of its own");
+    XCTAssertGreaterThanOrEqual(NSHeight(view.tableView.frame), NSMaxY([view.tableView rectOfRow:399]) - 1);
+    // as wide as the Info section (no large margin on the right)
+    CGFloat infoWidth = NSWidth(info.contentView.bounds);
+    XCTAssertGreaterThan(NSWidth(view.tableView.frame), infoWidth - 40, @"table %.0f, Info %.0f", NSWidth(view.tableView.frame), infoWidth);
+    t0 = [NSDate date];
+    for (int k = 0; k < 20; k++) view.rows = [rows copy];
+    t = -[t0 timeIntervalSinceNow];
+    XCTAssertLessThan(t, 0.1, @"unchanged rows: no reload (%.2f s)", t);
+}
+
+// the sights of a new document come from the Preferences; saved with the document
+- (void)testNewDocumentSightsFromPreferences
+{
+    doc.plan.fetchPOI = NO;
+    [doc close];
+    BPOverrideDefaults(@{ @"BPBRouterServer": server.baseURL.absoluteString, @"BPOverpassURL": server.overpassURL.absoluteString,
+                          @"BPDisableStreetView": @YES, @"BPDisableTiles": @YES, @"BPInitialRegion": @"44.05,0.55,0.2",
+                          @"BPProfileOverrides": @{}, @"BPColorScheme": @"classic", @"BPSightCategories": @[ @"nature", @"food" ] });
+    doc = [[Document alloc] init];
+    [self openWindow];
+    XCTAssertEqualObjects(doc.plan.sightCategories, (@[ @"nature", @"food" ]));
+    XCTAssertEqualObjects([self sightsView].categoriesMenu.itemArray.firstObject.title, @"Nature, Food and drink");
 }
 
 #pragma mark - guided tour (#63)

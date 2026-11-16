@@ -74,6 +74,16 @@ typedef NS_ENUM(int, BPClickMode) {
 - (void) highlightKind:(nullable NSString *)kind;
 
 
+/// called after the POIs are drawn again (refreshPOI): the Info section updates its list of sights (#81)
+@property (copy, nullable) void (^poisChangedHandler)(void);
+/// sights (#81), undoable: the categories (the POIs are fetched again), the inclusion distance (meters, 0: none)
+- (void) setSightCategories:(NSArray<NSString *> *)categories;
+- (void) setSightIncludeDistance:(NSInteger)meters;
+/// includes / excludes a POI in the track, undoable (#5; a sight, #81)
+- (void) setPOIKey:(NSString *)key excluded:(BOOL)excluded;
+/// centers the map on a POI and opens its callout (#81, list of the sights)
+- (void) showPOIWithKey:(NSString *)key;
+
 /// what a guided tour step points at (#63): "waypoint" (an intermediate waypoint pin, else the last one),
 /// "routeLine" (a point of the route, a third of the way), "waterPOI" (a visible drinking water POI); nil if none
 /// (no route, nothing visible). *rect: in the returned view's coordinates

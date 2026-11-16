@@ -261,6 +261,22 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   OVERLOOK, CAMPSITE, STORE, GENERIC (see `README.POI.GARMIN.txt`). The exported `<name>` is the POI name, else the type
   name. Right-click on a custom POI: *Edit POI…* (same sheet) and *Remove POI*. Add / edit / remove are undoable and
   mark the document as edited.
+- F7.8 **Sights near the route** (#81), in the Info section, saved with the document:
+  - *Sights:* a pull-down menu of checkable categories, fetched within 1 km of the route (with the utilities, when
+    Fetch POI is on; undoable; the sights of a removed category disappear at once, an added category is fetched): *Culture* (museums, attractions, castles, ruins,
+    archaeological sites, monuments, forts, manors — not war memorials), *Viewpoints*, *Churches and chapels* (places
+    of worship), *Nature* (waterfalls, peaks, cave entrances), *Food and drink* (restaurants, cafés, bars, pubs, ice
+    cream, bakeries), *Accommodation* (hotels, guest houses, hostels, campsites, chalets, huts), *Bike shops*. New
+    documents: the categories of the Preferences (F12.5); documents saved before #81: none.
+  - *Include within:* None (default: on a city route almost every café is within 100 m), 100 m, 500 m, 2 km or 5 km. Unlike the utilities (all included), a sight is included in
+    the track (GPX export) only when the route passes within that distance, or when the user checks it (its
+    *Include in track* checkbox in the callout or the list); the user's choice wins both ways, undoable.
+  - *Sights along the route*: a table as wide as the Info section and as tall as its rows (one vertical scroll: the
+    Info section's), one line per sight, by km along the route: km, name, type, distance from the route, *In track*
+    checkbox. A click on a line moves the map to the sight progressively (about 1 s), zooming in to ~2 km if the map
+    is farther out (markers are hidden when they collide), then opens its callout.
+  - Markers: their own symbol and color per type (columns, bell, mountain, bed, bicycle; binoculars, fork and knife);
+    excluded ones greyed. Exported with their OSM name and the Garmin type OVERLOOK (viewpoints), FOOD, else GENERIC.
 
 ### F8 — Reference GPX trace
 Both imports read GPX, TCX (Garmin Training Center XML) and FIT (Garmin binary format) files, activities or
@@ -287,7 +303,8 @@ changes nothing.
 - F9.1 A plan is a document of type `.bikeplan` (UTI `fr.free.daniel.braun.bikeplan`), saved with
   macOS autosave-in-place, versions, Revert, Open Recent.
 - F9.2 A document stores: waypoints, computed route points (with altitude), the reference GPX trace,
-  route length & ascent, riding time, fetched POIs, custom POIs.
+  route length & ascent, riding time, fetched POIs, custom POIs, POI exclusions / inclusions, the sight categories and
+  inclusion distance (#81).
 - F9.3 On open, the map zooms to the route (or to the user's location if there is no route).
 - F9.4 Quick Look (#70): the space bar in the Finder (and the Finder preview pane) shows a `.bikeplan` document or a
   `.gpx` file without opening it: its name, a summary (length, ascent, riding time, number of stages, POIs, "reference
@@ -320,9 +337,11 @@ changes nothing.
 - F12.2 **Default position** (F1.5): latitude / longitude fields, *Use Current Map Center* (map of the front document
   window), or *Find a place* (Apple place search: one result is used directly, several are proposed in a menu, none
   gives a message). **Initial radius** (km, default 80). **Start position** (F1.6): radio buttons.
-- F12.3 Stored in the user defaults (`BPDefaultPosition`, `BPInitialRadiusKm`, `BPStartPosition`, `BPColorScheme`, defaults registered at launch), so
+- F12.3 Stored in the user defaults (`BPDefaultPosition`, `BPInitialRadiusKm`, `BPStartPosition`, `BPColorScheme`, `BPSightCategories`, defaults registered at launch), so
   that launch-argument overrides (tests) still apply. Later candidates: BRouter server (#2), routing engine,
-  default profile (#1), POI types to fetch.
+  default profile (#1).
+- F12.5 **Sights of new documents** (#81): a pull-down menu of the sight categories (F7.8), Culture and Viewpoints by
+  default.
 - F12.4 **Route colors** (#71): a pop-up of color schemes (with a swatch), one for every map type, global (not saved
   in the document); a change redraws the open maps. Each scheme gives the alternating stage colors, the route
   opacity, the stage-end color (pin, profile marker), the reference trace color and the road type / surface highlight

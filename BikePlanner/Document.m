@@ -10,6 +10,7 @@
 #import "BikePlan.h"
 #import "MapController.h"
 #import "BRFProfileEditor.h"
+#import "BPPreferences.h"
 
 
 
@@ -24,6 +25,8 @@
     self = [super init];
     if (self) {
         self.plan = [[BikePlan alloc]init];
+        // the sights of new documents (Preferences, #81)
+        self.plan.sightCategories = [BPPreferences shared].defaultSightCategories;
         // a new document starts with my default BRouter parameters; readFromData: replaces the plan (#44)
         self.plan.profileOverrides = [BRFProfileEditor savedOverridesForProfile:self.plan.profileName
                                                                    userDefaults:[NSUserDefaults standardUserDefaults]];

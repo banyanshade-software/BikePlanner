@@ -52,6 +52,18 @@
     return poitype;
 }
 
+- (BOOL) isSight
+{
+    if (userAdded) return NO;
+    switch (poitype) {
+        case POI_culture: case POI_viewpoint: case POI_church: case POI_nature: case POI_food:
+        case POI_accommodation: case POI_bike_shop:
+            return YES;
+        default:
+            return NO;
+    }
+}
+
 + (NSArray<NSNumber *> *) customPoiTypes
 {
     return @[ @(POI_info), @(POI_warning), @(POI_drinking_water), @(POI_food), @(POI_toilets),
@@ -91,6 +103,11 @@
         case POI_info:                   return NSLocalizedString(@"Information", @"custom POI type");
         case POI_generic:                return NSLocalizedString(@"Other", @"custom POI type");
         case POI_cemetery:               return NSLocalizedString(@"Cemetery", @"custom POI type");
+        case POI_culture:                return NSLocalizedString(@"Culture", @"sight type");
+        case POI_church:                 return NSLocalizedString(@"Church", @"sight type");
+        case POI_nature:                 return NSLocalizedString(@"Nature", @"sight type");
+        case POI_accommodation:          return NSLocalizedString(@"Accommodation", @"sight type");
+        case POI_bike_shop:              return NSLocalizedString(@"Bike shop", @"sight type");
         case POI_unknown:                return NSLocalizedString(@"POI", @"custom POI type");
     }
     return NSLocalizedString(@"POI", @"custom POI type");
@@ -105,6 +122,10 @@
 - (NSString *) title
 {
     if (userAdded) return self.name ?: [POILocation displayNameForType:poitype]; // #3
+    if (self.isSight) {
+        NSString *n = info[@"name"];
+        return n.length ? n : [POILocation displayNameForType:poitype]; // #81
+    }
     switch (poitype) {
         default:
             return nil;
@@ -147,6 +168,11 @@
         case POI_store:                 return @"Shopping Center"; break;
         case POI_info:                  return @"Information"; break;
         case POI_generic:               return @"Flag, Blue"; break;
+        case POI_culture:               return @"Museum"; break;
+        case POI_church:                return @"Church"; break;
+        case POI_nature:                return @"Summit"; break;
+        case POI_accommodation:         return @"Lodging"; break;
+        case POI_bike_shop:             return @"Bike Trail"; break;
     }
 }
 - (NSString *) poiKey
@@ -175,6 +201,8 @@
         case POI_store:                 return @"STORE"; break;
         case POI_info:                  return @"INFO"; break;
         case POI_generic:               return @"GENERIC"; break;
+        case POI_culture: case POI_church: case POI_nature: case POI_accommodation: case POI_bike_shop:
+            return @"GENERIC"; // no Garmin course point type for them; the name tells (#81)
     }
 }
 /*

@@ -8,6 +8,7 @@
 #import "BikePlan.h"
 #import "GPXParser.h"
 #import "POILocation.h"
+#import "BPSights.h"
 #import "BPEnvironment.h"
  
 @interface NSArray (Insertion)
@@ -84,6 +85,8 @@ static CLLocation *BPPlainLocation(CLLocation *loc)
     NSTimeInterval tpoineed;
     NSTimeInterval tpoireq;
     NSUInteger poiRetryCount;   // consecutive failed Overpass requests (#12)
+    NSMutableDictionary<NSString *, NSArray<NSNumber *> *> *poiRoutePositions; // poiKey → [along, off] (#81)
+    NSArray<NSNumber *> *routeCumulative;   // distance from the start at each route point (#81)
 }
 
 - (instancetype)init
@@ -96,7 +99,10 @@ static CLLocation *BPPlainLocation(CLLocation *loc)
     self.customPoiloc = [[NSMutableArray alloc]initWithCapacity:5];
     self.profileOverrides = @{};
     self.excludedPOIKeys = nil;
-    
+    self.includedPOIKeys = nil;
+    _sightCategories = @[];
+    _sightIncludeDistance = 0; // none included automatically: the owner checks them (#81)
+
     return self;
 }
 
@@ -505,6 +511,8 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
 {
     _routePoints = routePoints;
     _routePoly = nil;
+    poiRoutePositions = nil;
+    routeCumulative = nil;
 }
 
 - (void) setExcludedPOIKeys:(NSSet<NSString *> *)keys
@@ -512,9 +520,27 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     _excludedPOIKeys = [keys copy] ?: [NSSet set];
 }
 
+- (void) setIncludedPOIKeys:(NSSet<NSString *> *)keys
+{
+    _includedPOIKeys = [keys copy] ?: [NSSet set];
+}
+
 - (BOOL) isPOIExcluded:(POILocation *)poi
 {
-    return [_excludedPOIKeys containsObject:poi.poiKey];
+    NSString *key = poi.poiKey;
+    if ([_excludedPOIKeys containsObject:key]) return YES;
+    if (!poi.isSight) return NO;
+    if ([_includedPOIKeys containsObject:key]) return NO;
+    double along = 0, off = 0;
+    if (_sightIncludeDistance <= 0 || ![self routePositionOfPOI:poi along:&along off:&off]) return YES;
+    return off > _sightIncludeDistance;
+}
+
+- (nullable POILocation *) poiWithKey:(NSString *)key
+{
+    for (POILocation *p in _poiloc) if ([p.poiKey isEqualToString:key]) return p;
+    for (POILocation *p in _customPoiloc) if ([p.poiKey isEqualToString:key]) return p;
+    return nil;
 }
 
 - (void) setPOI:(POILocation *)poi excluded:(BOOL)excluded
@@ -525,8 +551,91 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
 - (void) setPOIKey:(NSString *)key excluded:(BOOL)excluded
 {
     NSMutableSet *keys = [_excludedPOIKeys mutableCopy];
+    NSMutableSet *included = [_includedPOIKeys mutableCopy];
     if (excluded) [keys addObject:key]; else [keys removeObject:key];
+    // a sight: the choice is kept both ways, whatever its distance (#81)
+    if (!excluded && [self poiWithKey:key].isSight) [included addObject:key]; else [included removeObject:key];
     self.excludedPOIKeys = keys;
+    self.includedPOIKeys = included;
+}
+
+#pragma mark - sights (#81)
+
+- (void) setSightCategories:(NSArray<NSString *> *)categories
+{
+    NSArray *normalized = [BPSights normalizedCategories:categories];
+    if ([normalized isEqualToArray:_sightCategories]) return;
+    BOOL added = NO;
+    for (NSString *c in normalized) if (![_sightCategories containsObject:c]) added = YES;
+    _sightCategories = normalized;
+    // the sights of a removed category go at once; only a new category needs a request
+    NSMutableArray<POILocation *> *kept = [NSMutableArray arrayWithCapacity:_poiloc.count];
+    for (POILocation *p in _poiloc) {
+        if (!p.isSight || [normalized containsObject:[BPSights categoryOfType:p.poiType] ?: @""]) [kept addObject:p];
+    }
+    if (kept.count != _poiloc.count) self.poiloc = kept;
+    if (added && _routePoints.count >= 2) [self shouldRequestPOI];
+}
+
+- (BOOL) routePositionOfPOI:(POILocation *)poi along:(double *)along off:(double *)off
+{
+    NSUInteger n = _routePoints.count;
+    if (n < 2) return NO;
+    NSString *key = poi.poiKey;
+    NSArray<NSNumber *> *cached = poiRoutePositions[key];
+    if (!cached) {
+        if (!routeCumulative) {
+            NSMutableArray *cum = [NSMutableArray arrayWithCapacity:n];
+            double d = 0;
+            [cum addObject:@0];
+            for (NSUInteger i = 1; i < n; i++) {
+                d += [_routePoints[i] distanceFromLocation:_routePoints[i - 1]];
+                [cum addObject:@(d)];
+            }
+            routeCumulative = cum;
+        }
+        // nearest point of the route, in a local plane around the POI (equirectangular)
+        const double R = 6371000, rad = M_PI / 180;
+        CLLocationCoordinate2D c = poi.coordinate;
+        double kx = cos(c.latitude * rad) * R * rad, ky = R * rad;
+        double best = DBL_MAX, bestAlong = 0;
+        for (NSUInteger i = 0; i + 1 < n; i++) {
+            CLLocationCoordinate2D a = _routePoints[i].coordinate, b = _routePoints[i + 1].coordinate;
+            double ax = (a.longitude - c.longitude) * kx, ay = (a.latitude - c.latitude) * ky;
+            double bx = (b.longitude - c.longitude) * kx, by = (b.latitude - c.latitude) * ky;
+            double dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+            double t = len2 > 0 ? MAX(0, MIN(1, -(ax * dx + ay * dy) / len2)) : 0;
+            double px = ax + t * dx, py = ay + t * dy, dist = sqrt(px * px + py * py);
+            if (dist < best) {
+                best = dist;
+                double seg = routeCumulative[i + 1].doubleValue - routeCumulative[i].doubleValue;
+                bestAlong = routeCumulative[i].doubleValue + t * seg;
+            }
+        }
+        cached = @[ @(bestAlong), @(best) ];
+        if (!poiRoutePositions) poiRoutePositions = [NSMutableDictionary dictionary];
+        if (key) poiRoutePositions[key] = cached;
+    }
+    *along = cached[0].doubleValue;
+    *off = cached[1].doubleValue;
+    return YES;
+}
+
+- (NSArray<POILocation *> *) sightsAlongRoute
+{
+    NSMutableArray<POILocation *> *sights = [NSMutableArray array];
+    for (POILocation *p in _poiloc) if (p.isSight) [sights addObject:p];
+    if (_routePoints.count < 2) return sights;
+    NSMutableDictionary<NSString *, NSNumber *> *along = [NSMutableDictionary dictionary];
+    for (POILocation *p in sights) {
+        double a = 0, o = 0;
+        [self routePositionOfPOI:p along:&a off:&o];
+        along[p.poiKey] = @(a);
+    }
+    [sights sortUsingComparator:^NSComparisonResult(POILocation *x, POILocation *y) {
+        return [along[x.poiKey] compare:along[y.poiKey]];
+    }];
+    return sights;
 }
 
 - (nullable NSData *) exportableGPX
@@ -595,6 +704,9 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     [coder encodeObject:_profileOverrides forKey:@"profileOverrides"];
     [coder encodeObject:_routeGPX forKey:@"routeGPX"];
     [coder encodeObject:_excludedPOIKeys forKey:@"excludedPOIKeys"];
+    [coder encodeObject:_includedPOIKeys forKey:@"includedPOIKeys"];
+    [coder encodeObject:_sightCategories forKey:@"sightCategories"];
+    [coder encodeInteger:_sightIncludeDistance forKey:@"sightIncludeDistance"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)coder
@@ -619,6 +731,10 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     self.customPoiloc = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [POILocation class], nil]  forKey:@"customPoiloc"];
     self.routeGPX = [coder decodeObjectOfClass:[NSData class] forKey:@"routeGPX"];
     self.excludedPOIKeys = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSSet class], [NSString class], nil] forKey:@"excludedPOIKeys"];
+    self.includedPOIKeys = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSSet class], [NSString class], nil] forKey:@"includedPOIKeys"];
+    // documents before #81: no sights, none included automatically (ivars: no POI request while decoding)
+    _sightCategories = [BPSights normalizedCategories:[coder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [NSString class], nil] forKey:@"sightCategories"]];
+    _sightIncludeDistance = [coder containsValueForKey:@"sightIncludeDistance"] ? [coder decodeIntegerForKey:@"sightIncludeDistance"] : 0;
     self.profileOverrides = [coder decodeObjectOfClasses:[NSSet setWithObjects:[NSDictionary class], [NSString class], nil] forKey:@"profileOverrides"];
     if (!_customPoiloc) {
         self.customPoiloc = [[NSMutableArray alloc]initWithCapacity:5];
@@ -670,6 +786,10 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
         // amenity: drinking_water, toilets... (nodes)
         [query appendFormat:@"  node(around:%lu,%.6f,%.6f)[\"amenity\"~\"drinking_water|toilets|grave_yard|bicycle_repair_station\"];\n",
              (unsigned long)radiusMeters, coord.latitude, coord.longitude];
+        // sights of the selected categories, closer (#81)
+        NSString *sights = [BPSights overpassClauseForCategories:_sightCategories radius:BPSightsSearchRadius
+                                                        latitude:coord.latitude longitude:coord.longitude];
+        if (sights) [query appendString:sights];
         // landuse = cemetery (ways or areas, get center)
         [query appendFormat:@"  way(around:%lu,%.6f,%.6f)[\"landuse\"=\"cemetery\"];\n",
              (unsigned long)radiusMeters, coord.latitude, coord.longitude];
@@ -695,6 +815,39 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     NSLog(@"POI: retry %lu in %.1f s", (unsigned long)poiRetryCount, delay);
     [self performSelector:@selector(refetchPOIWithErr) withObject:nil afterDelay:delay
                   inModes:@[NSRunLoopCommonModes]];
+}
+
+// POIs of the elements of an Overpass answer: utilities (amenity of a node, landuse of a way), then sights of the
+// selected categories (#81: nodes, ways and relations, with their center); other elements are skipped
+- (NSArray<POILocation *> *) poisFromOverpassElements:(NSArray *)elements
+{
+    NSMutableArray<POILocation *> *pois = [[NSMutableArray alloc] initWithCapacity:elements.count];
+    for (NSDictionary *el in elements) {
+        if (![el isKindOfClass:[NSDictionary class]]) continue;
+        NSDictionary *tags = [el[@"tags"] isKindOfClass:[NSDictionary class]] ? el[@"tags"] : @{};
+        NSMutableDictionary *info = [tags mutableCopy];
+        if (el[@"id"]) info[@"id"] = el[@"id"];
+        NSString *t = el[@"type"];
+        double lat, lon;
+        PoiType_t type = POI_unknown;
+        if ([t isEqualToString:@"node"]) {
+            lat = [el[@"lat"] doubleValue];
+            lon = [el[@"lon"] doubleValue];
+            if (tags[@"amenity"]) type = [POILocation poiTypeForAmenity:tags[@"amenity"]];
+        } else if ([t isEqualToString:@"way"] || [t isEqualToString:@"relation"]) {
+            NSDictionary *center = el[@"center"];
+            if (![center isKindOfClass:[NSDictionary class]]) continue;
+            lat = [center[@"lat"] doubleValue];
+            lon = [center[@"lon"] doubleValue];
+            if ([t isEqualToString:@"way"] && tags[@"landuse"]) type = [POILocation poiTypeForAmenity:tags[@"landuse"]];
+        } else {
+            continue;
+        }
+        if (type == POI_unknown) type = [BPSights typeForTags:tags categories:_sightCategories category:NULL];
+        if (type == POI_unknown) continue;
+        [pois addObject:[[POILocation alloc] initWithLatitude:lat longitude:lon ofType:type info:info custom:NO]];
+    }
+    return pois;
 }
 
 - (void) fetchPOIsNearRoute:(NSArray<CLLocation *> *)coords
@@ -746,37 +899,7 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
                 NSLog(@"no poi1 remark %@", r);
             }
             {
-                NSMutableArray *tpoiarray = [[NSMutableArray alloc]initWithCapacity:16];
-                for (NSDictionary *el in elements) {
-                    NSString *poiid = el[@"id"];
-                    NSDictionary *tags = el[@"tags"];
-                    NSMutableDictionary *info2 = [tags mutableCopy];
-                    [info2 setObject:poiid forKey:@"id"];
-                    //NSDictionary *info = el[@"tags"];
-                    double lon = 0.;
-                    double lat = 0.;
-                    NSString *t = el[@"type"];
-                    NSString *poitypname = @"";
-                    if ((0)) {
-                    } else if ([t isEqualToString:@"node"]) {
-                        lat = [el[@"lat"] doubleValue];
-                        lon = [el[@"lon"] doubleValue];
-                        poitypname = tags[@"amenity"];
-                    } else if ([t isEqualToString:@"way"]) {
-                        NSDictionary *center = el[@"center"];
-                        lat = [center[@"lat"] doubleValue];
-                        lon = [center[@"lon"] doubleValue];
-                        poitypname = tags[@"landuse"];
-                    } else {
-                        NSLog(@"unknown type");
-                        continue;
-                    }
-                
-                    PoiType_t poit = [[POILocation class]poiTypeForAmenity:poitypname];
-                    CLLocation *loc = [[POILocation alloc]initWithLatitude:lat longitude:lon ofType:poit info:info2 custom:NO];
-                
-                    [tpoiarray addObject:loc];
-                }
+                NSArray<POILocation *> *tpoiarray = [self poisFromOverpassElements:[elements isKindOfClass:[NSArray class]] ? elements : @[]];
                 self.poiloc = tpoiarray;
             
                 //[self willChangeValueForKey:@"poiloc"];

@@ -22,6 +22,7 @@
 @property (strong) NSSearchField *searchField;
 @property (strong) NSTextField *messageLabel;
 @property (strong) NSPopUpButton *colorSchemePopUp;
+@property (strong) NSPopUpButton *sightCategoriesPopUp;
 - (void)positionChanged:(id)sender;
 - (void)radiusChanged:(id)sender;
 - (void)useMapCenter:(id)sender;
@@ -143,6 +144,29 @@ static MKMapItem *BPItem(NSString *name, double lat, double lon)
     [p selectItemAtIndex:3];
     [NSApp sendAction:p.action to:p.target from:p];
     XCTAssertEqualObjects(prefs.colorScheme.identifier, @"satellite", @"applied at once");
+}
+
+// sights of new documents (#81): Culture and Viewpoints by default
+- (void)testDefaultSightCategories
+{
+    XCTAssertEqualObjects(prefs.defaultSightCategories, (@[ @"culture", @"viewpoint" ]), @"default when unset");
+    prefs.defaultSightCategories = @[ @"food", @"bogus", @"church" ];
+    XCTAssertEqualObjects(prefs.defaultSightCategories, (@[ @"church", @"food" ]));
+    prefs.defaultSightCategories = @[];
+    XCTAssertEqualObjects(prefs.defaultSightCategories, @[], @"none is a choice");
+
+    prefs.defaultSightCategories = @[ @"culture" ];
+    [self window];
+    NSPopUpButton *p = wc.sightCategoriesPopUp;
+    XCTAssertEqualObjects(p.accessibilityIdentifier, @"prefSightCategories");
+    XCTAssertTrue(p.pullsDown);
+    XCTAssertEqualObjects(p.itemArray.firstObject.title, @"Culture", @"the summary as title");
+    NSMenuItem *nature = nil;
+    for (NSMenuItem *item in p.itemArray) if ([item.representedObject isEqual:@"nature"]) nature = item;
+    XCTAssertEqual(nature.state, NSControlStateValueOff);
+    [NSApp sendAction:nature.action to:nature.target from:nature];
+    XCTAssertEqualObjects(prefs.defaultSightCategories, (@[ @"culture", @"nature" ]), @"applied at once");
+    XCTAssertEqualObjects(p.itemArray.firstObject.title, @"Culture, Nature");
 }
 
 - (void)testStartPositionRadioButtons

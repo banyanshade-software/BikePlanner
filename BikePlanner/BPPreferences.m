@@ -4,10 +4,12 @@
 //
 
 #import "BPPreferences.h"
+#import "BPSights.h"
 
 NSString *const BPDefaultPositionKey = @"BPDefaultPosition";
 NSString *const BPInitialRadiusKmKey = @"BPInitialRadiusKm";
 NSString *const BPStartPositionKey = @"BPStartPosition";
+NSString *const BPSightCategoriesKey = @"BPSightCategories";
 
 static const CLLocationCoordinate2D kBPDefaultPosition = { 44.1249234, 0.4961707 }; // Laplume, as BPEnvironment
 static const double kBPDefaultRadiusKm = 80;
@@ -42,7 +44,8 @@ static const double kBPDefaultRadiusKm = 80;
     [[NSUserDefaults standardUserDefaults] registerDefaults:@{
         BPDefaultPositionKey: [self stringForPosition:kBPDefaultPosition],
         BPInitialRadiusKmKey: @(kBPDefaultRadiusKm),
-        BPStartPositionKey: @(BPStartPositionRemarkableSite) }];
+        BPStartPositionKey: @(BPStartPositionRemarkableSite),
+        BPSightCategoriesKey: @[ @"culture", @"viewpoint" ] }];
 }
 
 - (CLLocationCoordinate2D)defaultPosition
@@ -84,6 +87,18 @@ static const double kBPDefaultRadiusKm = 80;
 - (void)setStartPosition:(BPStartPosition)p
 {
     [ud setInteger:p forKey:BPStartPositionKey];
+}
+
+// sights of new documents (#81)
+- (NSArray<NSString *> *)defaultSightCategories
+{
+    id v = [ud objectForKey:BPSightCategoriesKey];
+    return [BPSights normalizedCategories:[v isKindOfClass:[NSArray class]] ? v : @[ @"culture", @"viewpoint" ]];
+}
+
+- (void)setDefaultSightCategories:(NSArray<NSString *> *)categories
+{
+    [ud setObject:[BPSights normalizedCategories:categories] forKey:BPSightCategoriesKey];
 }
 
 - (BPColorScheme *)colorScheme

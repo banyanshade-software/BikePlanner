@@ -7,12 +7,14 @@
 
 #import <Cocoa/Cocoa.h>
 
-@class BRFProfileEditor, BPGuidedTour;
+@class BRFProfileEditor, BPGuidedTour, BPSightsView;
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface PlannerWindowController : NSWindowController
 @property (strong, nonatomic) BRFProfileEditor *brfEditor;
+/// sights near the route, in the Info section (#81)
+@property (strong, nonatomic, nullable) BPSightsView *sightsView;
 /// the guided tour of this window (#63), created when first shown
 @property (strong, nonatomic, nullable) BPGuidedTour *guidedTour;
 

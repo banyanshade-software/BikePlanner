@@ -16,6 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 extern NSString *const BPDefaultPositionKey;   // "lat,lon"
 extern NSString *const BPInitialRadiusKmKey;   // km
 extern NSString *const BPStartPositionKey;     // BPStartPosition
+extern NSString *const BPSightCategoriesKey;   // array of BPSights categories (#81)
 
 @interface BPPreferences : NSObject
 
@@ -33,6 +34,8 @@ extern NSString *const BPStartPositionKey;     // BPStartPosition
 @property (nonatomic) BPStartPosition startPosition;
 /// colors of the route on the map (#71); setting a new one posts BPColorSchemeDidChangeNotification
 @property (nonatomic) BPColorScheme *colorScheme;
+/// sight categories of new documents (#81; default Culture, Viewpoints)
+@property (nonatomic, copy) NSArray<NSString *> *defaultSightCategories;
 
 @end
 

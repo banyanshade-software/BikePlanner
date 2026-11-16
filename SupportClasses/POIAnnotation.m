@@ -43,6 +43,12 @@
         case POI_store:     return [NSImage imageWithSystemSymbolName:@"cart" accessibilityDescription:nil];
         case POI_info:      return [NSImage imageWithSystemSymbolName:@"info" accessibilityDescription:nil];
         case POI_generic:   return [NSImage imageWithSystemSymbolName:@"mappin" accessibilityDescription:nil];
+        // sights (#81)
+        case POI_culture:   return [NSImage imageWithSystemSymbolName:@"building.columns" accessibilityDescription:nil];
+        case POI_church:    return [NSImage imageWithSystemSymbolName:@"bell" accessibilityDescription:nil];
+        case POI_nature:    return [NSImage imageWithSystemSymbolName:@"mountain.2" accessibilityDescription:nil];
+        case POI_accommodation: return [NSImage imageWithSystemSymbolName:@"bed.double" accessibilityDescription:nil];
+        case POI_bike_shop: return [NSImage imageWithSystemSymbolName:@"bicycle" accessibilityDescription:nil];
         case POI_unknown:   return nil;
     }
     return nil;
@@ -63,6 +69,12 @@
         case POI_store:                  return [NSColor systemPinkColor];
         case POI_info:                   return [NSColor systemIndigoColor];
         case POI_generic:                return [NSColor systemGrayColor];
+        // sights (#81)
+        case POI_culture:                return [NSColor systemRedColor];
+        case POI_church:                 return [NSColor systemMintColor];
+        case POI_nature:                 return [NSColor colorWithSRGBRed:0.18 green:0.5 blue:0.2 alpha:1];
+        case POI_accommodation:          return [NSColor systemCyanColor];
+        case POI_bike_shop:              return [NSColor systemYellowColor];
         case POI_unknown:                return nil;
     }
     return nil;

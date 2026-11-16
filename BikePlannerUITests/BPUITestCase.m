@@ -30,6 +30,7 @@
         // not the owner's default BRouter parameters (Params tab ▸ My defaults): a new document starts without
         // overrides, as on a fresh install
         @"-BPProfileOverrides", @"{}",
+        @"-BPSightCategories", @"()", // no sights (#81): the stub's POIs only
     ] mutableCopy];
     [args addObjectsFromArray:[self extraLaunchArguments]];
     self.app.launchArguments = args;

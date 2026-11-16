@@ -71,6 +71,10 @@ SupportClasses/              Reusable/support components
                              road / surface class along the route (runs of points, #54)
   BPRoadTypesView.*          Info section distance by road type and surface, one radio button per class; reports
                              the selected one (#54, #66)
+  BPSights.*                 Sights near the route (#81): categories, their OSM tags, the Overpass clause (one
+                             key/value regex per sampled point, 1 km), classification; no UI (also in Quick Look)
+  BPSightsView.*             Info section: sight categories, inclusion distance, list of the sights by km (#81);
+                             PlannerWindowController applies the changes through MapController (undoable)
   BPPlaceSearch.*            Apple place search (MKLocalSearch), shared by the search field and the Preferences
   BPPOIEditor.*              Sheet asking the type and name of a custom POI (#3)
   BRFProfileEditor.*         Downloads a .brf profile, parses its annotated parameters, builds the Params tab UI;
@@ -413,6 +417,7 @@ Each item is tracked as a GitHub issue.
 | 27 | M ✅ fixed | `AppDelegate.m` | Sometimes no window when the app was launched or reactivated: a new untitled document was opened only if `NSApp.windows` was empty, but the app keeps other windows (closed About / Preferences windows stay in the list). The decision now depends on the open documents (`testUntitledDocumentWhenNoDocumentIsOpen`). | [#46](https://github.com/banyanshade-software/BikePlanner/issues/46) |
 | 28 | H ✅ mitigated | `Document.m` | *File ▸ Print…* (⌘P) crashed the app: `NSDocument` raises `NSInternalInconsistencyException` when `printOperationWithSettings:error:` is not overridden. Printing is not implemented: *Print…*, *Page Setup…* and the Print toolbar button are disabled (`validateMenuItem:` / `validateUserInterfaceItem:`), `printDocument:` / `runPageLayout:` do nothing and `printOperationWithSettings:error:` returns an error (`testPrintDisabled`). A real print is still to do. | [#59](https://github.com/banyanshade-software/BikePlanner/issues/59) |
 | 29 | M ✅ fixed | `MapController.m`, `POICalloutView.m` | Regression of #72: opening a route with many POIs was slow (≈ 5 s for 300 POIs on a 5,000-point route) — the POI callout was built (≈ 6 ms) and filled for every POI marker, with the position on the route computed over all route points each time. The callout content is now built and filled when it opens (`testManyPOIViewsAreFast`: 0.03 s). | [#78](https://github.com/banyanshade-software/BikePlanner/issues/78) |
+| 30 | M ✅ fixed | `BPSightsView.m` | Found while testing #81: the list of the sights was an `NSGridView` rebuilt at every POI refresh (≈ 0.8 s for 300 sights, plus ≈ 2 s of layout): the *View POI* switch took seconds, and rows removed after a category change stayed drawn (overlap). Now an `NSTableView` (cells for the visible rows), reloaded only when the rows change: 0.06 s for 670 POIs (`testManySightsListIsFast`). | [#81](https://github.com/banyanshade-software/BikePlanner/issues/81) |
 
 ### Design / maintainability
 - **`MapController` is a god object**: map setup, UI controls built in code, hit testing, geometry, routing,

@@ -27,6 +27,7 @@
 #import "BPRemarkableSites.h"
 #import "BPColorScheme.h"
 #import "BikeMapView.h"
+#import "BPSights.h"
 
 // Secret.h is not commited, see Secret.h.example
 
@@ -1086,6 +1087,7 @@ static const double kBPSiteRadiusKm = 15;
     for (POILocation *loc in _document.plan.customPoiloc) {
         [self addAnnotationViewForPoi:loc];
     }
+    if (self.poisChangedHandler) self.poisChangedHandler();
     if (!_viewPOI) return;
     for (POILocation *loc in _document.plan.poiloc) {
         [self addAnnotationViewForPoi:loc];
@@ -2331,14 +2333,86 @@ static const BOOL useMarker = NO;
 - (void)setPOIKey:(NSString *)key excluded:(BOOL)excluded
 {
     BikePlan *plan = _document.plan;
-    if ([plan.excludedPOIKeys containsObject:key] == excluded) return;
+    POILocation *poi = [plan poiWithKey:key];
+    BOOL current = poi ? [plan isPOIExcluded:poi] : [plan.excludedPOIKeys containsObject:key];
+    if (current == excluded) return;
+    // undo restores the user's choices as they were (a sight may have had none: included by its distance, #81)
+    NSSet *oldExcluded = plan.excludedPOIKeys, *oldIncluded = plan.includedPOIKeys;
     NSUndoManager *um = _document.undoManager;
     [um registerUndoWithTarget:self handler:^(MapController *target) {
-        [target setPOIKey:key excluded:!excluded];
+        [target restoreExcludedPOIKeys:oldExcluded included:oldIncluded];
     }];
     [um setActionName:excluded ? NSLocalizedString(@"exclude POI", @"undo action") : NSLocalizedString(@"include POI", @"undo action")];
     [plan setPOIKey:key excluded:excluded];
     [self refreshPOI];
+}
+
+- (void)restoreExcludedPOIKeys:(NSSet<NSString *> *)excluded included:(NSSet<NSString *> *)included
+{
+    BikePlan *plan = _document.plan;
+    NSSet *oldExcluded = plan.excludedPOIKeys, *oldIncluded = plan.includedPOIKeys;
+    [_document.undoManager registerUndoWithTarget:self handler:^(MapController *target) {
+        [target restoreExcludedPOIKeys:oldExcluded included:oldIncluded];
+    }];
+    plan.excludedPOIKeys = excluded;
+    plan.includedPOIKeys = included;
+    [self refreshPOI];
+}
+
+#pragma mark - sights (#81)
+
+- (void) setSightCategories:(NSArray<NSString *> *)categories
+{
+    BikePlan *plan = _document.plan;
+    NSArray *old = plan.sightCategories;
+    if ([[BPSights normalizedCategories:categories] isEqualToArray:old]) return;
+    NSUndoManager *um = _document.undoManager;
+    [um registerUndoWithTarget:self handler:^(MapController *target) {
+        [target setSightCategories:old];
+    }];
+    [um setActionName:NSLocalizedString(@"change sights", @"undo action")];
+    plan.sightCategories = categories; // removed: gone at once; added: fetched (refreshPOI when they come)
+    [self refreshPOI];
+}
+
+- (void) setSightIncludeDistance:(NSInteger)meters
+{
+    BikePlan *plan = _document.plan;
+    NSInteger old = plan.sightIncludeDistance;
+    if (old == meters) return;
+    NSUndoManager *um = _document.undoManager;
+    [um registerUndoWithTarget:self handler:^(MapController *target) {
+        [target setSightIncludeDistance:old];
+    }];
+    [um setActionName:NSLocalizedString(@"change sight distance", @"undo action")];
+    plan.sightIncludeDistance = meters;
+    [self refreshPOI];
+}
+
+- (void) showPOIWithKey:(NSString *)key
+{
+    for (id<MKAnnotation> a in self.mapView.annotations) {
+        if (![a isKindOfClass:[POIAnnotation class]] || ![((POIAnnotation *)a).poiKey isEqualToString:key]) continue;
+        // centered, and zoomed in when far out (markers are hidden when they collide at a low zoom)
+        MKCoordinateRegion r = self.mapView.region;
+        const CLLocationDegrees span = 0.02; // ~2 km
+        if (r.span.latitudeDelta > span) {
+            double ratio = r.span.longitudeDelta / r.span.latitudeDelta;
+            r.span = MKCoordinateSpanMake(span, span * ratio);
+        }
+        r.center = a.coordinate;
+        for (id<MKAnnotation> s in [self.mapView.selectedAnnotations copy]) [self.mapView deselectAnnotation:s animated:NO];
+        // a progressive move and zoom (about 1 s), then the callout
+        __weak MKMapView *map = self.mapView;
+        [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+            context.duration = 1.0;
+            context.allowsImplicitAnimation = YES;
+            [map setRegion:[map regionThatFits:r] animated:YES];
+        } completionHandler:^{
+            [map selectAnnotation:a animated:YES];
+        }];
+        return;
+    }
 }
 
 

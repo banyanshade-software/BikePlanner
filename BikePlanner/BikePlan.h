@@ -138,9 +138,24 @@ extern NSString *const BPRoadTypePercentKey;   // "50 %"
 
 // POIs excluded by the user (POI callout, #5): shown greyed, not exported; saved with the document
 @property (copy,nonatomic,null_resettable) NSSet<NSString *> *excludedPOIKeys;
+// sights included by the user (#81: a sight farther from the route than sightIncludeDistance is excluded otherwise)
+@property (copy,nonatomic,null_resettable) NSSet<NSString *> *includedPOIKeys;
+/// utilities (water, toilets…): excluded only by the user; sights (#81): included by the user, or within
+/// sightIncludeDistance of the route unless excluded by the user
 - (BOOL) isPOIExcluded:(POILocation *)poi;
 - (void) setPOI:(POILocation *)poi excluded:(BOOL)excluded;
+/// records the user's choice (a sight: in includedPOIKeys or excludedPOIKeys; a utility: excludedPOIKeys)
 - (void) setPOIKey:(NSString *)key excluded:(BOOL)excluded;
+- (nullable POILocation *) poiWithKey:(NSString *)key;
+
+// sights near the route (#81), saved with the document: categories (BPSights; normalized; a change fetches the POIs
+// again), and the distance under which a sight is included in the track (meters; 0: none, the default)
+@property (copy,nonatomic,null_resettable) NSArray<NSString *> *sightCategories;
+@property (nonatomic) NSInteger sightIncludeDistance;
+/// km along the route (meters) and distance from it of a POI; NO without route. Cached until the route or the POIs change
+- (BOOL) routePositionOfPOI:(POILocation *)poi along:(double *)along off:(double *)off;
+/// the fetched sights, ordered by distance along the route
+- (NSArray<POILocation *> *) sightsAlongRoute;
 @end
 
 NS_ASSUME_NONNULL_END

@@ -4,6 +4,7 @@
 //
 
 #import "BPPreferencesWindowController.h"
+#import "BPSightsView.h"
 #import "BPPlaceSearch.h"
 #import "Document.h"
 #import "MapController.h"
@@ -17,6 +18,7 @@
 @property (strong) NSSearchField *searchField;
 @property (strong) NSTextField *messageLabel;
 @property (strong) NSPopUpButton *colorSchemePopUp; // #71
+@property (strong) NSPopUpButton *sightCategoriesPopUp; // #81
 @property (strong, nullable) NSMenu *resultsMenu;
 @end
 
@@ -134,6 +136,12 @@
     self.colorSchemePopUp.toolTip = NSLocalizedString(@"Colors of the stages, of the reference trace and of the highlighted road types",
                                                       @"Preferences");
 
+    // sights of new documents (#81)
+    self.sightCategoriesPopUp = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:YES];
+    self.sightCategoriesPopUp.accessibilityIdentifier = @"prefSightCategories";
+    self.sightCategoriesPopUp.toolTip = NSLocalizedString(@"Points of interest looked for along the route of a new document (Info section of the document)",
+                                                          @"Preferences");
+
     NSStackView *position = [NSStackView stackViewWithViews:@[ self.latitudeField, self.longitudeField ]];
     NSStackView *radius = [NSStackView stackViewWithViews:@[ self.radiusField,
                                                              [NSTextField labelWithString:NSLocalizedString(@"km", @"Preferences")] ]];
@@ -145,6 +153,7 @@
         @[ [NSGridCell emptyContentView], self.messageLabel ],
         @[ [self label:NSLocalizedString(@"Initial radius:", @"Preferences")], radius ],
         @[ [self label:NSLocalizedString(@"Route colors:", @"Preferences")], self.colorSchemePopUp ],
+        @[ [self label:NSLocalizedString(@"Sights of new documents:", @"Preferences")], self.sightCategoriesPopUp ],
     ]];
     grid.rowSpacing = 10;
     grid.columnSpacing = 8;
@@ -160,6 +169,7 @@
         [grid.bottomAnchor constraintLessThanOrEqualToAnchor:content.bottomAnchor constant:-20],
         [self.searchField.widthAnchor constraintEqualToConstant:228],
         [self.messageLabel.widthAnchor constraintEqualToConstant:228],
+        [self.sightCategoriesPopUp.widthAnchor constraintEqualToConstant:228],
     ]];
 }
 
@@ -173,6 +183,17 @@
         b.state = (b.tag == self.preferences.startPosition) ? NSControlStateValueOn : NSControlStateValueOff;
     }
     [self.colorSchemePopUp selectItemAtIndex:[self.colorSchemePopUp indexOfItemWithRepresentedObject:self.preferences.colorScheme.identifier]];
+    [BPSightsView fillCategoriesMenu:self.sightCategoriesPopUp categories:self.preferences.defaultSightCategories
+                              target:self action:@selector(toggleSightCategory:)];
+}
+
+- (void)toggleSightCategory:(NSMenuItem *)item
+{
+    NSMutableArray *cats = [self.preferences.defaultSightCategories mutableCopy];
+    NSString *c = item.representedObject;
+    if ([cats containsObject:c]) [cats removeObject:c]; else [cats addObject:c];
+    self.preferences.defaultSightCategories = cats;
+    [self refreshFields];
 }
 
 - (void)showMessage:(NSString *)message

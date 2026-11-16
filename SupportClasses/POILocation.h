@@ -24,6 +24,12 @@ typedef NS_ENUM(int, PoiType_t) {
     POI_store,
     POI_info,
     POI_generic,
+    // sights near the route (#81; also POI_viewpoint, POI_food): fetched only, not custom types
+    POI_culture,
+    POI_church,
+    POI_nature,
+    POI_accommodation,
+    POI_bike_shop,
 };
 
 @interface POILocation : CLLocation <NSSecureCoding> {
@@ -34,6 +40,8 @@ typedef NS_ENUM(int, PoiType_t) {
     BOOL userAdded;
 }
 @property (nonatomic,readonly) PoiType_t poiType;
+/// a fetched POI of a sight category (#81): culture, viewpoint, church, nature, food, accommodation, bike shop
+@property (nonatomic,readonly) BOOL isSight;
 @property (nonatomic,readonly,nullable) NSString *title;     // custom POI: its name, else its type name
 @property (nonatomic,readonly,nullable) NSString *name;      // custom POI: name given by the user (#3), nil if none
 @property (nonatomic,readonly) NSDictionary *info;

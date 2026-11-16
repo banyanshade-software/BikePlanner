@@ -112,7 +112,8 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
 - **Everything runs offline.** External services are replaced by `BPStubServer` (in `BikePlannerTests/`, compiled
   into both test targets), which imitates BRouter (routes in GeoJSON — the app requests `format=geojson` since #53 —
   or GPX, `.brf` profiles; GeoJSON way tags: first half tertiary/asphalt, second half track/gravel), Overpass (3 POIs
-  ~1 km from the first `around` point) and the Maps Embed API (HTTP 403 for a key starting with `invalid`, like Google
+  ~1 km from the first `around` point; with sights, #81, when the query has an `nwr(around:` clause: a castle way
+  ~55 m north, a viewpoint ~640 m east, a cafe ~300 m south) and the Maps Embed API (HTTP 403 for a key starting with `invalid`, like Google
   for a rejected key). It records every request (path, query, body, `referer`, `userAgent`) — use the request log as
   the oracle. Failures: `failCount` / `failStatus` / `failRetryAfter`; slow answers: `responseDelay` (read when the
   request starts). `+geojsonForLonLats:` / `+gpxForLonLats:` give the route the stub returns.
@@ -151,7 +152,8 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
   road type or a surface highlights it on the map, #54), `poiType`/`poiName` (custom POI
   sheet), map context menu items (#80, `NSMenuItem.identifier`, from `-[MapController contextMenuForMapPoint:]`):
   `mapAddPOI`/`mapInsertWaypoint`/`mapStreetView`/`mapCopyCoordinates`, `poiPosition`/`poiTags`/`poiAllTagsToggle`/`poiAllTags`/`poiOpenOSM`/`poiStreetView`/`poiCopy`/`poiInclude`/`poiEdit`
-  (POI callout, #72), guided tour (#63): anchors `infoSection`/`elevationProfile`/`sideTabs`, bubble `tourTitle`/`tourText`/`tourPrevious`/`tourEnd`/`tourNext`;
+  (POI callout, #72), sights (#81): `sightsSection`, `sightCategories` (pull-down, items `sightCategory.<category>`),
+  `sightIncludeDistance`, `sightsList` (an `NSTableView` in the Info scroll view: `-[BPSightsView includeCheckboxForKey:]`, `selectRowWithKey:`), checkboxes `sightInclude.<poiKey>`, `prefSightCategories`; guided tour (#63): anchors `infoSection`/`elevationProfile`/`sideTabs`, bubble `tourTitle`/`tourText`/`tourPrevious`/`tourEnd`/`tourNext`;
   `prefLatitude`/`prefLongitude`/`prefRadius`/`prefSearch`/`prefColorScheme` (Preferences), `routeLength`/`routeAscent`/`routeTime`/`routeSpeed` in the XIB — on the cell: unit tests find them with
   `-[DocumentWindowTests panelControlWithIdentifier:]`). POI markers and callouts are not exposed to accessibility:
   check POI behavior through its effects (stub requests, undo menu items). Files exchanged with the app go in

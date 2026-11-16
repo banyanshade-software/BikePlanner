@@ -12,6 +12,9 @@
 #import "BikePlan.h"
 #import "BPRoadTypesView.h"
 #import "BPGuidedTour.h"
+#import "BPSightsView.h"
+#import "BPSights.h"
+#import "POILocation.h"
 #import "BPEnvironment.h"
 
 @interface PlannerWindowController ()
@@ -79,6 +82,19 @@
         [weakDoc.mapController highlightKind:kind];
     };
     [stack addArrangedSubview:roads];
+    // sights near the route (#81)
+    BPSightsView *sights = [[BPSightsView alloc] init];
+    sights.accessibilityIdentifier = @"sightsSection";
+    self.sightsView = sights;
+    __weak MapController *mc = d.mapController;
+    sights.categoriesHandler = ^(NSArray<NSString *> *categories) { [mc setSightCategories:categories]; };
+    sights.includeDistanceHandler = ^(NSInteger meters) { [mc setSightIncludeDistance:meters]; };
+    sights.inclusionHandler = ^(NSString *key, BOOL included) { [mc setPOIKey:key excluded:!included]; };
+    sights.selectionHandler = ^(NSString *key) { [mc showPOIWithKey:key]; };
+    __weak PlannerWindowController *weakSelf = self;
+    d.mapController.poisChangedHandler = ^{ [weakSelf updateSightsView]; };
+    [stack addArrangedSubview:sights];
+    [stack setCustomSpacing:16 afterView:roads];
     [stack setCustomSpacing:2 afterView:stack.arrangedSubviews.firstObject];
     [doc addSubview:stack];
     scroll.documentView = doc;
@@ -97,7 +113,10 @@
         [stack.bottomAnchor constraintEqualToAnchor:doc.bottomAnchor constant:-8],
         [roads.leadingAnchor constraintEqualToAnchor:stack.leadingAnchor constant:12],
         [roads.widthAnchor constraintEqualToConstant:240],
+        [sights.leadingAnchor constraintEqualToAnchor:stack.leadingAnchor constant:12],
+        [sights.trailingAnchor constraintEqualToAnchor:doc.trailingAnchor constant:-12], // the table takes the width
     ]];
+    [self updateSightsView];
 }
 
 // tooltips of the controls of Document.xib (#63), set here so that the XIB is unchanged
@@ -252,6 +271,26 @@
 - (void)planReplaced
 {
     _brfEditor.appliedOverrides = ((Document *)self.document).plan.profileOverrides;
+    [self updateSightsView];
+}
+
+// the settings and the list of the sights from the plan (#81)
+- (void)updateSightsView
+{
+    BikePlan *plan = ((Document *)self.document).plan;
+    BPSightsView *view = self.sightsView;
+    if (!view || !plan) return;
+    view.categories = plan.sightCategories;
+    view.includeDistance = plan.sightIncludeDistance;
+    NSMutableArray *rows = [NSMutableArray array];
+    for (POILocation *p in [plan sightsAlongRoute]) {
+        double along = 0, off = 0;
+        [plan routePositionOfPOI:p along:&along off:&off];
+        [rows addObject:@{ BPSightRowKey: p.poiKey, BPSightRowAlong: @(along), BPSightRowOff: @(off),
+                           BPSightRowName: p.title ?: @"", BPSightRowType: [POILocation displayNameForType:p.poiType],
+                           BPSightRowIncluded: @(![plan isPOIExcluded:p]) }];
+    }
+    view.rows = rows;
 }
 
 @end
