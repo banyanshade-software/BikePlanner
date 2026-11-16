@@ -9,6 +9,12 @@
 
 @implementation BikeMapView
 
+- (nullable NSMenu *)menuForEvent:(NSEvent *)event
+{
+    NSMenu *menu = [self.menuProvider contextMenuForMapPoint:[self convertPoint:event.locationInWindow fromView:nil]];
+    return menu ?: [super menuForEvent:event];
+}
+
 /*- (NSView *)hitTest:(NSPoint)point
 {
     NSView *hit = [super hitTest:point];

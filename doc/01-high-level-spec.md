@@ -75,7 +75,7 @@ disabled, #59). Layout:
 |                                            |--------------------------------|
 |  overlay controls (bottom-left):           | Tabs: [Street View] [Params]   |
 |   [zoom-][zoom+] [my location]             |   Street View (web view) or    |
-|   [Edit|Add interm.|Add POI|View] + help   |   BRouter profile parameters   |
+|   [Edit|Add interm.|View] + help           |   BRouter profile parameters   |
 |   [OSM|OSM+cycle|Apple|Sat+Rd|Sat]         |                                |
 +--------------------------------------------+--------------------------------+
 |                     ELEVATION PROFILE                                       |
@@ -119,20 +119,25 @@ parameters (Params tab) on the length, time and speed of the route is seen (#43)
   app is rebuilt.
 
 ### F2 — Click modes
-The map has four click modes, selectable with the segmented control or the *Edit ▸ Mode* menu items
-(⌘1 Edit, ⌘2 Add interm., ⌘3 Add POI, ⌘4 View; the current mode is checked). On a non-QWERTY layout macOS
+The map has three click modes, selectable with the segmented control or the *Edit ▸ Mode* menu items
+(⌘1 Edit, ⌘2 Add interm., ⌘3 View; the current mode is checked; Add POI was a fourth mode until #80, see F2.1). On a non-QWERTY layout macOS
 adapts the shortcut to the key carrying the digit (e.g. ⌘& on AZERTY, i.e. ⌘ + the “1” key without Shift):
 
 | Mode | Click on the map | Click near the route |
 |---|---|---|
 | **Edit** (0, new document) | Appends a waypoint (first = start, then destinations) | (≤16 px) inserts an intermediate waypoint |
 | **Add interm.** (1) | — | (≤50 px) inserts an intermediate waypoint |
-| **Add POI** (2) | — | (≤50 px) adds a custom “warning” POI on the route |
-| **View** (3, opened document) | — | (≤40 px) moves the scrubber there, centers the map, updates Street View and the elevation profile cursor |
+| **View** (2, opened document) | — | (≤40 px) moves the scrubber there, centers the map, updates Street View and the elevation profile cursor |
 
 A new document starts in Edit mode, to place the start; an opened document starts in View mode, so that a click
 does not change its route by mistake.
 In every mode, a click within ~30–36 px of a POI selects that POI and shows its callout instead.
+- F2.1 Right-click (or ctrl-click) on the map, in every mode (#80): a context menu with *Add POI…* (F7.6), *Insert
+  Waypoint Here* (only on the route line, ≤12 px whatever the zoom, also in View mode: as a click in Add interm. mode), *Street View
+  Here* (near the route: on the route, looking along it, with the profile cursor; elsewhere: at the point) and *Copy
+  Coordinates* (“lat, lon”, as the POI callout). Near the route (≤50 px) the point snaps to the route. A right-click
+  on a waypoint or a custom POI shows its own menu instead.
+
 A help text next to the control explains the current mode. The map type and click mode controls, the help text and
 the zoom / location buttons sit on a translucent blurred backdrop, so they stay readable on any map content while the map remains visible.
 
@@ -248,8 +253,9 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   that one). An excluded (unchecked) POI stays
   on the map, greyed, and is **not exported** to GPX (fetched and custom POIs). Exclusions are saved with the
   document (by OSM id + position, since fetched POIs are re-created at each route change) and undoable (#5).
-- F7.6 In *Add POI* mode, a click on the route opens a sheet asking the **type** and an optional **name** of the
-  custom POI; Cancel adds nothing (#3).
+- F7.6 *Add POI…* in the map context menu (F2.1, #80; before, an *Add POI* click mode) opens a sheet asking the
+  **type** and an optional **name** of the custom POI; Cancel adds nothing (#3). The POI goes on the route when the
+  right-click is near it (≤50 px), else exactly where the click was.
 - F7.7 Custom POI types: Information (default, #74), Danger, Water, Food, Toilets, Bike repair, Shelter, Viewpoint,
   Campsite, Store, Other — exported with the Garmin `<type>` INFO, DANGER, WATER, FOOD, TOILET, SERVICE, SHELTER,
   OVERLOOK, CAMPSITE, STORE, GENERIC (see `README.POI.GARMIN.txt`). The exported `<name>` is the POI name, else the type

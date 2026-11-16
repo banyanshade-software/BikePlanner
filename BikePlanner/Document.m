@@ -182,10 +182,6 @@
 }
 
 
-- (IBAction) setClickModeToAddPoi:(id)sender
-{
-    [_mapController setClickModeToAddPoi:sender];
-}
 
 
 - (IBAction) importGPXTraceForDisplay:(id)sender
@@ -262,7 +258,6 @@
     // Edit ▸ Mode items: check the current mode
     NSDictionary<NSString *, NSNumber *> *modes = @{ @"setClickModeToEdit:": @(BPClickModeEdit),
                                                      @"setClickModeToInterm:": @(BPClickModeInterm),
-                                                     @"setClickModeToAddPoi:": @(BPClickModeAddPOI),
                                                      @"setClickModeToView:": @(BPClickModeView) };
     NSNumber *mode = modes[NSStringFromSelector(item.action)];
     if (mode != nil) {

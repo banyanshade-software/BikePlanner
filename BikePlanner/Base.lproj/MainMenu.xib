@@ -181,12 +181,7 @@
                                     <action selector="setClickModeToInterm:" target="-1" id="Uma-Rw-scd"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Mode: Add POI" keyEquivalent="3" id="cBR-92-xUs">
-                                <connections>
-                                    <action selector="setClickModeToAddPoi:" target="-1" id="4k6-sh-ock"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Mode: View/Drag" keyEquivalent="4" id="nxb-FB-hnT">
+                            <menuItem title="Mode: View/Drag" keyEquivalent="3" id="nxb-FB-hnT">
                                 <connections>
                                     <action selector="setClickModeToView:" target="-1" id="5zb-jr-ozD"/>
                                 </connections>

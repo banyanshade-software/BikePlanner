@@ -121,8 +121,8 @@ static CGFloat BPBrightness(NSColor *c, NSAppearance *appearance)
     XCTAssertTrue(NSContainsRect(helpBg.frame, help.frame));
     [mc setClickModeToEdit:self];
     CGFloat longWidth = helpBg.frame.size.width;   // "Click on map to add start and end waypoints"
-    [mc setClickModeToAddPoi:self];
-    XCTAssertLessThan(helpBg.frame.size.width, longWidth - 50, @"backdrop follows the text width"); // "Add POI"
+    [mc setClickModeToView:self];
+    XCTAssertLessThan(helpBg.frame.size.width, longWidth - 50, @"backdrop follows the text width"); // "Drag waypoints"
     XCTAssertTrue(NSContainsRect(helpBg.frame, help.frame));
     XCTAssertGreaterThanOrEqual(help.frame.size.width, help.attributedStringValue.size.width, @"text not clipped");
 

@@ -26,6 +26,7 @@
 #import "BPEnvironment.h"
 #import "BPRemarkableSites.h"
 #import "BPColorScheme.h"
+#import "BikeMapView.h"
 
 // Secret.h is not commited, see Secret.h.example
 
@@ -39,7 +40,7 @@ static NSString * const BPExportStagesModeKey = @"BPExportStagesMode";
 static NSString * const BPExportFolderBookmarksKey = @"BPExportFolderBookmarks";
 
 
-@interface MapController () <POICalloutActions>
+@interface MapController () <POICalloutActions, BikeMapViewMenuProvider>
 @end
 
 @implementation BPSearchPinAnnotation
@@ -128,6 +129,8 @@ static NSString * const BPExportFolderBookmarksKey = @"BPExportFolderBookmarks";
     clicker.buttonMask = 0x1; // left mouse
     clicker.numberOfClicksRequired = 1;
     [self.mapView addGestureRecognizer:clicker];
+    // right-click / ctrl-click: Add POI…, Insert Waypoint Here… (#80)
+    if ([self.mapView isKindOfClass:[BikeMapView class]]) ((BikeMapView *)self.mapView).menuProvider = self;
     self.mapView.showsZoomControls = NO;
    
     scrubberMarker = [[MKPointAnnotation alloc] init];
@@ -337,7 +340,8 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     addBackdropBehind(maptype, content);
     
     
-    helpTxtField = [[NSTextField alloc] initWithFrame:NSMakeRect(14+230+14, 32, 500, 26)];
+    const CGFloat clickModeWidth = 180; // 3 segments (#80)
+    helpTxtField = [[NSTextField alloc] initWithFrame:NSMakeRect(14 + clickModeWidth + 14, 32, 500, 26)];
     helpTxtField.bezeled = NO; helpTxtField.editable = NO; helpTxtField.selectable = NO;
     // drawn over the map (OSM tiles stay light in dark mode): same backdrop as the controls, sized to the text
     helpTxtField.drawsBackground = NO;
@@ -347,13 +351,12 @@ static NSVisualEffectView *addBackdropBehind(NSView *ctrl, NSView *content)
     helpBackdrop = addBackdropBehind(helpTxtField, content);
     
     clickmode = BPClickModeEdit;
-    clickmodeseg = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 38, 230, 26)];
-    clickmodeseg.segmentCount = 4;
+    clickmodeseg = [[NSSegmentedControl alloc] initWithFrame:NSMakeRect(14, 38, clickModeWidth, 26)];
+    clickmodeseg.segmentCount = 3;
     clickmodeseg.selectedSegment = clickmode;
     [self setHelpStringForClickMode:clickmode];
     [clickmodeseg setLabel:@"Edit" forSegment:BPClickModeEdit];
     [clickmodeseg setLabel:@"Add interm." forSegment:BPClickModeInterm];
-    [clickmodeseg setLabel:@"Add POI" forSegment:BPClickModeAddPOI];
     [clickmodeseg setLabel:@"View" forSegment:BPClickModeView];
     clickmodeseg.selectedSegmentBezelColor = selectedSegmentColor();
     clickmodeseg.segmentStyle = NSSegmentStyleRoundRect;
@@ -470,9 +473,6 @@ static const double kBPSiteRadiusKm = 15;
         case BPClickModeView:
             hlp = NSLocalizedString( @"Drag waypoints", @"CLICK_MODE_3");
             break;
-        case BPClickModeAddPOI:
-            hlp = NSLocalizedString( @"Add POI", @"CLICK_MODE_2");
-            break;
         case BPClickModeInterm:
             hlp = NSLocalizedString(@"Click on path to add intermediate waypoints", @"CLICK_MODE_1");
             break;
@@ -514,11 +514,6 @@ static const double kBPSiteRadiusKm = 15;
 - (IBAction) setClickModeToView:(id)sender
 {
     [self setClickModeTo:BPClickModeView];
-}
-
-- (IBAction) setClickModeToAddPoi:(id)sender
-{
-    [self setClickModeTo:BPClickModeAddPOI];
 }
 
 - (BPClickMode) clickMode
@@ -675,6 +670,8 @@ static const double kBPSiteRadiusKm = 15;
     //NSView *gview =gesture.view;
 
     NSPoint locInView = [gesture locationInView:self.mapView];
+    // a ctrl-click opens the context menu (BikeMapView, #80): not a click
+    if ([self isContextClickEvent:NSApp.currentEvent]) return;
     
     /*if (![self gestureRecognizerShouldHandleMapClick:gr]) {
         // should not happen
@@ -726,37 +723,13 @@ static const double kBPSiteRadiusKm = 15;
         }
         return;
     }
-    if (clickmode == BPClickModeAddPOI) {
-        // Add POI on the track
-        CLLocationCoordinate2D rcoord;
-        if ([self clickNearPolylineAt:locInView tolerence:50. nearestPoint:&rcoord]) {
-            // type and optional name asked first (#3)
-            [BPPOIEditor editType:[POILocation defaultCustomPoiType] name:nil
-                            title:NSLocalizedString(@"Add a point of interest", @"custom POI editor")
-                         okButton:NSLocalizedString(@"Add", @"custom POI editor") window:self.mapView.window
-                       completion:^(PoiType_t type, NSString *name) {
-                [self addCustomPoiAt:rcoord type:type name:name];
-            }];
-        }
-        NSLog(@"..");
-        return;
-    }
     if (clickmode == BPClickModeEdit || clickmode == BPClickModeInterm) {
         CLLocationCoordinate2D rcoord;
         CGFloat tolerence = 16.;
         if (clickmode == BPClickModeInterm) tolerence = 50.;
         // in Edit and Interm modes, a click on route adds intermediate point
         if ([self clickNearPolylineAt:locInView tolerence:tolerence nearestPoint:&rcoord]) {
-            MKPolyline *poly = [_document.plan routePoly];
-            NSUInteger idx = [self insertionIndexForCoordinate:rcoord polyline:poly waypoints:_document.plan.waypointsLocations];
-            [self insertWaypoint:rcoord atIdx:idx];
-            NSString *title = [self stringForWaypointIdx:idx];
-            RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:rcoord title:title subtitle:nil];
-            a.idx = idx;
-            [waypointsRouteAnnotations insertObject:a atIndex:idx];
-            [self recalcAnnotIndexesFrom:idx];
-            [self.mapView addAnnotation:a];
-            // update all idx
+            [self insertWaypointOnRouteAt:rcoord];
             return;
         }
     }
@@ -780,6 +753,112 @@ static const double kBPSiteRadiusKm = 15;
     }
 }
 
+
+// an intermediate waypoint at this point of the route (Add interm. click, Insert Waypoint Here)
+- (void) insertWaypointOnRouteAt:(CLLocationCoordinate2D)rcoord
+{
+    MKPolyline *poly = [_document.plan routePoly];
+    NSUInteger idx = [self insertionIndexForCoordinate:rcoord polyline:poly waypoints:_document.plan.waypointsLocations];
+    [self insertWaypoint:rcoord atIdx:idx];
+    NSString *title = [self stringForWaypointIdx:idx];
+    RouteAnnotation *a = [[RouteAnnotation alloc] initWithCoordinate:rcoord title:title subtitle:nil];
+    a.idx = idx;
+    [waypointsRouteAnnotations insertObject:a atIndex:idx];
+    [self recalcAnnotIndexesFrom:idx];
+    [self.mapView addAnnotation:a];
+}
+
+#pragma mark - map context menu (#80)
+
+- (BOOL) isContextClickEvent:(nullable NSEvent *)event
+{
+    if (!event) return NO;
+    if (event.type == NSEventTypeRightMouseDown || event.type == NSEventTypeRightMouseUp) return YES;
+    return (event.modifierFlags & NSEventModifierFlagControl) != 0;
+}
+
+// right-click / ctrl-click on the map, in every mode: Add POI… (snapped to the route when near it, else at the
+// point), Insert Waypoint Here (on the route; also in View mode: a right-click is never accidental), Street View
+// Here, Copy Coordinates
+- (nullable NSMenu *) contextMenuForMapPoint:(NSPoint)p
+{
+    CLLocationCoordinate2D clicked = [self.mapView convertPoint:p toCoordinateFromView:self.mapView];
+    CLLocationCoordinate2D onRoute;
+    BOOL nearRoute = [self clickNearPolylineAt:p tolerence:50. nearestPoint:&onRoute];
+    // inserting a waypoint: only on the line itself (half width + a margin), whatever the zoom
+    CLLocationCoordinate2D onLine;
+    BOOL onRouteLine = [self clickNearPolylineAt:p tolerence:12. nearestPoint:&onLine];
+    CLLocationCoordinate2D target = nearRoute ? onRoute : clicked;
+    NSValue *where = [NSValue valueWithBytes:&target objCType:@encode(CLLocationCoordinate2D)];
+
+    NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Map"];
+    menu.autoenablesItems = NO;
+    NSMenuItem *(^add)(NSString *, SEL, NSString *) = ^NSMenuItem *(NSString *title, SEL action, NSString *identifier) {
+        NSMenuItem *item = [menu addItemWithTitle:title action:action keyEquivalent:@""];
+        item.target = self;
+        item.representedObject = @{ @"coord": where, @"onRoute": @(nearRoute) };
+        item.identifier = identifier;
+        return item;
+    };
+    add(NSLocalizedString(@"Add POI…", @"map context menu"), @selector(addPOIFromMapMenu:), @"mapAddPOI");
+    if (onRouteLine) {
+        NSMenuItem *insert = add(NSLocalizedString(@"Insert Waypoint Here", @"map context menu"),
+                                 @selector(insertWaypointFromMapMenu:), @"mapInsertWaypoint");
+        NSValue *at = [NSValue valueWithBytes:&onLine objCType:@encode(CLLocationCoordinate2D)];
+        insert.representedObject = @{ @"coord": at, @"onRoute": @YES };
+    }
+    [menu addItem:[NSMenuItem separatorItem]];
+    add(NSLocalizedString(@"Street View Here", @"map context menu"), @selector(streetViewFromMapMenu:), @"mapStreetView");
+    add(NSLocalizedString(@"Copy Coordinates", @"map context menu"), @selector(copyCoordinatesFromMapMenu:), @"mapCopyCoordinates");
+    return menu;
+}
+
+- (CLLocationCoordinate2D) coordinateOfMapMenuItem:(NSMenuItem *)item
+{
+    CLLocationCoordinate2D c = kCLLocationCoordinate2DInvalid;
+    [(NSValue *)item.representedObject[@"coord"] getValue:&c size:sizeof(c)];
+    return c;
+}
+
+- (void) addPOIFromMapMenu:(NSMenuItem *)item
+{
+    CLLocationCoordinate2D c = [self coordinateOfMapMenuItem:item];
+    // type and optional name asked first (#3)
+    [BPPOIEditor editType:[POILocation defaultCustomPoiType] name:nil
+                    title:NSLocalizedString(@"Add a point of interest", @"custom POI editor")
+                 okButton:NSLocalizedString(@"Add", @"custom POI editor") window:self.mapView.window
+               completion:^(PoiType_t type, NSString *name) {
+        [self addCustomPoiAt:c type:type name:name];
+    }];
+}
+
+- (void) insertWaypointFromMapMenu:(NSMenuItem *)item
+{
+    [self insertWaypointOnRouteAt:[self coordinateOfMapMenuItem:item]];
+}
+
+- (void) streetViewFromMapMenu:(NSMenuItem *)item
+{
+    CLLocationCoordinate2D c = [self coordinateOfMapMenuItem:item];
+    if (![item.representedObject[@"onRoute"] boolValue]) {
+        [self.svCtrl viewCoord:c lookingAt:0 coalesce:NO];
+        return;
+    }
+    // on the route: looking along it, the profile cursor there (as a click in View mode)
+    NSUInteger segstart = 0;
+    double along = [self distanceAtCoordinate:c segstart:&segstart];
+    scrubberMarker.coordinate = c;
+    self.elevationView.highlightDistance = along;
+    [self.elevationView setNeedsDisplay:YES];
+    [self.svCtrl viewCoord:c lookingAt:[self bearingAtDistance:along] coalesce:NO];
+}
+
+- (void) copyCoordinatesFromMapMenu:(NSMenuItem *)item
+{
+    NSPasteboard *pb = poiPasteboard ?: [NSPasteboard generalPasteboard];
+    [pb clearContents];
+    [pb setString:[BPPOIDescription coordinateString:[self coordinateOfMapMenuItem:item]] forType:NSPasteboardTypeString];
+}
 
 - (id<MKAnnotation>)nearestPOIToScreenPoint:(CGPoint)p maxPixelRadius:(CGFloat)radius
 {

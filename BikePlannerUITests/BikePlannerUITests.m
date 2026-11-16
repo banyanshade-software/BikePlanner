@@ -38,8 +38,6 @@ static BOOL BPWaitWindows(XCUIApplication *app, NSUInteger n)
     XCUIElement *help = [self elementWithIdentifier:@"clickModeHelp"];
     [self clickSegment:@"Add interm." of:@"clickMode"];
     XCTAssertEqualObjects(help.value, @"Click on path to add intermediate waypoints");
-    [self clickSegment:@"Add POI" of:@"clickMode"];
-    XCTAssertEqualObjects(help.value, @"Add POI");
     [self clickMenu:@"Edit" item:@"Mode: View/Drag"];
     XCTAssertEqualObjects(help.value, @"Drag waypoints");
     [self clickMenu:@"Edit" item:@"Mode: Edit"];
@@ -129,8 +127,11 @@ static BOOL BPWaitWindows(XCUIApplication *app, NSUInteger n)
 - (void)testAddCustomPOI
 {
     [self buildRoute];
-    [self clickSegment:@"Add POI" of:@"clickMode"];
-    [self clickMapAt:CGVectorMake(0.50, 0.375)];
+    // right-click on the map (#80)
+    [self rightClickMapAt:CGVectorMake(0.50, 0.375) dy:0];
+    XCUIElement *item = self.app.menuItems[@"Add POI…"];
+    XCTAssertTrue([item waitForExistenceWithTimeout:3]);
+    [item click];
     // the type / name sheet (#3)
     XCUIElement *add = self.window.sheets.firstMatch.buttons[@"Add"];
     XCTAssertTrue([add waitForExistenceWithTimeout:5]);

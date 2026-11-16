@@ -33,6 +33,10 @@
 #import "BPColorScheme.h"
 
 @interface MapController (WindowTesting)
+- (NSMenu *)contextMenuForMapPoint:(NSPoint)p;
+- (CLLocationCoordinate2D)coordinateAtDistance:(double)distance;
+- (double)bearingAtDistance:(double)distance;
+- (BOOL)isContextClickEvent:(nullable NSEvent *)event;
 - (void)setSearchCompletionTitles:(NSArray<NSString *> *)titles;
 - (NSArray<NSString *> *)completionsForText:(NSString *)text partialWordRange:(NSRange)range;
 - (void)handleMapClick:(NSGestureRecognizer *)gesture;
@@ -79,7 +83,6 @@
 - (IBAction)setClickModeToEdit:(id)sender;
 - (IBAction)setClickModeToInterm:(id)sender;
 - (IBAction)setClickModeToView:(id)sender;
-- (IBAction)setClickModeToAddPoi:(id)sender;
 - (IBAction)reverseRoute:(id)sender;
 - (IBAction)recalculateRoute:(id)sender;
 - (IBAction)removeGPXTraceForDisplay:(id)sender;
@@ -267,17 +270,17 @@
     [mc setClickModeToInterm:self];
     XCTAssertEqual(seg.selectedSegment, 1);
     XCTAssertEqualObjects(help.stringValue, @"Click on path to add intermediate waypoints");
-    [mc setClickModeToAddPoi:self];
-    XCTAssertEqual(seg.selectedSegment, 2);
-    XCTAssertEqualObjects(help.stringValue, @"Add POI");
     [mc setClickModeToView:self];
-    XCTAssertEqual(seg.selectedSegment, 3);
+    XCTAssertEqual(seg.selectedSegment, 2);
     XCTAssertEqualObjects(help.stringValue, @"Drag waypoints");
     [mc setClickModeToEdit:self];
     XCTAssertEqual(seg.selectedSegment, 0);
+    // three modes: Add POI is in the map context menu (#80)
+    XCTAssertEqual(seg.segmentCount, 3);
+    XCTAssertEqualObjects([seg labelForSegment:2], @"View");
 
     // through the segmented control itself
-    seg.selectedSegment = 3;
+    seg.selectedSegment = 2;
     [mc changeClickMode:seg];
     XCTAssertEqualObjects(help.stringValue, @"Drag waypoints");
 
@@ -286,12 +289,14 @@
     XCTAssertEqual(seg.selectedSegment, 1);
 }
 
-// Edit ▸ Mode items: ⌘1…⌘4 in the main menu, current mode checked, also when changed with the segmented control (#22)
+// Edit ▸ Mode items: ⌘1…⌘3 in the main menu, current mode checked, also when changed with the segmented control (#22,
+// #80: no Add POI mode)
 - (void)testClickModeMenuShortcuts
 {
-    NSArray *actions = @[@"setClickModeToEdit:", @"setClickModeToInterm:", @"setClickModeToAddPoi:", @"setClickModeToView:"];
+    NSArray *actions = @[@"setClickModeToEdit:", @"setClickModeToInterm:", @"setClickModeToView:"];
     NSMenu *edit = [NSApp.mainMenu itemWithTitle:@"Edit"].submenu;
     XCTAssertNotNil(edit);
+    XCTAssertEqual([edit indexOfItemWithTarget:nil andAction:NSSelectorFromString(@"setClickModeToAddPoi:")], -1);
     NSSegmentedControl *seg = (NSSegmentedControl *)[self viewWithIdentifier:@"clickMode" in:self.content];
     for (NSUInteger m = 0; m < actions.count; m++) {
         NSInteger i = [edit indexOfItemWithTarget:nil andAction:NSSelectorFromString(actions[m])];
@@ -434,38 +439,196 @@
     XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)(window.attachedSheet == nil); }));
 }
 
-// Add POI mode: a click on the route asks the type and an optional name (#3); Cancel adds nothing
-- (void)testAddPOIModeAddsCustomPOI
+#pragma mark - map context menu (#80)
+
+- (NSArray<NSString *> *)identifiersOfMenu:(NSMenu *)menu
+{
+    NSMutableArray *ids = [NSMutableArray array];
+    for (NSMenuItem *item in menu.itemArray) if (!item.isSeparatorItem) [ids addObject:item.identifier ?: @"?"];
+    return ids;
+}
+
+- (NSMenuItem *)itemWithIdentifier:(NSString *)identifier inMenu:(NSMenu *)menu
+{
+    for (NSMenuItem *item in menu.itemArray) if ([item.identifier isEqualToString:identifier]) return item;
+    return nil;
+}
+
+- (void)sendMenuItem:(NSMenuItem *)item
+{
+    XCTAssertNotNil(item);
+    XCTAssertTrue(item.isEnabled);
+    [NSApp sendAction:item.action to:item.target from:item];
+}
+
+// a right-click on the route: Add POI… (asks the type and an optional name, #3; Cancel adds nothing), the POI snaps
+// to the route
+- (void)testContextMenuAddPOIOnRoute
 {
     [self makeRoute];
     doc.plan.fetchPOI = NO;
-    [mc setClickModeToAddPoi:self];
-    [self clickAtCoordinate:doc.plan.routePoints[4].coordinate];
+    CLLocationCoordinate2D onRoute = doc.plan.routePoints[4].coordinate;
+    NSPoint p = [map convertCoordinate:onRoute toPointToView:map];
+    p.x += 6; // a little beside the line
+    NSMenu *menu = [mc contextMenuForMapPoint:p];
+    NSArray *ids = @[ @"mapAddPOI", @"mapInsertWaypoint", @"mapStreetView", @"mapCopyCoordinates" ];
+    XCTAssertEqualObjects([self identifiersOfMenu:menu], ids);
+    XCTAssertEqualObjects([self itemWithIdentifier:@"mapAddPOI" inMenu:menu].title, @"Add POI…");
+
+    [self sendMenuItem:[self itemWithIdentifier:@"mapAddPOI" inMenu:menu]];
     NSWindow *sheet = [self waitForSheet];
     NSPopUpButton *type = (NSPopUpButton *)[self viewWithIdentifier:@"poiType" in:sheet.contentView];
-    NSTextField *name = (NSTextField *)[self viewWithIdentifier:@"poiName" in:sheet.contentView];
-    XCTAssertNotNil(type);
-    XCTAssertNotNil(name);
+    XCTAssertNotNil([self viewWithIdentifier:@"poiName" in:sheet.contentView]);
     XCTAssertEqual(type.selectedTag, POI_info, @"default type (#74)");
     [self endSheet:NSAlertSecondButtonReturn]; // Cancel
     XCTAssertEqual(doc.plan.customPoiloc.count, 0u);
 
-    [self clickAtCoordinate:doc.plan.routePoints[4].coordinate];
+    [self sendMenuItem:[self itemWithIdentifier:@"mapAddPOI" inMenu:[mc contextMenuForMapPoint:p]]];
     sheet = [self waitForSheet];
     type = (NSPopUpButton *)[self viewWithIdentifier:@"poiType" in:sheet.contentView];
-    name = (NSTextField *)[self viewWithIdentifier:@"poiName" in:sheet.contentView];
     [type selectItemWithTag:POI_drinking_water];
-    name.stringValue = @"Fontaine";
+    ((NSTextField *)[self viewWithIdentifier:@"poiName" in:sheet.contentView]).stringValue = @"Fontaine";
     [self endSheet:NSAlertFirstButtonReturn];
     XCTAssertEqual(doc.plan.customPoiloc.count, 1u);
     XCTAssertEqual(doc.plan.customPoiloc[0].poiType, POI_drinking_water);
     XCTAssertEqualObjects(doc.plan.customPoiloc[0].title, @"Fontaine");
+    NSUInteger seg = 0;
+    double along = [mc distanceAtCoordinate:doc.plan.customPoiloc[0].coordinate segstart:&seg];
+    CLLocationCoordinate2D snapped = [mc coordinateAtDistance:along];
+    CLLocation *poiLoc = doc.plan.customPoiloc[0];
+    XCTAssertLessThan([poiLoc distanceFromLocation:[[CLLocation alloc] initWithLatitude:snapped.latitude longitude:snapped.longitude]], 1,
+                      @"on the route");
     XCTAssertGreaterThanOrEqual([self annotationsOfClass:[POIAnnotation class]].count, 1u);
-    // away from the route: nothing
-    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.0, 0.6)];
-    BPSpin(0.3);
-    XCTAssertNil(doc.windowControllers.firstObject.window.attachedSheet);
+}
+
+// away from the route: the POI goes where the click was; no Insert Waypoint
+- (void)testContextMenuAddPOIOffRoute
+{
+    [self makeRoute];
+    doc.plan.fetchPOI = NO;
+    CLLocationCoordinate2D c = CLLocationCoordinate2DMake(44.0, 0.6);
+    NSMenu *menu = [mc contextMenuForMapPoint:[map convertCoordinate:c toPointToView:map]];
+    NSArray *ids = @[ @"mapAddPOI", @"mapStreetView", @"mapCopyCoordinates" ];
+    XCTAssertEqualObjects([self identifiersOfMenu:menu], ids);
+    [self sendMenuItem:[self itemWithIdentifier:@"mapAddPOI" inMenu:menu]];
+    [self waitForSheet];
+    [self endSheet:NSAlertFirstButtonReturn];
     XCTAssertEqual(doc.plan.customPoiloc.count, 1u);
+    XCTAssertEqualWithAccuracy(doc.plan.customPoiloc[0].coordinate.latitude, 44.0, 1e-4);
+    XCTAssertEqualWithAccuracy(doc.plan.customPoiloc[0].coordinate.longitude, 0.6, 1e-4);
+}
+
+// Insert Waypoint Here only very near the route (≤12 px, the half width of the line + a margin), even if the POI
+// still snaps to the route at that distance
+- (void)testContextMenuInsertWaypointOnlyVeryNearRoute
+{
+    [self makeRoute];
+    doc.plan.fetchPOI = NO;
+    // the route goes north-east: 25 px to the left is 25 / sqrt(2) ≈ 18 px from the line
+    NSPoint p = [map convertCoordinate:doc.plan.routePoints[5].coordinate toPointToView:map];
+    NSArray *near = @[ @"mapAddPOI", @"mapInsertWaypoint", @"mapStreetView", @"mapCopyCoordinates" ];
+    XCTAssertEqualObjects([self identifiersOfMenu:[mc contextMenuForMapPoint:NSMakePoint(p.x - 8, p.y)]], near);
+    NSArray *fartherIds = @[ @"mapAddPOI", @"mapStreetView", @"mapCopyCoordinates" ];
+    NSMenu *farther = [mc contextMenuForMapPoint:NSMakePoint(p.x - 25, p.y)];
+    XCTAssertEqualObjects([self identifiersOfMenu:farther], fartherIds);
+    // zoomed out: the same pixel distance
+    MKCoordinateRegion r = map.region;
+    r.span.latitudeDelta *= 8; r.span.longitudeDelta *= 8;
+    [map setRegion:r animated:NO];
+    BPSpin(0.2);
+    p = [map convertCoordinate:doc.plan.routePoints[5].coordinate toPointToView:map];
+    XCTAssertEqualObjects([self identifiersOfMenu:[mc contextMenuForMapPoint:NSMakePoint(p.x - 25, p.y)]], fartherIds);
+    // the POI still snaps to the route
+    [self sendMenuItem:[self itemWithIdentifier:@"mapAddPOI" inMenu:farther]];
+    [self waitForSheet];
+    [self endSheet:NSAlertFirstButtonReturn];
+    NSUInteger seg = 0;
+    CLLocationCoordinate2D snapped = [mc coordinateAtDistance:[mc distanceAtCoordinate:doc.plan.customPoiloc[0].coordinate segstart:&seg]];
+    XCTAssertLessThan([doc.plan.customPoiloc[0] distanceFromLocation:[[CLLocation alloc] initWithLatitude:snapped.latitude longitude:snapped.longitude]], 1);
+}
+
+// View mode (documents opened from a file, #56): the same menu (a right-click is never accidental)
+- (void)testContextMenuInViewMode
+{
+    [self makeRoute];
+    [mc setClickModeToView:self];
+    NSPoint p = [map convertCoordinate:doc.plan.routePoints[4].coordinate toPointToView:map];
+    NSArray *ids = @[ @"mapAddPOI", @"mapInsertWaypoint", @"mapStreetView", @"mapCopyCoordinates" ];
+    XCTAssertEqualObjects([self identifiersOfMenu:[mc contextMenuForMapPoint:p]], ids);
+}
+
+// Insert Waypoint Here: like a click in Add interm. mode, undoable
+- (void)testContextMenuInsertWaypoint
+{
+    NSUndoManager *um = doc.undoManager;
+    um.groupsByEvent = NO;
+    [um beginUndoGrouping];
+    [self makeRoute];
+    [um endUndoGrouping];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
+    CLLocationCoordinate2D onRoute = doc.plan.routePoints[5].coordinate;
+    NSMenu *menu = [mc contextMenuForMapPoint:[map convertCoordinate:onRoute toPointToView:map]];
+    XCTAssertEqualObjects([self itemWithIdentifier:@"mapInsertWaypoint" inMenu:menu].title, @"Insert Waypoint Here");
+    [um beginUndoGrouping];
+    [self sendMenuItem:[self itemWithIdentifier:@"mapInsertWaypoint" inMenu:menu]];
+    [um endUndoGrouping];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 3u);
+    CLLocation *inserted = doc.plan.waypointsLocations[1];
+    XCTAssertLessThan([inserted distanceFromLocation:[[CLLocation alloc] initWithLatitude:onRoute.latitude longitude:onRoute.longitude]], 50,
+                      @"between start and end, on the route");
+    XCTAssertEqual([self annotationsOfClass:[RouteAnnotation class]].count, 3u);
+    [um undo];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 2u);
+}
+
+// Street View Here and Copy Coordinates
+- (void)testContextMenuStreetViewAndCopy
+{
+    [self makeRoute];
+    CLLocationCoordinate2D off = CLLocationCoordinate2DMake(44.0, 0.6);
+    NSMenu *menu = [mc contextMenuForMapPoint:[map convertCoordinate:off toPointToView:map]];
+    [self sendMenuItem:[self itemWithIdentifier:@"mapStreetView" inMenu:menu]];
+    XCTAssertEqualWithAccuracy(mc.svCtrl.lastCoord.latitude, 44.0, 1e-4, @"off the route: where the click was");
+    XCTAssertEqualWithAccuracy(mc.svCtrl.lastCoord.longitude, 0.6, 1e-4);
+
+    NSPasteboard *pb = [NSPasteboard pasteboardWithUniqueName];
+    [mc setPoiPasteboard:pb];
+    [self sendMenuItem:[self itemWithIdentifier:@"mapCopyCoordinates" inMenu:menu]];
+    NSArray<NSString *> *parts = [[pb stringForType:NSPasteboardTypeString] componentsSeparatedByString:@", "];
+    XCTAssertEqual(parts.count, 2u, @"latitude, longitude");
+    XCTAssertEqualWithAccuracy(parts.firstObject.doubleValue, 44.0, 1e-4);
+    XCTAssertEqualWithAccuracy(parts.lastObject.doubleValue, 0.6, 1e-4);
+    [mc setPoiPasteboard:nil];
+    [pb releaseGlobally];
+
+    // on the route: Street View on the route, looking along it, with the profile cursor
+    CLLocationCoordinate2D onRoute = doc.plan.routePoints[5].coordinate;
+    menu = [mc contextMenuForMapPoint:[map convertCoordinate:onRoute toPointToView:map]];
+    [self sendMenuItem:[self itemWithIdentifier:@"mapStreetView" inMenu:menu]];
+    NSUInteger seg = 0;
+    double along = [mc distanceAtCoordinate:onRoute segstart:&seg];
+    XCTAssertEqualWithAccuracy(mc.elevationView.highlightDistance, along, 20);
+    XCTAssertEqualWithAccuracy(mc.svCtrl.lastHeading, [mc bearingAtDistance:along], 1, @"looking along the route");
+}
+
+// the map view asks MapController for its menu (right-click or ctrl-click); a ctrl-click is not a left click
+- (void)testMapViewContextMenuEvent
+{
+    [self makeRoute];
+    NSPoint inMap = [map convertCoordinate:CLLocationCoordinate2DMake(44.0, 0.6) toPointToView:map];
+    NSEvent *e = [NSEvent mouseEventWithType:NSEventTypeRightMouseDown location:[map convertPoint:inMap toView:nil]
+                               modifierFlags:0 timestamp:0 windowNumber:map.window.windowNumber context:nil
+                                 eventNumber:0 clickCount:1 pressure:1];
+    NSMenu *menu = [map menuForEvent:e];
+    XCTAssertNotNil([self itemWithIdentifier:@"mapAddPOI" inMenu:menu]);
+    NSEvent *ctrl = [NSEvent mouseEventWithType:NSEventTypeLeftMouseDown location:NSZeroPoint
+                                  modifierFlags:NSEventModifierFlagControl timestamp:0 windowNumber:0 context:nil
+                                    eventNumber:0 clickCount:1 pressure:1];
+    XCTAssertTrue([mc isContextClickEvent:ctrl]);
+    XCTAssertTrue([mc isContextClickEvent:e]);
+    NSEvent *plain = [NSEvent mouseEventWithType:NSEventTypeLeftMouseDown location:NSZeroPoint modifierFlags:0
+                                       timestamp:0 windowNumber:0 context:nil eventNumber:0 clickCount:1 pressure:1];
+    XCTAssertFalse([mc isContextClickEvent:plain]);
 }
 
 // right-click menu of a custom POI: Edit POI… and Remove POI, undoable (#3)
@@ -1595,8 +1758,7 @@
 - (void)testMenuRelays
 {
     NSSegmentedControl *seg = (NSSegmentedControl *)[self viewWithIdentifier:@"clickMode" in:self.content];
-    [doc setClickModeToView:nil];   XCTAssertEqual(seg.selectedSegment, 3);
-    [doc setClickModeToAddPoi:nil]; XCTAssertEqual(seg.selectedSegment, 2);
+    [doc setClickModeToView:nil];   XCTAssertEqual(seg.selectedSegment, 2);
     [doc setClickModeToInterm:nil]; XCTAssertEqual(seg.selectedSegment, 1);
     [doc setClickModeToEdit:nil];   XCTAssertEqual(seg.selectedSegment, 0);
 }
@@ -1964,6 +2126,33 @@
     XCTAssertEqual(seg.selectedSegment, BPClickModeView);
     [self clickAtCoordinate:CLLocationCoordinate2DMake(44.2, 0.7)];
     XCTAssertEqual(doc.plan.waypointsLocations.count, 2u, @"a click does not add a waypoint");
+}
+
+// a document just opened from a file (View mode, #56), unchanged: Insert Waypoint Here from the map menu (#80)
+- (void)testContextMenuInsertWaypointInOpenedDocument
+{
+    [self makeRoute];
+    NSString *type = @"fr.free.daniel.braun.bikeplan";
+    NSURL *url = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-open-insert.bikeplan"]];
+    XCTAssertTrue([[doc dataOfType:type error:NULL] writeToURL:url atomically:YES]);
+    doc.plan.fetchPOI = NO;
+    [doc close];
+    NSError *err = nil;
+    doc = [[Document alloc] initWithContentsOfURL:url ofType:type error:&err];
+    XCTAssertNotNil(doc, @"%@", err);
+    [self openWindow];
+    XCTAssertEqual(mc.clickMode, BPClickModeView);
+    XCTAssertGreaterThan(doc.plan.routePoints.count, 5u, @"route loaded");
+    CLLocationCoordinate2D onRoute = doc.plan.routePoints[5].coordinate;
+    NSPoint p = [map convertCoordinate:onRoute toPointToView:map];
+    NSMenu *menu = [mc contextMenuForMapPoint:p];
+    NSMenuItem *insert = [self itemWithIdentifier:@"mapInsertWaypoint" inMenu:menu];
+    XCTAssertNotNil(insert, @"%@", [self identifiersOfMenu:menu]);
+    [self sendMenuItem:insert];
+    XCTAssertEqual(doc.plan.waypointsLocations.count, 3u);
+    XCTAssertEqual([self annotationsOfClass:[RouteAnnotation class]].count, 3u);
+    XCTAssertTrue([self waitForRouteWithPoints:21], @"route requested again with 3 waypoints");
+    [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
 }
 
 // the document's parameters are restored in the Params tab by Revert to Saved (#44)

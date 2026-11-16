@@ -184,6 +184,7 @@ No version key: adding/removing fields relies on `decodeObject…` returning nil
 ### 6.1 Add a destination (Edit mode)
 ```
 NSClickGestureRecognizer → MapController.handleMapClick:
+  ├─ ctrl-click? → stop (context menu)
   ├─ near POI? → select annotation, stop
   ├─ near route? → insert intermediate waypoint (6.2)
   └─ else: plan.appendWaypoint → undoableWP:(old) ; add RouteAnnotation ; svCtrl.viewCoord
@@ -191,6 +192,9 @@ NSClickGestureRecognizer → MapController.handleMapClick:
 ```
 
 ### 6.2 Insert / move / remove waypoint
+Map context menu (#80): right-click / ctrl-click → `-[BikeMapView menuForEvent:]` → `menuProvider` (MapController)
+`contextMenuForMapPoint:` → Add POI… (`BPPOIEditor` → `addCustomPoiAt:type:name:`), Insert Waypoint Here
+(`insertWaypointOnRouteAt:`, also used by Add interm. clicks), Street View Here, Copy Coordinates.
 Insert: `insertionIndexForCoordinate` → `plan.insertWaypoint` → undo → annotation insert + reindex → `requestRoute`.
 Move: `mapView:annotationView:didChangeDragState:` (Ending) → `plan.replaceWaypointAtIndex` → undo → `requestRoute`.
 Remove: context menu → `plan.removeWaypointAtIndex` → undo → reindex → `shouldRecalcRoute`.
@@ -413,7 +417,7 @@ Each item is tracked as a GitHub issue.
   pure functions, easily unit-testable), GPX writer, route service, map controls.
 - **Model mixes persistence and networking** (`BikePlan` fetches POIs). A separate POI service would be cleaner.
 - Waypoint annotations are kept in sync manually with the model array (`waypointsRouteAnnotations`, `recalcAnnotIndexesFrom:`).
-- Magic numbers: click modes 0–3, map types 0–4, polyline tags 0–3, pixel tolerances.
+- Magic numbers: click modes 0–2 (#80), map types 0–4, polyline tags 0–3, pixel tolerances.
 - Profile name `trekking` hard-coded in two places; endpoints hard-coded in four files.
 - Compiler and analyzer warnings: none since [#58](https://github.com/banyanshade-software/BikePlanner/issues/58)
   (the analyzer found a NULL dereference in `projectPoint:ontoSegmentFrom:to:projection:` and a nil renderer

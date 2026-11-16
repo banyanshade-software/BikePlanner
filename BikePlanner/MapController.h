@@ -18,8 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 typedef NS_ENUM(int, BPClickMode) {
     BPClickModeEdit = 0,    // add start/end waypoints, click on route inserts one
     BPClickModeInterm = 1,  // click on route inserts an intermediate waypoint
-    BPClickModeAddPOI = 2,  // click on route adds a custom POI
-    BPClickModeView = 3,    // click on route moves Street View / elevation cursor
+    BPClickModeView = 2,    // click on route moves Street View / elevation cursor
+    // custom POIs: right-click menu of the map, in every mode (#80; Add POI was a mode before)
 };
 
 // pin of the location search result (one at a time, #40)
@@ -77,7 +77,6 @@ typedef NS_ENUM(int, BPClickMode) {
 - (IBAction) setClickModeToEdit:(id)sender;
 - (IBAction) setClickModeToInterm:(id)sender;
 - (IBAction) setClickModeToView:(id)sender;
-- (IBAction) setClickModeToAddPoi:(id)sender;
 
 
 //@property unsigned int kmlen;
