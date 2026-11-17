@@ -9,6 +9,9 @@
 #import "GPXParser.h"
 #import "POILocation.h"
 #import "BPSights.h"
+#import "BPOverpassServers.h"
+#import "BPPOICache.h"
+#import <os/log.h>
 #import "BPEnvironment.h"
  
 @interface NSArray (Insertion)
@@ -50,6 +53,7 @@
 static const NSTimeInterval kPOIMaxRetryDelay = 120;         // also caps Retry-After
 static const double kPOISampleSpacingMeters = 1000;          // route points of the Overpass query (#12)
 static const NSUInteger kPOIMaxSamplePoints = 300;
+static const NSUInteger kPOICellsPerRequest = 20;              // cells of 0.02° per Overpass request (#84)
 
 
 // a copy of the location as the given class (BPStageEndLocation or CLLocation)
@@ -86,6 +90,7 @@ static CLLocation *BPPlainLocation(CLLocation *loc)
     NSTimeInterval tpoireq;
     NSUInteger poiRetryCount;   // consecutive failed Overpass requests (#12)
     NSMutableDictionary<NSString *, NSArray<NSNumber *> *> *poiRoutePositions; // poiKey → [along, off] (#81)
+    BOOL poiCacheBypass;        // Refresh Points of Interest: ask again for every cell (#84)
     NSArray<NSNumber *> *routeCumulative;   // distance from the start at each route point (#81)
 }
 
@@ -789,41 +794,20 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
 
 // 2 "around" clauses per sampled point (was per 10th route point, ~300 m apart, #12). Not one "around" along a
 // polyline (around:r,lat1,lon1,lat2,lon2…): overpass-api.de returned no element for it on real routes.
-// the utilities around points ~1 km apart, within the search distance of the Preferences (1.5 km by default); the
-// sights of the selected categories (#81) within their own distance (1 km by default); under 1 km, the points are as
-// close as the radius
-- (NSString *)overpassQueryForTrack:(NSArray<CLLocation *> *)trackPoints
-{
-    NSUInteger radius = [BPEnvironment poiSearchRadius], sightRadius = [BPEnvironment sightSearchRadius];
-    NSMutableString *query = [NSMutableString stringWithString:@"[out:json][timeout:120];\n(\n"];
-    for (CLLocation *loc in [[self class] samplePointsForPOI:trackPoints spacing:MIN(radius, kPOISampleSpacingMeters)]) {
-        CLLocationCoordinate2D coord = loc.coordinate;
-        // amenity: drinking_water, toilets... (nodes)
-        [query appendFormat:@"  node(around:%lu,%.6f,%.6f)[\"amenity\"~\"drinking_water|toilets|grave_yard|bicycle_repair_station\"];\n",
-             (unsigned long)radius, coord.latitude, coord.longitude];
-        // landuse = cemetery (ways or areas, get center)
-        [query appendFormat:@"  way(around:%lu,%.6f,%.6f)[\"landuse\"=\"cemetery\"];\n",
-             (unsigned long)radius, coord.latitude, coord.longitude];
-    }
-    if (_sightCategories.count) {
-        for (CLLocation *loc in [[self class] samplePointsForPOI:trackPoints spacing:MIN(sightRadius, kPOISampleSpacingMeters)]) {
-            NSString *sights = [BPSights overpassClauseForCategories:_sightCategories radius:sightRadius
-                                                            latitude:loc.coordinate.latitude longitude:loc.coordinate.longitude];
-            if (sights) [query appendString:sights];
-        }
-    }
-    [query appendString:@");\nout center;"];
-    return query;
-}
-
 - (void) refetchPOIs
 {
     if (_routePoints.count >= 2) [self shouldRequestPOI];
 }
 
+- (void) refreshPOIs
+{
+    poiCacheBypass = YES;
+    [self refetchPOIs];
+}
+
 // after an error: retry later, on the main run loop (the NSURLSession completion queue has none, so the retry
 // never happened), with exponential backoff or the server's Retry-After, at most poiMaxRetries times (#12)
-- (void) refetchPOIAfterError:(NSHTTPURLResponse *)resp
+- (void) refetchPOIAfterError:(nullable NSHTTPURLResponse *)resp
 {
     NSUInteger maxRetries = self.poiMaxRetries ?: 5;
     if (poiRetryCount >= maxRetries) {
@@ -873,66 +857,249 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
     return pois;
 }
 
+#pragma mark - POI requests: cells, servers, cache (#84)
+
+// what a route needs: the cells within the search distances, in order from the start, and per cell the layers
+// (the utilities within the POI distance, the selected sight categories within the sight distance)
+- (NSArray<NSString *> *)poiNeedsForRoute:(NSArray<CLLocation *> *)route
+                                    cells:(NSMutableDictionary<NSString *, NSValue *> *)cells
+                                   layers:(NSMutableDictionary<NSString *, NSMutableSet<NSString *> *> *)layers
+{
+    NSMutableArray<NSString *> *order = [NSMutableArray array];
+    void (^add)(NSArray<NSValue *> *, NSArray<NSString *> *) = ^(NSArray<NSValue *> *cellValues, NSArray<NSString *> *kinds) {
+        for (NSValue *v in cellValues) {
+            BPPOICell c;
+            [v getValue:&c size:sizeof(c)];
+            NSString *key = [NSString stringWithFormat:@"%ld_%ld", (long)c.lat, (long)c.lon];
+            if (!cells[key]) {
+                cells[key] = v;
+                layers[key] = [NSMutableSet set];
+                [order addObject:key];
+            }
+            [layers[key] addObjectsFromArray:kinds];
+        }
+    };
+    add([BPPOICache cellsAlongRoute:route radius:[BPEnvironment poiSearchRadius]], @[ BPPOIUtilitiesLayer ]);
+    if (_sightCategories.count) add([BPPOICache cellsAlongRoute:route radius:[BPEnvironment sightSearchRadius]], _sightCategories);
+    return order;
+}
+
+// the query of the missing layers of the cells (a cell of a layer is complete: bounding boxes, not circles)
+- (NSString *)overpassQueryForCells:(NSArray<NSString *> *)order cells:(NSDictionary<NSString *, NSValue *> *)cells
+                             layers:(NSDictionary<NSString *, NSSet<NSString *> *> *)layers
+{
+    NSMutableString *query = [NSMutableString stringWithString:@"[out:json][timeout:25];\n(\n"];
+    for (NSString *key in order) {
+        NSSet<NSString *> *kinds = layers[key];
+        if (!kinds.count) continue;
+        BPPOICell c;
+        [cells[key] getValue:&c size:sizeof(c)];
+        BPGeoBox b = [BPPOICache boxOfCell:c];
+        NSString *bbox = [NSString stringWithFormat:@"%.6f,%.6f,%.6f,%.6f", b.south, b.west, b.north, b.east];
+        if ([kinds containsObject:BPPOIUtilitiesLayer]) {
+            [query appendFormat:@"  node(%@)[\"amenity\"~\"drinking_water|toilets|grave_yard|bicycle_repair_station\"];\n", bbox];
+            [query appendFormat:@"  way(%@)[\"landuse\"=\"cemetery\"];\n", bbox];
+        }
+        NSMutableSet *categories = [kinds mutableCopy];
+        [categories removeObject:BPPOIUtilitiesLayer];
+        NSString *filter = [BPSights overpassFilterForCategories:categories.allObjects];
+        if (filter) [query appendFormat:@"  nwr(%@)%@;\n", bbox, filter];
+    }
+    [query appendString:@");\nout center;"];
+    return query;
+}
+
+// the whole query of a route, without the cache (tests)
+- (NSString *)overpassQueryForRoute:(NSArray<CLLocation *> *)route
+{
+    NSMutableDictionary *cells = [NSMutableDictionary dictionary], *layers = [NSMutableDictionary dictionary];
+    NSArray *order = [self poiNeedsForRoute:route cells:cells layers:layers];
+    return [self overpassQueryForCells:order cells:cells layers:layers];
+}
+
+// the layer of an element (nil: none we keep) and the cell of its position
++ (nullable NSString *)poiLayerOfElement:(NSDictionary *)el cell:(BPPOICell *)cell
+{
+    NSDictionary *tags = [el[@"tags"] isKindOfClass:[NSDictionary class]] ? el[@"tags"] : @{};
+    NSDictionary *center = [el[@"center"] isKindOfClass:[NSDictionary class]] ? el[@"center"] : el;
+    if (!center[@"lat"] || !center[@"lon"]) return nil;
+    *cell = [BPPOICache cellOfLatitude:[center[@"lat"] doubleValue] longitude:[center[@"lon"] doubleValue]];
+    if ((tags[@"amenity"] && [POILocation poiTypeForAmenity:tags[@"amenity"]] != POI_unknown)
+        || [tags[@"landuse"] isEqual:@"cemetery"]) return BPPOIUtilitiesLayer;
+    NSString *category = nil;
+    if ([BPSights typeForTags:tags categories:[BPSights allCategories] category:&category] != POI_unknown) return category;
+    return nil;
+}
+
+// the POIs of the route from the cache: the elements of its cells, without duplicates, within the search distances
+- (void)applyCachedPOIsForRoute:(NSArray<CLLocation *> *)route order:(NSArray<NSString *> *)order
+                          cells:(NSDictionary<NSString *, NSValue *> *)cells layers:(NSDictionary<NSString *, NSSet<NSString *> *> *)layers
+                          cache:(BPPOICache *)cache
+{
+    NSMutableArray *elements = [NSMutableArray array];
+    NSMutableSet *seen = [NSMutableSet set];
+    for (NSString *key in order) {
+        BPPOICell c;
+        [cells[key] getValue:&c size:sizeof(c)];
+        for (NSString *layer in layers[key]) {
+            for (NSDictionary *el in [cache elementsForCell:c layer:layer] ?: @[]) {
+                NSString *ident = [NSString stringWithFormat:@"%@/%@", el[@"type"], el[@"id"]];
+                if ([seen containsObject:ident]) continue;
+                [seen addObject:ident];
+                [elements addObject:el];
+            }
+        }
+    }
+    double radius = [BPEnvironment poiSearchRadius], sightRadius = [BPEnvironment sightSearchRadius];
+    NSMutableArray<POILocation *> *pois = [NSMutableArray array];
+    for (POILocation *p in [self poisFromOverpassElements:elements]) {
+        double along = 0, off = 0;
+        if ([self routePositionOfPOI:p along:&along off:&off] && off > (p.isSight ? sightRadius : radius)) continue;
+        [pois addObject:p];
+    }
+    self.poiloc = pois;
+    if (self.poiAvailableCallback) self.poiAvailableCallback();
+}
+
 - (void) fetchPOIsNearRoute:(NSArray<CLLocation *> *)coords
 {
-    NSLog(@"--- >>>> fetch");
-    NSString *query = [self overpassQueryForTrack:coords];
-    NSData *bodyData = [query dataUsingEncoding:NSUTF8StringEncoding];
-    
-    NSURL *url = [BPEnvironment overpassURL]; // https://overpass-api.de/api/interpreter unless overridden
-    NSMutableURLRequest *req = [BPEnvironment requestWithURL:url];
-    req.HTTPMethod = @"POST";
-    req.HTTPBody = bodyData;
-    
-    NSLog(@"----- fetch poi");
-    NSURLSessionDataTask *task = [[NSURLSession sharedSession]
-                                  dataTaskWithRequest:req
-                                  completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
-        // on the main queue: poiUpdateOnProgress and the retry state are main-thread only (#12)
+    NSMutableDictionary *cells = [NSMutableDictionary dictionary], *layers = [NSMutableDictionary dictionary];
+    NSArray<NSString *> *order = [self poiNeedsForRoute:coords cells:cells layers:layers];
+    // the missing layers of each cell (all of them for Refresh Points of Interest)
+    BPPOICache *cache = [BPPOICache shared];
+    NSMutableDictionary<NSString *, NSMutableSet<NSString *> *> *missing = [NSMutableDictionary dictionary];
+    for (NSString *key in order) {
+        BPPOICell c;
+        [cells[key] getValue:&c size:sizeof(c)];
+        for (NSString *layer in layers[key]) {
+            if (poiCacheBypass || ![cache elementsForCell:c layer:layer]) {
+                if (!missing[key]) missing[key] = [NSMutableSet set];
+                [missing[key] addObject:layer];
+            }
+        }
+    }
+    if (!missing.count) {
+        // all in the cache: no request (later on the main queue: the caller may be drawing the route)
         dispatch_async(dispatch_get_main_queue(), ^{
             self->poiUpdateOnProgress = NO;
-            NSHTTPURLResponse *httpResponse = [resp isKindOfClass:[NSHTTPURLResponse class]] ? (NSHTTPURLResponse *)resp : nil;
-            if (err) {
-                NSLog(@"Error: %@", err);
-                [self refetchPOIAfterError:httpResponse];
-                return;
-            }
-            if (!data) {
-                [self refetchPOIAfterError:httpResponse];
-                return;
-            }
-            NSInteger httpcode = [httpResponse statusCode];
-            if (httpcode>299) {
-                NSLog(@"HTTP status for POI : %d", (int) httpcode);
-                [self refetchPOIAfterError:httpResponse];
-                return;
-            }
             self->poiRetryCount = 0;
-            if (coords != self.routePoints && self->tpoineed > self->tpoireq) {
-                return; // POIs of a previous route: the request for the current one is pending
+            if (coords != self.routePoints) return;
+            [self applyCachedPOIsForRoute:coords order:order cells:cells layers:layers cache:cache];
+        });
+        return;
+    }
+    // the bounding box of the route: the regional servers that cover it are candidates
+    BPGeoBox box = BPGeoBoxMake(90, 180, -90, -180);
+    for (CLLocation *p in coords) {
+        box.south = MIN(box.south, p.coordinate.latitude);
+        box.north = MAX(box.north, p.coordinate.latitude);
+        box.west = MIN(box.west, p.coordinate.longitude);
+        box.east = MAX(box.east, p.coordinate.longitude);
+    }
+    // the missing cells in batches (one query for every cell of a long route timed out on the server, 2026-11-17),
+    // sent one after the other, each cached and shown as it arrives
+    NSMutableArray<NSArray<NSString *> *> *batches = [NSMutableArray array];
+    NSMutableArray<NSString *> *current = [NSMutableArray array];
+    for (NSString *key in order) {
+        if (!missing[key]) continue;
+        [current addObject:key];
+        if (current.count == kPOICellsPerRequest) {
+            [batches addObject:current];
+            current = [NSMutableArray array];
+        }
+    }
+    if (current.count) [batches addObject:current];
+    [self sendPOIBatches:batches index:0 route:coords box:box order:order cells:cells layers:layers missing:missing cache:cache];
+}
+
+- (void) sendPOIBatches:(NSArray<NSArray<NSString *> *> *)batches index:(NSUInteger)index route:(NSArray<CLLocation *> *)coords
+                    box:(BPGeoBox)box order:(NSArray<NSString *> *)order cells:(NSDictionary<NSString *, NSValue *> *)cells
+                 layers:(NSDictionary<NSString *, NSSet<NSString *> *> *)layers
+                missing:(NSDictionary<NSString *, NSSet<NSString *> *> *)missing cache:(BPPOICache *)cache
+{
+    // done, or a newer route is waiting: stop here (the batches received stay in the cache)
+    if (index >= batches.count || (coords != self.routePoints && tpoineed > tpoireq)) {
+        poiUpdateOnProgress = NO;
+        if (index >= batches.count) poiCacheBypass = NO;
+        return;
+    }
+    NSArray<NSString *> *batch = batches[index];
+    NSString *query = [self overpassQueryForCells:batch cells:cells layers:missing];
+    [self sendPOIQuery:query route:coords box:box tried:[NSSet set] lastResponse:nil completion:^(NSArray *elements) {
+        // the requested cells of each layer are now complete (empty ones too)
+        NSMutableDictionary<NSString *, NSMutableArray *> *buckets = [NSMutableDictionary dictionary];
+        NSSet *inBatch = [NSSet setWithArray:batch];
+        for (NSDictionary *el in elements) {
+            if (![el isKindOfClass:[NSDictionary class]]) continue;
+            BPPOICell c = { 0, 0 };
+            NSString *layer = [BikePlan poiLayerOfElement:el cell:&c];
+            NSString *key = [NSString stringWithFormat:@"%ld_%ld", (long)c.lat, (long)c.lon];
+            if (!layer || ![inBatch containsObject:key] || ![missing[key] containsObject:layer]) continue;
+            NSString *bucket = [NSString stringWithFormat:@"%@|%@", key, layer];
+            if (!buckets[bucket]) buckets[bucket] = [NSMutableArray array];
+            [buckets[bucket] addObject:el];
+        }
+        for (NSString *key in batch) {
+            BPPOICell c;
+            [cells[key] getValue:&c size:sizeof(c)];
+            for (NSString *layer in missing[key]) {
+                [cache setElements:buckets[[NSString stringWithFormat:@"%@|%@", key, layer]] ?: @[] forCell:c layer:layer];
             }
-            //OSAtomicDecrement32(&poiNeedUpdate);
-        
-            NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-            NSArray *elements = json[@"elements"];
-            if (![elements count]) {
-                //debug
-                NSLog(@"no poi1");
-                NSString *r = json[@"remark"];
-                NSLog(@"no poi1 remark %@", r);
+        }
+        if (coords == self.routePoints || self->tpoineed <= self->tpoireq) {
+            [self applyCachedPOIsForRoute:coords order:order cells:cells layers:layers cache:cache];
+        }
+        [self sendPOIBatches:batches index:index + 1 route:coords box:box order:order cells:cells layers:layers
+                     missing:missing cache:cache];
+    }];
+}
+
+// sends the query to the next server; a server that fails is demoted and the next one tried at once; when all
+// failed, the usual retries later (#12) and a message on the map
+- (void) sendPOIQuery:(NSString *)query route:(NSArray<CLLocation *> *)coords box:(BPGeoBox)box tried:(NSSet<NSURL *> *)tried
+         lastResponse:(nullable NSHTTPURLResponse *)lastResponse completion:(void (^)(NSArray *elements))completion
+{
+    BPOverpassServerPool *pool = [BPOverpassServerPool shared];
+    BPOverpassServer *server = [pool nextServerFor:box excluding:tried];
+    if (!server) {
+        poiUpdateOnProgress = NO;
+        if (self.poiErrorCallback) {
+            self.poiErrorCallback(NSLocalizedString(@"Points of interest unavailable: no Overpass server answered. Retrying later…", @"POI error"));
+        }
+        [self refetchPOIAfterError:lastResponse]; // its Retry-After, if any
+        return;
+    }
+    NSMutableURLRequest *req = [BPEnvironment requestWithURL:server.url];
+    req.HTTPMethod = @"POST";
+    req.HTTPBody = [query dataUsingEncoding:NSUTF8StringEncoding];
+    req.timeoutInterval = 30; // another server can take over
+    NSDate *start = [NSDate date];
+    // public in the unified log (NSLog's %@ shows <private>): the server names are public
+    os_log(OS_LOG_DEFAULT, "POI: request to %{public}@", server.url.host ?: @"?");
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:req
+                                                                 completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
+        // on the main queue: poiUpdateOnProgress and the retry state are main-thread only (#12)
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSHTTPURLResponse *http = [resp isKindOfClass:[NSHTTPURLResponse class]] ? (NSHTTPURLResponse *)resp : nil;
+            NSDictionary *json = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
+            NSArray *elements = [json isKindOfClass:[NSDictionary class]] && [json[@"elements"] isKindOfClass:[NSArray class]] ? json[@"elements"] : nil;
+            NSString *remark = [json isKindOfClass:[NSDictionary class]] ? json[@"remark"] : nil;
+            // an Overpass timeout answers 200 with a "runtime error" remark and partial elements: not complete
+            BOOL failed = err || !http || http.statusCode > 299 || !elements
+                       || ([remark isKindOfClass:[NSString class]] && [remark containsString:@"error"]);
+            if (http) [pool serverResponded:server]; // reachable, even if it failed: preferred when all are demoted
+            if (failed) {
+                os_log(OS_LOG_DEFAULT, "POI: %{public}@ failed: %{public}@ HTTP %ld %{public}@", server.url.host ?: @"?",
+                       err.localizedDescription ?: @"", (long)http.statusCode, remark ?: @"");
+                NSString *retryAfter = [http valueForHTTPHeaderField:@"Retry-After"];
+                [pool serverFailed:server retryAfter:retryAfter.doubleValue];
+                [self sendPOIQuery:query route:coords box:box tried:[tried setByAddingObject:server.url]
+                      lastResponse:http completion:completion];
+                return;
             }
-            {
-                NSArray<POILocation *> *tpoiarray = [self poisFromOverpassElements:[elements isKindOfClass:[NSArray class]] ? elements : @[]];
-                self.poiloc = tpoiarray;
-            
-                //[self willChangeValueForKey:@"poiloc"];
-                //_poiloc = tpoiarray;
-                //[self didChangeValueForKey:@"poiloc"];
-                // notify controller
-                if (self.poiAvailableCallback) {
-                    self.poiAvailableCallback();
-                }
-            }
+            [pool server:server answeredAfter:-[start timeIntervalSinceNow]];
+            self->poiRetryCount = 0;
+            completion(elements); // poiUpdateOnProgress: cleared after the last batch
         });
     }];
     [task resume];

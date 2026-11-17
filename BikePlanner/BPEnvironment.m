@@ -24,6 +24,30 @@
     return [NSURL URLWithString:s relativeToURL:[self brouterServerURL]].absoluteURL;
 }
 
++ (NSArray<NSString *> *) overpassServerSpecs
+{
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    id list = [ud objectForKey:@"BPOverpassServers"];
+    if ([list isKindOfClass:[NSArray class]] && [list count]) return list;
+    NSString *single = [ud stringForKey:@"BPOverpassURL"];
+    if (single.length) return @[ single ];
+    // owner's decisions (#84): not the Russian VK instance; overpass.openstreetmap.fr answers 403 "only available to
+    // white-listed usages" (2026-11-17): left out. Europe: two zones inscribed in the Geofabrik extract, avoiding
+    // North Africa (Z1 37.5–71° N, 10° W–30° E; Z2 Andalusia and the Algarve)
+    return @[ @"https://overpass-api.de/api/interpreter",
+              @"https://overpass.private.coffee/api/interpreter",
+              @"https://ovp.dresel.systems/api/interpreter 37.5,-10,71,30;36,-9.5,37.5,-2" ];
+}
+
++ (NSString *) poiCacheDirectory
+{
+    NSString *d = [[NSUserDefaults standardUserDefaults] stringForKey:@"BPPOICacheDirectory"];
+    if (d.length) return d;
+    if ([self isUnitTestHost]) return [NSTemporaryDirectory() stringByAppendingPathComponent:@"bp-poi-cache-tests"];
+    NSString *caches = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).firstObject ?: NSTemporaryDirectory();
+    return [caches stringByAppendingPathComponent:@"POICache"];
+}
+
 + (NSURL *) overpassURL
 {
     return [NSURL URLWithString:[self stringForKey:@"BPOverpassURL" default:@"https://overpass-api.de/api/interpreter"]];

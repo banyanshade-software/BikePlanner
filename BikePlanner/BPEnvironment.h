@@ -27,6 +27,13 @@ typedef NS_ENUM(NSInteger, BPStartPosition) {
 + (NSURL *) brouterServerURL;
 /// URL of a BRouter profile (.brf) on the BRouter server
 + (NSURL *) brouterProfileURLForName:(NSString *)profileName;
+/// Overpass servers in rotation (#84), as specs "URL [s,w,n,e;s,w,n,e]" (zones: a regional server). Default:
+/// overpass-api.de, overpass.private.coffee (worldwide), ovp.dresel.systems (Europe). Key BPOverpassServers (array of
+/// specs, tests), or BPOverpassURL (a single worldwide server, tests and UI tests)
++ (NSArray<NSString *> *) overpassServerSpecs;
+/// Folder of the POI cache (#84): key BPPOICacheDirectory; default <Caches>/POICache of the app, a temporary folder in
+/// the unit test host (never the owner's cache)
++ (NSString *) poiCacheDirectory;
 /// Overpass interpreter URL (default https://overpass-api.de/api/interpreter) — key BPOverpassURL
 + (NSURL *) overpassURL;
 /// Base URL of the Google Maps Embed API (default https://www.google.com/maps/embed/v1/) — key BPGoogleMapsEmbedURL

@@ -75,11 +75,15 @@
     XCTAssertEqualObjects(r.method, @"POST");
     XCTAssertTrue([r.body hasPrefix:@"[out:json]"]);
     XCTAssertEqualObjects(r.userAgent, [BPEnvironment userAgent]);
-    // route sampled every 1 km (#12; points interpolated, #81): 3.3 km -> 0, 1, 2, 3 km and the last point
-    XCTAssertEqual([r.body componentsSeparatedByString:@"node(around"].count - 1, 5u);
-    XCTAssertEqual([r.body componentsSeparatedByString:@"way(around"].count - 1, 5u);
-    XCTAssertTrue([r.body containsString:@"node(around:1500,44.000000,0.500000)"]);
-    XCTAssertTrue([r.body containsString:@"node(around:1500,44.024000,0.524000)"]);
+    // cells of 0.02° within 1.5 km of the route (#84; bounding boxes, a cell is complete), from the start
+    NSUInteger nodes = [r.body componentsSeparatedByString:@"node("].count - 1;
+    XCTAssertEqual(nodes, [r.body componentsSeparatedByString:@"way("].count - 1, @"water… and cemeteries per cell");
+    XCTAssertGreaterThanOrEqual(nodes, 4u);
+    XCTAssertLessThanOrEqual(nodes, 12u);
+    XCTAssertFalse([r.body containsString:@"around"]);
+    NSRange first = [r.body rangeOfString:@"node("];
+    XCTAssertTrue([[r.body substringFromIndex:first.location] hasPrefix:@"node(44.000000,0.500000,44.020000,0.520000)"], @"the cell of the start first");
+    XCTAssertTrue([r.body containsString:@"node(44.020000,0.520000,44.040000,0.540000)"], @"the cell of the end");
 
     XCTAssertEqual(plan.poiloc.count, 3u);
     NSArray *types = [plan.poiloc valueForKey:@"poiType"];
@@ -133,11 +137,12 @@
     XCTAssertEqual([self overpassRequests].count, 1u, @"burst must give a single request");
 
     // the coalesced need is served by the retry timer, ~2.8 s after the first request; the answer of the first
-    // request is for an older route of the burst: ignored (#12)
+    // request is for an older route of the burst: ignored (#12). The routes are the same: served from the cells the
+    // first answer put in the cache, without a second request (#84)
     XCTAssertTrue(BPWaitUntil(6, ^{ return (BOOL)(self->callbacks > 0); }));
-    XCTAssertEqual([self overpassRequests].count, 2u);
+    XCTAssertEqual([self overpassRequests].count, 1u, @"from the cache");
     BPSpin(3.5);
-    XCTAssertEqual([self overpassRequests].count, 2u, @"no more requests once served");
+    XCTAssertEqual([self overpassRequests].count, 1u, @"no more requests once served");
     XCTAssertEqual(callbacks, 1, @"POIs of the last route only");
 }
 
@@ -224,6 +229,185 @@
     XCTAssertGreaterThan(close.count, 85u);
     for (NSUInteger i = 1; i + 1 < close.count; i++) XCTAssertEqualWithAccuracy([close[i] distanceFromLocation:close[i-1]], 250, 1.5);
     XCTAssertLessThanOrEqual([BikePlan samplePointsForPOI:longRoute spacing:250].count, 300u, @"still at most 300");
+}
+
+#pragma mark - servers in rotation, cache (#84)
+
+- (NSArray<BPStubRequest *> *)requestsTo:(NSString *)path
+{
+    return [server requestsWithPath:path];
+}
+
+- (void)useServers:(NSArray<NSString *> *)specs
+{
+    BPOverrideDefaults(@{ @"BPOverpassServers": specs, @"BPPOISearchRadius": @1500, @"BPSightSearchRadius": @1000 });
+}
+
+// a server that does not answer is demoted, the request goes at once to the next one; the next route skips it
+- (void)testFailoverToNextServer
+{
+    NSString *base = server.baseURL.absoluteString;
+    [self useServers:@[ [base stringByAppendingString:@"/s1/api/interpreter"], [base stringByAppendingString:@"/s2/api/interpreter"] ]];
+    server.pathFailures = @{ @"/s1/api/interpreter": @-1 };
+    plan.routePoints = [self route];
+    (void)plan.routePoly;
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->callbacks > 0); }));
+    XCTAssertEqual(plan.poiloc.count, 3u, @"served by s2");
+    XCTAssertEqual([self requestsTo:@"/s1/api/interpreter"].count, 1u);
+    XCTAssertEqual([self requestsTo:@"/s2/api/interpreter"].count, 1u);
+    XCTAssertTrue([[BPOverpassServerPool shared] isDemoted:[BPOverpassServerPool shared].servers[0]]);
+
+    // another route (cells not cached): s1, demoted, is not asked
+    plan.poiMinRequestInterval = 0.05;
+    NSMutableArray *far = [NSMutableArray array];
+    for (int i = 0; i < 25; i++) [far addObject:BPLoc(45.0 + i * 0.001, 1.5 + i * 0.001)];
+    plan.routePoints = far;
+    (void)plan.routePoly;
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->callbacks > 1); }));
+    XCTAssertEqual([self requestsTo:@"/s1/api/interpreter"].count, 1u, @"demoted: skipped");
+    XCTAssertEqual([self requestsTo:@"/s2/api/interpreter"].count, 2u);
+}
+
+// every server fails: a message for the map, the usual retries later
+- (void)testAllServersFail
+{
+    NSString *base = server.baseURL.absoluteString;
+    [self useServers:@[ [base stringByAppendingString:@"/s1/api/interpreter"], [base stringByAppendingString:@"/s2/api/interpreter"] ]];
+    server.pathFailures = @{ @"/s1/api/interpreter": @502, @"/s2/api/interpreter": @-1 };
+    __block NSString *message = nil;
+    plan.poiErrorCallback = ^(NSString *m) { message = m; };
+    plan.poiMinRequestInterval = 0.05;
+    plan.poiRetryBaseDelay = 0.3;
+    plan.routePoints = [self route];
+    (void)plan.routePoly;
+    XCTAssertTrue(BPWaitUntil(3, ^{ return (BOOL)(message != nil); }));
+    XCTAssertTrue([message containsString:@"Overpass"], @"%@", message);
+    XCTAssertEqual(callbacks, 0);
+    server.pathFailures = nil;
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->callbacks > 0); }), @"retried later");
+    XCTAssertEqual(plan.poiloc.count, 3u);
+}
+
+// the cache: the same route again makes no request; a longer route asks only for its new cells (#84)
+- (void)testCacheAvoidsRequests
+{
+    plan.poiMinRequestInterval = 0.05;
+    plan.routePoints = [self route];
+    (void)plan.routePoly;
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->callbacks == 1); }));
+    NSString *firstBody = [self overpassRequests].firstObject.body;
+
+    plan.routePoints = [[self route] copy]; // the same points
+    (void)plan.routePoly;
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->callbacks == 2); }));
+    XCTAssertEqual([self overpassRequests].count, 1u, @"from the cache");
+    XCTAssertEqual(plan.poiloc.count, 3u);
+
+    NSMutableArray *longer = [[self route] mutableCopy];
+    for (int i = 25; i < 80; i++) [longer addObject:BPLoc(44.0 + i * 0.001, 0.5 + i * 0.001)];
+    plan.routePoints = longer;
+    (void)plan.routePoly;
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->callbacks == 3); }));
+    XCTAssertEqual([self overpassRequests].count, 2u);
+    NSString *body = [self overpassRequests].lastObject.body;
+    XCTAssertTrue([firstBody containsString:@"node(44.000000,0.500000,44.020000,0.520000)"]);
+    XCTAssertFalse([body containsString:@"node(44.000000,0.500000,44.020000,0.520000)"], @"a cached cell is not asked again");
+    XCTAssertTrue([body containsString:@"node(44.060000,0.560000,44.080000,0.580000)"], @"a new cell is");
+}
+
+// Refresh Points of Interest: every cell again, ignoring the cache
+- (void)testRefreshIgnoresTheCache
+{
+    plan.poiMinRequestInterval = 0.05;
+    plan.routePoints = [self route];
+    (void)plan.routePoly;
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->callbacks == 1); }));
+    NSString *firstBody = [self overpassRequests].firstObject.body;
+    [plan refreshPOIs];
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->callbacks == 2); }));
+    XCTAssertEqual([self overpassRequests].count, 2u);
+    XCTAssertEqualObjects([self overpassRequests].lastObject.body, firstBody);
+    // then the cache again
+    [plan refetchPOIs];
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->callbacks == 3); }));
+    XCTAssertEqual([self overpassRequests].count, 2u);
+}
+
+// a regional server is asked only for a route inside its zones; round robin with the worldwide one
+- (void)testRegionalServer
+{
+    NSString *base = server.baseURL.absoluteString;
+    [self useServers:@[ [base stringByAppendingString:@"/world/api/interpreter"],
+                        [base stringByAppendingString:@"/europe/api/interpreter 43,-1,50,6"] ]];
+    plan.poiMinRequestInterval = 0.05;
+    NSArray *routes = @[ @[ BPLoc(44.0, 0.5), BPLoc(44.02, 0.52) ], @[ BPLoc(45.0, 1.5), BPLoc(45.02, 1.52) ],
+                         @[ BPLoc(46.0, 2.5), BPLoc(46.02, 2.52) ] ];
+    for (NSUInteger i = 0; i < routes.count; i++) {
+        plan.routePoints = routes[i];
+        (void)plan.routePoly;
+        XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->callbacks == (NSInteger)i + 1); }));
+    }
+    XCTAssertEqual([self requestsTo:@"/world/api/interpreter"].count, 2u, @"round robin");
+    XCTAssertEqual([self requestsTo:@"/europe/api/interpreter"].count, 1u);
+    // outside the zone (Morocco): never the regional server
+    for (int k = 0; k < 2; k++) {
+        plan.routePoints = @[ BPLoc(33.5 + k, -7.6), BPLoc(33.52 + k, -7.58) ];
+        (void)plan.routePoly;
+        XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(self->callbacks == 4 + k); }));
+    }
+    XCTAssertEqual([self requestsTo:@"/europe/api/interpreter"].count, 1u);
+    XCTAssertEqual([self requestsTo:@"/world/api/interpreter"].count, 4u);
+}
+
+// a long route: the missing cells in batches of at most 20, one request after the other, each cached and shown as
+// it arrives (one query for every cell of a long route timed out on the server, 2026-11-17)
+- (void)testBatches
+{
+    plan.poiMinRequestInterval = 0.05;
+    NSMutableArray *longRoute = [NSMutableArray array];
+    for (int i = 0; i < 300; i++) [longRoute addObject:BPLoc(44.0 + i * 0.001, 0.5 + i * 0.001)]; // ~40 km
+    plan.routePoints = longRoute;
+    (void)plan.routePoly;
+    XCTAssertTrue(BPWaitUntil(10, ^{ return (BOOL)([self overpassRequests].count >= 3); }));
+    BPSpin(1.0);
+    NSArray<BPStubRequest *> *requests = [self overpassRequests];
+    XCTAssertGreaterThanOrEqual(requests.count, 3u, @"several batches");
+    NSMutableSet *cells = [NSMutableSet set];
+    for (BPStubRequest *r in requests) {
+        NSUInteger n = [r.body componentsSeparatedByString:@"node("].count - 1;
+        XCTAssertLessThanOrEqual(n, 20u, @"at most 20 cells per request");
+        XCTAssertGreaterThan(n, 0u);
+        NSRegularExpression *re = [NSRegularExpression regularExpressionWithPattern:@"node\\(([^)]*)\\)" options:0 error:NULL];
+        for (NSTextCheckingResult *m in [re matchesInString:r.body options:0 range:NSMakeRange(0, r.body.length)]) {
+            NSString *bbox = [r.body substringWithRange:[m rangeAtIndex:1]];
+            XCTAssertFalse([cells containsObject:bbox], @"a cell asked once");
+            [cells addObject:bbox];
+        }
+    }
+    XCTAssertGreaterThanOrEqual(callbacks, (NSInteger)requests.count, @"the POIs shown after each batch");
+    // all cached: the same route again makes no request
+    NSUInteger before = requests.count;
+    plan.routePoints = [longRoute copy];
+    (void)plan.routePoly;
+    BPSpin(1.0);
+    XCTAssertEqual([self overpassRequests].count, before);
+}
+
+// a batch that fails moves to the next server; the batches already received stay cached
+- (void)testBatchFailover
+{
+    NSString *base = server.baseURL.absoluteString;
+    [self useServers:@[ [base stringByAppendingString:@"/s1/api/interpreter"], [base stringByAppendingString:@"/s2/api/interpreter"] ]];
+    plan.poiMinRequestInterval = 0.05;
+    server.pathFailures = @{ @"/s2/api/interpreter": @502 };
+    NSMutableArray *longRoute = [NSMutableArray array];
+    for (int i = 0; i < 300; i++) [longRoute addObject:BPLoc(44.0 + i * 0.001, 0.5 + i * 0.001)];
+    plan.routePoints = longRoute;
+    (void)plan.routePoly;
+    XCTAssertTrue(BPWaitUntil(10, ^{ return (BOOL)([self requestsTo:@"/s1/api/interpreter"].count >= 3); }));
+    BPSpin(1.0);
+    XCTAssertEqual([self requestsTo:@"/s2/api/interpreter"].count, 1u, @"s2 failed once, then demoted");
+    XCTAssertGreaterThanOrEqual([self requestsTo:@"/s1/api/interpreter"].count, 3u, @"every batch served by s1");
 }
 
 @end

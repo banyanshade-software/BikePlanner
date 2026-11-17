@@ -106,6 +106,12 @@
 		D9C1BA8839B9031E4B702619 /* BPSights.m in Sources */ = {isa = PBXBuildFile; fileRef = CB280961CF803D588E20594C /* BPSights.m */; };
 		C9656E62681F019F1DC188AE /* BPSightsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = DA8347079EAF031DE9E11995 /* BPSightsTests.m */; };
 		3F26CE69B6015E0CE8CC0710 /* BPSightsView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B16C7A775566757041F0198 /* BPSightsView.m */; };
+		BCD77853C93FA8287E5DEBAB /* BPOverpassServers.m in Sources */ = {isa = PBXBuildFile; fileRef = CE0C4B25339A0ACFEB0DF7BC /* BPOverpassServers.m */; };
+		FCD8F9F0E631A937B510FDB2 /* BPOverpassServers.m in Sources */ = {isa = PBXBuildFile; fileRef = CE0C4B25339A0ACFEB0DF7BC /* BPOverpassServers.m */; };
+		343A9575E8AA67759030B927 /* BPOverpassServersTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 02E2E946C9A4F213C3ECE7BF /* BPOverpassServersTests.m */; };
+		C3BCFF2CA2AE0DC00B97C7F4 /* BPPOICache.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EB802C9C37207270757EE3B /* BPPOICache.m */; };
+		1A80CBFF3E8E0C2460123159 /* BPPOICache.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EB802C9C37207270757EE3B /* BPPOICache.m */; };
+		5269D23845BCB470EB3426ED /* BPPOICacheTests.m in Sources */ = {isa = PBXBuildFile; fileRef = C8BE3952F60A78BBBFEAAB11 /* BPPOICacheTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -293,6 +299,12 @@
 		DA8347079EAF031DE9E11995 /* BPSightsTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPSightsTests.m; sourceTree = "<group>"; };
 		4B16C7A775566757041F0198 /* BPSightsView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPSightsView.m; sourceTree = "<group>"; };
 		CBA771607A5062D9EB1FE72F /* BPSightsView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPSightsView.h; sourceTree = "<group>"; };
+		CE0C4B25339A0ACFEB0DF7BC /* BPOverpassServers.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPOverpassServers.m; sourceTree = "<group>"; };
+		CAA6670F747785C36D9B8AE9 /* BPOverpassServers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPOverpassServers.h; sourceTree = "<group>"; };
+		02E2E946C9A4F213C3ECE7BF /* BPOverpassServersTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPOverpassServersTests.m; sourceTree = "<group>"; };
+		0EB802C9C37207270757EE3B /* BPPOICache.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPPOICache.m; sourceTree = "<group>"; };
+		31C69CE9F743F87F4F9CDCAD /* BPPOICache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPPOICache.h; sourceTree = "<group>"; };
+		C8BE3952F60A78BBBFEAAB11 /* BPPOICacheTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPPOICacheTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -446,6 +458,10 @@
 				EFBD737376B8972674E9DF6F /* BPSights.h */,
 				4B16C7A775566757041F0198 /* BPSightsView.m */,
 				CBA771607A5062D9EB1FE72F /* BPSightsView.h */,
+				CE0C4B25339A0ACFEB0DF7BC /* BPOverpassServers.m */,
+				CAA6670F747785C36D9B8AE9 /* BPOverpassServers.h */,
+				0EB802C9C37207270757EE3B /* BPPOICache.m */,
+				31C69CE9F743F87F4F9CDCAD /* BPPOICache.h */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -527,6 +543,8 @@
 				C0E3F74750DE07CB5843A5F8 /* BPFITBuilder.m */,
 				F934EBD71A391CA4747FAEA7 /* BPFITBuilder.h */,
 				DA8347079EAF031DE9E11995 /* BPSightsTests.m */,
+				02E2E946C9A4F213C3ECE7BF /* BPOverpassServersTests.m */,
+				C8BE3952F60A78BBBFEAAB11 /* BPPOICacheTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -808,6 +826,8 @@
 				158DEE0B1642428EBE18A3A8 /* BPGuidedTour.m in Sources */,
 				EB9A85B2E9362CBB632C8822 /* BPSights.m in Sources */,
 				3F26CE69B6015E0CE8CC0710 /* BPSightsView.m in Sources */,
+				BCD77853C93FA8287E5DEBAB /* BPOverpassServers.m in Sources */,
+				C3BCFF2CA2AE0DC00B97C7F4 /* BPPOICache.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -845,6 +865,8 @@
 				FF18C551CEC1F4F2DFA6F3E1 /* BPTrackReaderTests.m in Sources */,
 				58B63D5F1EAE2477515FB81D /* BPFITBuilder.m in Sources */,
 				C9656E62681F019F1DC188AE /* BPSightsTests.m in Sources */,
+				343A9575E8AA67759030B927 /* BPOverpassServersTests.m in Sources */,
+				5269D23845BCB470EB3426ED /* BPPOICacheTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -872,6 +894,8 @@
 				43ECACC673FCC213E27F73DF /* BikePlan.m in Sources */,
 				A2353570BBD0ED047788FDC3 /* BPEnvironment.m in Sources */,
 				D9C1BA8839B9031E4B702619 /* BPSights.m in Sources */,
+				FCD8F9F0E631A937B510FDB2 /* BPOverpassServers.m in Sources */,
+				1A80CBFF3E8E0C2460123159 /* BPPOICache.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

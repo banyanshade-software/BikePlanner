@@ -38,6 +38,17 @@
     [self.preferencesWindowController showWindow:sender];
 }
 
+// after Recalculate Route, built here so that MainMenu.xib is unchanged
+- (void)installRefreshPOIsMenuItem
+{
+    NSMenu *edit = [NSApp.mainMenu itemWithTitle:@"Edit"].submenu;
+    if (!edit || [edit indexOfItemWithTarget:nil andAction:NSSelectorFromString(@"refreshPOIs:")] >= 0) return;
+    NSInteger i = [edit indexOfItemWithTarget:nil andAction:NSSelectorFromString(@"recalculateRoute:")];
+    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"Refresh Points of Interest", @"Edit menu")
+                                                  action:NSSelectorFromString(@"refreshPOIs:") keyEquivalent:@""];
+    [edit insertItem:item atIndex:i >= 0 ? i + 1 : edit.numberOfItems];
+}
+
 - (IBAction)showGuidedTour:(id)sender
 {
     [PlannerWindowController showGuidedTourOnSampleWithCompletion:nil];
@@ -45,6 +56,7 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     [BPGuidedTour installMenuItem]; // Help ▸ Guided Tour (#63)
+    [self installRefreshPOIsMenuItem]; // Edit ▸ Refresh Points of Interest (#84)
 #if BP_SITE_EDITOR
     [BPSiteEditorController installMenu]; // developer build only (#67, scripts/build_site_editor.sh)
 #endif

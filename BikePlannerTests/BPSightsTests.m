@@ -12,7 +12,7 @@
 #import "TestFixtures.h"
 
 @interface BikePlan (SightsTesting)
-- (NSString *)overpassQueryForTrack:(NSArray<CLLocation *> *)trackPoints;
+- (NSString *)overpassQueryForRoute:(NSArray<CLLocation *> *)route;
 - (NSArray<POILocation *> *)poisFromOverpassElements:(NSArray *)elements;
 - (void)setPoiloc:(NSArray<POILocation *> *)pl;
 @end
@@ -116,29 +116,28 @@
 {
     BikePlan *plan = [self planWithRoute];
     plan.sightCategories = @[];
-    NSString *q = [plan overpassQueryForTrack:plan.routePoints];
+    NSString *q = [plan overpassQueryForRoute:plan.routePoints];
     XCTAssertFalse([q containsString:@"nwr("], @"no category: utilities only");
     plan.sightCategories = @[ @"viewpoint" ];
-    q = [plan overpassQueryForTrack:plan.routePoints];
-    XCTAssertTrue([q containsString:@"nwr(around:1000,"], @"sights within 1 km");
-    XCTAssertTrue([q containsString:@"node(around:1500,"], @"utilities within 1.5 km");
+    q = [plan overpassQueryForRoute:plan.routePoints];
+    XCTAssertTrue([q containsString:@"nwr(43.980000,0.480000,44.000000,0.500000)[~"], @"sights per cell (#84)");
+    XCTAssertTrue([q containsString:@"node(43.980000,0.480000,44.000000,0.500000)["], @"utilities per cell");
 }
 
-// the search distances of the Preferences; under 1 km, the sampled points are as close as the radius (no hole
-// between the circles)
+// the search distances of the Preferences give the cells asked for (#84): the route goes along latitude 44.0 (a cell
+// border) from 0.50 to 0.60
 - (void)testQueryUsesTheSearchDistances
 {
     BikePlan *plan = [self planWithRoute]; // ~8 km
     plan.sightCategories = @[ @"viewpoint" ];
     BPOverrideDefaults(@{ @"BPPOISearchRadius": @2000, @"BPSightSearchRadius": @250 });
-    NSString *q = [plan overpassQueryForTrack:plan.routePoints];
-    NSUInteger utilities = [q componentsSeparatedByString:@"node(around:2000,"].count - 1;
-    NSUInteger sights = [q componentsSeparatedByString:@"nwr(around:250,"].count - 1;
-    XCTAssertGreaterThanOrEqual(utilities, 8u, @"1 km apart");
-    XCTAssertLessThanOrEqual(utilities, 11u);
-    XCTAssertGreaterThanOrEqual(sights, 30u, @"250 m apart: %lu", (unsigned long)sights);
-    XCTAssertLessThanOrEqual(sights, 36u);
-    XCTAssertFalse([q containsString:@"around:1000,"]);
+    NSString *q = [plan overpassQueryForRoute:plan.routePoints];
+    NSUInteger utilities = [q componentsSeparatedByString:@"node("].count - 1;
+    NSUInteger sights = [q componentsSeparatedByString:@"nwr("].count - 1;
+    // 2 km: latitude cells 2199–2200, longitude 0.475–0.625 → cells 23–31; 250 m: longitude 0.497–0.603 → 24–30
+    XCTAssertEqual(utilities, 18u);
+    XCTAssertEqual(sights, 14u);
+    XCTAssertFalse([q containsString:@"around"]);
 }
 
 - (void)testParsingKeepsSightsOfSelectedCategories

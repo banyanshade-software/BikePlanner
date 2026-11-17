@@ -32,6 +32,8 @@
         @"-BPProfileOverrides", @"{}",
         @"-BPSightCategories", @"()", // no sights (#81): the stub's POIs only
         @"-BPPOISearchRadius", @"1500", @"-BPSightSearchRadius", @"1000", // nor the owner's search distances
+        // never the owner's POI cache (#84): the stub's POIs are around 44° N, 0.5° E
+        @"-BPPOICacheDirectory", [@"/private/tmp/bp-uitests/poi-cache-" stringByAppendingString:NSUUID.UUID.UUIDString],
     ] mutableCopy];
     [args addObjectsFromArray:[self extraLaunchArguments]];
     self.app.launchArguments = args;

@@ -82,6 +82,14 @@
 + (nullable NSString *)overpassClauseForCategories:(NSArray<NSString *> *)categories radius:(NSUInteger)radius
                                           latitude:(double)latitude longitude:(double)longitude
 {
+    NSString *filter = [self overpassFilterForCategories:categories];
+    if (!filter) return nil;
+    // nodes, ways (castles) and relations, with their center (out center)
+    return [NSString stringWithFormat:@"  nwr(around:%lu,%.6f,%.6f)%@;\n", (unsigned long)radius, latitude, longitude, filter];
+}
+
++ (nullable NSString *)overpassFilterForCategories:(NSArray<NSString *> *)categories
+{
     NSMutableSet<NSString *> *keys = [NSMutableSet set], *values = [NSMutableSet set];
     for (NSString *c in [self normalizedCategories:categories]) {
         [[self tags][c] enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSArray<NSString *> *vals, BOOL *stop) {
@@ -92,9 +100,7 @@
     if (!keys.count) return nil;
     NSArray *k = [keys.allObjects sortedArrayUsingSelector:@selector(compare:)];
     NSArray *v = [values.allObjects sortedArrayUsingSelector:@selector(compare:)];
-    // nodes, ways (castles) and relations, with their center (out center)
-    return [NSString stringWithFormat:@"  nwr(around:%lu,%.6f,%.6f)[~\"^(%@)$\"~\"^(%@)$\"];\n", (unsigned long)radius,
-            latitude, longitude, [k componentsJoinedByString:@"|"], [v componentsJoinedByString:@"|"]];
+    return [NSString stringWithFormat:@"[~\"^(%@)$\"~\"^(%@)$\"]", [k componentsJoinedByString:@"|"], [v componentsJoinedByString:@"|"]];
 }
 
 + (PoiType_t)typeForTags:(NSDictionary<NSString *, NSString *> *)tags categories:(NSArray<NSString *> *)categories

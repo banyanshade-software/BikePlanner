@@ -71,6 +71,11 @@ SupportClasses/              Reusable/support components
                              road / surface class along the route (runs of points, #54)
   BPRoadTypesView.*          Info section distance by road type and surface, one radio button per class; reports
                              the selected one (#54, #66)
+  BPOverpassServers.*        Overpass servers (#84): specs "URL [zones]" from BPEnvironment, round robin, demotion
+                             of failing / slow ones, kept in BPOverpassServerState (injectable clock and defaults);
+                             no UI (also in Quick Look)
+  BPPOICache.*               Cache of the Overpass answers per cell of 0.02° and layer, memory + <Caches>/POICache,
+                             7 days, 50 MB (#84); no UI (also in Quick Look)
   BPSights.*                 Sights near the route (#81): categories, their OSM tags, the Overpass clause (one
                              key/value regex per sampled point, 1 km), classification; no UI (also in Quick Look)
   BPSightsView.*             Info section: sight categories, inclusion distance, list of the sights by km (#81);
@@ -221,15 +226,23 @@ POIs, `setGpxDisplayed:` (reference trace) → `shouldRecalcRoute`.
 plan.routePoly getter → shouldRequestPOI (tpoineed = now) → tryRequestPoi
   ├─ fetchPOI off, <2 points, or already fetched → stop
   ├─ request in progress or last request < 2.8 s ago → (re)arm 2 s repeating NSTimer, stop
-  └─ fetchPOIsNearRoute: POST Overpass QL, node(around:1500,lat,lon) + way(around:…) per route point sampled every
-     ≥ 1 km (first and last points included, at most 300 points) (#12); not one around:<polyline> clause:
-     overpass-api.de returned no element for it on real routes
-        completion → main queue (poiUpdateOnProgress and the retry state are main-thread only)
-        error/HTTP≥300 → refetchPOIAfterError: retry on the main run loop after 2, 4, 8… s (max 120 s), or the
-                         Retry-After of the answer (429/503); at most 5 retries, then wait for the next route change
-                         (shouldRequestPOI resets the series and cancels a pending retry)
-        answer for a previous route while a newer need is pending → ignored
-        success → build POILocation[] → plan.poiloc → poiAvailableCallback → MapController.refreshPOI
+  └─ fetchPOIsNearRoute (#84): the cells of 0.02° within the search distances (BPPOICache cellsAlongRoute, the
+     start's cell first), per cell the layers (utilities; each selected sight category, #81)
+        all in the cache (7 days) → applyCachedPOIs (async): elements of the cells, deduplicated, parsed, kept
+                                   within the distances of the route → plan.poiloc → poiAvailableCallback
+        else → the missing cells in batches of ≤ 20 (sendPOIBatches, one after the other; each batch cached and
+               applied as it arrives; a newer route stops the series) → per batch, one query for the missing layers
+               of its cells (bbox clauses, [timeout:25]) → sendPOIQuery:
+               BPOverpassServerPool nextServerFor:<route bbox> (round robin; regional servers only for a route inside
+               their zones; demoted ones skipped) → POST, HTTP timeout 30 s
+          completion → main queue (poiUpdateOnProgress and the retry state are main-thread only)
+          failure (no connection, timeout, HTTP ≥ 300, "runtime error" remark) → serverFailed (demoted 10 min,
+              doubled, ≤ 2 h; Retry-After) → the next server at once (all demoted: the last one that gave any HTTP
+              answer, else the first available); none left → poiErrorCallback (map message)
+              and refetchPOIAfterError: retry after 2, 4, 8… s (max 120 s) or Retry-After, at most 5 retries
+          success → answeredAfter (slow > 20 s: demoted too) → elements stored per requested cell and layer
+              (empty ones too: a cell is complete) → applyCachedPOIs (an answer for a previous route: cache only)
+  Edit ▸ Refresh Points of Interest → plan.refreshPOIs: every cell again, ignoring the cache
 ```
 
 ### 6.4 Route computation

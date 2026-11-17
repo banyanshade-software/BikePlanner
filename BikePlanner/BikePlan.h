@@ -86,6 +86,8 @@ extern NSString *const BPRoadTypePercentKey;   // "50 %"
 @property (readonly,nonatomic) NSArray<POILocation *> *poiloc;
 @property (readonly,nonatomic) NSMutableArray<POILocation *> *customPoiloc;
 @property (nonatomic, copy) void (^poiAvailableCallback)(void);
+/// no Overpass server answered (#84): a message for the map
+@property (nonatomic, copy, nullable) void (^poiErrorCallback)(NSString *message);
 - (void) addCustomPoiAt:(CLLocationCoordinate2D)coord;   // default type (Information, #74), no name
 // typed custom POIs (#3); an empty name is no name
 - (POILocation *) addCustomPoiAt:(CLLocationCoordinate2D)coord type:(PoiType_t)type name:(nullable NSString *)name;
@@ -147,8 +149,11 @@ extern NSString *const BPRoadTypePercentKey;   // "50 %"
 /// records the user's choice (a sight: in includedPOIKeys or excludedPOIKeys; a utility: excludedPOIKeys)
 - (void) setPOIKey:(NSString *)key excluded:(BOOL)excluded;
 - (nullable POILocation *) poiWithKey:(NSString *)key;
-/// fetches the POIs again (search distances changed in the Preferences, #81); nothing without route
+/// fetches the POIs again (search distances changed in the Preferences, #81); nothing without route. From the cache
+/// when it has every cell (#84)
 - (void) refetchPOIs;
+/// Refresh Points of Interest (#84): asks Overpass again for every cell of the route, ignoring the cache
+- (void) refreshPOIs;
 
 // sights near the route (#81), saved with the document: categories (BPSights; normalized; a change fetches the POIs
 // again), and the distance under which a sight is included in the track (meters; 0: none, the default)

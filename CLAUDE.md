@@ -112,8 +112,10 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
 - **Everything runs offline.** External services are replaced by `BPStubServer` (in `BikePlannerTests/`, compiled
   into both test targets), which imitates BRouter (routes in GeoJSON — the app requests `format=geojson` since #53 —
   or GPX, `.brf` profiles; GeoJSON way tags: first half tertiary/asphalt, second half track/gravel), Overpass (3 POIs
-  ~1 km from the first `around` point; with sights, #81, when the query has an `nwr(around:` clause: a castle way
-  ~55 m north, a viewpoint ~640 m east, a cafe ~300 m south) and the Maps Embed API (HTTP 403 for a key starting with `invalid`, like Google
+  ~1 km from the center of the first cell of the query — the cell of the route's start, #84 — or the first `around`
+  point; with sights, #81, when the query has an `nwr(` clause: a castle way ~55 m north, a viewpoint ~640 m east, a
+  cafe ~300 m south; any path ending in `/api/interpreter` answers, so `BPOverpassServers` can list several stub
+  servers `/s1/api/interpreter`…, with `pathFailures` (an HTTP status, or -1: no connection) and `pathDelays`) and the Maps Embed API (HTTP 403 for a key starting with `invalid`, like Google
   for a rejected key). It records every request (path, query, body, `referer`, `userAgent`) — use the request log as
   the oracle. Failures: `failCount` / `failStatus` / `failRetryAfter`; slow answers: `responseDelay` (read when the
   request starts). `+geojsonForLonLats:` / `+gpxForLonLats:` give the route the stub returns.
@@ -123,12 +125,13 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
   - UI tests: `BPUITestCase` starts a real HTTP server (`[server start]`, needs `network.server`, granted to the UI test
     runner by `BikePlannerUITests.entitlements`) and passes launch arguments to the app.
 - App-side test hooks are in `BPEnvironment` (`BPBRouterServer`, `BPOverpassURL`, `BPGoogleMapsEmbedURL`, `BPDisableStreetView`,
-  `BPDisableTiles`, `BPInitialRegion`, `BPDisableLocation`, `BPRemarkableSiteIndex`); no effect without overrides. When adding an external endpoint, route it
+  `BPDisableTiles`, `BPInitialRegion`, `BPDisableLocation`, `BPRemarkableSiteIndex`, `BPOverpassServers`, `BPPOICacheDirectory` — #84); no effect without overrides. When adding an external endpoint, route it
   through `BPEnvironment` and teach `BPStubServer` to answer it. The Apple place search goes through `BPPlaceSearch`:
   tests replace it with `+setSearchHandlerForTesting:`. Tests of the Preferences use a private `NSUserDefaults`
   suite, never the owner's defaults. The test host reads the owner's real user defaults (Preferences, my default
   BRouter parameters): a test that depends on `BPDefaultPosition`, `BPInitialRadiusKm`, `BPStartPosition`, `BPProfileOverrides`, `BPSightCategories`, `BPPOISearchRadius`/`BPSightSearchRadius`… must
-  override it with `BPOverrideDefaults`. `BPOverrideDefaults` is not cumulative: each call starts again from the
+  override it with `BPOverrideDefaults`. `BPOverrideDefaults` also gives each test its own POI cache folder (`BPPOICacheDirectory`) and forgets the
+  demoted Overpass servers (#84). `BPOverrideDefaults` is not cumulative: each call starts again from the
   original values, so a second call in a test drops the overrides of `setUp` — repeat them. The app launched by the
   UI tests reads them too: `BPUITestCase` overrides them with launch arguments (e.g. `-BPProfileOverrides {}`: the
   owner's default BRouter parameters have keys the stub's profile lacks, so *Apply* started enabled).

@@ -7,6 +7,8 @@
 
 #import <Foundation/Foundation.h>
 #import <CoreLocation/CoreLocation.h>
+#import "BPPOICache.h"
+#import "BPOverpassServers.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -46,8 +48,14 @@ static inline void BPOverrideDefaults(NSDictionary *values) {
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     if (!bpSavedArgumentDomain) bpSavedArgumentDomain = [ud volatileDomainForName:NSArgumentDomain] ?: @{};
     NSMutableDictionary *d = [bpSavedArgumentDomain mutableCopy];
+    // each test its own POI cache (a request of the previous test, still in flight, fills the cache it started with)
+    // and Overpass servers not demoted (#84)
+    d[@"BPPOICacheDirectory"] = [NSTemporaryDirectory() stringByAppendingPathComponent:
+                                 [@"bp-poi-cache-test-" stringByAppendingString:NSUUID.UUID.UUIDString]];
     [d addEntriesFromDictionary:values];
     [ud setVolatileDomain:d forName:NSArgumentDomain];
+    [[BPPOICache shared] removeAll];
+    [BPOverpassServerPool resetShared];
 }
 static inline void BPRestoreDefaults(void) {
     if (bpSavedArgumentDomain) {

@@ -22,6 +22,8 @@ NS_ASSUME_NONNULL_BEGIN
 /// known categories only, without duplicates, in the order of allCategories
 + (NSArray<NSString *> *)normalizedCategories:(nullable NSArray<NSString *> *)categories;
 
+/// the Overpass filter of the categories: [~"^(keys)$"~"^(values)$"] (a key/value regex on their tags); nil if none
++ (nullable NSString *)overpassFilterForCategories:(NSArray<NSString *> *)categories;
 /// one Overpass clause around a point for the selected categories (a key/value regex on their tags); nil if none
 + (nullable NSString *)overpassClauseForCategories:(NSArray<NSString *> *)categories radius:(NSUInteger)radius
                                           latitude:(double)latitude longitude:(double)longitude;

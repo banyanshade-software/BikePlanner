@@ -494,7 +494,11 @@
     [um endUndoGrouping];
     XCTAssertTrue(BPWaitUntil(10, ^{ return (BOOL)([self poiNamed:@"Belvédère"] != nil); }), @"sights fetched with the route");
     XCTAssertNil([self poiNamed:@"Café du Pont"], @"food not selected");
-    XCTAssertTrue([[server requestsWithPath:@"/api/interpreter"].lastObject.body containsString:@"nwr(around:1000,"]);
+    BOOL startCell = NO; // in one of the batches (#84)
+    for (BPStubRequest *r in [server requestsWithPath:@"/api/interpreter"]) {
+        if ([r.body containsString:@"nwr(44.000000,0.500000,44.020000,0.520000)[~"]) startCell = YES;
+    }
+    XCTAssertTrue(startCell, @"sights per cell (#84)");
     POILocation *castle = [self poiNamed:@"Château de Test"], *viewpoint = [self poiNamed:@"Belvédère"];
     XCTAssertEqual(castle.poiType, POI_culture);
 
@@ -636,20 +640,68 @@
     server.responseDelay = 0;
 }
 
-// a change of the search distances in the Preferences fetches the POIs of the open documents again (#81)
+// a change of the search distances in the Preferences (#81): the POIs of the open documents again, from the cache
+// for a smaller distance, with a request for the new cells only for a larger one (#84)
 - (void)testSearchDistanceChangeFetchesAgain
 {
     [self makeRoute];
     [self waitForPOIs];
-    XCTAssertTrue([[server requestsWithPath:@"/api/interpreter"].lastObject.body containsString:@"node(around:1500,"]);
+    NSString *body = [server requestsWithPath:@"/api/interpreter"].lastObject.body;
+    NSUInteger cells1500 = [body componentsSeparatedByString:@"node("].count - 1;
     NSUInteger requests = [server requestsWithPath:@"/api/interpreter"].count;
-    BPOverrideDefaults(@{ @"BPBRouterServer": server.baseURL.absoluteString, @"BPOverpassURL": server.overpassURL.absoluteString,
-                          @"BPDisableStreetView": @YES, @"BPDisableTiles": @YES, @"BPInitialRegion": @"44.05,0.55,0.2",
-                          @"BPProfileOverrides": @{}, @"BPColorScheme": @"classic", @"BPSightCategories": @[],
-                          @"BPPOISearchRadius": @500 });
+    NSMutableDictionary *overrides = [@{ @"BPBRouterServer": server.baseURL.absoluteString, @"BPOverpassURL": server.overpassURL.absoluteString,
+                                         @"BPDisableStreetView": @YES, @"BPDisableTiles": @YES, @"BPInitialRegion": @"44.05,0.55,0.2",
+                                         @"BPProfileOverrides": @{}, @"BPColorScheme": @"classic", @"BPSightCategories": @[],
+                                         @"BPPOISearchRadius": @500 } mutableCopy];
+    // (BPOverrideDefaults also empties the cache: put the answers back as they were)
+    NSDictionary *saved = [self cacheSnapshot];
+    BPOverrideDefaults(overrides);
+    [self restoreCacheSnapshot:saved];
+    [[NSNotificationCenter defaultCenter] postNotificationName:BPPOISearchDidChangeNotification object:nil];
+    BPSpin(3.5);
+    XCTAssertEqual([server requestsWithPath:@"/api/interpreter"].count, requests, @"500 m: the cells are cached");
+    XCTAssertGreaterThan(doc.plan.poiloc.count, 0u);
+
+    saved = [self cacheSnapshot];
+    overrides[@"BPPOISearchRadius"] = @5000;
+    BPOverrideDefaults(overrides);
+    [self restoreCacheSnapshot:saved];
     [[NSNotificationCenter defaultCenter] postNotificationName:BPPOISearchDidChangeNotification object:nil];
     XCTAssertTrue(BPWaitUntil(8, ^{ return (BOOL)([self->server requestsWithPath:@"/api/interpreter"].count > requests); }));
-    XCTAssertTrue([[server requestsWithPath:@"/api/interpreter"].lastObject.body containsString:@"node(around:500,"]);
+    NSString *more = [server requestsWithPath:@"/api/interpreter"].lastObject.body;
+    NSUInteger newCells = [more componentsSeparatedByString:@"node("].count - 1;
+    XCTAssertGreaterThan(newCells, 0u);
+    XCTAssertFalse([more containsString:@"node(44.000000,0.500000,44.020000,0.520000)"], @"5 km: only the cells not cached (%lu before)", (unsigned long)cells1500);
+    BPSpin(0.3);
+}
+
+// the cache of the shared instance, in memory (BPOverrideDefaults empties it)
+- (NSDictionary *)cacheSnapshot
+{
+    return [[[BPPOICache shared] valueForKey:@"_memory"] copy];
+}
+
+- (void)restoreCacheSnapshot:(NSDictionary *)snapshot
+{
+    [[[BPPOICache shared] valueForKey:@"_memory"] addEntriesFromDictionary:snapshot];
+}
+
+// Edit ▸ Refresh Points of Interest (#84): after Recalculate Route, enabled with a route and Fetch POI
+- (void)testRefreshPOIsMenuItem
+{
+    NSMenu *edit = [NSApp.mainMenu itemWithTitle:@"Edit"].submenu;
+    NSInteger i = [edit indexOfItemWithTarget:nil andAction:NSSelectorFromString(@"refreshPOIs:")];
+    XCTAssertNotEqual(i, -1);
+    XCTAssertEqual(i, [edit indexOfItemWithTarget:nil andAction:NSSelectorFromString(@"recalculateRoute:")] + 1);
+    NSMenuItem *item = [edit itemAtIndex:i];
+    XCTAssertEqualObjects(item.title, @"Refresh Points of Interest");
+    XCTAssertFalse([doc validateMenuItem:item], @"no route");
+    [self makeRoute];
+    [self waitForPOIs];
+    XCTAssertTrue([doc validateMenuItem:item]);
+    NSUInteger requests = [server requestsWithPath:@"/api/interpreter"].count;
+    [NSApp sendAction:item.action to:doc from:item];
+    XCTAssertTrue(BPWaitUntil(8, ^{ return (BOOL)([self->server requestsWithPath:@"/api/interpreter"].count > requests); }), @"asked again");
     BPSpin(0.3);
 }
 

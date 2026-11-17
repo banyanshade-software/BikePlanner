@@ -56,6 +56,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property (atomic, copy, nullable) NSString *failRetryAfter;
 /// Delay before answering, in seconds (default 0).
 @property (atomic) double responseDelay;
+/// several Overpass servers (#84): any path ending in /api/interpreter answers like Overpass. Per path: an HTTP status
+/// to answer instead (-1: the connection fails, in-process only), and a delay (seconds) instead of responseDelay
+@property (atomic, copy, nullable) NSDictionary<NSString *, NSNumber *> *pathFailures;
+@property (atomic, copy, nullable) NSDictionary<NSString *, NSNumber *> *pathDelays;
 
 /// GPX that the /brouter endpoint returns for these "lon,lat|lon,lat" waypoints (exposed for assertions)
 + (NSString *) gpxForLonLats:(NSString *)lonlats;

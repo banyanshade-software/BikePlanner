@@ -73,6 +73,13 @@ static __weak BPStubServer *bpInProcessServer = nil;
     req.referer = [self.request valueForHTTPHeaderField:@"Referer"];
     req.userAgent = [self.request valueForHTTPHeaderField:@"User-Agent"];
 
+    if ([server.pathFailures[req.path] integerValue] == -1) {
+        // a server that does not answer (#84): recorded, then the connection fails
+        [server handle:req contentType:NULL body:NULL headers:NULL];
+        [self.client URLProtocol:self didFailWithError:[NSError errorWithDomain:NSURLErrorDomain
+                                                                           code:NSURLErrorCannotConnectToHost userInfo:nil]];
+        return;
+    }
     NSString *ctype = nil;
     NSData *body = nil;
     NSDictionary<NSString *, NSString *> *extra = nil;
@@ -87,7 +94,8 @@ static __weak BPStubServer *bpInProcessServer = nil;
         [self.client URLProtocol:self didLoadData:body];
         [self.client URLProtocolDidFinishLoading:self];
     };
-    double delay = server.responseDelay;
+    NSNumber *pathDelay = server.pathDelays[req.path];
+    double delay = pathDelay != nil ? pathDelay.doubleValue : server.responseDelay;
     if (delay > 0) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_global_queue(0, 0), deliver);
     } else {
@@ -316,7 +324,13 @@ static __weak BPStubServer *bpInProcessServer = nil;
     NSString *ctype = @"text/plain";
     NSString *body = @"";
 
-    if (self.failCount > 0) {
+    NSInteger pathFailure = [self.pathFailures[req.path] integerValue];
+    if (pathFailure == -1) {
+        return 0; // recorded only: the connection fails (BPStubURLProtocol)
+    } else if (pathFailure > 0) {
+        status = pathFailure;
+        body = @"stub server failure";
+    } else if (self.failCount > 0) {
         self.failCount = self.failCount - 1;
         status = self.failStatus;
         body = @"stub failure";
@@ -351,7 +365,7 @@ static __weak BPStubServer *bpInProcessServer = nil;
                @"assign   downhillcost     = if avoid_unsafe then 0 else downhillcost\n"
                @"---context:way\n"
                @"assign   classifier_none  = 1      # %classifier_none% | internal | number\n";
-    } else if ([req.path isEqualToString:@"/api/interpreter"]) {
+    } else if ([req.path hasSuffix:@"/api/interpreter"]) {   // several servers: /s1/api/interpreter… (#84)
         ctype = @"application/json";
         body = [self overpassJSONForQuery:req.body];
     } else if ([req.path isEqualToString:@"/maps/embed/v1/streetview"]) {
@@ -369,9 +383,9 @@ static __weak BPStubServer *bpInProcessServer = nil;
         body = @"not found";
     }
 
-    *ctypeOut = ctype;
-    *bodyOut = [body dataUsingEncoding:NSUTF8StringEncoding];
-    *headersOut = headers;
+    if (ctypeOut) *ctypeOut = ctype;
+    if (bodyOut) *bodyOut = [body dataUsingEncoding:NSUTF8StringEncoding];
+    if (headersOut) *headersOut = headers;
     return status;
 }
 
@@ -495,14 +509,21 @@ static double BPDistance(double lat1, double lon1, double lat2, double lon2)
 
 - (NSString *) overpassJSONForQuery:(NSString *)q
 {
-    // POIs placed ~1 km from the first sampled route point (N: water, E: toilets, S: cemetery)
+    // POIs placed ~1 km from the first sampled route point (N: water, E: toilets, S: cemetery); since #84 the app asks
+    // for cells (bounding boxes, from the start of the route): the anchor is the center of the first one
     double lat = 44.0, lon = 0.5;
     NSRegularExpression *re = [NSRegularExpression regularExpressionWithPattern:@"around:\\d+,([-\\d.]+),([-\\d.]+)"
                                                                         options:0 error:NULL];
     NSTextCheckingResult *m = [re firstMatchInString:q options:0 range:NSMakeRange(0, q.length)];
+    NSRegularExpression *bboxRe = [NSRegularExpression regularExpressionWithPattern:@"\\(([-\\d.]+),([-\\d.]+),([-\\d.]+),([-\\d.]+)\\)"
+                                                                            options:0 error:NULL];
+    NSTextCheckingResult *b = [bboxRe firstMatchInString:q options:0 range:NSMakeRange(0, q.length)];
     if (m) {
         lat = [[q substringWithRange:[m rangeAtIndex:1]] doubleValue];
         lon = [[q substringWithRange:[m rangeAtIndex:2]] doubleValue];
+    } else if (b) {
+        lat = ([[q substringWithRange:[b rangeAtIndex:1]] doubleValue] + [[q substringWithRange:[b rangeAtIndex:3]] doubleValue]) / 2;
+        lon = ([[q substringWithRange:[b rangeAtIndex:2]] doubleValue] + [[q substringWithRange:[b rangeAtIndex:4]] doubleValue]) / 2;
     }
     NSDictionary *json = @{
         @"elements": @[
@@ -514,7 +535,7 @@ static double BPDistance(double lat1, double lon1, double lat2, double lon2)
                @"tags": @{ @"landuse": @"cemetery" } },
         ]
     };
-    if ([q containsString:@"nwr(around:"]) {
+    if ([q containsString:@"nwr("]) {
         // sights (#81): a castle (a way) ~55 m north of the first point, a viewpoint ~640 m east, a cafe ~300 m south
         NSMutableArray *els = [json[@"elements"] mutableCopy];
         [els addObjectsFromArray:@[

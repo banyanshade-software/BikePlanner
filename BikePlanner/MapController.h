@@ -57,6 +57,9 @@ typedef NS_ENUM(int, BPClickMode) {
 - (IBAction) reverseRoute:(id)sender;
 - (BOOL) canReverseRoute;
 - (IBAction) recalculateRoute:(id)sender;
+/// Edit ▸ Refresh Points of Interest (#84): ignores the POI cache
+- (IBAction) refreshPOIs:(id)sender;
+- (BOOL) canRefreshPOIs;
 - (BOOL) canRecalculateRoute;
 - (IBAction) clearRoute:(id)sender;
 - (BOOL) canClearRoute;

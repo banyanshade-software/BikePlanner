@@ -238,7 +238,24 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
 - F7.1 When “Fetch POI” is on, after each route change the app queries Overpass for, within 1.5 km of
   (a sample of) the route points: drinking water, toilets, bicycle repair stations, grave yards (nodes)
   and cemeteries (land use areas).
-- F7.2 Requests are throttled (≥ ~2.8 s apart). A retry on error is intended but does not work today (#12).
+- F7.2 Requests are throttled (≥ ~2.8 s apart), retried on error (2, 4, 8… s, or the server's Retry-After, at
+  most 5 times, #12).
+- F7.9 **Overpass servers and cache** (#84):
+  - Servers in round robin, to share the load: overpass-api.de and overpass.private.coffee (worldwide),
+    ovp.dresel.systems (Europe: only for a route whose bounding box is inside one of its zones, 37.5–71° N /
+    10° W–30° E, or Andalusia–Algarve 36–37.5° N / 9.5–2° W). Not the Russian VK instance (owner's decision);
+    overpass.openstreetmap.fr refuses non white-listed users (HTTP 403, 2026-11-17).
+  - A server that fails (no connection, timeout, HTTP error, Overpass runtime error) or answers in more than 20 s is
+    demoted for 10 min (doubled at each new failure, at most 2 h, or its Retry-After), and the request goes at once to
+    the next one. Requests time out after 30 s. When none answers, a message on the map, then the retries of F7.2.
+    When all are demoted, the one that answered last (even with an error: it is reachable) is asked first. The
+    demotions are kept from one launch to the next (user default `BPOverpassServerState`; not for test servers).
+  - The missing cells go in batches of at most 20 per request, one after the other; each batch is cached and its
+    POIs shown as it arrives (one query for every cell of a long route timed out on the server).
+  - Cache per area: cells of 0.02° (~2.2 × 1.5 km) along the route, one layer per kind (utilities, each sight
+    category), complete (bounding box queries), kept 7 days, at most 50 MB in the Caches of the app (oldest cells
+    evicted first). A route asks only for the cells it lacks; a smaller search distance, a removed or re-added
+    category, the same route reopened: no request. *Edit ▸ Refresh Points of Interest* asks again for every cell.
 - F7.3 “View POI” toggles display of fetched POIs. Custom POIs are always shown.
 - F7.4 Each POI type has its own icon and color; the POI under the mouse is highlighted.
 - F7.5 Clicking a POI shows a callout (#72): the type icon, the type as title and the name under it (for a custom POI

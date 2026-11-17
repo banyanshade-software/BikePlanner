@@ -974,6 +974,19 @@ static const double kBPSiteRadiusKm = 15;
         //NSLog(@"hop");
         [self refreshPOI];
     };
+    __weak MapController *weakSelf = self;
+    _document.plan.poiErrorCallback = ^(NSString *message) { [weakSelf showMapMessage:message]; }; // #84
+}
+
+// Edit ▸ Refresh Points of Interest (#84): ask Overpass again, ignoring the cache
+- (IBAction) refreshPOIs:(id)sender
+{
+    [_document.plan refreshPOIs];
+}
+
+- (BOOL) canRefreshPOIs
+{
+    return _document.plan.fetchPOI && _document.plan.routePoints.count >= 2;
 }
 
 - (void) planReplaced

@@ -19,5 +19,6 @@
 
 @property (strong,nonatomic) BikePlan *plan;
 
+- (IBAction) refreshPOIs:(id)sender; // Edit ▸ Refresh Points of Interest (#84)
 @end
 
