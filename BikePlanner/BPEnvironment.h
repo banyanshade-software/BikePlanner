@@ -50,6 +50,10 @@ typedef NS_ENUM(NSInteger, BPStartPosition) {
 + (NSInteger) remarkableSiteIndex;
 /// YES to never ask for / use the user location (tests) — key BPDisableLocation
 + (BOOL) locationDisabled;
+/// search distance of the POIs along the route, meters (Preferences, #81): utilities (water, toilets…) — key
+/// BPPOISearchRadius, default 1500; sights — key BPSightSearchRadius, default 1000. Invalid values: the default
++ (NSUInteger) poiSearchRadius;
++ (NSUInteger) sightSearchRadius;
 /// YES when the app is the host of unit tests (XCTest injected)
 + (BOOL) isUnitTestHost;
 /// User-Agent of every request of the app: "BikePlanner/<version> (build <n>; +<project URL>)" — the OSM tile and

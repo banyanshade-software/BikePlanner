@@ -247,7 +247,7 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   opening hours, fee, wheelchair, pump/tools of a repair station, operator, note…) and *All OSM tags (n)*, collapsed
   (key = value, selectable); a value that is a web address (`website` of a shop or a repair station…) is a link;
   buttons *OpenStreetMap* (the node, or the way of a cemetery area, on openstreetmap.org;
-  fetched POIs only), *Street View* (from the nearest point of the route, looking at the POI; the profile cursor goes
+  fetched POIs only), *Street View* (at the POI itself, looking as when coming from the nearest point of the route, #81; the profile cursor goes
   there), *Copy* (“lat, lon”, 6 decimals); a checkbox *Include in track* (checked by default) and, for a custom POI,
   *Edit…* (the sheet of F7.6). A click outside the open callout closes it and does nothing else (on another POI: opens
   that one). An excluded (unchecked) POI stays
@@ -262,7 +262,7 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   name. Right-click on a custom POI: *Edit POI…* (same sheet) and *Remove POI*. Add / edit / remove are undoable and
   mark the document as edited.
 - F7.8 **Sights near the route** (#81), in the Info section, saved with the document:
-  - *Sights:* a pull-down menu of checkable categories, fetched within 1 km of the route (with the utilities, when
+  - *Sights:* a pull-down menu of checkable categories, fetched within 1 km of the route (F12.6) (with the utilities, when
     Fetch POI is on; undoable; the sights of a removed category disappear at once, an added category is fetched): *Culture* (museums, attractions, castles, ruins,
     archaeological sites, monuments, forts, manors — not war memorials), *Viewpoints*, *Churches and chapels* (places
     of worship), *Nature* (waterfalls, peaks, cave entrances), *Food and drink* (restaurants, cafés, bars, pubs, ice
@@ -337,11 +337,16 @@ changes nothing.
 - F12.2 **Default position** (F1.5): latitude / longitude fields, *Use Current Map Center* (map of the front document
   window), or *Find a place* (Apple place search: one result is used directly, several are proposed in a menu, none
   gives a message). **Initial radius** (km, default 80). **Start position** (F1.6): radio buttons.
-- F12.3 Stored in the user defaults (`BPDefaultPosition`, `BPInitialRadiusKm`, `BPStartPosition`, `BPColorScheme`, `BPSightCategories`, defaults registered at launch), so
+- F12.3 Stored in the user defaults (`BPDefaultPosition`, `BPInitialRadiusKm`, `BPStartPosition`, `BPColorScheme`, `BPSightCategories`, `BPPOISearchRadius`, `BPSightSearchRadius`, defaults registered at launch), so
   that launch-argument overrides (tests) still apply. Later candidates: BRouter server (#2), routing engine,
   default profile (#1).
 - F12.5 **Sights of new documents** (#81): a pull-down menu of the sight categories (F7.8), Culture and Viewpoints by
   default.
+- F12.6 **Search distances** (#81), global: *Search POIs within* (water, toilets, repair stations, cemeteries: 250 m,
+  500 m, 1 km, 1.5 km — default —, 2 km, 5 km) and *Search sights within* (250 m, 500 m, 1 km — default —, 2 km,
+  5 km). A change fetches the POIs of the open documents again. The query samples the route every 1 km, or every
+  *radius* when it is smaller (points interpolated along the route, so the circles leave no hole: at least 0.87 ×
+  radius covered on each side), at most 300 points per kind (beyond ~300 km the spacing grows).
 - F12.4 **Route colors** (#71): a pop-up of color schemes (with a swatch), one for every map type, global (not saved
   in the document); a change redraws the open maps. Each scheme gives the alternating stage colors, the route
   opacity, the stage-end color (pin, profile marker), the reference trace color and the road type / surface highlight

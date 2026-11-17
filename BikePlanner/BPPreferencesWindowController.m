@@ -19,6 +19,8 @@
 @property (strong) NSTextField *messageLabel;
 @property (strong) NSPopUpButton *colorSchemePopUp; // #71
 @property (strong) NSPopUpButton *sightCategoriesPopUp; // #81
+@property (strong) NSPopUpButton *poiSearchRadiusPopUp; // #81
+@property (strong) NSPopUpButton *sightSearchRadiusPopUp;
 @property (strong, nullable) NSMenu *resultsMenu;
 @end
 
@@ -142,6 +144,12 @@
     self.sightCategoriesPopUp.toolTip = NSLocalizedString(@"Points of interest looked for along the route of a new document (Info section of the document)",
                                                           @"Preferences");
 
+    // search distances along the route (#81)
+    self.poiSearchRadiusPopUp = [self radiusPopUp:@[ @250, @500, @1000, @1500, @2000, @5000 ] identifier:@"prefPOIRadius"
+        toolTip:NSLocalizedString(@"Distance from the route of the drinking water, toilets and repair stations looked for", @"Preferences")];
+    self.sightSearchRadiusPopUp = [self radiusPopUp:@[ @250, @500, @1000, @2000, @5000 ] identifier:@"prefSightRadius"
+        toolTip:NSLocalizedString(@"Distance from the route of the sights looked for (Info section of the document)", @"Preferences")];
+
     NSStackView *position = [NSStackView stackViewWithViews:@[ self.latitudeField, self.longitudeField ]];
     NSStackView *radius = [NSStackView stackViewWithViews:@[ self.radiusField,
                                                              [NSTextField labelWithString:NSLocalizedString(@"km", @"Preferences")] ]];
@@ -154,6 +162,8 @@
         @[ [self label:NSLocalizedString(@"Initial radius:", @"Preferences")], radius ],
         @[ [self label:NSLocalizedString(@"Route colors:", @"Preferences")], self.colorSchemePopUp ],
         @[ [self label:NSLocalizedString(@"Sights of new documents:", @"Preferences")], self.sightCategoriesPopUp ],
+        @[ [self label:NSLocalizedString(@"Search POIs within:", @"Preferences")], self.poiSearchRadiusPopUp ],
+        @[ [self label:NSLocalizedString(@"Search sights within:", @"Preferences")], self.sightSearchRadiusPopUp ],
     ]];
     grid.rowSpacing = 10;
     grid.columnSpacing = 8;
@@ -185,6 +195,28 @@
     [self.colorSchemePopUp selectItemAtIndex:[self.colorSchemePopUp indexOfItemWithRepresentedObject:self.preferences.colorScheme.identifier]];
     [BPSightsView fillCategoriesMenu:self.sightCategoriesPopUp categories:self.preferences.defaultSightCategories
                               target:self action:@selector(toggleSightCategory:)];
+    [self.poiSearchRadiusPopUp selectItemWithTag:self.preferences.poiSearchRadius];
+    [self.sightSearchRadiusPopUp selectItemWithTag:self.preferences.sightSearchRadius];
+}
+
+- (NSPopUpButton *)radiusPopUp:(NSArray<NSNumber *> *)meters identifier:(NSString *)identifier toolTip:(NSString *)toolTip
+{
+    NSPopUpButton *p = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
+    for (NSNumber *m in meters) {
+        [p addItemWithTitle:[BPSightsView distanceText:m.doubleValue]];
+        p.lastItem.tag = m.integerValue;
+    }
+    p.accessibilityIdentifier = identifier;
+    p.toolTip = toolTip;
+    p.target = self;
+    p.action = @selector(searchRadiusChanged:);
+    return p;
+}
+
+- (void)searchRadiusChanged:(NSPopUpButton *)sender
+{
+    if (sender == self.poiSearchRadiusPopUp) self.preferences.poiSearchRadius = sender.selectedTag;
+    else self.preferences.sightSearchRadius = sender.selectedTag;
 }
 
 - (void)toggleSightCategory:(NSMenuItem *)item

@@ -7,8 +7,6 @@
 
 #import "BPSights.h"
 
-const NSUInteger BPSightsSearchRadius = 1000;
-
 @implementation BPSights
 
 // category → OSM key → values (war memorials, historic=memorial, are left out: one in every village)

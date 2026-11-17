@@ -37,7 +37,7 @@ NSString *const BPSightRowIncluded = @"included";
 
         _categoriesMenu = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:YES];
         _categoriesMenu.accessibilityIdentifier = @"sightCategories";
-        _categoriesMenu.toolTip = NSLocalizedString(@"Points of interest to look for within 1 km of the route", @"tooltip");
+        _categoriesMenu.toolTip = NSLocalizedString(@"Points of interest to look for along the route (search distance: Preferences)", @"tooltip");
         _categoriesMenu.menu.autoenablesItems = NO;
         _distanceMenu = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
         _distanceMenu.accessibilityIdentifier = @"sightIncludeDistance";

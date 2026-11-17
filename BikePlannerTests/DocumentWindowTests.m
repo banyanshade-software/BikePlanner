@@ -30,6 +30,7 @@
 #import "BPFITBuilder.h"
 #import "BPGuidedTour.h"
 #import "BPSightsView.h"
+#import "BPPreferences.h"
 #import "BPRemarkableSites.h"
 #import "BPEnvironment.h"
 #import "BPColorScheme.h"
@@ -134,7 +135,8 @@
                           @"BPInitialRegion": @"44.05,0.55,0.2",
                           @"BPProfileOverrides": @{}, // not the owner's default BRouter parameters
                           @"BPColorScheme": @"classic", // nor the owner's route colors (#71)
-                          @"BPSightCategories": @[] }); // no sights (#81) unless a test asks for them
+                          @"BPSightCategories": @[], // no sights (#81) unless a test asks for them
+                          @"BPPOISearchRadius": @1500, @"BPSightSearchRadius": @1000 }); // nor the owner's distances
     doc = [[Document alloc] init];
     [self openWindow];
 }
@@ -608,6 +610,47 @@
     for (int k = 0; k < 20; k++) view.rows = [rows copy];
     t = -[t0 timeIntervalSinceNow];
     XCTAssertLessThan(t, 0.1, @"unchanged rows: no reload (%.2f s)", t);
+}
+
+// the window is closed while the route is being computed: the answer arrives for a document that is gone (crash
+// reported 2026-11-17: NSAssert on plan.brouterInfo in requestRouteUndoable:)
+- (void)testRouteAnswerAfterDocumentClosed
+{
+    [mc setClickModeToEdit:self];
+    server.responseDelay = 0.8;
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.02, 0.52)];
+    [self clickAtCoordinate:CLLocationCoordinate2DMake(44.08, 0.58)];
+    XCTAssertTrue(BPWaitUntil(2, ^{ return (BOOL)([self->server requestsWithPath:@"/brouter"].count == 1); }), @"request in flight");
+    MapController *controller = mc; // kept alive, as by the request's completion block
+    @autoreleasepool {
+        doc.plan.fetchPOI = NO;
+        [doc.undoManager removeAllActions];
+        [doc close];
+        doc = nil;
+    }
+    // in the app, the closed document is freed: the weak reference of MapController becomes nil (here something
+    // still holds it: the same state, explicitly)
+    controller.document = nil;
+    BPSpin(1.5); // the answer arrives: ignored, no exception
+    XCTAssertNil(controller.document);
+    server.responseDelay = 0;
+}
+
+// a change of the search distances in the Preferences fetches the POIs of the open documents again (#81)
+- (void)testSearchDistanceChangeFetchesAgain
+{
+    [self makeRoute];
+    [self waitForPOIs];
+    XCTAssertTrue([[server requestsWithPath:@"/api/interpreter"].lastObject.body containsString:@"node(around:1500,"]);
+    NSUInteger requests = [server requestsWithPath:@"/api/interpreter"].count;
+    BPOverrideDefaults(@{ @"BPBRouterServer": server.baseURL.absoluteString, @"BPOverpassURL": server.overpassURL.absoluteString,
+                          @"BPDisableStreetView": @YES, @"BPDisableTiles": @YES, @"BPInitialRegion": @"44.05,0.55,0.2",
+                          @"BPProfileOverrides": @{}, @"BPColorScheme": @"classic", @"BPSightCategories": @[],
+                          @"BPPOISearchRadius": @500 });
+    [[NSNotificationCenter defaultCenter] postNotificationName:BPPOISearchDidChangeNotification object:nil];
+    XCTAssertTrue(BPWaitUntil(8, ^{ return (BOOL)([self->server requestsWithPath:@"/api/interpreter"].count > requests); }));
+    XCTAssertTrue([[server requestsWithPath:@"/api/interpreter"].lastObject.body containsString:@"node(around:500,"]);
+    BPSpin(0.3);
 }
 
 // the sights of a new document come from the Preferences; saved with the document
@@ -1179,12 +1222,14 @@
     [mc setPoiPasteboard:nil];
     [pb releaseGlobally];
 
-    // Street View from the nearest point of the route, looking at the POI (east of the route going north-east)
+    // Street View at the POI itself (#81: not at the nearest point of the route), looking as from the route (the POI
+    // is east of the route going north-east)
     [NSApp sendAction:callout.streetViewButton.action to:callout.streetViewButton.target from:callout.streetViewButton];
     CLLocationCoordinate2D c = mc.svCtrl.lastCoord;
+    XCTAssertEqualWithAccuracy(c.latitude, water.coordinate.latitude, 1e-6, @"at the POI");
+    XCTAssertEqualWithAccuracy(c.longitude, water.coordinate.longitude, 1e-6);
     NSUInteger seg = 0;
-    double along = [mc distanceAtCoordinate:c segstart:&seg];
-    XCTAssertEqualWithAccuracy(along, [mc distanceAtCoordinate:water.coordinate segstart:&seg], 5, @"on the route, abreast of the POI");
+    double along = [mc distanceAtCoordinate:water.coordinate segstart:&seg];
     XCTAssertGreaterThan(mc.svCtrl.lastHeading, 90);
     XCTAssertLessThan(mc.svCtrl.lastHeading, 160);
     XCTAssertEqualWithAccuracy(mc.elevationView.highlightDistance, along, 5, @"the profile cursor goes there");
@@ -1212,6 +1257,24 @@
 }
 
 // with stages, the stage of the POI
+// an excluded POI is greyed and translucent; its callout, while open, almost opaque (#81: it was hard to read)
+- (void)testExcludedPOICalloutIsReadable
+{
+    doc.plan.fetchPOI = NO;
+    [self makeRoute];
+    POILocation *water = [self waterPOI];
+    [doc.plan setPoiloc:@[water]];
+    [doc.plan setPOIKey:water.poiKey excluded:YES];
+    [mc refreshPOI];
+    POIAnnotation *ann = [self annotationsOfClass:[POIAnnotation class]].firstObject;
+    MKAnnotationView *v = [mc mapView:map viewForAnnotation:ann];
+    XCTAssertEqualWithAccuracy(v.alphaValue, 0.6, 0.01, @"greyed marker");
+    [mc mapView:map didSelectAnnotationView:v];
+    XCTAssertGreaterThanOrEqual(v.alphaValue, 0.9, @"readable callout");
+    [mc mapView:map didDeselectAnnotationView:v];
+    XCTAssertEqualWithAccuracy(v.alphaValue, 0.6, 0.01);
+}
+
 - (void)testPOICalloutShowsStage
 {
     doc.plan.fetchPOI = NO;

@@ -18,6 +18,7 @@
 @property (nonatomic) NSTimeInterval poiRetryBaseDelay;
 @property (nonatomic) NSUInteger poiMaxRetries;
 + (NSArray<CLLocation *> *)samplePointsForPOI:(NSArray<CLLocation *> *)points;
++ (NSArray<CLLocation *> *)samplePointsForPOI:(NSArray<CLLocation *> *)points spacing:(double)spacing;
 @end
 
 @interface POIFetchTests : XCTestCase
@@ -33,7 +34,8 @@
 {
     server = [[BPStubServer alloc] init];
     XCTAssertTrue([server startInProcess]);
-    BPOverrideDefaults(@{ @"BPOverpassURL": server.overpassURL.absoluteString });
+    BPOverrideDefaults(@{ @"BPOverpassURL": server.overpassURL.absoluteString,
+                          @"BPPOISearchRadius": @1500, @"BPSightSearchRadius": @1000 }); // not the owner's Preferences (#81)
     plan = [[BikePlan alloc] init];
     callbacks = 0;
     __weak POIFetchTests *weakSelf = self;
@@ -73,9 +75,9 @@
     XCTAssertEqualObjects(r.method, @"POST");
     XCTAssertTrue([r.body hasPrefix:@"[out:json]"]);
     XCTAssertEqualObjects(r.userAgent, [BPEnvironment userAgent]);
-    // route sampled every ≥ 1 km (#12): 25 points ~140 m apart (3.3 km) -> points 0, 8, 16 and the last one
-    XCTAssertEqual([r.body componentsSeparatedByString:@"node(around"].count - 1, 4u);
-    XCTAssertEqual([r.body componentsSeparatedByString:@"way(around"].count - 1, 4u);
+    // route sampled every 1 km (#12; points interpolated, #81): 3.3 km -> 0, 1, 2, 3 km and the last point
+    XCTAssertEqual([r.body componentsSeparatedByString:@"node(around"].count - 1, 5u);
+    XCTAssertEqual([r.body componentsSeparatedByString:@"way(around"].count - 1, 5u);
     XCTAssertTrue([r.body containsString:@"node(around:1500,44.000000,0.500000)"]);
     XCTAssertTrue([r.body containsString:@"node(around:1500,44.024000,0.524000)"]);
 
@@ -214,6 +216,14 @@
     NSMutableArray<CLLocation *> *longRoute = [NSMutableArray array]; // ~1110 km
     for (int i = 0; i < 10000; i++) [longRoute addObject:BPLoc(40.0 + i * 0.001, 0.5)];
     XCTAssertLessThanOrEqual([BikePlan samplePointsForPOI:longRoute].count, 300u);
+
+    // a smaller spacing (search radius under 1 km, #81): points interpolated exactly every 250 m (the route points
+    // are ~111 m apart: the next one could be farther than the radius)
+    NSArray<CLLocation *> *shortRoute = [route subarrayWithRange:NSMakeRange(0, 200)]; // ~22 km
+    NSArray<CLLocation *> *close = [BikePlan samplePointsForPOI:shortRoute spacing:250];
+    XCTAssertGreaterThan(close.count, 85u);
+    for (NSUInteger i = 1; i + 1 < close.count; i++) XCTAssertEqualWithAccuracy([close[i] distanceFromLocation:close[i-1]], 250, 1.5);
+    XCTAssertLessThanOrEqual([BikePlan samplePointsForPOI:longRoute spacing:250].count, 300u, @"still at most 300");
 }
 
 @end

@@ -147,6 +147,8 @@ extern NSString *const BPRoadTypePercentKey;   // "50 %"
 /// records the user's choice (a sight: in includedPOIKeys or excludedPOIKeys; a utility: excludedPOIKeys)
 - (void) setPOIKey:(NSString *)key excluded:(BOOL)excluded;
 - (nullable POILocation *) poiWithKey:(NSString *)key;
+/// fetches the POIs again (search distances changed in the Preferences, #81); nothing without route
+- (void) refetchPOIs;
 
 // sights near the route (#81), saved with the document: categories (BPSights; normalized; a change fetches the POIs
 // again), and the distance under which a sight is included in the track (meters; 0: none, the default)

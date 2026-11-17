@@ -10,6 +10,9 @@ NSString *const BPDefaultPositionKey = @"BPDefaultPosition";
 NSString *const BPInitialRadiusKmKey = @"BPInitialRadiusKm";
 NSString *const BPStartPositionKey = @"BPStartPosition";
 NSString *const BPSightCategoriesKey = @"BPSightCategories";
+NSString *const BPPOISearchRadiusKey = @"BPPOISearchRadius";
+NSString *const BPSightSearchRadiusKey = @"BPSightSearchRadius";
+NSNotificationName const BPPOISearchDidChangeNotification = @"BPPOISearchDidChangeNotification";
 
 static const CLLocationCoordinate2D kBPDefaultPosition = { 44.1249234, 0.4961707 }; // Laplume, as BPEnvironment
 static const double kBPDefaultRadiusKm = 80;
@@ -88,6 +91,25 @@ static const double kBPDefaultRadiusKm = 80;
 {
     [ud setInteger:p forKey:BPStartPositionKey];
 }
+
+// search distances (#81): same rule as BPEnvironment (1–10,000 m, else the default)
+- (NSInteger)radiusForKey:(NSString *)key default:(NSInteger)def
+{
+    NSInteger r = [ud integerForKey:key];
+    return (r > 0 && r <= 10000) ? r : def;
+}
+
+- (void)setRadius:(NSInteger)r forKey:(NSString *)key default:(NSInteger)def
+{
+    if (r <= 0 || r > 10000 || r == [self radiusForKey:key default:def]) return;
+    [ud setInteger:r forKey:key];
+    [[NSNotificationCenter defaultCenter] postNotificationName:BPPOISearchDidChangeNotification object:self];
+}
+
+- (NSInteger)poiSearchRadius { return [self radiusForKey:BPPOISearchRadiusKey default:1500]; }
+- (void)setPoiSearchRadius:(NSInteger)r { [self setRadius:r forKey:BPPOISearchRadiusKey default:1500]; }
+- (NSInteger)sightSearchRadius { return [self radiusForKey:BPSightSearchRadiusKey default:1000]; }
+- (void)setSightSearchRadius:(NSInteger)r { [self setRadius:r forKey:BPSightSearchRadiusKey default:1000]; }
 
 // sights of new documents (#81)
 - (NSArray<NSString *> *)defaultSightCategories

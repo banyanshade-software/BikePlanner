@@ -28,6 +28,20 @@
     XCTAssertFalse([BPEnvironment tilesDisabled]);
 }
 
+// search distances of the POIs (#81, Preferences): utilities 1.5 km, sights 1 km by default
+- (void)testPOISearchRadii
+{
+    BPOverrideDefaults(@{ @"BPPOISearchRadius": @0, @"BPSightSearchRadius": @0 });
+    XCTAssertEqual([BPEnvironment poiSearchRadius], 1500u, @"not set: the default");
+    XCTAssertEqual([BPEnvironment sightSearchRadius], 1000u);
+    BPOverrideDefaults(@{ @"BPPOISearchRadius": @500, @"BPSightSearchRadius": @5000 });
+    XCTAssertEqual([BPEnvironment poiSearchRadius], 500u);
+    XCTAssertEqual([BPEnvironment sightSearchRadius], 5000u);
+    BPOverrideDefaults(@{ @"BPPOISearchRadius": @-3, @"BPSightSearchRadius": @999999 });
+    XCTAssertEqual([BPEnvironment poiSearchRadius], 1500u, @"invalid: the default");
+    XCTAssertEqual([BPEnvironment sightSearchRadius], 1000u);
+}
+
 - (void)testOverrides
 {
     BPOverrideDefaults(@{ @"BPBRouterServer": @"http://127.0.0.1:1234",

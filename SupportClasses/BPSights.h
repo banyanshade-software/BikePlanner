@@ -12,9 +12,6 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// radius of the search of sights around the route, meters
-extern const NSUInteger BPSightsSearchRadius;
-
 @interface BPSights : NSObject
 
 /// culture, viewpoint, church, nature, food, accommodation, bikeshop (in the order of the menu)

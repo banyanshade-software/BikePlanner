@@ -12,7 +12,7 @@
 #import "TestFixtures.h"
 
 @interface BikePlan (SightsTesting)
-- (NSString *)overpassQueryForTrack:(NSArray<CLLocation *> *)trackPoints withRadius:(NSUInteger)radiusMeters;
+- (NSString *)overpassQueryForTrack:(NSArray<CLLocation *> *)trackPoints;
 - (NSArray<POILocation *> *)poisFromOverpassElements:(NSArray *)elements;
 - (void)setPoiloc:(NSArray<POILocation *> *)pl;
 @end
@@ -21,6 +21,16 @@
 @end
 
 @implementation BPSightsTests
+
+- (void)setUp
+{
+    BPOverrideDefaults(@{ @"BPPOISearchRadius": @1500, @"BPSightSearchRadius": @1000 }); // not the owner's Preferences
+}
+
+- (void)tearDown
+{
+    BPRestoreDefaults();
+}
 
 - (void)testCategories
 {
@@ -106,12 +116,29 @@
 {
     BikePlan *plan = [self planWithRoute];
     plan.sightCategories = @[];
-    NSString *q = [plan overpassQueryForTrack:plan.routePoints withRadius:1500];
+    NSString *q = [plan overpassQueryForTrack:plan.routePoints];
     XCTAssertFalse([q containsString:@"nwr("], @"no category: utilities only");
     plan.sightCategories = @[ @"viewpoint" ];
-    q = [plan overpassQueryForTrack:plan.routePoints withRadius:1500];
+    q = [plan overpassQueryForTrack:plan.routePoints];
     XCTAssertTrue([q containsString:@"nwr(around:1000,"], @"sights within 1 km");
-    XCTAssertTrue([q containsString:@"drinking_water"], @"utilities still there");
+    XCTAssertTrue([q containsString:@"node(around:1500,"], @"utilities within 1.5 km");
+}
+
+// the search distances of the Preferences; under 1 km, the sampled points are as close as the radius (no hole
+// between the circles)
+- (void)testQueryUsesTheSearchDistances
+{
+    BikePlan *plan = [self planWithRoute]; // ~8 km
+    plan.sightCategories = @[ @"viewpoint" ];
+    BPOverrideDefaults(@{ @"BPPOISearchRadius": @2000, @"BPSightSearchRadius": @250 });
+    NSString *q = [plan overpassQueryForTrack:plan.routePoints];
+    NSUInteger utilities = [q componentsSeparatedByString:@"node(around:2000,"].count - 1;
+    NSUInteger sights = [q componentsSeparatedByString:@"nwr(around:250,"].count - 1;
+    XCTAssertGreaterThanOrEqual(utilities, 8u, @"1 km apart");
+    XCTAssertLessThanOrEqual(utilities, 11u);
+    XCTAssertGreaterThanOrEqual(sights, 30u, @"250 m apart: %lu", (unsigned long)sights);
+    XCTAssertLessThanOrEqual(sights, 36u);
+    XCTAssertFalse([q containsString:@"around:1000,"]);
 }
 
 - (void)testParsingKeepsSightsOfSelectedCategories

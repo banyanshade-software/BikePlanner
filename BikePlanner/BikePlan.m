@@ -758,18 +758,30 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
 // kPOIMaxSamplePoints); 1.5 km circles 1 km apart still cover ≥ 1.4 km on each side of the route (#12)
 + (NSArray<CLLocation *> *)samplePointsForPOI:(NSArray<CLLocation *> *)points
 {
+    return [self samplePointsForPOI:points spacing:kPOISampleSpacingMeters];
+}
+
+// spacing: at most the search radius, so that the circles leave no hole (≥ 0.87 r covered on each side, #81)
++ (NSArray<CLLocation *> *)samplePointsForPOI:(NSArray<CLLocation *> *)points spacing:(double)minSpacing
+{
     if (points.count < 2) return points;
     double length = 0;
     for (NSUInteger i = 1; i < points.count; i++) length += [points[i] distanceFromLocation:points[i-1]];
-    double spacing = MAX(kPOISampleSpacingMeters, length / (kPOIMaxSamplePoints - 2));
+    double spacing = MAX(minSpacing, length / (kPOIMaxSamplePoints - 2));
+    // points interpolated exactly every `spacing` meters along the route (the next route point could be farther than
+    // the radius, leaving a hole between the circles)
     NSMutableArray<CLLocation *> *sample = [NSMutableArray arrayWithObject:points.firstObject];
-    double run = 0;
-    for (NSUInteger i = 1; i + 1 < points.count; i++) {
-        run += [points[i] distanceFromLocation:points[i-1]];
-        if (run >= spacing) {
-            [sample addObject:points[i]];
-            run = 0;
+    double done = 0, next = spacing;
+    for (NSUInteger i = 1; i < points.count; i++) {
+        CLLocation *a = points[i - 1], *b = points[i];
+        double d = [b distanceFromLocation:a];
+        while (d > 0 && next <= done + d && next < length - 1) {
+            double t = (next - done) / d;
+            [sample addObject:[[CLLocation alloc] initWithLatitude:a.coordinate.latitude + t * (b.coordinate.latitude - a.coordinate.latitude)
+                                                         longitude:a.coordinate.longitude + t * (b.coordinate.longitude - a.coordinate.longitude)]];
+            next += spacing;
         }
+        done += d;
     }
     [sample addObject:points.lastObject];
     return sample;
@@ -777,25 +789,36 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
 
 // 2 "around" clauses per sampled point (was per 10th route point, ~300 m apart, #12). Not one "around" along a
 // polyline (around:r,lat1,lon1,lat2,lon2…): overpass-api.de returned no element for it on real routes.
+// the utilities around points ~1 km apart, within the search distance of the Preferences (1.5 km by default); the
+// sights of the selected categories (#81) within their own distance (1 km by default); under 1 km, the points are as
+// close as the radius
 - (NSString *)overpassQueryForTrack:(NSArray<CLLocation *> *)trackPoints
-                         withRadius:(NSUInteger)radiusMeters
 {
+    NSUInteger radius = [BPEnvironment poiSearchRadius], sightRadius = [BPEnvironment sightSearchRadius];
     NSMutableString *query = [NSMutableString stringWithString:@"[out:json][timeout:120];\n(\n"];
-    for (CLLocation *loc in [[self class] samplePointsForPOI:trackPoints]) {
+    for (CLLocation *loc in [[self class] samplePointsForPOI:trackPoints spacing:MIN(radius, kPOISampleSpacingMeters)]) {
         CLLocationCoordinate2D coord = loc.coordinate;
         // amenity: drinking_water, toilets... (nodes)
         [query appendFormat:@"  node(around:%lu,%.6f,%.6f)[\"amenity\"~\"drinking_water|toilets|grave_yard|bicycle_repair_station\"];\n",
-             (unsigned long)radiusMeters, coord.latitude, coord.longitude];
-        // sights of the selected categories, closer (#81)
-        NSString *sights = [BPSights overpassClauseForCategories:_sightCategories radius:BPSightsSearchRadius
-                                                        latitude:coord.latitude longitude:coord.longitude];
-        if (sights) [query appendString:sights];
+             (unsigned long)radius, coord.latitude, coord.longitude];
         // landuse = cemetery (ways or areas, get center)
         [query appendFormat:@"  way(around:%lu,%.6f,%.6f)[\"landuse\"=\"cemetery\"];\n",
-             (unsigned long)radiusMeters, coord.latitude, coord.longitude];
+             (unsigned long)radius, coord.latitude, coord.longitude];
+    }
+    if (_sightCategories.count) {
+        for (CLLocation *loc in [[self class] samplePointsForPOI:trackPoints spacing:MIN(sightRadius, kPOISampleSpacingMeters)]) {
+            NSString *sights = [BPSights overpassClauseForCategories:_sightCategories radius:sightRadius
+                                                            latitude:loc.coordinate.latitude longitude:loc.coordinate.longitude];
+            if (sights) [query appendString:sights];
+        }
     }
     [query appendString:@");\nout center;"];
     return query;
+}
+
+- (void) refetchPOIs
+{
+    if (_routePoints.count >= 2) [self shouldRequestPOI];
 }
 
 // after an error: retry later, on the main run loop (the NSURLSession completion queue has none, so the retry
@@ -853,7 +876,7 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
 - (void) fetchPOIsNearRoute:(NSArray<CLLocation *> *)coords
 {
     NSLog(@"--- >>>> fetch");
-    NSString *query = [self overpassQueryForTrack:coords withRadius:1500];
+    NSString *query = [self overpassQueryForTrack:coords];
     NSData *bodyData = [query dataUsingEncoding:NSUTF8StringEncoding];
     
     NSURL *url = [BPEnvironment overpassURL]; // https://overpass-api.de/api/interpreter unless overridden

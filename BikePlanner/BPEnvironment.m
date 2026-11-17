@@ -83,6 +83,23 @@
     return (p >= BPStartPositionLocation && p <= BPStartPositionRemarkableSite) ? p : BPStartPositionRemarkableSite;
 }
 
+static NSUInteger BPRadiusForKey(NSString *key, NSUInteger def)
+{
+    id v = [[NSUserDefaults standardUserDefaults] objectForKey:key];
+    NSInteger r = [v respondsToSelector:@selector(integerValue)] ? [v integerValue] : 0;
+    return (r > 0 && r <= 10000) ? (NSUInteger)r : def;
+}
+
++ (NSUInteger) poiSearchRadius
+{
+    return BPRadiusForKey(@"BPPOISearchRadius", 1500);
+}
+
++ (NSUInteger) sightSearchRadius
+{
+    return BPRadiusForKey(@"BPSightSearchRadius", 1000);
+}
+
 + (NSInteger) remarkableSiteIndex
 {
     id v = [[NSUserDefaults standardUserDefaults] objectForKey:@"BPRemarkableSiteIndex"];

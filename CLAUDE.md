@@ -127,7 +127,7 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
   through `BPEnvironment` and teach `BPStubServer` to answer it. The Apple place search goes through `BPPlaceSearch`:
   tests replace it with `+setSearchHandlerForTesting:`. Tests of the Preferences use a private `NSUserDefaults`
   suite, never the owner's defaults. The test host reads the owner's real user defaults (Preferences, my default
-  BRouter parameters): a test that depends on `BPDefaultPosition`, `BPInitialRadiusKm`, `BPStartPosition`, `BPProfileOverrides`… must
+  BRouter parameters): a test that depends on `BPDefaultPosition`, `BPInitialRadiusKm`, `BPStartPosition`, `BPProfileOverrides`, `BPSightCategories`, `BPPOISearchRadius`/`BPSightSearchRadius`… must
   override it with `BPOverrideDefaults`. `BPOverrideDefaults` is not cumulative: each call starts again from the
   original values, so a second call in a test drops the overrides of `setUp` — repeat them. The app launched by the
   UI tests reads them too: `BPUITestCase` overrides them with launch arguments (e.g. `-BPProfileOverrides {}`: the
@@ -153,7 +153,7 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
   sheet), map context menu items (#80, `NSMenuItem.identifier`, from `-[MapController contextMenuForMapPoint:]`):
   `mapAddPOI`/`mapInsertWaypoint`/`mapStreetView`/`mapCopyCoordinates`, `poiPosition`/`poiTags`/`poiAllTagsToggle`/`poiAllTags`/`poiOpenOSM`/`poiStreetView`/`poiCopy`/`poiInclude`/`poiEdit`
   (POI callout, #72), sights (#81): `sightsSection`, `sightCategories` (pull-down, items `sightCategory.<category>`),
-  `sightIncludeDistance`, `sightsList` (an `NSTableView` in the Info scroll view: `-[BPSightsView includeCheckboxForKey:]`, `selectRowWithKey:`), checkboxes `sightInclude.<poiKey>`, `prefSightCategories`; guided tour (#63): anchors `infoSection`/`elevationProfile`/`sideTabs`, bubble `tourTitle`/`tourText`/`tourPrevious`/`tourEnd`/`tourNext`;
+  `sightIncludeDistance`, `sightsList` (an `NSTableView` in the Info scroll view: `-[BPSightsView includeCheckboxForKey:]`, `selectRowWithKey:`), checkboxes `sightInclude.<poiKey>`, `prefSightCategories`, `prefPOIRadius`/`prefSightRadius` (search distances); guided tour (#63): anchors `infoSection`/`elevationProfile`/`sideTabs`, bubble `tourTitle`/`tourText`/`tourPrevious`/`tourEnd`/`tourNext`;
   `prefLatitude`/`prefLongitude`/`prefRadius`/`prefSearch`/`prefColorScheme` (Preferences), `routeLength`/`routeAscent`/`routeTime`/`routeSpeed` in the XIB — on the cell: unit tests find them with
   `-[DocumentWindowTests panelControlWithIdentifier:]`). POI markers and callouts are not exposed to accessibility:
   check POI behavior through its effects (stub requests, undo menu items). Files exchanged with the app go in

@@ -13,6 +13,7 @@
 #import "AppDelegate.h"
 #import "TestFixtures.h"
 #import "BPColorScheme.h"
+#import "BPSightsView.h"
 
 @interface BPPreferencesWindowController (Testing)
 @property (strong) NSTextField *latitudeField;
@@ -23,6 +24,8 @@
 @property (strong) NSTextField *messageLabel;
 @property (strong) NSPopUpButton *colorSchemePopUp;
 @property (strong) NSPopUpButton *sightCategoriesPopUp;
+@property (strong) NSPopUpButton *poiSearchRadiusPopUp;
+@property (strong) NSPopUpButton *sightSearchRadiusPopUp;
 - (void)positionChanged:(id)sender;
 - (void)radiusChanged:(id)sender;
 - (void)useMapCenter:(id)sender;
@@ -167,6 +170,36 @@ static MKMapItem *BPItem(NSString *name, double lat, double lon)
     [NSApp sendAction:nature.action to:nature.target from:nature];
     XCTAssertEqualObjects(prefs.defaultSightCategories, (@[ @"culture", @"nature" ]), @"applied at once");
     XCTAssertEqualObjects(p.itemArray.firstObject.title, @"Culture, Nature");
+}
+
+// search distances (#81): global, applied at once (notification), utilities 1.5 km and sights 1 km by default
+- (void)testSearchRadii
+{
+    XCTAssertEqual(prefs.poiSearchRadius, 1500);
+    XCTAssertEqual(prefs.sightSearchRadius, 1000);
+    __block NSUInteger notified = 0;
+    id obs = [[NSNotificationCenter defaultCenter] addObserverForName:BPPOISearchDidChangeNotification object:nil queue:nil
+                                                           usingBlock:^(NSNotification *n) { notified++; }];
+    prefs.sightSearchRadius = 500;
+    XCTAssertEqual(prefs.sightSearchRadius, 500);
+    XCTAssertEqual(notified, 1u);
+    prefs.sightSearchRadius = 500;
+    XCTAssertEqual(notified, 1u, @"no change: no notification");
+
+    [self window];
+    NSPopUpButton *poi = wc.poiSearchRadiusPopUp, *sight = wc.sightSearchRadiusPopUp;
+    XCTAssertEqualObjects(poi.accessibilityIdentifier, @"prefPOIRadius");
+    XCTAssertEqualObjects(sight.accessibilityIdentifier, @"prefSightRadius");
+    NSString *oneAndHalf = [BPSightsView distanceText:1500]; // "1.5 km" / "1,5 km": the locale's decimal separator
+    XCTAssertEqualObjects([poi.itemArray valueForKey:@"title"], (@[ @"250 m", @"500 m", @"1 km", oneAndHalf, @"2 km", @"5 km" ]));
+    XCTAssertEqualObjects([sight.itemArray valueForKey:@"title"], (@[ @"250 m", @"500 m", @"1 km", @"2 km", @"5 km" ]));
+    XCTAssertEqual(poi.selectedTag, 1500);
+    XCTAssertEqual(sight.selectedTag, 500);
+    [poi selectItemWithTag:2000];
+    [NSApp sendAction:poi.action to:poi.target from:poi];
+    XCTAssertEqual(prefs.poiSearchRadius, 2000, @"applied at once");
+    XCTAssertEqual(notified, 2u);
+    [[NSNotificationCenter defaultCenter] removeObserver:obs];
 }
 
 - (void)testStartPositionRadioButtons

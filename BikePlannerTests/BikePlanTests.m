@@ -82,6 +82,17 @@
     XCTAssertEqualObjects(plan.waypointsLocations, (@[c, b, a]));
 }
 
+// a document without route statistics (none archived): the plan still has a BrouterInfo, which the answer of
+// BRouter fills (an NSAssert on it crashed the app, 2026-11-17)
+- (void)testDecodedPlanAlwaysHasBrouterInfo
+{
+    [plan setValue:nil forKey:@"brouterInfo"];
+    NSData *d = [NSKeyedArchiver archivedDataWithRootObject:plan requiringSecureCoding:YES error:NULL];
+    BikePlan *copy = [NSKeyedUnarchiver unarchivedObjectOfClass:[BikePlan class] fromData:d error:NULL];
+    XCTAssertNotNil(copy);
+    XCTAssertNotNil(copy.brouterInfo);
+}
+
 - (void)testClearRouteKeepsReferenceTraceAndRestores
 {
     CLLocation *a = BPLoc(44, 0.5), *b = BPLoc(44.1, 0.6);

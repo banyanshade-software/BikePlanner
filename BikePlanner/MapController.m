@@ -28,6 +28,7 @@
 #import "BPColorScheme.h"
 #import "BikeMapView.h"
 #import "BPSights.h"
+#import "BPPreferences.h"
 
 // Secret.h is not commited, see Secret.h.example
 
@@ -89,6 +90,9 @@ static NSString * const BPExportFolderBookmarksKey = @"BPExportFolderBookmarks";
     // route colors changed in the Preferences (#71)
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(colorSchemeChanged:)
                                                  name:BPColorSchemeDidChangeNotification object:nil];
+    // search distances of the POIs changed in the Preferences (#81)
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(poiSearchChanged:)
+                                                 name:BPPOISearchDidChangeNotification object:nil];
     self.elevationView.stageEndColor = [BPColorScheme currentScheme].stageEndColor;
     NSView *content = [_mapView superview];// self.window.contentView;
     //_document.plan.waypointsLocations = [[NSMutableArray alloc]initWithCapacity:32];
@@ -472,12 +476,15 @@ static const double kBPSiteRadiusKm = 15;
     }
     self.activeCalloutView = view.detailCalloutAccessoryView;
     calloutOpenedAt = [NSDate timeIntervalSinceReferenceDate];
+    // an excluded POI is translucent; its callout inherits it: almost opaque while open (#81)
+    if ([view.annotation isKindOfClass:[POIAnnotation class]] && ((POIAnnotation *)view.annotation).excluded) view.alphaValue = 0.92;
 }
 
 - (void)mapView:(MKMapView *)mapView didDeselectAnnotationView:(MKAnnotationView *)view {
     if (self.activeCalloutView == view.detailCalloutAccessoryView) {
         self.activeCalloutView = nil;
     }
+    if ([view.annotation isKindOfClass:[POIAnnotation class]] && ((POIAnnotation *)view.annotation).excluded) view.alphaValue = 0.6;
 }
 
 
@@ -1197,6 +1204,8 @@ static const double kBPSiteRadiusKm = 15;
         dispatch_async(dispatch_get_main_queue(), ^{
             if (generation != self->routeGeneration) return; // cancelled or replaced by a newer request
             self->routeTask = nil;
+            // the window was closed while the route was computed (crash 2026-11-17: NSAssert on plan.brouterInfo)
+            if (!self.document) return;
             if (error || points.count == 0) {
                 NSLog(@"BRouter error: %@", error);
                 [self showMapMessage:[NSString stringWithFormat:NSLocalizedString(@"Routing failed: %@", @"BRouter error"),
@@ -2300,7 +2309,8 @@ static const BOOL useMarker = NO;
     scrubberMarker.coordinate = onRoute;
     self.elevationView.highlightDistance = along;
     [self.elevationView setNeedsDisplay:YES];
-    [self.svCtrl viewCoord:onRoute lookingAt:bearing coalesce:NO];
+    // at the POI itself (#81), looking as when coming from the route; the profile cursor abreast of it on the route
+    [self.svCtrl viewCoord:target lookingAt:bearing coalesce:NO];
 }
 
 - (void) copyPOICoordinates:(NSButton *)sender
@@ -2360,6 +2370,11 @@ static const BOOL useMarker = NO;
 }
 
 #pragma mark - sights (#81)
+
+- (void) poiSearchChanged:(NSNotification *)note
+{
+    [_document.plan refetchPOIs];
+}
 
 - (void) setSightCategories:(NSArray<NSString *> *)categories
 {

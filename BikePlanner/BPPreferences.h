@@ -17,6 +17,10 @@ extern NSString *const BPDefaultPositionKey;   // "lat,lon"
 extern NSString *const BPInitialRadiusKmKey;   // km
 extern NSString *const BPStartPositionKey;     // BPStartPosition
 extern NSString *const BPSightCategoriesKey;   // array of BPSights categories (#81)
+extern NSString *const BPPOISearchRadiusKey;   // meters (#81), read by +[BPEnvironment poiSearchRadius]
+extern NSString *const BPSightSearchRadiusKey; // meters (#81), read by +[BPEnvironment sightSearchRadius]
+/// posted when a search distance changes: the open documents fetch their POIs again (#81)
+extern NSNotificationName const BPPOISearchDidChangeNotification;
 
 @interface BPPreferences : NSObject
 
@@ -36,6 +40,9 @@ extern NSString *const BPSightCategoriesKey;   // array of BPSights categories (
 @property (nonatomic) BPColorScheme *colorScheme;
 /// sight categories of new documents (#81; default Culture, Viewpoints)
 @property (nonatomic, copy) NSArray<NSString *> *defaultSightCategories;
+/// search distances along the route, meters (#81): utilities (default 1500), sights (default 1000); global
+@property (nonatomic) NSInteger poiSearchRadius;
+@property (nonatomic) NSInteger sightSearchRadius;
 
 @end
 
