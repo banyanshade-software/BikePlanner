@@ -835,6 +835,7 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
         NSMutableDictionary *info = [tags mutableCopy];
         if (el[@"id"]) info[@"id"] = el[@"id"];
         NSString *t = el[@"type"];
+        if ([t isKindOfClass:[NSString class]]) info[@"osmType"] = t; // node / way / relation: the OSM link (#81)
         double lat, lon;
         PoiType_t type = POI_unknown;
         if ([t isEqualToString:@"node"]) {
@@ -905,7 +906,8 @@ static void BPSimplify(const double *x, const double *y, NSUInteger first, NSUIn
         NSString *filter = [BPSights overpassFilterForCategories:categories.allObjects];
         if (filter) [query appendFormat:@"  nwr(%@)%@;\n", bbox, filter];
     }
-    [query appendString:@");\nout center;"];
+    // tags and center only: not the nodes of the ways (they filled the cache for nothing)
+    [query appendString:@");\nout tags center;"];
     return query;
 }
 

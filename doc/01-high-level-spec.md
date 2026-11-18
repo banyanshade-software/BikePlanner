@@ -263,7 +263,8 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
   when the callout opens; “on the route” under 20 m); the useful OSM tags translated (drinking water, seasonal,
   opening hours, fee, wheelchair, pump/tools of a repair station, operator, note…) and *All OSM tags (n)*, collapsed
   (key = value, selectable); a value that is a web address (`website` of a shop or a repair station…) is a link;
-  buttons *OpenStreetMap* (the node, or the way of a cemetery area, on openstreetmap.org;
+  buttons *OpenStreetMap* (the element — node, way or relation, its type kept by the app since #81; for older
+  documents, the node, or the way of a cemetery area, on openstreetmap.org;
   fetched POIs only), *Street View* (at the POI itself, looking as when coming from the nearest point of the route, #81; the profile cursor goes
   there), *Copy* (“lat, lon”, 6 decimals); a checkbox *Include in track* (checked by default) and, for a custom POI,
   *Edit…* (the sheet of F7.6). A click outside the open callout closes it and does nothing else (on another POI: opens
@@ -292,6 +293,9 @@ the zoom / location buttons sit on a translucent blurred backdrop, so they stay 
     Info section's), one line per sight, by km along the route: km, name, type, distance from the route, *In track*
     checkbox. A click on a line moves the map to the sight progressively (about 1 s), zooming in to ~2 km if the map
     is farther out (markers are hidden when they collide), then opens its callout.
+  - The callout of a sight shows its own tags, made readable: Historic, Castle type, Tourism, Natural (values such as
+    `archaeological_site` → “Archaeological site”), Heritage, Date (`start_date`), Elevation, Cuisine, Phone, and the
+    Wikipedia article as a link. Overpass answers with the tags and the center only (`out tags center`).
   - Markers: their own symbol and color per type (columns, bell, mountain, bed, bicycle; binoculars, fork and knife);
     excluded ones greyed. Exported with their OSM name and the Garmin type OVERLOOK (viewpoints), FOOD, else GENERIC.
 

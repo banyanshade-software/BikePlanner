@@ -10,17 +10,30 @@
 typedef NS_ENUM(int, BPTagKind) {
     BPTagText,      // value shown as is
     BPTagYesNo,     // yes / no / limited translated, other values as is
+    BPTagValue,     // an OSM value made readable: "archaeological_site" → "Archaeological site", "a;b" → "A, b" (#81)
+    BPTagMeters,    // "1287" → "1287 m"
+    BPTagWikipedia, // "fr:Title" → the article's URL (a link in the callout)
 };
 
 @implementation BPPOIDescription
 
-// useful tags of the fetched POI types (drinking water, toilets, repair stations, cemeteries), in display order
+// useful tags of the fetched POI types (drinking water, toilets, repair stations, cemeteries; sights, #81), in
+// display order
 + (NSArray<NSArray *> *)knownTags
 {
     static NSArray *tags;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         tags = @[
+            // sights (#81)
+            @[ @"historic",                    NSLocalizedString(@"Historic", @"POI tag"),       @(BPTagValue) ],
+            @[ @"castle_type",                 NSLocalizedString(@"Castle type", @"POI tag"),    @(BPTagValue) ],
+            @[ @"tourism",                     NSLocalizedString(@"Tourism", @"POI tag"),        @(BPTagValue) ],
+            @[ @"natural",                     NSLocalizedString(@"Natural", @"POI tag"),        @(BPTagValue) ],
+            @[ @"heritage",                    NSLocalizedString(@"Heritage", @"POI tag"),       @(BPTagText) ],
+            @[ @"start_date",                  NSLocalizedString(@"Date", @"POI tag"),           @(BPTagText) ],
+            @[ @"ele",                         NSLocalizedString(@"Elevation", @"POI tag"),      @(BPTagMeters) ],
+            @[ @"cuisine",                     NSLocalizedString(@"Cuisine", @"POI tag"),        @(BPTagValue) ],
             @[ @"drinking_water",              NSLocalizedString(@"Drinking water", @"POI tag"), @(BPTagYesNo) ],
             @[ @"bottle",                      NSLocalizedString(@"Bottle refill", @"POI tag"),  @(BPTagYesNo) ],
             @[ @"fountain",                    NSLocalizedString(@"Fountain", @"POI tag"),       @(BPTagText) ],
@@ -47,6 +60,9 @@ typedef NS_ENUM(int, BPTagKind) {
             @[ @"website",                     NSLocalizedString(@"Website", @"POI tag"),        @(BPTagText) ],
             @[ @"contact:website",             NSLocalizedString(@"Website", @"POI tag"),        @(BPTagText) ],
             @[ @"url",                         NSLocalizedString(@"Website", @"POI tag"),        @(BPTagText) ],
+            @[ @"phone",                       NSLocalizedString(@"Phone", @"POI tag"),          @(BPTagText) ],
+            @[ @"contact:phone",               NSLocalizedString(@"Phone", @"POI tag"),          @(BPTagText) ],
+            @[ @"wikipedia",                   NSLocalizedString(@"Wikipedia", @"POI tag"),      @(BPTagWikipedia) ],
             @[ @"check_date",                  NSLocalizedString(@"Last checked", @"POI tag"),   @(BPTagText) ],
         ];
     });
@@ -59,6 +75,21 @@ typedef NS_ENUM(int, BPTagKind) {
         if ([value isEqualToString:@"yes"])     return NSLocalizedString(@"yes", @"POI tag value");
         if ([value isEqualToString:@"no"])      return NSLocalizedString(@"no", @"POI tag value");
         if ([value isEqualToString:@"limited"]) return NSLocalizedString(@"limited", @"POI tag value");
+    }
+    if (kind == BPTagValue) {
+        NSString *v = [[value stringByReplacingOccurrencesOfString:@"_" withString:@" "]
+                       stringByReplacingOccurrencesOfString:@";" withString:@", "];
+        return v.length ? [[v substringToIndex:1].uppercaseString stringByAppendingString:[v substringFromIndex:1]] : v;
+    }
+    if (kind == BPTagMeters) return [value stringByAppendingString:@" m"];
+    if (kind == BPTagWikipedia) {
+        NSRange colon = [value rangeOfString:@":"];
+        NSString *lang = colon.location != NSNotFound && colon.location <= 3 ? [value substringToIndex:colon.location] : @"en";
+        NSString *title = colon.location != NSNotFound && colon.location <= 3 ? [value substringFromIndex:NSMaxRange(colon)] : value;
+        title = [[title stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet]
+                 stringByReplacingOccurrencesOfString:@" " withString:@"_"];
+        NSString *encoded = [title stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLPathAllowedCharacterSet];
+        return encoded ? [NSString stringWithFormat:@"https://%@.wikipedia.org/wiki/%@", lang, encoded] : value;
     }
     return value;
 }
@@ -81,12 +112,15 @@ typedef NS_ENUM(int, BPTagKind) {
                 [rows addObject:@[ t[1], [[self class] displayValue:v kind:[t[2] intValue]] ]];
             }
             for (NSString *k in [info.allKeys sortedArrayUsingSelector:@selector(compare:)]) {
-                if ([k isEqualToString:@"id"]) continue; // added by BikePlanner, not a tag
+                if ([k isEqualToString:@"id"] || [k isEqualToString:@"osmType"]) continue; // added by BikePlanner, not tags
                 [all addObject:@[ k, [info[k] description] ]];
             }
-            // the Overpass query fetches nodes with an amenity and ways with landuse=cemetery (BikePlan)
+            // the element type kept by the app (#81: sights are also ways and relations); before it, nodes with an
+            // amenity and ways with landuse=cemetery
             if (osmid) {
-                NSString *element = (info[@"landuse"] && !info[@"amenity"]) ? @"way" : @"node";
+                NSString *type = info[@"osmType"];
+                NSString *element = [@[ @"node", @"way", @"relation" ] containsObject:type] ? type
+                                  : (info[@"landuse"] && !info[@"amenity"]) ? @"way" : @"node";
                 _osmURL = [NSURL URLWithString:[NSString stringWithFormat:@"https://www.openstreetmap.org/%@/%@",
                                                 element, osmid]];
             }

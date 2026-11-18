@@ -104,4 +104,33 @@ static NSString *BPLocalDecimal(NSString *s)
     XCTAssertEqualObjects([BPPOIDescription coordinateString:CLLocationCoordinate2DMake(44.1234567, -0.5)], @"44.123457, -0.500000");
 }
 
+// a sight (#81): its own tags, readable values; the element type kept by the app for the OSM link (the Château du
+// Pin, way 929553705, showed nothing but its name: 2026-11-18)
+- (void)testSightTags
+{
+    NSDictionary *info = @{ @"id": @929553705, @"osmType": @"way", @"name": @"Le Château du Pin", @"historic": @"castle",
+                            @"building": @"yes", @"source": @"cadastre-dgi-fr", @"castle_type": @"defensive",
+                            @"heritage": @"2", @"start_date": @"C13", @"wikipedia": @"fr:Château du Pin" };
+    BPPOIDescription *d = [[BPPOIDescription alloc] initWithType:POI_culture info:info custom:NO];
+    XCTAssertEqualObjects(d.typeName, @"Culture");
+    NSArray *expected = @[ @[@"Historic", @"Castle"], @[@"Castle type", @"Defensive"], @[@"Heritage", @"2"],
+                           @[@"Date", @"C13"], @[@"Wikipedia", @"https://fr.wikipedia.org/wiki/Ch%C3%A2teau_du_Pin"] ];
+    XCTAssertEqualObjects(d.rows, expected);
+    XCTAssertNotNil([BPPOIDescription linkURLForValue:d.rows.lastObject[1]], @"the Wikipedia article is a link");
+    XCTAssertEqualObjects(d.osmURL.absoluteString, @"https://www.openstreetmap.org/way/929553705", @"a way, not a node");
+    for (NSArray *t in d.allTags) {
+        XCTAssertNotEqualObjects(t[0], @"osmType", @"added by the app, not a tag");
+        XCTAssertNotEqualObjects(t[0], @"id");
+    }
+    // other sights
+    d = [[BPPOIDescription alloc] initWithType:POI_culture info:@{ @"id": @1, @"osmType": @"node", @"tourism": @"archaeological_site" } custom:NO];
+    XCTAssertEqualObjects(d.rows, (@[ @[@"Tourism", @"Archaeological site"] ]));
+    d = [[BPPOIDescription alloc] initWithType:POI_nature info:@{ @"id": @2, @"osmType": @"node", @"natural": @"peak", @"ele": @"1287" } custom:NO];
+    XCTAssertEqualObjects(d.rows, (@[ @[@"Natural", @"Peak"], @[@"Elevation", @"1287 m"] ]));
+    d = [[BPPOIDescription alloc] initWithType:POI_food info:@{ @"id": @3, @"osmType": @"relation", @"amenity": @"restaurant",
+                                                               @"cuisine": @"regional;french", @"phone": @"+33 5 61 00 00 00" } custom:NO];
+    XCTAssertEqualObjects(d.rows, (@[ @[@"Cuisine", @"Regional, french"], @[@"Phone", @"+33 5 61 00 00 00"] ]));
+    XCTAssertEqualObjects(d.osmURL.absoluteString, @"https://www.openstreetmap.org/relation/3");
+}
+
 @end
