@@ -212,6 +212,11 @@
     [_mapController reverseRoute:sender];
 }
 
+- (IBAction) sendToGarminConnect:(id)sender
+{
+    [_mapController sendToGarminConnect:sender];
+}
+
 - (IBAction) refreshPOIs:(id)sender
 {
     [_mapController refreshPOIs:sender];
@@ -263,6 +268,7 @@
     if (item.action == @selector(clearRoute:)) return [_mapController canClearRoute];
     if (item.action == @selector(recalculateRoute:)) return [_mapController canRecalculateRoute];
     if (item.action == @selector(refreshPOIs:)) return [_mapController canRefreshPOIs];
+    if (item.action == @selector(sendToGarminConnect:)) return [_mapController canSendToGarminConnect];
     if (item.action == @selector(removeGPXTraceForDisplay:)) return [_mapController canRemoveGPXTraceForDisplay];
     // Edit ▸ Mode items: check the current mode
     NSDictionary<NSString *, NSNumber *> *modes = @{ @"setClickModeToEdit:": @(BPClickModeEdit),

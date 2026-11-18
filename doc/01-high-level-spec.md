@@ -347,6 +347,23 @@ changes nothing.
   remembered.
 - F10.3 *(planned)* *Export to FIT* (Garmin course) — menu item exists, not implemented.
 - F10.4 Export is only possible once a route has been computed in the current session.
+- F10.5 *File ▸ Send to Garmin Connect…* (#79; enabled with a route): a sheet on the document window with the Garmin
+  Connect web site, so that the course reaches the device whatever its model (the Garmin Personal API is read-only,
+  #82; the Courses API is for business partners).
+  - The user logs in in the sheet (Garmin's own page, SSO and 2FA): the app never sees the credentials; the session
+    is kept in the app's website data; *Log Out of Garmin Connect* clears it.
+  - The app then does what the user would do by hand (real site, French interface, 2026-11-18): on
+    `/app/courses`, **Importer**; it gives the GPX to the file chooser of the popup (no dialog); **Mise en route** →
+    the editor `/app/course/create`; the activity button — **Cyclisme sur route** when ≥ 90 % of the known surfaces are
+    paved, **VTT** when ≤ 20 %, **Gravel bike** between, or when the unknown surface is the majority or there is no
+    statistic; **Enregistrer**. It stops on the last popup (name, privacy, private by default): the user saves, then
+    sends the course to the device (*Send to Device*) from its page.
+  - The GPX: the whole route, or one course per stage as the *Stages* setting of the GPX export (F10.2b), named after
+    the document (the name Garmin proposes), with the POIs included in the track; the courses one after the other, the
+    next one once the user saved the previous.
+  - A status line says what happens. A step not recognized in 20 s (the site changed) shows what to do by hand; the
+    automation goes on when the page moves on.
+  - Garmin's terms of use were not checked (to do before any distribution, #20).
 
 ### F11 — Misc
 - F11.1 Custom About window (BSSUI / DCOAboutWindow). *Visit the BikePlanner Website* opens the GitHub page

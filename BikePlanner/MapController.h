@@ -57,6 +57,9 @@ typedef NS_ENUM(int, BPClickMode) {
 - (IBAction) reverseRoute:(id)sender;
 - (BOOL) canReverseRoute;
 - (IBAction) recalculateRoute:(id)sender;
+/// File ▸ Send to Garmin Connect… (#79)
+- (IBAction) sendToGarminConnect:(id)sender;
+- (BOOL) canSendToGarminConnect;
 /// Edit ▸ Refresh Points of Interest (#84): ignores the POI cache
 - (IBAction) refreshPOIs:(id)sender;
 - (BOOL) canRefreshPOIs;

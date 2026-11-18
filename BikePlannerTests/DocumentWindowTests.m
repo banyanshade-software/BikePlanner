@@ -9,6 +9,7 @@
 
 #import <XCTest/XCTest.h>
 #import <MapKit/MapKit.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import "Document.h"
 #import "MapController.h"
 #import "BikePlan.h"
@@ -30,6 +31,7 @@
 #import "BPFITBuilder.h"
 #import "BPGuidedTour.h"
 #import "BPSightsView.h"
+#import "BPGarminCourse.h"
 #import "BPPreferences.h"
 #import "BPRemarkableSites.h"
 #import "BPEnvironment.h"
@@ -37,6 +39,8 @@
 
 @interface MapController (WindowTesting)
 - (NSMenu *)contextMenuForMapPoint:(NSPoint)p;
+- (nullable NSArray<NSURL *> *)garminCourseFilesError:(NSError **)error;
+- (BPGarminActivity)garminActivity;
 - (CLLocationCoordinate2D)coordinateAtDistance:(double)distance;
 - (double)bearingAtDistance:(double)distance;
 - (BOOL)isContextClickEvent:(nullable NSEvent *)event;
@@ -108,6 +112,14 @@
 @interface DocumentWindowTests : XCTestCase
 @end
 
+// what -[MapController applyStagesExportMode:toPanel:] sets on the export panel
+@interface BPFakeSavePanel : NSObject
+@property (copy) NSString *nameFieldStringValue;
+@property (copy) NSArray<UTType *> *allowedContentTypes;
+@end
+@implementation BPFakeSavePanel
+@end
+
 // counts the actions sent by a control (stands for MapController, so that no Apple search is run)
 @interface BPActionCounter : NSObject
 @property NSInteger count;
@@ -136,7 +148,8 @@
                           @"BPProfileOverrides": @{}, // not the owner's default BRouter parameters
                           @"BPColorScheme": @"classic", // nor the owner's route colors (#71)
                           @"BPSightCategories": @[], // no sights (#81) unless a test asks for them
-                          @"BPPOISearchRadius": @1500, @"BPSightSearchRadius": @1000 }); // nor the owner's distances
+                          @"BPPOISearchRadius": @1500, @"BPSightSearchRadius": @1000, // nor the owner's distances
+                          @"BPGarminConnectURL": @"bpgarmin-none://connect.test" }); // never the real Garmin site (#79)
     doc = [[Document alloc] init];
     [self openWindow];
 }
@@ -560,7 +573,10 @@
     [map setRegion:wide animated:NO];
     [view selectRowWithKey:castle.poiKey];
     BPSpin(0.3);
-    XCTAssertGreaterThan(map.region.span.latitudeDelta, 0.03, @"a progressive zoom (about 1 s), not a jump");
+    // the animation runs only when the window is drawn (not while it is covered by other windows)
+    if (map.window.occlusionState & NSWindowOcclusionStateVisible) {
+        XCTAssertGreaterThan(map.region.span.latitudeDelta, 0.03, @"a progressive zoom (about 1 s), not a jump");
+    }
     XCTAssertTrue(BPWaitUntil(3, ^{
         id<MKAnnotation> a = self->map.selectedAnnotations.firstObject;
         return (BOOL)([a isKindOfClass:[POIAnnotation class]] && [((POIAnnotation *)a).poiKey isEqualToString:castle.poiKey]);
@@ -703,6 +719,57 @@
     [NSApp sendAction:item.action to:doc from:item];
     XCTAssertTrue(BPWaitUntil(8, ^{ return (BOOL)([self->server requestsWithPath:@"/api/interpreter"].count > requests); }), @"asked again");
     BPSpin(0.3);
+}
+
+// File ▸ Send to Garmin Connect… (#79): the GPX of the route (or one per stage, as the GPX export) in a temporary
+// folder, the activity from the surfaces, a sheet on the document window
+- (void)testSendToGarminConnect
+{
+    NSMenu *file = [NSApp.mainMenu itemWithTitle:@"File"].submenu;
+    NSInteger i = [file indexOfItemWithTarget:nil andAction:NSSelectorFromString(@"sendToGarminConnect:")];
+    XCTAssertNotEqual(i, -1);
+    XCTAssertEqual(i, [file indexOfItemWithTarget:nil andAction:@selector(exportGPX:)] + 1, @"after Export to GPX");
+    NSMenuItem *item = [file itemAtIndex:i];
+    XCTAssertEqualObjects(item.title, @"Send to Garmin Connect…");
+    XCTAssertFalse([doc validateMenuItem:item], @"no route");
+
+    doc.plan.fetchPOI = NO;
+    NSUserDefaults *ud = [[NSUserDefaults alloc] initWithSuiteName:@"bp-tests-garmin"];
+    [ud removePersistentDomainForName:@"bp-tests-garmin"];
+    [mc setExportDefaults:ud];
+    [self makeThreeWaypointRoute];
+    XCTAssertTrue([doc validateMenuItem:item]);
+    NSError *err = nil;
+    NSArray<NSURL *> *files = [mc garminCourseFilesError:&err];
+    XCTAssertEqual(files.count, 1u, @"no stage: the whole route");
+    XCTAssertTrue([files.firstObject.lastPathComponent hasSuffix:@".gpx"]);
+    NSString *gpx = [NSString stringWithContentsOfURL:files.firstObject encoding:NSUTF8StringEncoding error:NULL];
+    NSString *nameTag = [NSString stringWithFormat:@"<name>%@</name>", doc.displayName];
+    XCTAssertTrue([gpx containsString:nameTag], @"the course name: the document's");
+
+    // one course per stage, as the export setting
+    [NSApp sendAction:NSSelectorFromString(@"toggleStageEndMenuAction:") to:mc from:[self stageItemForWaypoint:1]];
+    [ud setInteger:0 forKey:@"BPExportStagesMode"]; // one file per stage
+    files = [mc garminCourseFilesError:&err];
+    XCTAssertEqual(files.count, 2u);
+    XCTAssertTrue([files[0].lastPathComponent hasSuffix:@"stage 1.gpx"], @"%@", files[0].lastPathComponent);
+    [ud setInteger:1 forKey:@"BPExportStagesMode"]; // whole route
+    XCTAssertEqual([mc garminCourseFilesError:&err].count, 1u);
+
+    // the activity from the surfaces (stub route: half asphalt, half gravel → 50 % paved: gravel)
+    XCTAssertEqual([mc garminActivity], BPGarminActivityGravel);
+
+    // the sheet (on a fake site: nothing loads, the sheet only)
+    NSWindow *window = doc.windowControllers.firstObject.window;
+    [NSApp sendAction:item.action to:doc from:item];
+    XCTAssertTrue(BPWaitUntil(3, ^{ return (BOOL)(window.attachedSheet != nil); }));
+    NSButton *close = (NSButton *)[self viewWithIdentifier:@"garminClose" in:window.attachedSheet.contentView];
+    XCTAssertNotNil([self viewWithIdentifier:@"garminWeb" in:window.attachedSheet.contentView]);
+    XCTAssertNotNil([self viewWithIdentifier:@"garminStatus" in:window.attachedSheet.contentView]);
+    [close performClick:nil];
+    XCTAssertTrue(BPWaitUntil(3, ^{ return (BOOL)(window.attachedSheet == nil); }));
+    [mc setExportDefaults:nil];
+    [ud removePersistentDomainForName:@"bp-tests-garmin"];
 }
 
 // the sights of a new document come from the Preferences; saved with the document
@@ -887,9 +954,19 @@
     NSView *line = [mc tourAnchorForKey:@"routeLine" rect:&r];
     XCTAssertEqual(line, map);
     XCTAssertTrue(NSContainsRect(map.bounds, r));
-    NSView *poi = [mc tourAnchorForKey:@"waterPOI" rect:&r];
-    XCTAssertTrue([((MKAnnotationView *)poi).annotation isKindOfClass:[POIAnnotation class]]);
     XCTAssertNil([mc tourAnchorForKey:@"other" rect:&r]);
+    // MapKit places the marker views only when the window is drawn: not while it is covered by other windows (the
+    // test then failed, also before #84, depending on the owner's screen)
+    if (!(map.window.occlusionState & NSWindowOcclusionStateVisible)) {
+        XCTSkip(@"the test window is covered: MapKit does not place the markers");
+    }
+    __block NSView *poi = nil;
+    XCTAssertTrue(BPWaitUntil(5, ^{
+        NSRect pr;
+        poi = [self->mc tourAnchorForKey:@"waterPOI" rect:&pr];
+        return (BOOL)(poi != nil);
+    }), @"the water POI marker");
+    XCTAssertTrue([((MKAnnotationView *)poi).annotation isKindOfClass:[POIAnnotation class]]);
 }
 
 // every control of the window has a tooltip (#63)
@@ -2548,7 +2625,10 @@
     [ud setInteger:7 forKey:@"BPExportStagesMode"];
     XCTAssertEqual([mc stagesExportPopUp].selectedTag, 0, @"unknown value");
 
-    NSSavePanel *panel = [NSSavePanel savePanel];
+    // a stand-in: a real NSSavePanel is a remote view service in the sandbox, and making one sometimes blocked about
+    // 60 s (the test hit its timeout); only these two properties are set
+    BPFakeSavePanel *fake = [[BPFakeSavePanel alloc] init];
+    NSSavePanel *panel = (NSSavePanel *)fake;
     panel.nameFieldStringValue = @"Trip.gpx";
     [mc applyStagesExportMode:0 toPanel:panel];
     XCTAssertEqualObjects(panel.nameFieldStringValue, @"Trip");

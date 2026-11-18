@@ -31,6 +31,8 @@ typedef NS_ENUM(NSInteger, BPStartPosition) {
 /// overpass-api.de, overpass.private.coffee (worldwide), ovp.dresel.systems (Europe). Key BPOverpassServers (array of
 /// specs, tests), or BPOverpassURL (a single worldwide server, tests and UI tests)
 + (NSArray<NSString *> *) overpassServerSpecs;
+/// Garmin Connect (#79): key BPGarminConnectURL, default https://connect.garmin.com (tests: a fake site)
++ (NSURL *) garminConnectURL;
 /// Folder of the POI cache (#84): key BPPOICacheDirectory; default <Caches>/POICache of the app, a temporary folder in
 /// the unit test host (never the owner's cache)
 + (NSString *) poiCacheDirectory;

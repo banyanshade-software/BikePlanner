@@ -29,6 +29,7 @@
 #import "BikeMapView.h"
 #import "BPSights.h"
 #import "BPPreferences.h"
+#import "BPGarminConnectController.h"
 
 // Secret.h is not commited, see Secret.h.example
 
@@ -76,6 +77,7 @@ static NSString * const BPExportFolderBookmarksKey = @"BPExportFolderBookmarks";
     CLLocationCoordinate2D initialCenter;   // center set by showInitialRegion, to detect a map moved by the user
     NSURLSessionDataTask *routeTask;        // route request in flight
     __weak NSSavePanel *exportPanel;         // while the export panel is open (#31, #69: stages pop-up)
+    BPGarminConnectController *garminController; // the Send to Garmin Connect sheet (#79)
     NSUserDefaults *exportDefaults;         // last stages export choice, folder bookmarks (#69); nil: standard, set by tests
     NSUInteger routeGeneration;             // incremented by each request and cancel: older answers are ignored (#9)
     NSPasteboard *poiPasteboard;            // POI callout Copy (#72); nil: general pasteboard, set by tests
@@ -1643,6 +1645,62 @@ static NSString *xmlEscaped(NSString * _Nullable s)
 - (void) setExportDefaults:(nullable NSUserDefaults *)defaults
 {
     exportDefaults = defaults;
+}
+
+#pragma mark - Send to Garmin Connect (#79)
+
+// the GPX of the courses, in a new temporary folder: the whole route, or one file per stage as the GPX export setting
+// (#69), named after the document (the name Garmin Connect proposes); with the POIs included in the track
+- (nullable NSArray<NSURL *> *) garminCourseFilesError:(NSError **)error
+{
+    NSURL *dir = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:
+                                         [@"BikePlanner Garmin " stringByAppendingString:NSUUID.UUID.UUIDString]] isDirectory:YES];
+    if (![[NSFileManager defaultManager] createDirectoryAtURL:dir withIntermediateDirectories:YES attributes:nil error:error]) return nil;
+    NSString *name = [_document.displayName stringByDeletingPathExtension] ?: @"BikePlanner";
+    BPStagesExportMode mode = [self.exportDefaults integerForKey:BPExportStagesModeKey];
+    BOOL stages = _document.plan.stagesRoutePoints.count > 1 && mode != BPStagesExportWhole;
+    NSURL *target = stages ? [dir URLByAppendingPathComponent:name isDirectory:YES]
+                           : [dir URLByAppendingPathComponent:[name stringByAppendingPathExtension:@"gpx"]];
+    if (![self exportGPXToURL:target mode:stages ? BPStagesExportFolder : BPStagesExportWhole withPOI:YES error:error]) return nil;
+    if (!stages) return @[ target ];
+    NSArray *files = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:target includingPropertiesForKeys:nil options:0 error:error];
+    // stage 1, 2… 10 in order
+    return [[files filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"pathExtension == 'gpx'"]]
+            sortedArrayUsingComparator:^NSComparisonResult(NSURL *a, NSURL *b) {
+        return [a.lastPathComponent localizedStandardCompare:b.lastPathComponent];
+    }];
+}
+
+// the activity of the course from the surfaces of the route (owner's rule, BPGarminCourse)
+- (BPGarminActivity) garminActivity
+{
+    return [BPGarminCourse activityForSurfaceStats:_document.plan.brouterInfo.surfaceStats];
+}
+
+- (BOOL) canSendToGarminConnect
+{
+    return _document.plan.routePoints.count >= 2 && !garminController;
+}
+
+- (IBAction) sendToGarminConnect:(id)sender
+{
+    NSWindow *window = self.mapView.window;
+    if (![self canSendToGarminConnect] || !window) return;
+    NSError *error = nil;
+    NSArray<NSURL *> *files = [self garminCourseFilesError:&error];
+    if (!files.count) {
+        if (error) [window presentError:error];
+        return;
+    }
+    BPGarminConnectController *c = [[BPGarminConnectController alloc] initWithFiles:files activity:[self garminActivity]];
+    garminController = c;
+    __weak MapController *weakSelf = self;
+    [window beginSheet:c.window completionHandler:^(NSModalResponse r) {
+        MapController *s = weakSelf;
+        if (s) s->garminController = nil;
+        [[NSFileManager defaultManager] removeItemAtURL:files.firstObject.URLByDeletingLastPathComponent error:NULL];
+    }];
+    [c start];
 }
 
 // writes the GPX of the route at url: a new folder of stage files, one file, or stage files next to url ("<name> -

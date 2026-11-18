@@ -125,7 +125,7 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
   - UI tests: `BPUITestCase` starts a real HTTP server (`[server start]`, needs `network.server`, granted to the UI test
     runner by `BikePlannerUITests.entitlements`) and passes launch arguments to the app.
 - App-side test hooks are in `BPEnvironment` (`BPBRouterServer`, `BPOverpassURL`, `BPGoogleMapsEmbedURL`, `BPDisableStreetView`,
-  `BPDisableTiles`, `BPInitialRegion`, `BPDisableLocation`, `BPRemarkableSiteIndex`, `BPOverpassServers`, `BPPOICacheDirectory` — #84); no effect without overrides. When adding an external endpoint, route it
+  `BPDisableTiles`, `BPInitialRegion`, `BPDisableLocation`, `BPRemarkableSiteIndex`, `BPOverpassServers`, `BPPOICacheDirectory` — #84, `BPGarminConnectURL` — #79); no effect without overrides. When adding an external endpoint, route it
   through `BPEnvironment` and teach `BPStubServer` to answer it. The Apple place search goes through `BPPlaceSearch`:
   tests replace it with `+setSearchHandlerForTesting:`. Tests of the Preferences use a private `NSUserDefaults`
   suite, never the owner's defaults. The test host reads the owner's real user defaults (Preferences, my default
@@ -135,6 +135,11 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
   original values, so a second call in a test drops the overrides of `setUp` — repeat them. The app launched by the
   UI tests reads them too: `BPUITestCase` overrides them with launch arguments (e.g. `-BPProfileOverrides {}`: the
   owner's default BRouter parameters have keys the stub's profile lacks, so *Apply* started enabled).
+- The test window is often covered by the owner's other windows: macOS then does not draw it, MapKit does not place
+  the marker views (hidden at 0,0) and animations never end (an animated `NSPopover` close never finishes). A check
+  that needs the window on screen tests `window.occlusionState & NSWindowOcclusionStateVisible` and skips
+  (`XCTSkip`) otherwise; app code closes popovers without animation. A real `NSSavePanel` (a remote service in the
+  sandbox) can block for ~60 s: tests pass a stand-in object for the properties they check.
 - Waiting: prefer `BPWaitUntil(timeout, condition)` to a fixed `BPSpin` for anything animated or asynchronous (map
   region animations made a test flaky). A cancelled request may still reach the in-process stub after the test:
   spin a little at the end of such a test so it does not consume the next test's `failCount`.
@@ -155,7 +160,8 @@ that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
   road type or a surface highlights it on the map, #54), `poiType`/`poiName` (custom POI
   sheet), map context menu items (#80, `NSMenuItem.identifier`, from `-[MapController contextMenuForMapPoint:]`):
   `mapAddPOI`/`mapInsertWaypoint`/`mapStreetView`/`mapCopyCoordinates`, `poiPosition`/`poiTags`/`poiAllTagsToggle`/`poiAllTags`/`poiOpenOSM`/`poiStreetView`/`poiCopy`/`poiInclude`/`poiEdit`
-  (POI callout, #72), sights (#81): `sightsSection`, `sightCategories` (pull-down, items `sightCategory.<category>`),
+  (POI callout, #72), Garmin Connect sheet (#79): `garminWeb`, `garminStatus`, `garminLogOut`, `garminClose` (unit tests drive it against
+  fake pages served by a `WKURLSchemeHandler`, `BPGarminConnectTests`; never the real site); sights (#81): `sightsSection`, `sightCategories` (pull-down, items `sightCategory.<category>`),
   `sightIncludeDistance`, `sightsList` (an `NSTableView` in the Info scroll view: `-[BPSightsView includeCheckboxForKey:]`, `selectRowWithKey:`), checkboxes `sightInclude.<poiKey>`, `prefSightCategories`, `prefPOIRadius`/`prefSightRadius` (search distances); guided tour (#63): anchors `infoSection`/`elevationProfile`/`sideTabs`, bubble `tourTitle`/`tourText`/`tourPrevious`/`tourEnd`/`tourNext`;
   `prefLatitude`/`prefLongitude`/`prefRadius`/`prefSearch`/`prefColorScheme` (Preferences), `routeLength`/`routeAscent`/`routeTime`/`routeSpeed` in the XIB — on the cell: unit tests find them with
   `-[DocumentWindowTests panelControlWithIdentifier:]`). POI markers and callouts are not exposed to accessibility:

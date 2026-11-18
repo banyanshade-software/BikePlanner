@@ -71,6 +71,7 @@ SupportClasses/              Reusable/support components
                              road / surface class along the route (runs of points, #54)
   BPRoadTypesView.*          Info section distance by road type and surface, one radio button per class; reports
                              the selected one (#54, #66)
+  BPGarminCourse.*           #79 without UI: the activity type from the surfaces, the button texts of Garmin Connect
   BPOverpassServers.*        Overpass servers (#84): specs "URL [zones]" from BPEnvironment, round robin, demotion
                              of failing / slow ones, kept in BPOverpassServerState (injectable clock and defaults);
                              no UI (also in Quick Look)
@@ -92,6 +93,9 @@ SupportClasses/              Reusable/support components
   POICalloutView.*           Callout content (#72: position, tags, buttons, Include/Exclude)
   BPColorScheme.*            Route color schemes (#71): stage, stage-end, trace and highlight colors; change notification
   BPPOIDescription.*         What the callout shows (translated tags, OSM URL, position text), no UI
+  BPGarminConnectController.*  File ▸ Send to Garmin Connect… (#79): a sheet with a WKWebView on Garmin Connect, a
+                             state machine polled twice a second (helpers injected in the page: buttons found by their
+                             text), the GPX given through -webView:runOpenPanelWithParameters:…
   BPGuidedTour.*             Help ▸ Guided Tour (#63): popovers anchored to controls by accessibility identifier and
                              to route elements (-[MapController tourAnchorForKey:rect:]); runs on the bundled
                              TourSample.bikeplan (temporary copy); started by PlannerWindowController

@@ -38,6 +38,17 @@
     [self.preferencesWindowController showWindow:sender];
 }
 
+// after Export to GPX, built here so that MainMenu.xib is unchanged
+- (void)installSendToGarminMenuItem
+{
+    NSMenu *file = [NSApp.mainMenu itemWithTitle:@"File"].submenu;
+    if (!file || [file indexOfItemWithTarget:nil andAction:NSSelectorFromString(@"sendToGarminConnect:")] >= 0) return;
+    NSInteger i = [file indexOfItemWithTarget:nil andAction:NSSelectorFromString(@"exportGPX:")];
+    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"Send to Garmin Connect…", @"File menu")
+                                                  action:NSSelectorFromString(@"sendToGarminConnect:") keyEquivalent:@""];
+    [file insertItem:item atIndex:i >= 0 ? i + 1 : file.numberOfItems];
+}
+
 // after Recalculate Route, built here so that MainMenu.xib is unchanged
 - (void)installRefreshPOIsMenuItem
 {
@@ -57,6 +68,7 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     [BPGuidedTour installMenuItem]; // Help ▸ Guided Tour (#63)
     [self installRefreshPOIsMenuItem]; // Edit ▸ Refresh Points of Interest (#84)
+    [self installSendToGarminMenuItem]; // File ▸ Send to Garmin Connect… (#79)
 #if BP_SITE_EDITOR
     [BPSiteEditorController installMenu]; // developer build only (#67, scripts/build_site_editor.sh)
 #endif

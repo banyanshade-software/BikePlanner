@@ -112,6 +112,9 @@
 		C3BCFF2CA2AE0DC00B97C7F4 /* BPPOICache.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EB802C9C37207270757EE3B /* BPPOICache.m */; };
 		1A80CBFF3E8E0C2460123159 /* BPPOICache.m in Sources */ = {isa = PBXBuildFile; fileRef = 0EB802C9C37207270757EE3B /* BPPOICache.m */; };
 		5269D23845BCB470EB3426ED /* BPPOICacheTests.m in Sources */ = {isa = PBXBuildFile; fileRef = C8BE3952F60A78BBBFEAAB11 /* BPPOICacheTests.m */; };
+		692839237000E9D99A2DA0F1 /* BPGarminCourse.m in Sources */ = {isa = PBXBuildFile; fileRef = E5ECB0F4FCB9A938DC619987 /* BPGarminCourse.m */; };
+		C1AE7F4B563ED632F35846E1 /* BPGarminConnectController.m in Sources */ = {isa = PBXBuildFile; fileRef = E14D4EDDBDA51BE461D6CDC3 /* BPGarminConnectController.m */; };
+		C3FB2BE281A20E464C79ACAB /* BPGarminConnectTests.m in Sources */ = {isa = PBXBuildFile; fileRef = CAE4B3C4EC12B4FD5BD9D325 /* BPGarminConnectTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -305,6 +308,11 @@
 		0EB802C9C37207270757EE3B /* BPPOICache.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPPOICache.m; sourceTree = "<group>"; };
 		31C69CE9F743F87F4F9CDCAD /* BPPOICache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPPOICache.h; sourceTree = "<group>"; };
 		C8BE3952F60A78BBBFEAAB11 /* BPPOICacheTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPPOICacheTests.m; sourceTree = "<group>"; };
+		E5ECB0F4FCB9A938DC619987 /* BPGarminCourse.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPGarminCourse.m; sourceTree = "<group>"; };
+		EA57A68CA82C457322AA9A74 /* BPGarminCourse.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPGarminCourse.h; sourceTree = "<group>"; };
+		E14D4EDDBDA51BE461D6CDC3 /* BPGarminConnectController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPGarminConnectController.m; sourceTree = "<group>"; };
+		ECB39CA2B9B8D532056B47C6 /* BPGarminConnectController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPGarminConnectController.h; sourceTree = "<group>"; };
+		CAE4B3C4EC12B4FD5BD9D325 /* BPGarminConnectTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPGarminConnectTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -462,6 +470,8 @@
 				CAA6670F747785C36D9B8AE9 /* BPOverpassServers.h */,
 				0EB802C9C37207270757EE3B /* BPPOICache.m */,
 				31C69CE9F743F87F4F9CDCAD /* BPPOICache.h */,
+				E5ECB0F4FCB9A938DC619987 /* BPGarminCourse.m */,
+				EA57A68CA82C457322AA9A74 /* BPGarminCourse.h */,
 			);
 			path = SupportClasses;
 			sourceTree = "<group>";
@@ -503,6 +513,8 @@
 				63C9593517DCDE440E18CD32 /* BPSiteEditorController.m */,
 				E942189C5B87C3781CC41A15 /* BPSiteEditorController.h */,
 				79EDB6BFDB5347989E0CB5E7 /* TourSample.bikeplan */,
+				E14D4EDDBDA51BE461D6CDC3 /* BPGarminConnectController.m */,
+				ECB39CA2B9B8D532056B47C6 /* BPGarminConnectController.h */,
 			);
 			path = BikePlanner;
 			sourceTree = "<group>";
@@ -545,6 +557,7 @@
 				DA8347079EAF031DE9E11995 /* BPSightsTests.m */,
 				02E2E946C9A4F213C3ECE7BF /* BPOverpassServersTests.m */,
 				C8BE3952F60A78BBBFEAAB11 /* BPPOICacheTests.m */,
+				CAE4B3C4EC12B4FD5BD9D325 /* BPGarminConnectTests.m */,
 			);
 			path = BikePlannerTests;
 			sourceTree = "<group>";
@@ -828,6 +841,8 @@
 				3F26CE69B6015E0CE8CC0710 /* BPSightsView.m in Sources */,
 				BCD77853C93FA8287E5DEBAB /* BPOverpassServers.m in Sources */,
 				C3BCFF2CA2AE0DC00B97C7F4 /* BPPOICache.m in Sources */,
+				692839237000E9D99A2DA0F1 /* BPGarminCourse.m in Sources */,
+				C1AE7F4B563ED632F35846E1 /* BPGarminConnectController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -867,6 +882,7 @@
 				C9656E62681F019F1DC188AE /* BPSightsTests.m in Sources */,
 				343A9575E8AA67759030B927 /* BPOverpassServersTests.m in Sources */,
 				5269D23845BCB470EB3426ED /* BPPOICacheTests.m in Sources */,
+				C3FB2BE281A20E464C79ACAB /* BPGarminConnectTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

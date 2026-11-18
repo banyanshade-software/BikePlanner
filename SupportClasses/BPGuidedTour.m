@@ -272,6 +272,7 @@ static NSView *BPFindView(NSView *root, NSString *identifier)
         return;
     }
     BOOL first = _popover == nil;
+    _popover.animates = NO;
     [_popover close];
     _currentStep = step;
     NSPopover *popover = [[NSPopover alloc] init];
@@ -301,6 +302,8 @@ static NSView *BPFindView(NSView *root, NSString *identifier)
 
 - (void)end
 {
+    // at once: an animated close never ends while the window is covered (the popover stayed shown)
+    _popover.animates = NO;
     [_popover close];
     _popover = nil;
 }

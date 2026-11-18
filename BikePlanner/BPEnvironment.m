@@ -39,6 +39,11 @@
               @"https://ovp.dresel.systems/api/interpreter 37.5,-10,71,30;36,-9.5,37.5,-2" ];
 }
 
++ (NSURL *) garminConnectURL
+{
+    return [NSURL URLWithString:[self stringForKey:@"BPGarminConnectURL" default:@"https://connect.garmin.com"]];
+}
+
 + (NSString *) poiCacheDirectory
 {
     NSString *d = [[NSUserDefaults standardUserDefaults] stringForKey:@"BPPOICacheDirectory"];
