@@ -6,6 +6,8 @@
 //  Garmin Connect pages served to the web view by a URL scheme handler (never the real site).
 //
 
+#import "BPFeatures.h"
+#if BP_GARMIN_CONNECT // the whole file (#79, BPFeatures.h)
 #import <XCTest/XCTest.h>
 #import <WebKit/WebKit.h>
 #import "BPGarminCourse.h"
@@ -368,3 +370,5 @@
 }
 
 @end
+
+#endif // BP_GARMIN_CONNECT

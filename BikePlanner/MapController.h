@@ -60,6 +60,9 @@ typedef NS_ENUM(int, BPClickMode) {
 /// File ▸ Send to Garmin Connect… (#79)
 - (IBAction) sendToGarminConnect:(id)sender;
 - (BOOL) canSendToGarminConnect;
+/// the toolbar button "Garmin" removed when the feature is left out of the build (BPFeatures.h), put back by a normal
+/// build after such a build
+- (void) removeGarminToolbarItemIfDisabled;
 /// Edit ▸ Refresh Points of Interest (#84): ignores the POI cache
 - (IBAction) refreshPOIs:(id)sender;
 - (BOOL) canRefreshPOIs;

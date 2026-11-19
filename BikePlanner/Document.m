@@ -159,6 +159,7 @@
 - (void)windowControllerDidLoadNib:(NSWindowController *)windowController
 {
     [super windowControllerDidLoadNib:windowController];
+    [_mapController removeGarminToolbarItemIfDisabled]; // #79, BPFeatures.h
     BOOL k = self.hasUndoManager;
     id x = self.undoManager;
     NSLog(@"um %s %@", k ? "Yes":"No", x);

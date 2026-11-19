@@ -5,6 +5,7 @@
 //  Created by Daniel on 15/08/2025.
 //
 
+#import "BPFeatures.h"
 #import "AppDelegate.h"
 #import "BSSUI_AboutWindowController.h"
 #import "BPEnvironment.h"
@@ -68,7 +69,9 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     [BPGuidedTour installMenuItem]; // Help ▸ Guided Tour (#63)
     [self installRefreshPOIsMenuItem]; // Edit ▸ Refresh Points of Interest (#84)
+#if BP_GARMIN_CONNECT
     [self installSendToGarminMenuItem]; // File ▸ Send to Garmin Connect… (#79)
+#endif
 #if BP_SITE_EDITOR
     [BPSiteEditorController installMenu]; // developer build only (#67, scripts/build_site_editor.sh)
 #endif

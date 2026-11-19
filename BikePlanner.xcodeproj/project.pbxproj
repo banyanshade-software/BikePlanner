@@ -316,6 +316,7 @@
 		CAE4B3C4EC12B4FD5BD9D325 /* BPGarminConnectTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPGarminConnectTests.m; sourceTree = "<group>"; };
 		1995F097B52327E64830E80A /* BPGarminCredentials.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPGarminCredentials.m; sourceTree = "<group>"; };
 		1E18C785DFF352BA59F816F0 /* BPGarminCredentials.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPGarminCredentials.h; sourceTree = "<group>"; };
+		4F2CBBB5C2F84968ABCA4610 /* BPFeatures.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPFeatures.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -520,6 +521,7 @@
 				79EDB6BFDB5347989E0CB5E7 /* TourSample.bikeplan */,
 				E14D4EDDBDA51BE461D6CDC3 /* BPGarminConnectController.m */,
 				ECB39CA2B9B8D532056B47C6 /* BPGarminConnectController.h */,
+				4F2CBBB5C2F84968ABCA4610 /* BPFeatures.h */,
 			);
 			path = BikePlanner;
 			sourceTree = "<group>";

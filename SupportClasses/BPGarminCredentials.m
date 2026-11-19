@@ -5,6 +5,8 @@
 //  The Garmin Connect login kept by BikePlanner (#79).
 //
 
+#import "BPFeatures.h"
+#if BP_GARMIN_CONNECT // the whole file (#79, BPFeatures.h)
 #import "BPGarminCredentials.h"
 #import <Security/Security.h>
 #import <os/log.h>
@@ -96,3 +98,5 @@ static NSString *const BPGarminNeverSaveKey = @"BPGarminNeverSaveAccounts";
 - (void)setNeverSaved:(NSString *)account { [_never addObject:account.lowercaseString]; }
 
 @end
+
+#endif // BP_GARMIN_CONNECT

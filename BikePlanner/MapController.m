@@ -29,7 +29,10 @@
 #import "BikeMapView.h"
 #import "BPSights.h"
 #import "BPPreferences.h"
+#import "BPFeatures.h"
+#if BP_GARMIN_CONNECT
 #import "BPGarminConnectController.h"
+#endif
 
 // Secret.h is not commited, see Secret.h.example
 
@@ -77,7 +80,9 @@ static NSString * const BPExportFolderBookmarksKey = @"BPExportFolderBookmarks";
     CLLocationCoordinate2D initialCenter;   // center set by showInitialRegion, to detect a map moved by the user
     NSURLSessionDataTask *routeTask;        // route request in flight
     __weak NSSavePanel *exportPanel;         // while the export panel is open (#31, #69: stages pop-up)
+#if BP_GARMIN_CONNECT
     BPGarminConnectController *garminController; // the Send to Garmin Connect sheet (#79)
+#endif
     NSUserDefaults *exportDefaults;         // last stages export choice, folder bookmarks (#69); nil: standard, set by tests
     NSUInteger routeGeneration;             // incremented by each request and cancel: older answers are ignored (#9)
     NSPasteboard *poiPasteboard;            // POI callout Copy (#72); nil: general pasteboard, set by tests
@@ -1649,6 +1654,8 @@ static NSString *xmlEscaped(NSString * _Nullable s)
 
 #pragma mark - Send to Garmin Connect (#79)
 
+#if BP_GARMIN_CONNECT
+
 // the GPX of the courses, in a new temporary folder: the whole route, or one file per stage as the GPX export setting
 // (#69), named after the document (the name Garmin Connect proposes); with the POIs included in the track
 - (nullable NSArray<NSURL *> *) garminCourseFilesError:(NSError **)error
@@ -1701,6 +1708,53 @@ static NSString *xmlEscaped(NSString * _Nullable s)
         [[NSFileManager defaultManager] removeItemAtURL:files.firstObject.URLByDeletingLastPathComponent error:NULL];
     }];
     [c start];
+}
+
+#else // left out of the build (BPFeatures.h): the toolbar button of Document.xib removed
+
+- (BOOL) canSendToGarminConnect
+{
+    return NO;
+}
+
+- (IBAction) sendToGarminConnect:(id)sender
+{
+}
+
+#endif
+
+// the toolbar button "Garmin" of Document.xib (#79), removed when the feature is left out of the build (BPFeatures.h).
+// The toolbar saves its configuration at once in the user defaults, shared with the normal builds (same app
+// identifier): a build without the feature notes that it removed the button, and a normal build puts it back.
+static NSString *const BPGarminToolbarItemIdentifier = @"5B0E79A1-6C2D-4E8F-9A3B-7D1E2F4C6A08"; // Document.xib
+static NSString *const BPGarminToolbarItemRemovedKey = @"BPGarminToolbarItemRemovedByBuild";
+
+// (called by the document once the window is loaded: earlier, the toolbar has not built its items yet)
+- (void) removeGarminToolbarItemIfDisabled
+{
+    NSToolbar *toolbar = self.mapView.window.toolbar;
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    NSUInteger (^garminIndex)(void) = ^NSUInteger {
+        return [toolbar.items indexOfObjectPassingTest:^BOOL(NSToolbarItem *item, NSUInteger idx, BOOL *stop) {
+            return [item.itemIdentifier isEqualToString:BPGarminToolbarItemIdentifier];
+        }];
+    };
+#if BP_GARMIN_CONNECT
+    if (![ud boolForKey:BPGarminToolbarItemRemovedKey]) return;
+    [ud removeObjectForKey:BPGarminToolbarItemRemovedKey];
+    if (garminIndex() != NSNotFound) return;
+    NSUInteger export = [toolbar.items indexOfObjectPassingTest:^BOOL(NSToolbarItem *item, NSUInteger idx, BOOL *stop) {
+        return item.action == @selector(exportGPX:);
+    }];
+    [toolbar insertItemWithItemIdentifier:BPGarminToolbarItemIdentifier
+                                  atIndex:export == NSNotFound ? (NSInteger)toolbar.items.count : (NSInteger)export + 1];
+#else
+    // (the toolbars of the document windows share their identifier: a removal in one is done in the others too)
+    for (NSUInteger i = garminIndex(); i != NSNotFound; i = garminIndex()) {
+        [toolbar removeItemAtIndex:(NSInteger)i];
+        [ud setBool:YES forKey:BPGarminToolbarItemRemovedKey];
+    }
+#endif
 }
 
 // writes the GPX of the route at url: a new folder of stage files, one file, or stage files next to url ("<name> -

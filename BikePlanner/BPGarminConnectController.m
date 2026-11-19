@@ -5,6 +5,8 @@
 //  File ▸ Send to Garmin Connect… (#79).
 //
 
+#import "BPFeatures.h"
+#if BP_GARMIN_CONNECT // the whole file (#79, BPFeatures.h)
 #import "BPGarminConnectController.h"
 #import "BPEnvironment.h"
 #import <os/log.h>
@@ -607,3 +609,5 @@ initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(NSArray<NSURL 
 }
 
 @end
+
+#endif // BP_GARMIN_CONNECT

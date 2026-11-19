@@ -7,6 +7,7 @@
 //  Map clicks go through the real -handleMapClick: with a fake gesture recognizer.
 //
 
+#import "BPFeatures.h"
 #import <XCTest/XCTest.h>
 #import <MapKit/MapKit.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
@@ -721,6 +722,7 @@
     BPSpin(0.3);
 }
 
+#if BP_GARMIN_CONNECT
 // File ▸ Send to Garmin Connect… (#79): the GPX of the route (or one per stage, as the GPX export) in a temporary
 // folder, the activity from the surfaces, a sheet on the document window
 - (void)testSendToGarminConnect
@@ -792,6 +794,38 @@
     [self makeRoute];
     XCTAssertTrue([mc validateToolbarItem:item]);
 }
+
+// after a build without the feature (BPFeatures.h), which removed the button from the shared toolbar configuration:
+// put back after export GPX
+- (void)testGarminToolbarButtonPutBack
+{
+    NSToolbar *toolbar = doc.windowControllers.firstObject.window.toolbar;
+    NSUInteger (^indexOf)(SEL) = ^NSUInteger(SEL action) {
+        return [toolbar.items indexOfObjectPassingTest:^BOOL(NSToolbarItem *item, NSUInteger idx, BOOL *stop) { return item.action == action; }];
+    };
+    [toolbar removeItemAtIndex:(NSInteger)indexOf(NSSelectorFromString(@"sendToGarminConnect:"))];
+    XCTAssertEqual(indexOf(NSSelectorFromString(@"sendToGarminConnect:")), NSNotFound);
+    [mc removeGarminToolbarItemIfDisabled];
+    XCTAssertEqual(indexOf(NSSelectorFromString(@"sendToGarminConnect:")), NSNotFound, @"removed by the user: kept so");
+    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"BPGarminToolbarItemRemovedByBuild"];
+    [mc removeGarminToolbarItemIfDisabled];
+    XCTAssertEqual(indexOf(NSSelectorFromString(@"sendToGarminConnect:")), indexOf(@selector(exportGPX:)) + 1, @"put back");
+    XCTAssertFalse([[NSUserDefaults standardUserDefaults] boolForKey:@"BPGarminToolbarItemRemovedByBuild"]);
+}
+#else
+// Send to Garmin Connect left out of the build (BPFeatures.h): no menu item, no toolbar button
+- (void)testGarminConnectLeftOut
+{
+    NSMenu *file = [NSApp.mainMenu itemWithTitle:@"File"].submenu;
+    XCTAssertEqual([file indexOfItemWithTarget:nil andAction:NSSelectorFromString(@"sendToGarminConnect:")], -1);
+    for (NSToolbarItem *item in doc.windowControllers.firstObject.window.toolbar.items) {
+        XCTAssertNotEqual(item.action, NSSelectorFromString(@"sendToGarminConnect:"), @"toolbar button removed");
+    }
+    XCTAssertFalse([mc canSendToGarminConnect]);
+    // noted for the normal builds, which put the button back (the toolbar configuration is shared with them)
+    XCTAssertTrue([[NSUserDefaults standardUserDefaults] boolForKey:@"BPGarminToolbarItemRemovedByBuild"]);
+}
+#endif
 
 // the sights of a new document come from the Preferences; saved with the document
 - (void)testNewDocumentSightsFromPreferences

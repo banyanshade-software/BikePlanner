@@ -50,6 +50,9 @@ xcrun xccov view --report --files-for-target BikePlanner.app <scratch>/r.xcresul
   -only-testing:BikePlannerTests/GPXParserTests[/testParsesTrackPointsWithElevation]
 ```
 (in zsh, `$SIGN`/`$DEST` are not word-split: write the options out, or use `${=SIGN}`.)
+Send to Garmin Connect (#79) can be left out of a build: `BP_GARMIN_CONNECT` in `BikePlanner/BPFeatures.h` (or
+`'GCC_PREPROCESSOR_DEFINITIONS=$(inherited) BP_GARMIN_CONNECT=0'`, with its own `-derivedDataPath`); such a build
+removes the toolbar button and notes it in the user defaults (shared toolbar configuration), a normal build puts it back.
 Start sites editor (#67, developer tool, never in the DMG): `scripts/build_site_editor.sh` builds the app with
 `BP_SITE_EDITOR=1` in `build/SiteEditor` (menu *Develop ▸ Start Sites Editor…*); `scripts/build_site_editor.sh test`
 runs the unit tests with it (`BPSiteEditorTests` is empty otherwise). Code of the editor stays inside `#if BP_SITE_EDITOR`.
