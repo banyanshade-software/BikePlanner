@@ -71,6 +71,8 @@ SupportClasses/              Reusable/support components
                              road / surface class along the route (runs of points, #54)
   BPRoadTypesView.*          Info section distance by road type and surface, one radio button per class; reports
                              the selected one (#54, #66)
+  BPGarminCredentials.*      #79: the Garmin login kept in the login Keychain (or in memory: tests), and the accounts
+                             never to save
   BPGarminCourse.*           #79 without UI: the activity type from the surfaces, the button texts of Garmin Connect
   BPOverpassServers.*        Overpass servers (#84): specs "URL [zones]" from BPEnvironment, round robin, demotion
                              of failing / slow ones, kept in BPOverpassServerState (injectable clock and defaults);

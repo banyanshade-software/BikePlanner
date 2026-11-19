@@ -390,6 +390,13 @@
                             </binding>
                         </connections>
                     </toolbarItem>
+                    <toolbarItem implicitItemIdentifier="5B0E79A1-6C2D-4E8F-9A3B-7D1E2F4C6A08" label="Garmin" paletteLabel="Send to Garmin Connect" toolTip="Send the route to Garmin Connect, then to your device" tag="-1" image="arrow.up.circle" catalog="system" bordered="YES" id="bpG-ar-Tbr">
+                        <size key="minSize" width="24" height="25"/>
+                        <size key="maxSize" width="24" height="25"/>
+                        <connections>
+                            <action selector="sendToGarminConnect:" target="A8h-DG-dAb" id="bpG-ar-TbA"/>
+                        </connections>
+                    </toolbarItem>
                     <searchToolbarItem implicitItemIdentifier="C82C1163-F245-4DEB-B0BC-CA5A7BB286D1" label="Search" paletteLabel="Search" visibilityPriority="1001" id="Wia-yV-wit">
                         <nil key="toolTip"/>
                         <searchField key="view" verticalHuggingPriority="750" textCompletion="NO" id="Xmy-gN-Lcf">
@@ -413,6 +420,7 @@
                     <toolbarItem reference="bpR-ev-Tbr"/>
                     <toolbarItem reference="bpC-lr-Tbr"/>
                     <toolbarItem reference="8r3-PN-gIi"/>
+                    <toolbarItem reference="bpG-ar-Tbr"/>
                     <searchToolbarItem reference="Wia-yV-wit"/>
                 </defaultToolbarItems>
             </toolbar>
@@ -426,6 +434,7 @@
         <image name="NSShareTemplate" width="16" height="17"/>
         <image name="mappin.slash" catalog="system" width="12" height="16"/>
         <image name="arrow.left.arrow.right" catalog="system" width="16" height="14"/>
+        <image name="arrow.up.circle" catalog="system" width="15" height="15"/>
         <image name="trash" catalog="system" width="15" height="17"/>
     </resources>
 </document>

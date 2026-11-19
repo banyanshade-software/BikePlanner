@@ -11,6 +11,7 @@
 #import "BPGarminCourse.h"
 #import "BPGarminConnectController.h"
 #import "BRouterGeoJSON.h"
+#import "BPGarminCredentials.h"
 #import "TestFixtures.h"
 
 #pragma mark - fake Garmin Connect
@@ -38,7 +39,8 @@
         return @"<script>location.href='bpgarmin://connect.test/sso/sign-in?service=app'</script>";
     }
     if ([path hasPrefix:@"/sso"]) {
-        return @"<h1>Se connecter</h1><button id=login onclick=\"location.href='bpgarmin://connect.test/app?login=1'\">Se connecter</button>";
+        return @"<h1>Se connecter</h1><form onsubmit=\"event.preventDefault(); location.href='bpgarmin://connect.test/app?login=1'\">"
+               @"<input type=email id=email><input type=password id=password><button type=submit id=login>Se connecter</button></form>";
     }
     if ([path isEqualToString:@"/app"]) return @"<h1>Accueil</h1>";
     if ([path isEqualToString:@"/app/courses"]) {
@@ -88,6 +90,14 @@
 {
 }
 
+@end
+
+// counts the Keychain reads
+@interface BPGarminCountingCredentials : BPGarminMemoryCredentials
+@property NSInteger reads;
+@end
+@implementation BPGarminCountingCredentials
+- (nullable NSDictionary<NSString *, NSString *> *)savedLogin { self.reads++; return [super savedLogin]; }
 @end
 
 @interface BPGarminConnectTests : XCTestCase
@@ -147,8 +157,15 @@
 
 - (BPGarminConnectController *)controllerWithFiles:(NSArray<NSURL *> *)files activity:(BPGarminActivity)activity
 {
+    return [self controllerWithFiles:files activity:activity credentials:[[BPGarminMemoryCredentials alloc] init]];
+}
+
+- (BPGarminConnectController *)controllerWithFiles:(NSArray<NSURL *> *)files activity:(BPGarminActivity)activity
+                                       credentials:(id<BPGarminCredentialStore>)credentials
+{
     BPGarminConnectController *c = [[BPGarminConnectController alloc] initWithFiles:files activity:activity
                                                                       schemeHandler:garmin forScheme:@"bpgarmin"];
+    c.credentials = credentials; // never the user's Keychain
     c.stepTimeout = 2;
     [c showWindow:nil];
     [c start];
@@ -224,6 +241,129 @@
     [self evaluate:@"location.reload(); 'ok'" in:c];
     XCTAssertTrue(BPWaitUntil(10, ^{ return (BOOL)(c.step == BPGarminStepUserSave); }), @"step %ld: %@", (long)c.step, c.statusText);
     XCTAssertEqualObjects([self evaluate:@"sessionStorage.getItem('type')" in:c], @"mtb");
+    [c close];
+}
+
+#pragma mark - the login in the Keychain (owner's choice 2026-11-19)
+
+// the user logs in on the Garmin page: BikePlanner asks whether to remember the login, and keeps it if yes
+- (void)testLoginCapturedAndRemembered
+{
+    BPGarminMemoryCredentials *store = [[BPGarminMemoryCredentials alloc] init];
+    __block NSString *asked = nil;
+    BPGarminConnectController *c = [self controllerWithFiles:@[ [self gpxNamed:@"Tour"] ] activity:BPGarminActivityRoad credentials:store];
+    c.rememberPrompt = ^(NSString *account, void (^answer)(BPGarminRemember)) { asked = account; answer(BPGarminRememberYes); };
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(c.step == BPGarminStepLogin); }));
+    [self evaluate:@"document.getElementById('email').value='rider@example.org'; document.getElementById('password').value='s3cret';"
+                   @"document.getElementById('login').click(); 'ok'" in:c];
+    XCTAssertTrue(BPWaitUntil(10, ^{ return (BOOL)(c.step == BPGarminStepUserSave); }), @"step %ld", (long)c.step);
+    XCTAssertEqualObjects(asked, @"rider@example.org", @"asked once logged in");
+    NSDictionary *expected = @{ @"account": @"rider@example.org", @"password": @"s3cret" };
+    XCTAssertEqualObjects(store.savedLogin, expected);
+    [c close];
+}
+
+// the next times: the fields filled from the Keychain; the user clicks "Se connecter" (not submitted by the app)
+- (void)testLoginFilledFromKeychain
+{
+    BPGarminMemoryCredentials *store = [[BPGarminMemoryCredentials alloc] init];
+    [store saveAccount:@"rider@example.org" password:@"s3cret"];
+    __block NSInteger prompts = 0;
+    BPGarminConnectController *c = [self controllerWithFiles:@[ [self gpxNamed:@"Tour"] ] activity:BPGarminActivityRoad credentials:store];
+    c.rememberPrompt = ^(NSString *account, void (^answer)(BPGarminRemember)) { prompts++; answer(BPGarminRememberNotNow); };
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([[self evaluate:@"document.getElementById('password') ? document.getElementById('password').value : ''" in:c] isEqualToString:@"s3cret"]); }),
+                  @"the password filled");
+    XCTAssertEqualObjects([self evaluate:@"document.getElementById('email').value" in:c], @"rider@example.org");
+    XCTAssertTrue([c.statusText containsString:@"Keychain"], @"%@", c.statusText);
+    BPSpin(1.5);
+    XCTAssertEqual(c.step, BPGarminStepLogin, @"not submitted by the app");
+    [self evaluate:@"document.getElementById('login').click(); 'ok'" in:c];
+    XCTAssertTrue(BPWaitUntil(10, ^{ return (BOOL)(c.step == BPGarminStepUserSave); }));
+    XCTAssertEqual(prompts, 0, @"the same login: nothing to ask");
+    [c close];
+}
+
+// "Never for this account": not asked again
+- (void)testNeverForThisAccount
+{
+    BPGarminMemoryCredentials *store = [[BPGarminMemoryCredentials alloc] init];
+    __block NSInteger prompts = 0;
+    BPGarminConnectController *c = [self controllerWithFiles:@[ [self gpxNamed:@"Tour"] ] activity:BPGarminActivityRoad credentials:store];
+    c.rememberPrompt = ^(NSString *account, void (^answer)(BPGarminRemember)) { prompts++; answer(BPGarminRememberNever); };
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(c.step == BPGarminStepLogin); }));
+    [self evaluate:@"document.getElementById('email').value='Rider@Example.org'; document.getElementById('password').value='x';"
+                   @"document.getElementById('login').click(); 'ok'" in:c];
+    XCTAssertTrue(BPWaitUntil(10, ^{ return (BOOL)(c.step == BPGarminStepUserSave); }));
+    XCTAssertEqual(prompts, 1);
+    XCTAssertNil(store.savedLogin);
+    XCTAssertTrue([store isNeverSaved:@"rider@example.org"], @"case-insensitive");
+    [c close];
+
+    garmin.loggedIn = NO;
+    BPGarminConnectController *again = [self controllerWithFiles:@[ [self gpxNamed:@"Tour"] ] activity:BPGarminActivityRoad credentials:store];
+    again.rememberPrompt = ^(NSString *account, void (^answer)(BPGarminRemember)) { prompts++; answer(BPGarminRememberNever); };
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(again.step == BPGarminStepLogin); }));
+    [self evaluate:@"document.getElementById('email').value='rider@example.org'; document.getElementById('password').value='x';"
+                   @"document.getElementById('login').click(); 'ok'" in:again];
+    XCTAssertTrue(BPWaitUntil(10, ^{ return (BOOL)(again.step == BPGarminStepUserSave); }));
+    XCTAssertEqual(prompts, 1, @"not asked again");
+    [again close];
+}
+
+// the native login bar (owner's choice 2026-11-19): shown on the login step only, its fields fill the page (replacing
+// what it has), not submitted by the app; then hidden, the password not kept
+- (void)testLoginBarFillsThePage
+{
+    BPGarminConnectController *c = [self controllerWithFiles:@[ [self gpxNamed:@"Tour"] ] activity:BPGarminActivityRoad];
+    c.rememberPrompt = ^(NSString *account, void (^answer)(BPGarminRemember)) { answer(BPGarminRememberNotNow); };
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(c.step == BPGarminStepLogin); }));
+    XCTAssertTrue(c.loginBarShown);
+    NSTextField *account = (NSTextField *)[self viewWithIdentifier:@"garminAccount" in:c.window.contentView];
+    NSTextField *password = (NSTextField *)[self viewWithIdentifier:@"garminPassword" in:c.window.contentView];
+    XCTAssertEqualObjects(account.contentType, NSTextContentTypeUsername, @"macOS AutoFill");
+    XCTAssertEqualObjects(password.contentType, NSTextContentTypePassword);
+    [self evaluate:@"document.getElementById('email').value='old@example.org'; 'ok'" in:c];
+    account.stringValue = @"rider@example.org";
+    password.stringValue = @"s3cret";
+    [c fillLoginFromFields:self];
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([[self evaluate:@"document.getElementById('password').value" in:c] isEqualToString:@"s3cret"]); }));
+    XCTAssertEqualObjects([self evaluate:@"document.getElementById('email').value" in:c], @"rider@example.org", @"replaced");
+    BPSpin(1.5);
+    XCTAssertEqual(c.step, BPGarminStepLogin, @"not submitted by the app");
+    [self evaluate:@"document.getElementById('login').click(); 'ok'" in:c];
+    XCTAssertTrue(BPWaitUntil(10, ^{ return (BOOL)(c.step == BPGarminStepUserSave); }));
+    XCTAssertFalse(c.loginBarShown);
+    XCTAssertEqualObjects(password.stringValue, @"", @"the password not kept");
+    [c close];
+}
+
+- (nullable NSView *)viewWithIdentifier:(NSString *)identifier in:(NSView *)view
+{
+    if ([view.accessibilityIdentifier isEqualToString:identifier]) return view;
+    for (NSView *v in view.subviews) {
+        NSView *found = [self viewWithIdentifier:identifier in:v];
+        if (found) return found;
+    }
+    return nil;
+}
+
+// the Keychain read once per sheet (each read may show a macOS permission prompt); a login filled from it and used is
+// not offered to be remembered again
+- (void)testKeychainReadOncePerSheet
+{
+    BPGarminCountingCredentials *store = [[BPGarminCountingCredentials alloc] init];
+    [store saveAccount:@"rider@example.org" password:@"s3cret"];
+    __block NSInteger prompts = 0;
+    BPGarminConnectController *c = [self controllerWithFiles:@[ [self gpxNamed:@"Tour"] ] activity:BPGarminActivityRoad credentials:store];
+    c.rememberPrompt = ^(NSString *account, void (^answer)(BPGarminRemember)) { prompts++; answer(BPGarminRememberNotNow); };
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(c.step == BPGarminStepLogin); }));
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)([[self evaluate:@"document.getElementById('password').value" in:c] isEqualToString:@"s3cret"]); }));
+    [c fillLoginFromFields:self];
+    BPSpin(0.5);
+    [self evaluate:@"document.getElementById('login').click(); 'ok'" in:c];
+    XCTAssertTrue(BPWaitUntil(10, ^{ return (BOOL)(c.step == BPGarminStepUserSave); }));
+    XCTAssertEqual(store.reads, 1, @"read once");
+    XCTAssertEqual(prompts, 0);
     [c close];
 }
 

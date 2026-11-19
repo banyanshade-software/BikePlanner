@@ -14,6 +14,7 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 #import "BPGarminCourse.h"
+#import "BPGarminCredentials.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -29,7 +30,20 @@ typedef NS_ENUM(NSInteger, BPGarminStep) {
     BPGarminStepDone,
 };
 
+typedef NS_ENUM(NSInteger, BPGarminRemember) {
+    BPGarminRememberYes,
+    BPGarminRememberNotNow,
+    BPGarminRememberNever,   // never for this account
+};
+
 @interface BPGarminConnectController : NSWindowController <WKNavigationDelegate, WKUIDelegate>
+
+/// the login kept by BikePlanner (owner's choice 2026-11-19): typed by the user on the Garmin login page, kept in the
+/// Keychain if the user agrees, filled in the page the next times (the user clicks "Se connecter"). Default: the login
+/// Keychain; tests: in memory
+@property (strong, nonatomic) id<BPGarminCredentialStore> credentials;
+/// asks whether to remember the login typed (default: an alert on the sheet; tests: a block that answers)
+@property (copy, nullable) void (^rememberPrompt)(NSString *account, void (^answer)(BPGarminRemember choice));
 
 /// files: the GPX of the courses, in order; the website data of the app (the Garmin session) is kept
 - (instancetype)initWithFiles:(NSArray<NSURL *> *)files activity:(BPGarminActivity)activity;
@@ -49,6 +63,9 @@ typedef NS_ENUM(NSInteger, BPGarminStep) {
 @property (readonly, nonatomic) NSString *statusText;
 /// seconds before a step not recognized shows what to do by hand (default 20)
 @property (nonatomic) NSTimeInterval stepTimeout;
+/// the native login fields (macOS Passwords AutoFill), shown on the login step; their button fills the Garmin page
+@property (readonly, nonatomic) BOOL loginBarShown;
+- (IBAction)fillLoginFromFields:(id)sender;
 
 @end
 

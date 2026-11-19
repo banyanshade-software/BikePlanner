@@ -772,6 +772,27 @@
     [ud removePersistentDomainForName:@"bp-tests-garmin"];
 }
 
+// the toolbar button "Garmin" (#79): after export GPX, enabled with a route
+- (void)testGarminToolbarButton
+{
+    NSToolbar *toolbar = doc.windowControllers.firstObject.window.toolbar;
+    NSArray<NSToolbarItem *> *items = toolbar.items;
+    NSUInteger garmin = NSNotFound, export = NSNotFound;
+    for (NSUInteger i = 0; i < items.count; i++) {
+        if (items[i].action == NSSelectorFromString(@"sendToGarminConnect:")) garmin = i;
+        if (items[i].action == @selector(exportGPX:)) export = i;
+    }
+    XCTAssertNotEqual(garmin, NSNotFound, @"in the default toolbar");
+    XCTAssertEqual(garmin, export + 1, @"after export GPX");
+    NSToolbarItem *item = items[garmin];
+    XCTAssertEqualObjects(item.label, @"Garmin");
+    XCTAssertGreaterThan(item.toolTip.length, 0u);
+    XCTAssertFalse([mc validateToolbarItem:item], @"no route");
+    doc.plan.fetchPOI = NO;
+    [self makeRoute];
+    XCTAssertTrue([mc validateToolbarItem:item]);
+}
+
 // the sights of a new document come from the Preferences; saved with the document
 - (void)testNewDocumentSightsFromPreferences
 {

@@ -347,11 +347,26 @@ changes nothing.
   remembered.
 - F10.3 *(planned)* *Export to FIT* (Garmin course) — menu item exists, not implemented.
 - F10.4 Export is only possible once a route has been computed in the current session.
-- F10.5 *File ▸ Send to Garmin Connect…* (#79; enabled with a route): a sheet on the document window with the Garmin
+- F10.5 *File ▸ Send to Garmin Connect…*, or the toolbar button *Garmin* (upload arrow, after *export GPX*) (#79;
+  enabled with a route): a sheet on the document window with the Garmin
   Connect web site, so that the course reaches the device whatever its model (the Garmin Personal API is read-only,
   #82; the Courses API is for business partners).
-  - The user logs in in the sheet (Garmin's own page, SSO and 2FA): the app never sees the credentials; the session
-    is kept in the app's website data; *Log Out of Garmin Connect* clears it.
+  - The user logs in in the sheet (Garmin's own page, SSO and 2FA); the session is kept in the app's website data;
+    *Log Out of Garmin Connect* clears it. The login in the Keychain (owner's choice 2026-11-19; Safari's saved
+    passwords cannot be reached by a third-party app): the first time, BikePlanner reads what the user types on the
+    Garmin login page and, once logged in, asks *Remember this Garmin Connect login in the Keychain?* — *Remember*,
+    *Not Now*, *Never for This Account*. Kept as an internet password of `sso.garmin.com` in the login Keychain
+    (label “BikePlanner – Garmin Connect”); the next times the e-mail and the password are filled in the page and the
+    user clicks *Se connecter*; 2FA stays manual. Never logged nor saved in a document.
+    The login bar (owner's choice 2026-11-19): Safari's AutoFill of the web page works in Safari only, and an app
+    cannot read Safari's passwords; on the login step the sheet shows native fields *E-mail* / *Password*
+    (content types username / password: macOS offers its Passwords AutoFill there, Touch ID; without associated
+    domains — Garmin's agreement — the Garmin account may not be suggested first: search it) and *Fill Garmin Login*,
+    which fills the page (replacing what it has); the user clicks *Se connecter*. The fields start with BikePlanner's
+    own saved login; the password is cleared once logged in.
+    The Keychain item is read once per sheet. macOS asks the user's permission (twice: the item's trusted apps and
+    its partition) unless *Always Allow* was chosen, and again after each build of an ad hoc signed app; the
+    prompt-free data protection Keychain needs a team-signed app (owner's decision 2026-11-19: keep it so).
   - The app then does what the user would do by hand (real site, French interface, 2026-11-18): on
     `/app/courses`, **Importer**; it gives the GPX to the file chooser of the popup (no dialog); **Mise en route** →
     the editor `/app/course/create`; the activity button — **Cyclisme sur route** when ≥ 90 % of the known surfaces are

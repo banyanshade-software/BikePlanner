@@ -2787,6 +2787,7 @@ didChangeDragState:(MKAnnotationViewDragState)newState
 {
     if (item.action == @selector(reverseRoute:)) return [self canReverseRoute];
     if (item.action == @selector(clearRoute:)) return [self canClearRoute];
+    if (item.action == @selector(sendToGarminConnect:)) return [self canSendToGarminConnect]; // #79
     return YES;
 }
 

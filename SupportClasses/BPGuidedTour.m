@@ -75,7 +75,8 @@ static NSString *const BPGuidedTourShownKey = @"BPGuidedTourShown";
                                       @"parameters of this document (avoid busy roads, hills…); Apply computes the route "
                                       @"again.", @"tour") },
         @{ @"anchor": @"toolbar", @"title": NSLocalizedString(@"Files and GPS", @"tour"),
-           @"text": NSLocalizedString(@"Export GPX for your GPS (the whole route or one file per stage). Import trace shows a "
+           @"text": NSLocalizedString(@"Export GPX for your GPS (the whole route or one file per stage); Garmin sends it to Garmin "
+                                      @"Connect, then to your device. Import trace shows a "
                                       @"track to compare with the route; File ▸ Import Track as Route… turns a GPX, TCX or "
                                       @"FIT file into a plan. Reverse and Clear act on the route.", @"tour") },
     ];
