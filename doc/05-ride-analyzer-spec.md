@@ -121,10 +121,41 @@ Mockup (2026-11-21): `doc/05-ride-analyzer-mockup.pdf` — library and ride deta
 - Import an activity directly from Garmin Connect as display or as route (R1).
 - Planned vs. done comparison (R5): a BikePlanner feature, #88.
 
+## Skeleton (2026-11-21)
+Decided with the owner: a second app target **`RideAnalyzer`** in `BikePlanner.xcodeproj` (shared sources compiled
+in both apps), Objective-C like BikePlanner, **document-based**: a document is a library (R15).
+- `RideAnalyzer/`: `main.m` and `RAAppDelegate` (menu built in code, no XIB; the last library reopened at launch),
+  `RALibraryDocument` (the library), `RARide` (one ride and its figures), `RALibraryWindowController` (window built
+  in code: sidebar, list of rides, detail of the selected ride), `Info.plist` (document type), entitlements (sandbox,
+  user-selected files, network client).
+- Library file: a package `.ridelib` (UTI `fr.free.daniel.braun.ridelib`): `Library.plist` (the rides, binary
+  property list, `version` 1) and `Rides/` (the original files, as imported).
+- Shared with BikePlanner: `BPTrackReader`, `GPXParser`, `BPFITDecoder` (R2).
+- Works: File ▸ New / Open Library, Import Files… (several files or folders, also by drag and drop on the list;
+  duplicates: same file, or same start within a minute and same distance within 2 %), rename (in the list),
+  delete, undo, sorting; figures: distance, ascent (3 m threshold), duration, average speed.
+- Not yet: Garmin Connect (R1, menu item disabled), the device of a FIT file (R3 filters), map / profile / curves
+  (R4), everything from R5 on.
+- `GPXParser` does not read `<time>` (it stamps the parse date): an imported GPX ride has no date and no duration.
+  Reading `<time>` in `GPXParser` would fix it for both apps.
+- Tests: `RideAnalyzerTests` (hosted in RideAnalyzer), scheme `RideAnalyzer`.
+
+## Handoff (2026-11-21): written without Xcode, never compiled
+The skeleton was written in a session without Xcode. First steps on the owner's Mac (Claude Code):
+1. `git checkout ride_analyzer && git pull`.
+2. Build `RideAnalyzer` (scheme `RideAnalyzer`, ad hoc signing as above) and fix the compile errors and warnings
+   (#58: no warning, `analyze` clean). If Xcode rejects the project file, check the targets added by
+   `scripts/xcode_add_target.py --type app / --type unit-test` (first use of these types).
+3. Run `RideAnalyzerTests`, then the BikePlanner unit tests: the project file changed, BikePlanner must still build
+   and pass.
+4. Launch the app (the owner): New Library, Import Files… (FIT / TCX / GPX, a folder), drag and drop, rename,
+   delete, undo, save, reopen.
+5. Also pending on `v10` (and therefore here): the new Garmin toolbar icon (#85, commit edb4c57) to check, then close
+   #85.
+
 ## Open questions
-- How the code is shared with BikePlanner (common framework, or shared sources in both targets): Garmin Connect web
-  session (#79), FIT / GPX / TCX parsers, map and track display, elevation profile, road types (#66).
-- Name of the app.
-- Format of the library file (R15): database file, or a package with the FIT files plus an index.
+- Name of the app (the target is `RideAnalyzer` for now).
 - Does the Personal API give the Garmin gear (R13)? To check.
+- Map, profile and track display shared with BikePlanner (R4): which classes can be reused as they are
+  (`ElevationProfileView`, `BikeMapView`…) and which need to be split from `MapController`.
 - The historical weather service (R12).

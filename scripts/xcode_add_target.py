@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Add an app extension target to BikePlanner.xcodeproj, embedded in a host app target (#70).
+"""Add a target to BikePlanner.xcodeproj: an app extension embedded in a host app target (#70, the default), an
+application (--type app, no host; Ride Analyzer, #82) or a unit test bundle hosted in an app (--type unit-test).
 
 Creates the target (Sources, Frameworks, Resources phases; Debug and Release configurations with the given build
 settings), its product (.appex) in the Products group, a group for its directory (child of the main group) with the
@@ -11,6 +12,8 @@ Usage:
         --setting PRODUCT_BUNDLE_IDENTIFIER=fr.free.daniel.braun.BikePlanner.QuickLook ... \
         BikePlannerQuickLook/PreviewProvider.m BikePlannerQuickLook/PreviewProvider.h BikePlannerQuickLook/Info.plist
 
+    scripts/xcode_add_target.py --type app --name RideAnalyzer RideAnalyzer/main.m …
+    scripts/xcode_add_target.py --type unit-test --name RideAnalyzerTests --host RideAnalyzer RideAnalyzerTests/X.m
 Files live in the directory named after the target. Settings are written as given (quote values with spaces or
 special characters yourself, e.g. 'INFOPLIST_KEY_CFBundleDisplayName="BikePlanner Quick Look"'; \\n and \\t
 in a value are a new line and a tab, for a list: 'LD_RUNPATH_SEARCH_PATHS=(\\n\\t\\t\\t\\t\\t"$(inherited)",\\n\\t\\t\\t\\t)'). Shared sources
@@ -74,7 +77,8 @@ def append_to_list(text, ident, key, item):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--name", required=True)
-    ap.add_argument("--host", required=True, help="app target that embeds the extension")
+    ap.add_argument("--type", choices=("appex", "app", "unit-test"), default="appex")
+    ap.add_argument("--host", help="app target that embeds the extension, or that hosts the tests")
     ap.add_argument("--setting", action="append", default=[], help="KEY=VALUE build setting (both configurations)")
     ap.add_argument("files", nargs="+")
     args = ap.parse_args()
@@ -84,10 +88,22 @@ def main():
 
     if re.search(r"/\* %s \*/ = \{\n\t\t\tisa = PBXNativeTarget;" % re.escape(name), text):
         sys.exit("target %s already exists" % name)
-    hm = re.search(r"^\t\t(\w{24}) /\* %s \*/ = \{\n\t\t\tisa = PBXNativeTarget;" % re.escape(args.host), text, re.M)
-    if not hm:
-        sys.exit("host target %s not found" % args.host)
-    host = hm.group(1)
+    host = None
+    if args.type == "app":
+        if args.host:
+            sys.exit("an app has no host")
+    else:
+        if not args.host:
+            sys.exit("--host is required for --type %s" % args.type)
+        hm = re.search(r"^\t\t(\w{24}) /\* %s \*/ = \{\n\t\t\tisa = PBXNativeTarget;" % re.escape(args.host), text, re.M)
+        if not hm:
+            sys.exit("host target %s not found" % args.host)
+        host = hm.group(1)
+    product_ext, wrapper, product_type = {
+        "appex": (".appex", "wrapper.app-extension", "com.apple.product-type.app-extension"),
+        "app": (".app", "wrapper.application", "com.apple.product-type.application"),
+        "unit-test": (".xctest", "wrapper.cfbundle", "com.apple.product-type.bundle.unit-test"),
+    }[args.type]
     project = re.search(r"^\t\t(\w{24}) /\* Project object \*/ = \{", text, re.M).group(1)
     ps, pe = block(text, project)
     main_group = re.search(r"mainGroup = (\w{24});", text[ps:pe]).group(1)
@@ -116,10 +132,10 @@ def main():
 
     # product
     product = new_id(text, taken)
-    appex = name + ".appex"
+    appex = name + product_ext
     text = insert_in_section(text, "PBXFileReference",
-        '\t\t%s /* %s */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; '
-        'path = %s; sourceTree = BUILT_PRODUCTS_DIR; };\n' % (product, appex, appex))
+        '\t\t%s /* %s */ = {isa = PBXFileReference; explicitFileType = "%s"; includeInIndex = 0; '
+        'path = %s; sourceTree = BUILT_PRODUCTS_DIR; };\n' % (product, appex, wrapper, appex))
     text = append_to_list(text, products_group, "children", "%s /* %s */" % (product, appex))
 
     # group
@@ -168,17 +184,24 @@ def main():
         'for PBXNativeTarget "%s" */;\n\t\t\tbuildPhases = (\n\t\t\t\t%s /* Sources */,\n\t\t\t\t%s /* Frameworks */,\n'
         "\t\t\t\t%s /* Resources */,\n\t\t\t);\n\t\t\tbuildRules = (\n\t\t\t);\n\t\t\tdependencies = (\n\t\t\t);\n"
         "\t\t\tname = %s;\n\t\t\tproductName = %s;\n\t\t\tproductReference = %s /* %s */;\n"
-        '\t\t\tproductType = "com.apple.product-type.app-extension";\n\t\t};\n'
+        '\t\t\tproductType = "%s";\n\t\t};\n'
         % (target, name, clist, name, phase_ids["Sources"], phase_ids["Frameworks"], phase_ids["Resources"],
-           name, name, product, appex))
+           name, name, product, appex, product_type))
     text = append_to_list(text, project, "targets", "%s /* %s */" % (target, name))
     ps, pe = block(text, project)
     proj = text[ps:pe]
+    test_target = "\t\t\t\t\t\tTestTargetID = %s;\n" % host if args.type == "unit-test" else ""
     proj = re.sub(r"(\n\t\t\t\tTargetAttributes = \{\n)",
-                  r"\g<1>\t\t\t\t\t%s = {\n\t\t\t\t\t\tCreatedOnToolsVersion = 14.2;\n\t\t\t\t\t};\n" % target, proj, 1)
+                  lambda m: m.group(1) + "\t\t\t\t\t%s = {\n\t\t\t\t\t\tCreatedOnToolsVersion = 14.2;\n%s\t\t\t\t\t};\n"
+                  % (target, test_target), proj, count=1)
     text = text[:ps] + proj + text[pe:]
 
-    # host: dependency and embedding
+    if args.type == "app":
+        open(PBXPROJ, "w").write(text)
+        print("added app target %s (%s)" % (name, target))
+        return
+
+    # host: dependency (the tests depend on their host app; the host app depends on its extension)
     proxy = new_id(text, taken)
     text = insert_in_section(text, "PBXContainerItemProxy",
         "\t\t%s /* PBXContainerItemProxy */ = {\n\t\t\tisa = PBXContainerItemProxy;\n\t\t\tcontainerPortal = %s "
@@ -188,6 +211,16 @@ def main():
     text = insert_in_section(text, "PBXTargetDependency",
         "\t\t%s /* PBXTargetDependency */ = {\n\t\t\tisa = PBXTargetDependency;\n\t\t\ttarget = %s /* %s */;\n"
         "\t\t\ttargetProxy = %s /* PBXContainerItemProxy */;\n\t\t};\n" % (dep, target, name, proxy))
+    if args.type == "unit-test":
+        # the test bundle depends on its host; the proxy and dependency point to the host
+        text = text.replace("remoteGlobalIDString = %s;\n\t\t\tremoteInfo = %s;" % (target, name),
+                            "remoteGlobalIDString = %s;\n\t\t\tremoteInfo = %s;" % (host, args.host), 1)
+        text = text.replace("target = %s /* %s */;\n\t\t\ttargetProxy = %s" % (target, name, proxy),
+                            "target = %s /* %s */;\n\t\t\ttargetProxy = %s" % (host, args.host, proxy), 1)
+        text = append_to_list(text, target, "dependencies", "%s /* PBXTargetDependency */" % dep)
+        open(PBXPROJ, "w").write(text)
+        print("added test target %s (%s), hosted in %s" % (name, target, args.host))
+        return
     text = append_to_list(text, host, "dependencies", "%s /* PBXTargetDependency */" % dep)
     embed_bf = new_id(text, taken)
     text = insert_in_section(text, "PBXBuildFile",

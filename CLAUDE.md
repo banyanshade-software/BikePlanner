@@ -52,6 +52,10 @@ xcrun xccov view --report --files-for-target BikePlanner.app <scratch>/r.xcresul
   -only-testing:BikePlannerTests/GPXParserTests[/testParsesTrackPointsWithElevation]
 ```
 (in zsh, `$SIGN`/`$DEST` are not word-split: write the options out, or use `${=SIGN}`.)
+Ride Analyzer (#82, branch `ride_analyzer`, `doc/05-ride-analyzer-spec.md`): second app target `RideAnalyzer` in the
+same project, scheme `RideAnalyzer`, tests `RideAnalyzerTests` (`-scheme RideAnalyzer -only-testing:RideAnalyzerTests`).
+Its UI is built in code (no XIB); sources shared with BikePlanner are added to its target with
+`scripts/xcode_add_files.py --target RideAnalyzer --anchor RARide.m <path>` and must keep compiling there.
 Send to Garmin Connect (#79) can be left out of a build: `BP_GARMIN_CONNECT` in `BikePlanner/BPFeatures.h` (or
 `'GCC_PREPROCESSOR_DEFINITIONS=$(inherited) BP_GARMIN_CONNECT=0'`, with its own `-derivedDataPath`); such a build
 removes the toolbar button and notes it in the user defaults (shared toolbar configuration), a normal build puts it back.
@@ -81,7 +85,8 @@ XIB files (`Document.xib`, `MainMenu.xib`, …) should be edited in Xcode by the
 needed, keep it minimal and say so.
 A target is removed with `scripts/xcode_remove_target.py <target name>…` (its phases, configurations, dependencies
 and product; source files are kept); an app extension target embedded in the app is added with
-`scripts/xcode_add_target.py` (see its header; used for `BikePlannerQuickLook`, #70). Model sources the Quick Look
+`scripts/xcode_add_target.py` (see its header; used for `BikePlannerQuickLook`, #70; `--type app` / `--type unit-test`
+for `RideAnalyzer` / `RideAnalyzerTests`, #82). Model sources the Quick Look
 extension needs are also in its target (`--target BikePlannerQuickLook --anchor PreviewProvider.m`): a model file
 that starts using a new class must keep compiling there (no UI, no `BPSecrets`).
 

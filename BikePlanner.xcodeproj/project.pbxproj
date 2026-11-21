@@ -116,6 +116,15 @@
 		C1AE7F4B563ED632F35846E1 /* BPGarminConnectController.m in Sources */ = {isa = PBXBuildFile; fileRef = E14D4EDDBDA51BE461D6CDC3 /* BPGarminConnectController.m */; };
 		C3FB2BE281A20E464C79ACAB /* BPGarminConnectTests.m in Sources */ = {isa = PBXBuildFile; fileRef = CAE4B3C4EC12B4FD5BD9D325 /* BPGarminConnectTests.m */; };
 		5966DA5914C6E30C715688EF /* BPGarminCredentials.m in Sources */ = {isa = PBXBuildFile; fileRef = 1995F097B52327E64830E80A /* BPGarminCredentials.m */; };
+		083B4D0CEBD071029EFBAD11 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CC0CFE2035698AA514B8DBA /* main.m */; };
+		41AC30EE0250B284BB0240A6 /* RAAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B767108F1C1EC3599CDFCD12 /* RAAppDelegate.m */; };
+		8547208FC5650C216A84E207 /* RALibraryDocument.m in Sources */ = {isa = PBXBuildFile; fileRef = 9B00AC53C5B94AAA9C306921 /* RALibraryDocument.m */; };
+		36AC04F04FFE6F75448EF15D /* RALibraryWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = A3406B6D251B9342A3EF4999 /* RALibraryWindowController.m */; };
+		26322E7A355E1B8C3DFBEC32 /* RARide.m in Sources */ = {isa = PBXBuildFile; fileRef = 64CE5FDCC514A8351267FE2A /* RARide.m */; };
+		66C396A31CCCACDD940EE94C /* RALibraryTests.m in Sources */ = {isa = PBXBuildFile; fileRef = E62DBF6CB0EE63D1248BF9F1 /* RALibraryTests.m */; };
+		F47009B261DB059A3C9E1111 /* BPTrackReader.m in Sources */ = {isa = PBXBuildFile; fileRef = 9050DCEC0CA9C5C726696D24 /* BPTrackReader.m */; };
+		5179AF807D9E262FC800AEFB /* GPXParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE812E47B860001F2966 /* GPXParser.m */; };
+		99ABD32160D778CEA7602B33 /* BPFITDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = 12A0CFCC52A21CD646A0F2DB /* BPFITDecoder.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -139,6 +148,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 402D4CB9F9D9C7EAA6CA46EE;
 			remoteInfo = BikePlannerQuickLook;
+		};
+		CA418C8A3F28CD8C1BADE401 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 65B8EE3C2E479821001F2966 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 75E6DA29DC29F2AEA5BD746A;
+			remoteInfo = RideAnalyzer;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -317,6 +333,20 @@
 		1995F097B52327E64830E80A /* BPGarminCredentials.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BPGarminCredentials.m; sourceTree = "<group>"; };
 		1E18C785DFF352BA59F816F0 /* BPGarminCredentials.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPGarminCredentials.h; sourceTree = "<group>"; };
 		4F2CBBB5C2F84968ABCA4610 /* BPFeatures.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BPFeatures.h; sourceTree = "<group>"; };
+		5CC0CFE2035698AA514B8DBA /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		DFA5C8474929EB0FE0038BE1 /* RAAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAAppDelegate.h; sourceTree = "<group>"; };
+		B767108F1C1EC3599CDFCD12 /* RAAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAAppDelegate.m; sourceTree = "<group>"; };
+		E82DCC275C9D1CA1FD4D2731 /* RALibraryDocument.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RALibraryDocument.h; sourceTree = "<group>"; };
+		9B00AC53C5B94AAA9C306921 /* RALibraryDocument.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RALibraryDocument.m; sourceTree = "<group>"; };
+		47C9D99E51C8C7997068D267 /* RALibraryWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RALibraryWindowController.h; sourceTree = "<group>"; };
+		A3406B6D251B9342A3EF4999 /* RALibraryWindowController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RALibraryWindowController.m; sourceTree = "<group>"; };
+		BE7D3AF51835D539EC6F8160 /* RARide.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RARide.h; sourceTree = "<group>"; };
+		64CE5FDCC514A8351267FE2A /* RARide.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RARide.m; sourceTree = "<group>"; };
+		51EE4BB5902F05FF7D989486 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		740E737920066D751E5475DF /* RideAnalyzer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RideAnalyzer.entitlements; sourceTree = "<group>"; };
+		A4EB2DA8784B43B0672362BE /* RideAnalyzer.app */ = {isa = PBXFileReference; explicitFileType = "wrapper.application"; includeInIndex = 0; path = RideAnalyzer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E62DBF6CB0EE63D1248BF9F1 /* RALibraryTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RALibraryTests.m; sourceTree = "<group>"; };
+		84DBB64AD2FF9D0C6249D8E5 /* RideAnalyzerTests.xctest */ = {isa = PBXFileReference; explicitFileType = "wrapper.cfbundle"; includeInIndex = 0; path = RideAnalyzerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -344,6 +374,20 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6714D61609E7160F463C6A86 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9DBC8A6D47D755477685320B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F0BD7FF891145B2CC6D3C779 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -391,6 +435,8 @@
 				65B8EE452E479821001F2966 /* Products */,
 				65B8EE762E479A77001F2966 /* Frameworks */,
 				35E6746A5E4D0462C767D0AF /* BikePlannerQuickLook */,
+				834E6179224306F27960014F /* RideAnalyzer */,
+				6B97437F90C5B66F5018A8F2 /* RideAnalyzerTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -401,6 +447,8 @@
 				65F365A92E4F6BE30046B03D /* BikePlannerTests.xctest */,
 				65F365B32E4F6BE30046B03D /* BikePlannerUITests.xctest */,
 				048AA6F85BE17ABEC521A201 /* BikePlannerQuickLook.appex */,
+				A4EB2DA8784B43B0672362BE /* RideAnalyzer.app */,
+				84DBB64AD2FF9D0C6249D8E5 /* RideAnalyzerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -591,6 +639,32 @@
 			path = BikePlannerQuickLook;
 			sourceTree = "<group>";
 		};
+		834E6179224306F27960014F /* RideAnalyzer */ = {
+			isa = PBXGroup;
+			children = (
+				5CC0CFE2035698AA514B8DBA /* main.m */,
+				DFA5C8474929EB0FE0038BE1 /* RAAppDelegate.h */,
+				B767108F1C1EC3599CDFCD12 /* RAAppDelegate.m */,
+				E82DCC275C9D1CA1FD4D2731 /* RALibraryDocument.h */,
+				9B00AC53C5B94AAA9C306921 /* RALibraryDocument.m */,
+				47C9D99E51C8C7997068D267 /* RALibraryWindowController.h */,
+				A3406B6D251B9342A3EF4999 /* RALibraryWindowController.m */,
+				BE7D3AF51835D539EC6F8160 /* RARide.h */,
+				64CE5FDCC514A8351267FE2A /* RARide.m */,
+				51EE4BB5902F05FF7D989486 /* Info.plist */,
+				740E737920066D751E5475DF /* RideAnalyzer.entitlements */,
+			);
+			path = RideAnalyzer;
+			sourceTree = "<group>";
+		};
+		6B97437F90C5B66F5018A8F2 /* RideAnalyzerTests */ = {
+			isa = PBXGroup;
+			children = (
+				E62DBF6CB0EE63D1248BF9F1 /* RALibraryTests.m */,
+			);
+			path = RideAnalyzerTests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -668,6 +742,41 @@
 			productReference = 048AA6F85BE17ABEC521A201 /* BikePlannerQuickLook.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		75E6DA29DC29F2AEA5BD746A /* RideAnalyzer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EE883EF992B820C2981C9C1B /* Build configuration list for PBXNativeTarget "RideAnalyzer" */;
+			buildPhases = (
+				2D24321D0F2B935ADD21345A /* Sources */,
+				9DBC8A6D47D755477685320B /* Frameworks */,
+				A0F0152E05157C642C11282C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RideAnalyzer;
+			productName = RideAnalyzer;
+			productReference = A4EB2DA8784B43B0672362BE /* RideAnalyzer.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F5D1701A95C474EE2865BD5C /* RideAnalyzerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D7A7B6B6DCEAA9138E526592 /* Build configuration list for PBXNativeTarget "RideAnalyzerTests" */;
+			buildPhases = (
+				BBF5272B3DE8137D589F6622 /* Sources */,
+				F0BD7FF891145B2CC6D3C779 /* Frameworks */,
+				E0476EEAE87F766EA50A345E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C41579F85957826E7228B79E /* PBXTargetDependency */,
+			);
+			name = RideAnalyzerTests;
+			productName = RideAnalyzerTests;
+			productReference = 84DBB64AD2FF9D0C6249D8E5 /* RideAnalyzerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -677,6 +786,13 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1420;
 				TargetAttributes = {
+					F5D1701A95C474EE2865BD5C = {
+						CreatedOnToolsVersion = 14.2;
+						TestTargetID = 75E6DA29DC29F2AEA5BD746A;
+					};
+					75E6DA29DC29F2AEA5BD746A = {
+						CreatedOnToolsVersion = 14.2;
+					};
 					402D4CB9F9D9C7EAA6CA46EE = {
 						CreatedOnToolsVersion = 14.2;
 					};
@@ -710,6 +826,8 @@
 				65F365A82E4F6BE30046B03D /* BikePlannerTests */,
 				65F365B22E4F6BE30046B03D /* BikePlannerUITests */,
 				402D4CB9F9D9C7EAA6CA46EE /* BikePlannerQuickLook */,
+				75E6DA29DC29F2AEA5BD746A /* RideAnalyzer */,
+				F5D1701A95C474EE2865BD5C /* RideAnalyzerTests */,
 			);
 		};
 /* End PBXProject section */
@@ -746,6 +864,20 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		2FCF7C32B9BB367ACAA91BEE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A0F0152E05157C642C11282C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E0476EEAE87F766EA50A345E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -923,6 +1055,29 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		2D24321D0F2B935ADD21345A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				083B4D0CEBD071029EFBAD11 /* main.m in Sources */,
+				41AC30EE0250B284BB0240A6 /* RAAppDelegate.m in Sources */,
+				8547208FC5650C216A84E207 /* RALibraryDocument.m in Sources */,
+				36AC04F04FFE6F75448EF15D /* RALibraryWindowController.m in Sources */,
+				26322E7A355E1B8C3DFBEC32 /* RARide.m in Sources */,
+				F47009B261DB059A3C9E1111 /* BPTrackReader.m in Sources */,
+				5179AF807D9E262FC800AEFB /* GPXParser.m in Sources */,
+				99ABD32160D778CEA7602B33 /* BPFITDecoder.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BBF5272B3DE8137D589F6622 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				66C396A31CCCACDD940EE94C /* RALibraryTests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -940,6 +1095,11 @@
 			isa = PBXTargetDependency;
 			target = 402D4CB9F9D9C7EAA6CA46EE /* BikePlannerQuickLook */;
 			targetProxy = 3BD4BA88A318FE4AC68FB3FC /* PBXContainerItemProxy */;
+		};
+		C41579F85957826E7228B79E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 75E6DA29DC29F2AEA5BD746A /* RideAnalyzer */;
+			targetProxy = CA418C8A3F28CD8C1BADE401 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1236,6 +1396,82 @@
 			};
 			name = Release;
 		};
+		CE31BDF434A8C195D9939622 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = RideAnalyzer/RideAnalyzer.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RideAnalyzer/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Ride Analyzer";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Daniel Braun. All rights reserved.";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.RideAnalyzer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		E8BB961CE06AAC4A016BAC70 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = RideAnalyzer/RideAnalyzer.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RideAnalyzer/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Ride Analyzer";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Daniel Braun. All rights reserved.";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.RideAnalyzer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		18F8643E885D785345660A41 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.RideAnalyzerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RideAnalyzer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/RideAnalyzer";
+			};
+			name = Debug;
+		};
+		148E51E8AA1C0DD9982C5472 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.free.daniel.braun.RideAnalyzerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RideAnalyzer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/RideAnalyzer";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1280,6 +1516,24 @@
 			buildConfigurations = (
 				C5AC133C0C44DB01C5C6EDF7 /* Debug */,
 				27DAE39CC3CC629E1A6AED74 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EE883EF992B820C2981C9C1B /* Build configuration list for PBXNativeTarget "RideAnalyzer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CE31BDF434A8C195D9939622 /* Debug */,
+				E8BB961CE06AAC4A016BAC70 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D7A7B6B6DCEAA9138E526592 /* Build configuration list for PBXNativeTarget "RideAnalyzerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				18F8643E885D785345660A41 /* Debug */,
+				148E51E8AA1C0DD9982C5472 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
