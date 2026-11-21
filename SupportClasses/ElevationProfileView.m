@@ -36,14 +36,22 @@ typedef NS_ENUM(NSInteger, BPProfileDrag) {
 - (instancetype)initWithFrame:(NSRect)frameRect
 {
     self = [super initWithFrame:frameRect];
-    if (self) [self setupZoomButtons];
+    if (self) {
+        _shadedRanges = @[];
+        _emphasizedRange = NSNotFound;
+        [self setupZoomButtons];
+    }
     return self;
 }
 
 - (nullable instancetype)initWithCoder:(NSCoder *)coder
 {
     self = [super initWithCoder:coder];
-    if (self) [self setupZoomButtons];
+    if (self) {
+        _shadedRanges = @[];
+        _emphasizedRange = NSNotFound;
+        [self setupZoomButtons];
+    }
     return self;
 }
 
@@ -261,6 +269,18 @@ typedef NS_ENUM(NSInteger, BPProfileDrag) {
     *high = hi;
 }
 
+- (void) setShadedRanges:(NSArray<NSValue *> *)shadedRanges
+{
+    _shadedRanges = [shadedRanges copy] ?: @[];
+    self.needsDisplay = YES;
+}
+
+- (void) setEmphasizedRange:(NSUInteger)emphasizedRange
+{
+    _emphasizedRange = emphasizedRange;
+    self.needsDisplay = YES;
+}
+
 - (NSColor *) stageEndColor
 {
     return _stageEndColor ?: [NSColor systemPurpleColor];
@@ -422,6 +442,15 @@ static const double kBPSlopeHalfWindow = 50; // m
 
     CGContextSaveGState(ctx);
     CGContextClipToRect(ctx, NSInsetRect(plotRect, -2, -2)); // zoomed: segments across the edges
+
+    // shaded ranges (Ride Analyzer, the climbs)
+    for (NSUInteger k = 0; k < _shadedRanges.count; k++) {
+        NSPoint r = _shadedRanges[k].pointValue;
+        if (r.y < from || r.x > to) continue;
+        CGFloat xa = [self xForDistance:r.x], xb = [self xForDistance:r.y];
+        [[[NSColor systemOrangeColor] colorWithAlphaComponent:k == _emphasizedRange ? 0.30 : 0.12] setFill];
+        NSRectFillUsingOperation(NSMakeRect(xa, plotRect.origin.y, xb - xa, plotRect.size.height), NSCompositingOperationSourceOver);
+    }
 
     // Draw profile
     for (NSUInteger i = 1; i < self.distances.count; i++) {

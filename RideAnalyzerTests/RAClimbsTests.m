@@ -14,7 +14,13 @@
 #import "RALibraryDocument.h"
 #import "RALibraryWindowController.h"
 #import "RAClimbsViewController.h"
+#import "RARideDetailController.h"
+#import "ElevationProfileView.h"
 #import "RATestSupport.h"
+
+@interface RARideDetailController (Testing)
+- (IBAction)compareClimb:(nullable id)sender;
+@end
 
 @interface RAClimbsTests : XCTestCase
 @end
@@ -153,10 +159,29 @@
     NSTableView *table = [wc valueForKey:@"_table"];
     [table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
     [tab refresh];
-    XCTAssertEqual(tab.groups.count, 2u, @"the climbs of the selected ride");
-    XCTAssertFalse([tab.climbsTable tableColumnWithIdentifier:@"mine"].hidden);
+    XCTAssertEqual(tab.groups.count, 2u, @"one ride selected: still the climbs of the list (its own are in its detail)");
+    XCTAssertTrue([tab.climbsTable tableColumnWithIdentifier:@"mine"].hidden);
     [tab renameClimbAtRow:1 to:@"Côte"];
     XCTAssertEqualObjects([doc nameOfClimb:rides[0].stats.climbs[1]], @"Côte");
+
+    // the detail of the selected ride: its climbs, shaded on the profile; a double-click compares (Climbs tab)
+    RARideDetailController *detail = [wc valueForKey:@"_detail"];
+    NSTableView *climbsOfRide = [detail valueForKey:@"_climbsTable"];
+    XCTAssertEqual(climbsOfRide.numberOfRows, 2);
+    ElevationProfileView *profile = [detail valueForKey:@"_profile"];
+    XCTAssertEqual(profile.shadedRanges.count, 2u);
+    NSTextField *rank = (NSTextField *)[climbsOfRide viewAtColumn:[climbsOfRide columnWithIdentifier:@"rank"] row:0 makeIfNecessary:YES];
+    XCTAssertTrue([rank.stringValue containsString:@"3"], @"%@", rank.stringValue);
+    NSTextField *name = (NSTextField *)[climbsOfRide viewAtColumn:[climbsOfRide columnWithIdentifier:@"name"] row:0 makeIfNecessary:YES];
+    XCTAssertEqualObjects(name.stringValue, @"Col de test");
+    [wc showClimbs:self];   // back to the Ride tab
+    NSTabViewController *tabs = [wc valueForKey:@"_tabs"];
+    XCTAssertEqual(tabs.selectedTabViewItemIndex, 0);
+    [climbsOfRide selectRowIndexes:[NSIndexSet indexSetWithIndex:1] byExtendingSelection:NO];
+    XCTAssertEqual(profile.emphasizedRange, 1u);
+    [detail compareClimb:self];
+    XCTAssertEqual(tabs.selectedTabViewItemIndex, 3, @"the Climbs tab");
+    XCTAssertEqualObjects(tab.groups[(NSUInteger)tab.climbsTable.selectedRow].name, @"Côte", @"on that climb");
     wc.document = nil;
     [wc close];
 }

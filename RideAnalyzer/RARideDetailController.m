@@ -9,6 +9,8 @@
 #import "RAChartView.h"
 #import "RAPower.h"
 #import "RAEquipment.h"
+#import "RAClimbs.h"
+#import "RARideStats.h"
 #import "ElevationProfileView.h"
 #import <MapKit/MapKit.h>
 
@@ -20,6 +22,7 @@
 @interface RAColoredPolyline : MKPolyline
 @property (nonatomic) NSInteger colorClass;   // -1: no value
 @property (nonatomic) BOOL casing;            // the white line under the track
+@property (nonatomic) NSInteger climb;        // a climb of the ride (R7), under the track: its index; -1 otherwise
 @end
 
 @implementation RAColoredPolyline
@@ -44,7 +47,8 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
 }
 
 @interface RARideDetailController () <MKMapViewDelegate, ElevationProfileViewDelegate, RAChartViewDelegate,
-                                      NSTextFieldDelegate, NSTokenFieldDelegate>
+                                      NSTextFieldDelegate, NSTokenFieldDelegate, NSTableViewDataSource,
+                                      NSTableViewDelegate>
 @end
 
 @implementation RARideDetailController
@@ -59,6 +63,11 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     NSTextField *_equipment;           // the parts mounted on it at the ride's date, mass, Crr, CdA
     NSStackView *_equipmentRow;
     NSGridView *_figures;
+    NSTableView *_climbsTable;         // the climbs of the ride (R7)
+    NSScrollView *_climbsScroll;
+    NSTextField *_climbsTitle;
+    NSArray<RAClimb *> *_climbs;
+    NSArray<RAClimbGroup *> *_climbGroups;   // the climbs of the library, for the rank of each passage
     NSPopUpButton *_colorPopup;
     NSStackView *_legend;
     MKMapView *_map;
@@ -134,23 +143,58 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     _profile.identifier = @"elevationProfile";
     [_profile.heightAnchor constraintEqualToConstant:150].active = YES;
 
+    // the climbs of the ride (R7): shaded on the profile and the map; a click zooms on one, a double-click
+    // compares its passages (Climbs tab)
+    _climbsTitle = [NSTextField labelWithString:NSLocalizedString(@"Climbs", @"detail")];
+    _climbsTitle.font = [NSFont boldSystemFontOfSize:13];
+    _climbsTable = [[NSTableView alloc] init];
+    _climbsTable.identifier = @"rideClimbs";
+    _climbsTable.dataSource = self;
+    _climbsTable.delegate = self;
+    _climbsTable.usesAlternatingRowBackgroundColors = YES;
+    _climbsTable.target = self;
+    _climbsTable.doubleAction = @selector(compareClimb:);
+    NSArray *columns = @[ @[ @"name", NSLocalizedString(@"Climb", @"column"), @150 ],
+                          @[ @"at", NSLocalizedString(@"At km", @"column"), @50 ],
+                          @[ @"length", NSLocalizedString(@"Length", @"column"), @60 ],
+                          @[ @"gradient", NSLocalizedString(@"Avg · max", @"column"), @80 ],
+                          @[ @"gain", NSLocalizedString(@"D+", @"column"), @50 ],
+                          @[ @"time", NSLocalizedString(@"Time", @"column"), @55 ],
+                          @[ @"vam", NSLocalizedString(@"VAM", @"column"), @50 ],
+                          @[ @"hr", NSLocalizedString(@"bpm", @"column"), @40 ],
+                          @[ @"power", NSLocalizedString(@"W", @"column"), @50 ],
+                          @[ @"rank", NSLocalizedString(@"Rank", @"column"), @90 ] ];
+    for (NSArray *c in columns) {
+        NSTableColumn *col = [[NSTableColumn alloc] initWithIdentifier:c[0]];
+        col.title = c[1];
+        col.width = [c[2] doubleValue];
+        [_climbsTable addTableColumn:col];
+    }
+    _climbsTable.toolTip = NSLocalizedString(@"Click: zoom on the climb. Double-click: compare its passages.", @"detail");
+    _climbsScroll = [[NSScrollView alloc] init];
+    _climbsScroll.documentView = _climbsTable;
+    _climbsScroll.hasVerticalScroller = YES;
+    _climbsScroll.autohidesScrollers = YES;
+    [_climbsScroll.heightAnchor constraintEqualToConstant:130].active = YES;
+
     _charts = [NSStackView stackViewWithViews:@[]];
     _charts.orientation = NSUserInterfaceLayoutOrientationVertical;
     _charts.alignment = NSLayoutAttributeLeading;
     _charts.spacing = 6;
 
     _stack = [NSStackView stackViewWithViews:@[ _title, _subtitle, _message, _notes, _tags, _equipmentRow, _figures, mapBar, _map,
-                                                _profile, _charts ]];
+                                                _profile, _climbsTitle, _climbsScroll, _charts ]];
     _stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     _stack.alignment = NSLayoutAttributeLeading;
     _stack.spacing = 10;
     _stack.edgeInsets = NSEdgeInsetsMake(12, 20, 20, 20);
     _stack.detachesHiddenViews = YES;
     _stack.translatesAutoresizingMaskIntoConstraints = NO;
-    for (NSView *v in @[ _notes, _tags, _equipmentRow, _map, _profile, _charts ]) {
+    for (NSView *v in @[ _notes, _tags, _equipmentRow, _map, _profile, _climbsScroll, _charts ]) {
         [v.widthAnchor constraintEqualToAnchor:_stack.widthAnchor constant:-40].active = YES;
     }
-    _rideViews = @[ _subtitle, _notes, _tags, _equipmentRow, _figures, mapBar, _map, _profile, _charts ];
+    _rideViews = @[ _subtitle, _notes, _tags, _equipmentRow, _figures, mapBar, _map, _profile, _climbsTitle, _climbsScroll,
+                    _charts ];
 
     // a flipped document view, so the detail starts at the top of the scroll view
     NSView *document = [[RAFlippedView alloc] init];
@@ -215,6 +259,11 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
 {
     RARide *ride = _ride;
     if (!ride) return;
+    if (_climbsTable) {    // a new ride, or names and ranks changed
+        NSIndexSet *rows = _climbsTable.selectedRowIndexes;
+        [self updateClimbs];
+        [_climbsTable selectRowIndexes:rows byExtendingSelection:NO];
+    }
     _title.stringValue = ride.name;
     NSString *date = ride.startDate ? [NSDateFormatter localizedStringFromDate:ride.startDate
         dateStyle:NSDateFormatterFullStyle timeStyle:NSDateFormatterShortStyle] : @"—";
@@ -364,8 +413,9 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     }
     if (![RATrackColoring analysis:analysis supportsMode:self.colorMode]) _colorMode = RAColorBySlope;
     [_colorPopup selectItemAtIndex:self.colorMode];
-    [self drawTrack];
     [_profile setGpxPoints:analysis.trace];
+    [self updateClimbs];
+    [self drawTrack];
     [self buildCharts];
     [self moveCursorToIndex:NSNotFound];
 }
@@ -404,7 +454,18 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     for (NSUInteger i = 0; i < n; i++) coords[i] = a.trace[i].coordinate;
     RAColoredPolyline *casing = [RAColoredPolyline polylineWithCoordinates:coords count:n];
     casing.casing = YES;
-    NSMutableArray<id<MKOverlay>> *overlays = [NSMutableArray arrayWithObject:casing];
+    casing.climb = -1;
+    NSMutableArray<id<MKOverlay>> *overlays = [NSMutableArray array];
+    // the climbs (R7): a wide band under the track
+    for (NSUInteger k = 0; k < _climbs.count; k++) {
+        NSUInteger from = [a indexAtDistance:_climbs[k].startDistance];
+        NSUInteger to = [a indexAtDistance:_climbs[k].startDistance + _climbs[k].length];
+        if (to <= from || to >= n) continue;
+        RAColoredPolyline *band = [RAColoredPolyline polylineWithCoordinates:coords + from count:to - from + 1];
+        band.climb = (NSInteger)k;
+        [overlays addObject:band];
+    }
+    [overlays addObject:casing];
     // one polyline per run of points of the same class (a run shares its last point with the next)
     NSArray<NSNumber *> *classes = [RATrackColoring classesOfAnalysis:a mode:self.colorMode];
     NSUInteger start = 0;
@@ -414,6 +475,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
         if (end > start) {
             RAColoredPolyline *run = [RAColoredPolyline polylineWithCoordinates:coords + start count:end - start + 1];
             run.colorClass = classes[start].integerValue;
+            run.climb = -1;
             [overlays addObject:run];
         }
         start = end;
@@ -453,6 +515,12 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     MKPolylineRenderer *r = [[MKPolylineRenderer alloc] initWithPolyline:line];
     r.lineCap = kCGLineCapRound;
     r.lineJoin = kCGLineJoinRound;
+    if (line.climb >= 0) {
+        BOOL chosen = _climbsTable.selectedRow == line.climb;
+        r.strokeColor = [[NSColor systemOrangeColor] colorWithAlphaComponent:chosen ? 0.75 : 0.4];
+        r.lineWidth = chosen ? 16 : 13;
+        return r;
+    }
     if (line.casing) {
         r.strokeColor = [NSColor whiteColor];
         r.lineWidth = 8;
@@ -537,6 +605,146 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
 - (void)chartView:(RAChartView *)chart didSelectDistance:(double)distance
 {
     [self moveCursorToDistance:distance];
+}
+
+#pragma mark - climbs of the ride (R7)
+
+- (void)updateClimbs
+{
+    RARide *ride = _ride;
+    _climbs = ride.stats.climbs ?: @[];
+    _climbGroups = _climbs.count ? [RAClimbGroup groupsOfRides:self.library.rides ?: @[]] : @[];
+    NSMutableArray<NSValue *> *ranges = [NSMutableArray array];
+    for (RAClimb *c in _climbs) [ranges addObject:[NSValue valueWithPoint:NSMakePoint(c.startDistance, c.startDistance + c.length)]];
+    _profile.shadedRanges = ranges;
+    _profile.emphasizedRange = NSNotFound;
+    _climbsTitle.stringValue = _climbs.count
+        ? [NSString localizedStringWithFormat:NSLocalizedString(@"Climbs (%lu)", @"detail"), (unsigned long)_climbs.count]
+        : NSLocalizedString(@"Climbs: none (from 30 m of gain over 300 m at 3 %)", @"detail");
+    _climbsScroll.hidden = _climbs.count == 0;
+    [_climbsTable reloadData];
+}
+
+/// the group (all the rides of the library) of a climb of this ride, and its passage
+- (nullable RAClimbGroup *)groupOfClimb:(RAClimb *)climb passage:(RAClimbPassage * _Nullable * _Nullable)passage
+{
+    for (RAClimbGroup *g in _climbGroups) {
+        for (RAClimbPassage *p in g.passages) {
+            if (p.climb == climb) {
+                if (passage) *passage = p;
+                return g;
+            }
+        }
+    }
+    return nil;
+}
+
+- (NSString *)climbDuration:(double)seconds
+{
+    if (isnan(seconds) || seconds <= 0) return @"—";
+    long s = lround(seconds);
+    return s >= 3600 ? [NSString stringWithFormat:@"%ld:%02ld:%02ld", s / 3600, (s / 60) % 60, s % 60]
+                     : [NSString stringWithFormat:@"%ld:%02ld", s / 60, s % 60];
+}
+
+- (NSString *)textOfClimb:(RAClimb *)c column:(NSString *)column
+{
+    if ([column isEqualToString:@"name"]) {
+        NSString *name = [self.library nameOfClimb:c];
+        return name.length ? name : [NSString localizedStringWithFormat:NSLocalizedString(@"Climb %lu", @"detail"),
+                                     (unsigned long)[_climbs indexOfObjectIdenticalTo:c] + 1];
+    }
+    if ([column isEqualToString:@"at"]) return [NSString localizedStringWithFormat:@"%.1f", c.startDistance / 1000];
+    if ([column isEqualToString:@"length"]) return [NSString localizedStringWithFormat:@"%.1f km", c.length / 1000];
+    if ([column isEqualToString:@"gradient"]) {
+        return [NSString localizedStringWithFormat:@"%.1f · %.0f %%", c.averageGradient, c.maxGradient];
+    }
+    if ([column isEqualToString:@"gain"]) return [NSString localizedStringWithFormat:@"%.0f m", c.gain];
+    if ([column isEqualToString:@"time"]) return [self climbDuration:c.time];
+    if ([column isEqualToString:@"vam"]) return isnan(c.climbingSpeed) ? @"—" : [NSString localizedStringWithFormat:@"%.0f", c.climbingSpeed];
+    if ([column isEqualToString:@"hr"]) {
+        double hr = c.stats.heartRate;
+        return isnan(hr) ? @"—" : [NSString localizedStringWithFormat:@"%.0f", hr];
+    }
+    if ([column isEqualToString:@"power"]) {
+        RATerrainStats *s = c.stats;
+        if (s.powerTime > 0 && s.powerTime >= s.time / 2) return [NSString localizedStringWithFormat:@"%.0f", s.power];
+        double est = [[RAPowerModel modelForRide:_ride equipment:self.library.equipment] averagePowerOfStats:s];
+        return isfinite(est) && est > 0 ? [NSString localizedStringWithFormat:@"≈ %.0f", est] : @"—";
+    }
+    if ([column isEqualToString:@"rank"]) {
+        RAClimbPassage *p = nil;
+        RAClimbGroup *g = [self groupOfClimb:c passage:&p];
+        if (!g || g.passages.count < 2) return NSLocalizedString(@"first time", @"detail: climb ridden once");
+        NSUInteger rank = p ? [g rankOfPassage:p] : 0;
+        if (rank == 0) return [NSString localizedStringWithFormat:NSLocalizedString(@"%lu passages", @"detail"),
+                               (unsigned long)g.passages.count];
+        return [NSString localizedStringWithFormat:NSLocalizedString(@"%lu of %lu%@", @"detail: rank of n passages"),
+                (unsigned long)rank, (unsigned long)g.passages.count, rank == 1 ? @" ★" : @""];
+    }
+    return @"";
+}
+
+- (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView
+{
+    return (NSInteger)_climbs.count;
+}
+
+- (nullable NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(nullable NSTableColumn *)tableColumn row:(NSInteger)row
+{
+    RAClimb *c = _climbs[(NSUInteger)row];
+    NSString *column = tableColumn.identifier;
+    NSTextField *f = [NSTextField labelWithString:[self textOfClimb:c column:column]];
+    f.lineBreakMode = NSLineBreakByTruncatingTail;
+    if (![column isEqualToString:@"name"] && ![column isEqualToString:@"rank"]) f.alignment = NSTextAlignmentRight;
+    return f;
+}
+
+- (void)tableViewSelectionDidChange:(NSNotification *)notification
+{
+    if (notification.object != _climbsTable) return;
+    NSInteger row = _climbsTable.selectedRow;
+    _profile.emphasizedRange = row >= 0 ? (NSUInteger)row : NSNotFound;
+    // the bands of the map: drawn again with the chosen one stronger
+    NSArray *bands = [_map.overlays filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(id o, NSDictionary *b) {
+        return [o isKindOfClass:[RAColoredPolyline class]] && ((RAColoredPolyline *)o).climb >= 0;
+    }]];
+    for (RAColoredPolyline *band in bands) {
+        MKOverlayRenderer *r = [_map rendererForOverlay:band];
+        if ([r isKindOfClass:[MKPolylineRenderer class]]) {
+            BOOL chosen = band.climb == row;
+            ((MKPolylineRenderer *)r).strokeColor = [[NSColor systemOrangeColor] colorWithAlphaComponent:chosen ? 0.75 : 0.4];
+            ((MKPolylineRenderer *)r).lineWidth = chosen ? 16 : 13;
+            [r setNeedsDisplay];
+        }
+    }
+    if (row < 0 || (NSUInteger)row >= _climbs.count) return;
+    RAClimb *c = _climbs[(NSUInteger)row];
+    [self zoomOnClimb:c];
+}
+
+/// the profile and the curves on the climb (with some road before and after), the map on it, the cursor at its foot
+- (void)zoomOnClimb:(RAClimb *)c
+{
+    double margin = MAX(200, c.length * 0.15);
+    [_profile showRangeFrom:MAX(0, c.startDistance - margin) to:c.startDistance + c.length + margin notify:YES];
+    [self moveCursorToDistance:c.startDistance];
+    RARideAnalysis *a = _analysis;
+    if (!a) return;
+    MKMapRect rect = MKMapRectNull;
+    NSUInteger from = [a indexAtDistance:c.startDistance], to = [a indexAtDistance:c.startDistance + c.length];
+    for (NSUInteger i = from; i <= to && i < a.count; i++) {
+        MKMapPoint p = MKMapPointForCoordinate(a.trace[i].coordinate);
+        rect = MKMapRectUnion(rect, MKMapRectMake(p.x, p.y, 0, 0));
+    }
+    if (!MKMapRectIsNull(rect)) [_map setVisibleMapRect:rect edgePadding:NSEdgeInsetsMake(40, 40, 40, 40) animated:YES];
+}
+
+- (IBAction)compareClimb:(nullable id)sender
+{
+    NSInteger row = _climbsTable.clickedRow >= 0 ? _climbsTable.clickedRow : _climbsTable.selectedRow;
+    if (row < 0 || (NSUInteger)row >= _climbs.count || !self.compareClimbHandler) return;
+    self.compareClimbHandler(_climbs[(NSUInteger)row]);
 }
 
 #pragma mark - notes and tags (R3)

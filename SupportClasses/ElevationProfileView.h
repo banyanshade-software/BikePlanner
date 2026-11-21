@@ -33,6 +33,12 @@ NS_ASSUME_NONNULL_BEGIN
 /// distances (m) of the stage ends, from stageEndIndexes and the points
 @property (nonatomic, readonly) NSArray<NSNumber *> *stageEndDistances;
 
+/// ranges shaded behind the profile (Ride Analyzer #82, R7: the climbs): NSValue points, x = from, y = to (m);
+/// empty by default
+@property (nonatomic, copy) NSArray<NSValue *> *shadedRanges;
+/// the range among them drawn stronger, NSNotFound for none
+@property (nonatomic) NSUInteger emphasizedRange;
+
 - (void) setGpxPoints:(NSArray<CLLocation *> *)points; // shows the whole route (#62)
 
 // zoom on the distance axis (#62): pinch, ⌘-scroll, ⌥-drag on a range, buttons (accessibility identifiers

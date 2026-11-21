@@ -77,8 +77,8 @@
         @[ @"length", NSLocalizedString(@"km", @"column"), @45 ],
         @[ @"gradient", NSLocalizedString(@"%", @"column"), @40 ],
         @[ @"gain", NSLocalizedString(@"D+", @"column"), @45 ],
-        @[ @"passages", NSLocalizedString(@"Rides", @"column"), @45 ],
-        @[ @"best", NSLocalizedString(@"Best", @"column"), @60 ],
+        @[ @"passages", NSLocalizedString(@"Passages", @"column"), @60 ],
+        @[ @"best", NSLocalizedString(@"Best time", @"column"), @65 ],
         @[ @"mine", NSLocalizedString(@"This ride", @"column"), @80 ] ]];
     _passagesTable = [self tableWithIdentifier:@"climbPassages" columns:@[
         @[ @"date", NSLocalizedString(@"Date", @"column"), @75 ],
@@ -318,6 +318,20 @@
     // the default name typed back unchanged is not a name
     if ([name isEqualToString:[self nameOfGroup:g]] && g.name.length == 0) return;
     [_library setName:name ofClimb:g.reference];
+}
+
+- (BOOL)selectClimb:(RAClimb *)climb
+{
+    [self refresh];
+    for (NSUInteger i = 0; i < _groups.count; i++) {
+        if ([_groups[i].reference isSameClimbAs:climb]) {
+            [_climbsTable selectRowIndexes:[NSIndexSet indexSetWithIndex:i] byExtendingSelection:NO];
+            [_climbsTable scrollRowToVisible:(NSInteger)i];
+            [self showPassages];
+            return YES;
+        }
+    }
+    return NO;
 }
 
 - (void)timeChartView:(RATimeChartView *)chart didSelectPoint:(nullable RATrendPoint *)point

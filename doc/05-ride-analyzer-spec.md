@@ -319,14 +319,20 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   stats of its moving intervals: time, VAM, heart rate, measured power, work sums of the estimated power (R11).
 - **Same climb** (`RAClimbGroup`): climbs of different rides starting and ending within 150 m of each other, lengths
   within 15 %; passages oldest first, best time, rank of a passage.
-- **Climbs tab** beside the list (Window ▸ Climbs, ⇧⌘K, toolbar "Climbs"; `RAClimbsViewController`): the climbs of the
-  selected rides (two or more) or of the list, the most ridden first; with one ride selected, the climbs of that ride
-  in order, with its time and rank among the passages of the list ("This ride"). For the chosen climb: its passages
+- **In the detail of a ride** (owner's choice, 2026-11-21, after a first version found unclear): its climbs are
+  shaded on the profile (`ElevationProfileView.shadedRanges`, shared with BikePlanner, empty there) and drawn as
+  an orange band under the track on the map. A table lists them: name (or "Climb n"), km, length, average and max
+  gradient, gain, time, VAM, bpm, power (measured, or "≈" estimated), rank among the passages of the library
+  ("2 of 5", ★ for the best, "first time"). A click zooms the profile, the curves and the map on the climb and
+  puts the cursor at its foot; a double-click opens the Climbs tab on that climb.
+- **Climbs tab** beside the list (Window ▸ Climbs, ⇧⌘K, toolbar "Climbs"; `RAClimbsViewController`), only to compare
+  passages: the climbs of the selected rides (two or more) or of the list, the most ridden first. For the chosen
+  climb: its passages
   (date, ride, time, VAM, bpm, power — measured, or "≈" estimated with the equipment of the ride's date —, rank) and
   the time of each passage against the date with its trend line (a click selects the passage).
 - **Names**: a climb can be named in the table; the name is kept in the library with the climb's position
   (`nameOfClimb:` / `setName:ofClimb:`, undoable) and goes to every passage of the same climb.
-- Not yet: the climbs drawn on the map and the profile of the ride detail, the wind (R12) in their estimated power.
+- Not yet: the wind (R12) in their estimated power.
 
 ## Handoff (2026-11-21): written without Xcode, never compiled
 The skeleton and the imports were written in a session without Xcode. First steps on the owner's Mac (Claude Code):
@@ -355,7 +361,6 @@ The skeleton and the imports were written in a session without Xcode. First step
 ## Open questions
 - Gear of the rides from Garmin Connect (R13): not in the Personal API; through the web session (#79)?
 - Name of the app (the target is `RideAnalyzer` for now).
-- Does the Personal API give the Garmin gear (R13)? To check.
 - Map, profile and track display shared with BikePlanner (R4): which classes can be reused as they are
   (`ElevationProfileView`, `BikeMapView`…) and which need to be split from `MapController`.
 - The historical weather service (R12).

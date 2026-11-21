@@ -17,6 +17,7 @@
 #import "RAEquipment.h"
 #import "RAEquipmentWindowController.h"
 #import "RAClimbsViewController.h"
+#import "RAClimbs.h"
 #import "BPTrackReader.h"
 
 static NSUserInterfaceItemIdentifier const RAColumnDate = @"date";
@@ -311,6 +312,8 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     // list (R6)
     _detail = [[RARideDetailController alloc] init];
     _detail.title = NSLocalizedString(@"Ride", @"tab");
+    __weak RALibraryWindowController *weakSelf = self;
+    _detail.compareClimbHandler = ^(RAClimb *climb) { [weakSelf compareClimb:climb]; };
     _trends = [[RATrendsViewController alloc] init];
     _ridesMap = [[RARidesMapViewController alloc] init];
     _tabs = [[NSTabViewController alloc] init];
@@ -764,8 +767,8 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     BOOL several = selected.count >= 2;
     [_trends showRides:several ? selected : _sorted selected:several];
     [_ridesMap showRides:several ? selected : _sorted selected:several];
-    // climbs: with one ride selected, its climbs compared with the list
-    [_climbs showRides:several ? selected : _sorted focus:selected.count == 1 ? selected.firstObject : nil selected:several];
+    // climbs: to compare passages (the climbs of one ride are in its detail)
+    [_climbs showRides:several ? selected : _sorted focus:nil selected:several];
 }
 
 - (NSArray<RARide *> *)selectedRides
@@ -1189,6 +1192,14 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     // the Trends tab, or back to the Ride tab when it shows
     _tabs.selectedTabViewItemIndex = _tabs.selectedTabViewItemIndex == 1 ? 0 : 1;
     [self showSelection];
+}
+
+/// from the detail of a ride: the Climbs tab, on the passages of that climb
+- (void)compareClimb:(RAClimb *)climb
+{
+    _tabs.selectedTabViewItemIndex = 3;
+    [self showSelection];
+    [_climbs selectClimb:climb];
 }
 
 - (IBAction)showClimbs:(nullable id)sender
