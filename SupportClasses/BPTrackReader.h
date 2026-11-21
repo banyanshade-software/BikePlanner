@@ -33,6 +33,20 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly, nonatomic) NSArray<CLLocation *> *trace;
 /// what the trace is made of: @"trk", @"rte" or @"wpt" (GPX); always @"trk" for TCX and FIT
 @property (readonly, nonatomic) NSString *traceSource;
+/// every point of the trace has a time (GPX <time>, TCX Time, FIT timestamp); without, points carry the read date
+@property (readonly, nonatomic) BOOL hasTimes;
+
+// what recorded the activity (Ride Analyzer, #82); nil when the file does not say
+/// TCX Activity Creator Name (e.g. "Edge 830"); FIT files have no name, only numbers
+@property (readonly, nonatomic, nullable) NSString *deviceName;
+/// FIT file_id manufacturer (1: Garmin)
+@property (readonly, nonatomic, nullable) NSNumber *deviceManufacturer;
+/// FIT file_id product, TCX Creator ProductID
+@property (readonly, nonatomic, nullable) NSNumber *deviceProduct;
+/// FIT file_id serial number, TCX Creator UnitId
+@property (readonly, nonatomic, nullable) NSNumber *deviceSerialNumber;
+/// @"cycling", @"running" or @"other" (FIT sport / session, TCX Activity Sport)
+@property (readonly, nonatomic, nullable) NSString *sport;
 /// GPX <wpt>; TCX <CoursePoint> / FIT course_point, except turn cues (left, right, straight…)
 @property (readonly, nonatomic) NSArray<CLLocation *> *waypoints;
 /// for each waypoint: its GPX <type>, or the GPX type of the custom POI matching the TCX PointType; @"" when none

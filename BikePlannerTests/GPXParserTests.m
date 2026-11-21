@@ -122,4 +122,36 @@
     XCTAssertEqualObjects(p.traceSource, @"wpt");
 }
 
+// the <time> of each point (Ride Analyzer, #82): Z, fractional seconds, offset; a point without stays untimed
+- (void)testPointTimes
+{
+    NSString *gpx = @"<gpx><metadata><time>2020-01-01T00:00:00Z</time></metadata><trk><trkseg>"
+                    @"<trkpt lat=\"44.1\" lon=\"0.5\"><ele>100</ele><time>2026-11-16T08:00:00Z</time></trkpt>"
+                    @"<trkpt lat=\"44.2\" lon=\"0.5\"><time>2026-11-16T08:00:10.500Z</time><ele>101</ele></trkpt>"
+                    @"<trkpt lat=\"44.3\" lon=\"0.5\"><ele>102</ele><time>2026-11-16T10:00:20+01:00</time></trkpt>"
+                    @"</trkseg></trk></gpx>";
+    GPXParser *p = [[GPXParser alloc] init];
+    NSArray<CLLocation *> *pts = [p parseGPXData:BPData(gpx) error:NULL];
+    XCTAssertEqual(pts.count, 3u);
+    XCTAssertTrue(p.hasTimes);
+    NSDate *start = [[[NSISO8601DateFormatter alloc] init] dateFromString:@"2026-11-16T08:00:00Z"];
+    XCTAssertEqualObjects(pts[0].timestamp, start);
+    XCTAssertEqualWithAccuracy([pts[1].timestamp timeIntervalSinceDate:start], 10.5, 1e-6);
+    XCTAssertEqualWithAccuracy([pts[2].timestamp timeIntervalSinceDate:start], 20, 1e-6);
+    XCTAssertEqualWithAccuracy(pts[0].altitude, 100, 1e-9, @"the time does not lose the elevation");
+    XCTAssertEqualWithAccuracy(pts[1].altitude, 101, 1e-9, @"time before ele");
+    XCTAssertEqualWithAccuracy(pts[2].coordinate.latitude, 44.3, 1e-9);
+
+    NSString *partial = @"<gpx><trk><trkseg><trkpt lat=\"1\" lon=\"1\"><time>2026-11-16T08:00:00Z</time></trkpt>"
+                        @"<trkpt lat=\"2\" lon=\"2\"/></trkseg></trk></gpx>";
+    p = [[GPXParser alloc] init];
+    pts = [p parseGPXData:BPData(partial) error:NULL];
+    XCTAssertFalse(p.hasTimes, @"one point without time");
+    XCTAssertEqualObjects(pts[0].timestamp, start);
+
+    p = [[GPXParser alloc] init];
+    [p parseGPXData:BPData(kBRouterGPX) error:NULL];
+    XCTAssertFalse(p.hasTimes, @"a BRouter route has no times");
+}
+
 @end

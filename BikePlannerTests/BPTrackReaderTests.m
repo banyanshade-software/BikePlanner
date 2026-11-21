@@ -10,6 +10,7 @@
 #import "BPTrackReader.h"
 #import "TestFixtures.h"
 #import "BPFITBuilder.h"
+#import "BPFITDecoder.h"
 
 // a TCX activity: two laps, a trackpoint without position (pause) between them
 static NSString *const kTCXActivity =
@@ -200,6 +201,82 @@ static const int32_t kNoPos = 0x7FFFFFFF;
     XCTAssertEqual(r.trace[2].altitude, 0, @"no altitude field");
     XCTAssertEqualWithAccuracy([r.trace[2].timestamp timeIntervalSinceDate:r.trace[1].timestamp], 3, 1e-9, @"compressed timestamp");
     XCTAssertEqual(r.waypoints.count, 0u);
+    XCTAssertTrue(r.hasTimes);
+    XCTAssertEqualObjects(r.deviceManufacturer, @1, @"file_id manufacturer: Garmin");
+    XCTAssertNil(r.deviceProduct);
+    XCTAssertNil(r.deviceSerialNumber);
+    XCTAssertNil(r.sport, @"no sport or session message");
+}
+
+// which device recorded a FIT activity, and its sport (Ride Analyzer, #82)
+- (void)testFITDeviceAndSport
+{
+    NSDate *t0 = [NSDate dateWithTimeIntervalSince1970:1795000000];
+    uint32_t ts = [BPFITBuilder fitTimestamp:t0];
+    BPFITBuilder *b = [[BPFITBuilder alloc] init];
+    // file_id: type, manufacturer, product, serial_number (uint32z), time_created
+    [b defineLocal:0 global:0 fields:@[ @[ @0, @1, @(BPFITEnum) ], @[ @1, @2, @(BPFITUInt16) ], @[ @2, @2, @(BPFITUInt16) ],
+                                         @[ @3, @4, @(BPFITUInt32z) ], @[ @4, @4, @(BPFITUInt32) ] ]];
+    [b dataLocal:0 values:@[ @4, @1, @3122, @3337123456, @(ts) ]];
+    [b defineLocal:1 global:20 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @0, @4, @(BPFITSInt32) ], @[ @1, @4, @(BPFITSInt32) ] ]];
+    [b dataLocal:1 values:@[ @(ts), @([BPFITBuilder semicircles:45]), @([BPFITBuilder semicircles:5]) ]];
+    [b dataLocal:1 values:@[ @(ts + 1), @([BPFITBuilder semicircles:45.001]), @([BPFITBuilder semicircles:5]) ]];
+    // session: timestamp, sport (cycling), sub_sport
+    [b defineLocal:2 global:18 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @5, @1, @(BPFITEnum) ], @[ @6, @1, @(BPFITEnum) ] ]];
+    [b dataLocal:2 values:@[ @(ts + 2), @2, @7 ]];
+    BPTrackReader *r = [BPTrackReader readerWithData:b.data error:NULL];
+    XCTAssertEqualObjects(r.deviceManufacturer, @1);
+    XCTAssertEqualObjects(r.deviceProduct, @3122);
+    XCTAssertEqualObjects(r.deviceSerialNumber, @3337123456);
+    XCTAssertEqualObjects(r.sport, @"cycling");
+    XCTAssertNil(r.deviceName, @"a FIT file has no device name");
+
+    BPFITDecoder *d = [[BPFITDecoder alloc] init];
+    XCTAssertTrue([d decodeData:b.data error:NULL]);
+    XCTAssertEqualObjects(d.fileType, @4);
+    XCTAssertEqualObjects(d.timeCreated, t0);
+    XCTAssertEqualObjects(d.sport, @2);
+
+    // a serial number 0 (uint32z invalid value) is no serial number; a record without timestamp: not all timed
+    BPFITBuilder *b2 = [[BPFITBuilder alloc] init];
+    [b2 defineLocal:0 global:0 fields:@[ @[ @0, @1, @(BPFITEnum) ], @[ @3, @4, @(BPFITUInt32z) ] ]];
+    [b2 dataLocal:0 values:@[ @4, @0 ]];
+    [b2 defineLocal:1 global:20 fields:@[ @[ @0, @4, @(BPFITSInt32) ], @[ @1, @4, @(BPFITSInt32) ] ]];
+    [b2 dataLocal:1 values:@[ @([BPFITBuilder semicircles:45]), @([BPFITBuilder semicircles:5]) ]];
+    r = [BPTrackReader readerWithData:b2.data error:NULL];
+    XCTAssertNotNil(r);
+    XCTAssertNil(r.deviceSerialNumber);
+    XCTAssertFalse(r.hasTimes);
+}
+
+// the device and sport of a TCX activity (#82): Creator Name, UnitId, ProductID; Activity Sport
+- (void)testTCXDeviceAndSport
+{
+    NSString *tcx = @"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        @"<TrainingCenterDatabase xmlns=\"http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2\""
+        @" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">"
+        @"<Activities><Activity Sport=\"Biking\"><Id>2026-11-16T08:00:00Z</Id>"
+        @"<Lap StartTime=\"2026-11-16T08:00:00Z\"><Track>"
+        @"<Trackpoint><Time>2026-11-16T08:00:00Z</Time><Position><LatitudeDegrees>45</LatitudeDegrees>"
+        @"<LongitudeDegrees>5</LongitudeDegrees></Position></Trackpoint>"
+        @"<Trackpoint><Time>2026-11-16T08:00:05Z</Time><Position><LatitudeDegrees>45.001</LatitudeDegrees>"
+        @"<LongitudeDegrees>5</LongitudeDegrees></Position></Trackpoint>"
+        @"</Track></Lap>"
+        @"<Creator xsi:type=\"Device_t\"><Name>Edge 830</Name><UnitId>3337123456</UnitId><ProductID>3122</ProductID>"
+        @"<Version><VersionMajor>9</VersionMajor><VersionMinor>10</VersionMinor></Version></Creator>"
+        @"</Activity></Activities>"
+        @"<Author xsi:type=\"Application_t\"><Name>Garmin Connect</Name></Author></TrainingCenterDatabase>";
+    BPTrackReader *r = [BPTrackReader readerWithData:BPData(tcx) error:NULL];
+    XCTAssertEqual(r.trace.count, 2u);
+    XCTAssertTrue(r.hasTimes);
+    XCTAssertEqualObjects(r.deviceName, @"Edge 830", @"not the Author's name");
+    XCTAssertEqualObjects(r.deviceSerialNumber, @3337123456);
+    XCTAssertEqualObjects(r.deviceProduct, @3122);
+    XCTAssertEqualObjects(r.sport, @"cycling");
+
+    r = [BPTrackReader readerWithData:BPData(kTCXCourse) error:NULL];
+    XCTAssertFalse(r.hasTimes, @"a course has no times");
+    XCTAssertNil(r.deviceName);
 }
 
 // compressed timestamp offset smaller than the low bits of the last timestamp: the 32 s rollover

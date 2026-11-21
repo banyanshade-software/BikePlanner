@@ -125,6 +125,13 @@
 		F47009B261DB059A3C9E1111 /* BPTrackReader.m in Sources */ = {isa = PBXBuildFile; fileRef = 9050DCEC0CA9C5C726696D24 /* BPTrackReader.m */; };
 		5179AF807D9E262FC800AEFB /* GPXParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE812E47B860001F2966 /* GPXParser.m */; };
 		99ABD32160D778CEA7602B33 /* BPFITDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = 12A0CFCC52A21CD646A0F2DB /* BPFITDecoder.m */; };
+		87E8D72CB210D1F126CBB08E /* RAZipReader.m in Sources */ = {isa = PBXBuildFile; fileRef = 80743E9E53F33506F865AE71 /* RAZipReader.m */; };
+		9F06C7A269B8E812E1A5B2FD /* RAGarminConnect.m in Sources */ = {isa = PBXBuildFile; fileRef = 12F4A44AD0C46F25016E1C52 /* RAGarminConnect.m */; };
+		CD046523D0771F81041B4959 /* RAGarminFetchSheet.m in Sources */ = {isa = PBXBuildFile; fileRef = 1167EA4327FF65DB559F828B /* RAGarminFetchSheet.m */; };
+		F1330D12B7569013CDBEDCD2 /* RATestSupport.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DB7D87D47B1455BF4B648FB /* RATestSupport.m */; };
+		93D1EA9160B816798FDAA741 /* RAImportTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 5D701CD4335C783BFADDC94C /* RAImportTests.m */; };
+		90978E6DF3AA5F6F9FFD2E5C /* RAGarminConnectTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 33FD8125A9EE68E98D219120 /* RAGarminConnectTests.m */; };
+		5A7BDCB8546363491EC3BE0F /* BPFITBuilder.m in Sources */ = {isa = PBXBuildFile; fileRef = C0E3F74750DE07CB5843A5F8 /* BPFITBuilder.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -347,6 +354,16 @@
 		A4EB2DA8784B43B0672362BE /* RideAnalyzer.app */ = {isa = PBXFileReference; explicitFileType = "wrapper.application"; includeInIndex = 0; path = RideAnalyzer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E62DBF6CB0EE63D1248BF9F1 /* RALibraryTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RALibraryTests.m; sourceTree = "<group>"; };
 		84DBB64AD2FF9D0C6249D8E5 /* RideAnalyzerTests.xctest */ = {isa = PBXFileReference; explicitFileType = "wrapper.cfbundle"; includeInIndex = 0; path = RideAnalyzerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		80743E9E53F33506F865AE71 /* RAZipReader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAZipReader.m; sourceTree = "<group>"; };
+		5BC3EDC03A9C74ACBDB68BEE /* RAZipReader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAZipReader.h; sourceTree = "<group>"; };
+		12F4A44AD0C46F25016E1C52 /* RAGarminConnect.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAGarminConnect.m; sourceTree = "<group>"; };
+		B599BF6F26D1ABB5DE59966A /* RAGarminConnect.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAGarminConnect.h; sourceTree = "<group>"; };
+		1167EA4327FF65DB559F828B /* RAGarminFetchSheet.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAGarminFetchSheet.m; sourceTree = "<group>"; };
+		06231C627A76B3482DD8238A /* RAGarminFetchSheet.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAGarminFetchSheet.h; sourceTree = "<group>"; };
+		1DB7D87D47B1455BF4B648FB /* RATestSupport.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATestSupport.m; sourceTree = "<group>"; };
+		F144B662DE7D22E1556D7B14 /* RATestSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATestSupport.h; sourceTree = "<group>"; };
+		5D701CD4335C783BFADDC94C /* RAImportTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAImportTests.m; sourceTree = "<group>"; };
+		33FD8125A9EE68E98D219120 /* RAGarminConnectTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAGarminConnectTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -653,6 +670,12 @@
 				64CE5FDCC514A8351267FE2A /* RARide.m */,
 				51EE4BB5902F05FF7D989486 /* Info.plist */,
 				740E737920066D751E5475DF /* RideAnalyzer.entitlements */,
+				80743E9E53F33506F865AE71 /* RAZipReader.m */,
+				5BC3EDC03A9C74ACBDB68BEE /* RAZipReader.h */,
+				12F4A44AD0C46F25016E1C52 /* RAGarminConnect.m */,
+				B599BF6F26D1ABB5DE59966A /* RAGarminConnect.h */,
+				1167EA4327FF65DB559F828B /* RAGarminFetchSheet.m */,
+				06231C627A76B3482DD8238A /* RAGarminFetchSheet.h */,
 			);
 			path = RideAnalyzer;
 			sourceTree = "<group>";
@@ -661,6 +684,10 @@
 			isa = PBXGroup;
 			children = (
 				E62DBF6CB0EE63D1248BF9F1 /* RALibraryTests.m */,
+				1DB7D87D47B1455BF4B648FB /* RATestSupport.m */,
+				F144B662DE7D22E1556D7B14 /* RATestSupport.h */,
+				5D701CD4335C783BFADDC94C /* RAImportTests.m */,
+				33FD8125A9EE68E98D219120 /* RAGarminConnectTests.m */,
 			);
 			path = RideAnalyzerTests;
 			sourceTree = "<group>";
@@ -1067,6 +1094,9 @@
 				F47009B261DB059A3C9E1111 /* BPTrackReader.m in Sources */,
 				5179AF807D9E262FC800AEFB /* GPXParser.m in Sources */,
 				99ABD32160D778CEA7602B33 /* BPFITDecoder.m in Sources */,
+				87E8D72CB210D1F126CBB08E /* RAZipReader.m in Sources */,
+				9F06C7A269B8E812E1A5B2FD /* RAGarminConnect.m in Sources */,
+				CD046523D0771F81041B4959 /* RAGarminFetchSheet.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1075,6 +1105,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				66C396A31CCCACDD940EE94C /* RALibraryTests.m in Sources */,
+				F1330D12B7569013CDBEDCD2 /* RATestSupport.m in Sources */,
+				93D1EA9160B816798FDAA741 /* RAImportTests.m in Sources */,
+				90978E6DF3AA5F6F9FFD2E5C /* RAGarminConnectTests.m in Sources */,
+				5A7BDCB8546363491EC3BE0F /* BPFITBuilder.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

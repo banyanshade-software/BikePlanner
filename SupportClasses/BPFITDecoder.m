@@ -10,6 +10,9 @@
 static NSString *const BPFITErrorDomain = @"BPFITDecoder";
 
 enum {
+    BPFITMesgFileId = 0,
+    BPFITMesgSport = 12,
+    BPFITMesgSession = 18,
     BPFITMesgRecord = 20,
     BPFITMesgCoursePoint = 32,
     BPFITFieldTimestamp = 253,
@@ -18,6 +21,11 @@ enum {
     // course_point
     BPFITCoursePointTimestamp = 1, BPFITCoursePointLat = 2, BPFITCoursePointLon = 3, BPFITCoursePointType = 5,
     BPFITCoursePointName = 6,
+    // file_id (#82)
+    BPFITFileIdType = 0, BPFITFileIdManufacturer = 1, BPFITFileIdProduct = 2, BPFITFileIdSerialNumber = 3,
+    BPFITFileIdTimeCreated = 4,
+    // sport: sport; session: sport
+    BPFITSportSport = 0, BPFITSessionSport = 5,
 };
 
 // seconds between 1970-01-01 and the FIT epoch, 1989-12-31 00:00 UTC
@@ -45,6 +53,7 @@ typedef struct {
     NSMutableArray<CLLocation *> *_coursePoints;
     NSMutableArray<NSNumber *> *_coursePointTypes;
     NSMutableArray<NSString *> *_coursePointNames;
+    NSUInteger _timedRecords;
 }
 
 + (BOOL)isFITData:(NSData *)data
@@ -95,6 +104,13 @@ static uint64_t BPFITReadUInt(const uint8_t *p, NSUInteger size, BOOL bigEndian)
     _coursePoints = [NSMutableArray array];
     _coursePointTypes = [NSMutableArray array];
     _coursePointNames = [NSMutableArray array];
+    _timedRecords = 0;
+    _fileType = nil;
+    _manufacturer = nil;
+    _product = nil;
+    _serialNumber = nil;
+    _timeCreated = nil;
+    _sport = nil;
     if (![BPFITDecoder isFITData:data]) return [self fail:@"header" error:error];
     const uint8_t *b = data.bytes;
     NSUInteger headerSize = b[0];
@@ -145,7 +161,8 @@ static uint64_t BPFITReadUInt(const uint8_t *p, NSUInteger size, BOOL bigEndian)
         // data message
         NSDictionary<NSNumber *, NSNumber *> *values = nil;
         NSString *name = nil;
-        BOOL wanted = def->global == BPFITMesgRecord || def->global == BPFITMesgCoursePoint;
+        BOOL wanted = def->global == BPFITMesgRecord || def->global == BPFITMesgCoursePoint
+            || def->global == BPFITMesgFileId || def->global == BPFITMesgSport || def->global == BPFITMesgSession;
         NSMutableDictionary<NSNumber *, NSNumber *> *v = wanted ? [NSMutableDictionary dictionary] : nil;
         for (NSUInteger k = 0; k < def->fieldCount; k++) {
             BPFITField f = def->fields[k];
@@ -160,6 +177,7 @@ static uint64_t BPFITReadUInt(const uint8_t *p, NSUInteger size, BOOL bigEndian)
                 } else if (f.size == 1 || f.size == 2 || f.size == 4) {
                     uint64_t raw = BPFITReadUInt(b + i, f.size, def->bigEndian);
                     BOOL invalid = raw == (f.size == 1 ? 0xFF : f.size == 2 ? 0xFFFF : 0xFFFFFFFF);
+                    if (type == 10 || type == 11 || type == 12) invalid = raw == 0; // uint8z, uint16z, uint32z
                     BOOL isSigned = type == 1 || type == 3 || type == 5;
                     if (isSigned) {
                         int64_t s = f.size == 1 ? (int8_t)raw : f.size == 2 ? (int16_t)raw : (int32_t)raw;
@@ -188,13 +206,33 @@ static uint64_t BPFITReadUInt(const uint8_t *p, NSUInteger size, BOOL bigEndian)
         }
         if (!values) continue;
 
+        if (def->global == BPFITMesgFileId) {
+            if (_fileType == nil) { // the first file_id describes the file
+                _fileType = values[@(BPFITFileIdType)];
+                _manufacturer = values[@(BPFITFileIdManufacturer)];
+                _product = values[@(BPFITFileIdProduct)];
+                _serialNumber = values[@(BPFITFileIdSerialNumber)];
+                NSNumber *t = values[@(BPFITFileIdTimeCreated)];
+                if (t != nil) _timeCreated = [NSDate dateWithTimeIntervalSince1970:BPFITEpoch + t.unsignedIntValue];
+                if (_fileType == nil) _fileType = @0xFF;
+            }
+            continue;
+        }
+        if (def->global == BPFITMesgSport || def->global == BPFITMesgSession) {
+            NSNumber *sport = values[@(def->global == BPFITMesgSport ? BPFITSportSport : BPFITSessionSport)];
+            if (sport != nil && _sport == nil) _sport = sport;
+            continue;
+        }
         if (def->global == BPFITMesgRecord) {
             NSNumber *lat = values[@(BPFITRecordLat)], *lon = values[@(BPFITRecordLon)];
             if (lat == nil || lon == nil) continue; // no position: GPS lost, indoor
             NSNumber *alt = values[@(BPFITRecordEnhancedAltitude)] ?: values[@(BPFITRecordAltitude)];
             NSDate *date = lastTimestamp ? [NSDate dateWithTimeIntervalSince1970:BPFITEpoch + lastTimestamp] : [NSDate date];
             CLLocation *loc = [self locationWithLat:lat lon:lon altitude:alt date:date];
-            if (loc) [_records addObject:loc];
+            if (loc) {
+                [_records addObject:loc];
+                if (lastTimestamp) _timedRecords++;
+            }
         } else {
             NSNumber *lat = values[@(BPFITCoursePointLat)], *lon = values[@(BPFITCoursePointLon)];
             if (lat == nil || lon == nil) continue;
@@ -222,6 +260,7 @@ static uint64_t BPFITReadUInt(const uint8_t *p, NSUInteger size, BOOL bigEndian)
 }
 
 - (NSArray<CLLocation *> *)records { return [_records copy] ?: @[]; }
+- (BOOL)hasTimes { return _records.count > 0 && _timedRecords == _records.count; }
 - (NSArray<CLLocation *> *)coursePoints { return [_coursePoints copy] ?: @[]; }
 - (NSArray<NSNumber *> *)coursePointTypes { return [_coursePointTypes copy] ?: @[]; }
 - (NSArray<NSString *> *)coursePointNames { return [_coursePointNames copy] ?: @[]; }

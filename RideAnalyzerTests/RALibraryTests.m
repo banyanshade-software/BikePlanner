@@ -10,23 +10,7 @@
 #import "RARide.h"
 #import "RALibraryDocument.h"
 #import "GPXParser.h"
-
-static CLLocation *RALoc(double lat, double lon, double alt, NSTimeInterval t)
-{
-    return [[CLLocation alloc] initWithCoordinate:CLLocationCoordinate2DMake(lat, lon) altitude:alt
-        horizontalAccuracy:5 verticalAccuracy:5
-        timestamp:[NSDate dateWithTimeIntervalSince1970:1795000000 + t]];
-}
-
-// ~1.1 km north per point, 10 minutes apart, altitudes as given
-static NSArray<CLLocation *> *RATrace(NSArray<NSNumber *> *altitudes, NSTimeInterval start)
-{
-    NSMutableArray<CLLocation *> *trace = [NSMutableArray array];
-    for (NSUInteger i = 0; i < altitudes.count; i++) {
-        [trace addObject:RALoc(45.0 + 0.01 * i, 5.0, altitudes[i].doubleValue, start + 600 * i)];
-    }
-    return trace;
-}
+#import "RATestSupport.h"
 
 @interface RALibraryTests : XCTestCase
 @end
@@ -73,23 +57,9 @@ static NSArray<CLLocation *> *RATrace(NSArray<NSNumber *> *altitudes, NSTimeInte
     XCTAssertFalse([a isProbablySameRideAs:later]);
 }
 
-// a recorded ride: TCX activity with positions, elevations and times
 - (NSData *)tcxWithAltitudes:(NSArray<NSNumber *> *)altitudes start:(NSTimeInterval)start
 {
-    NSISO8601DateFormatter *iso = [[NSISO8601DateFormatter alloc] init];
-    NSArray<CLLocation *> *trace = RATrace(altitudes, start);
-    NSMutableString *xml = [NSMutableString stringWithFormat:
-        @"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-        @"<TrainingCenterDatabase xmlns=\"http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2\">"
-        @"<Activities><Activity Sport=\"Biking\"><Id>%@</Id><Lap StartTime=\"%@\"><Track>",
-        [iso stringFromDate:trace.firstObject.timestamp], [iso stringFromDate:trace.firstObject.timestamp]];
-    for (CLLocation *l in trace) {
-        [xml appendFormat:@"<Trackpoint><Time>%@</Time><Position><LatitudeDegrees>%.6f</LatitudeDegrees>"
-         @"<LongitudeDegrees>%.6f</LongitudeDegrees></Position><AltitudeMeters>%.1f</AltitudeMeters></Trackpoint>",
-         [iso stringFromDate:l.timestamp], l.coordinate.latitude, l.coordinate.longitude, l.altitude];
-    }
-    [xml appendString:@"</Track></Lap></Activity></Activities></TrainingCenterDatabase>"];
-    return [xml dataUsingEncoding:NSUTF8StringEncoding];
+    return RATCX(altitudes, start, nil, nil);
 }
 
 - (void)testImportDuplicatesAndUndo
@@ -128,7 +98,7 @@ static NSArray<CLLocation *> *RATrace(NSArray<NSNumber *> *altitudes, NSTimeInte
     XCTAssertEqual(doc.rides.count, 0u, @"import undone");
 }
 
-// GPXParser does not read <time> (it stamps the parse date): a GPX ride has no date rather than a wrong one
+// a GPX without <time> (e.g. a planned route): no date rather than the import date
 - (void)testUntimedGPX
 {
     RALibraryDocument *doc = [[RALibraryDocument alloc] init];
@@ -183,6 +153,7 @@ static NSArray<CLLocation *> *RATrace(NSArray<NSNumber *> *altitudes, NSTimeInte
     RALibraryDocument *reopened = [[RALibraryDocument alloc] init];
     XCTAssertTrue([reopened readFromFileWrapper:read ofType:RALibraryDocumentType error:&error], @"%@", error);
     XCTAssertEqual(reopened.rides.count, 2u);
+    XCTAssertEqualObjects(reopened.libraryID, doc.libraryID, @"the Keychain key goes with the library");
     NSArray *before = [doc.rides valueForKey:@"propertyList"];
     NSArray *after = [reopened.rides valueForKey:@"propertyList"];
     XCTAssertEqualObjects(after, before);

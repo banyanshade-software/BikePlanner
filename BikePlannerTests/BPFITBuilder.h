@@ -12,7 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 // FIT base types used by the fixtures
 enum { BPFITEnum = 0x00, BPFITUInt8 = 0x02, BPFITSInt16 = 0x83, BPFITUInt16 = 0x84, BPFITSInt32 = 0x85,
-       BPFITUInt32 = 0x86, BPFITString = 0x07 };
+       BPFITUInt32 = 0x86, BPFITString = 0x07, BPFITUInt32z = 0x8C };
 
 @interface BPFITBuilder : NSObject
 

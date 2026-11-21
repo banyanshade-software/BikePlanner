@@ -3,9 +3,10 @@
 //  BikePlanner
 //
 //  Minimal decoder of Garmin FIT files (#76), only what the track import needs: `record` messages (position,
-//  altitude, time) and `course_point` messages. Written from the published FIT protocol description, without the
-//  FIT SDK (whose license restricts redistribution). Handles definition / data messages in both byte orders,
-//  compressed timestamp headers, developer fields (skipped), unknown messages (skipped) and checks the CRCs.
+//  altitude, time) and `course_point` messages; for Ride Analyzer (#82) also `file_id` (device) and the sport of
+//  `sport` / `session`. Written from the published FIT protocol description, without the FIT SDK (whose license
+//  restricts redistribution). Handles definition / data messages in both byte orders, compressed timestamp headers,
+//  developer fields (skipped), unknown messages (skipped) and checks the CRCs.
 //
 
 #import <Foundation/Foundation.h>
@@ -28,6 +29,19 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly, nonatomic) NSArray<NSNumber *> *coursePointTypes;
 /// name of each course point, @"" when none
 @property (readonly, nonatomic) NSArray<NSString *> *coursePointNames;
+
+// file_id and sport (#82, Ride Analyzer): which device recorded the file, and what kind of activity
+/// every record has a timestamp
+@property (readonly, nonatomic) BOOL hasTimes;
+/// FIT file type of the first file_id (4: activity, 6: course…); nil when the file has no file_id, 0xFF when unset
+@property (readonly, nonatomic, nullable) NSNumber *fileType;
+/// FIT manufacturer (1: Garmin…), product (for Garmin: garmin_product), serial number, creation time; nil when absent
+@property (readonly, nonatomic, nullable) NSNumber *manufacturer;
+@property (readonly, nonatomic, nullable) NSNumber *product;
+@property (readonly, nonatomic, nullable) NSNumber *serialNumber;
+@property (readonly, nonatomic, nullable) NSDate *timeCreated;
+/// FIT sport of the first sport or session message (2: cycling…); nil when absent
+@property (readonly, nonatomic, nullable) NSNumber *sport;
 
 @end
 

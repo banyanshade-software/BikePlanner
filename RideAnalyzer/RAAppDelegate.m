@@ -59,6 +59,8 @@
                                 key:@"i"];
     import.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagShift;
     [file addItem:import];
+    [file addItem:[self item:NSLocalizedString(@"Import from Device…", @"menu") action:@selector(importFromDevice:)
+                         key:@""]];
     [file addItem:[self item:NSLocalizedString(@"Fetch from Garmin Connect…", @"menu")
                       action:@selector(fetchFromGarminConnect:) key:@""]];
     [main addItem:[self submenu:file]];

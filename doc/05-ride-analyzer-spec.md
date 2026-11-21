@@ -131,26 +131,62 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
 - Library file: a package `.ridelib` (UTI `fr.free.daniel.braun.ridelib`): `Library.plist` (the rides, binary
   property list, `version` 1) and `Rides/` (the original files, as imported).
 - Shared with BikePlanner: `BPTrackReader`, `GPXParser`, `BPFITDecoder` (R2).
-- Works: File ▸ New / Open Library, Import Files… (several files or folders, also by drag and drop on the list;
-  duplicates: same file, or same start within a minute and same distance within 2 %), rename (in the list),
-  delete, undo, sorting; figures: distance, ascent (3 m threshold), duration, average speed.
-- Not yet: Garmin Connect (R1, menu item disabled), the device of a FIT file (R3 filters), map / profile / curves
-  (R4), everything from R5 on.
-- `GPXParser` does not read `<time>` (it stamps the parse date): an imported GPX ride has no date and no duration.
-  Reading `<time>` in `GPXParser` would fix it for both apps.
-- Tests: `RideAnalyzerTests` (hosted in RideAnalyzer), scheme `RideAnalyzer`.
+- Works: File ▸ New / Open Library, rename (in the list), delete, undo, sorting; figures: distance, ascent (3 m
+  threshold), duration, average speed.
+- Tests: `RideAnalyzerTests` (hosted in RideAnalyzer), scheme `RideAnalyzer`; helpers in `RATestSupport`
+  (ride files in the three formats, a ZIP writer, `RAStubURLProtocol`: a stub of the Garmin Connect Personal API).
+
+## Imports (2026-11-21, R1, R2, R3 devices)
+- **Background imports** (`RALibraryDocument`): the files are read off the main thread, with an `NSProgress` shown
+  above the list (text, bar, Cancel). The new rides are added at the end in **one undoable action**; a cancelled
+  import keeps what was read; importing again resumes (duplicates skipped). One import at a time.
+- **Files and folders** (R2): File ▸ Import Files… (several files, folders with their subfolders), or drag and
+  drop on the list. Summary: imported, already in the library, unreadable.
+- **Device as a disk** (R2): File ▸ Import from Device… finds `<volume>/Garmin/Activity` on the mounted volumes and
+  opens the panel there (the sandbox needs the user's choice). Recent devices that connect with MTP do not show as
+  a disk: they go through Garmin Connect.
+- **Duplicates**: same file (SHA-256), same Garmin activity, or same ride (start within a minute, distance within
+  2 %), in the library or earlier in the same import. A Garmin activity that is the duplicate of a ride imported
+  from a file is linked to it (so the next fetches stop there).
+- **Garmin Connect** (R1, `RAGarminConnect`, `RAGarminFetchSheet`): File ▸ Fetch from Garmin Connect… asks for the
+  Personal API key (pasted for now; kept in the Keychain, one per library, by the library's `libraryID`) and what
+  to fetch: the new rides (the listing, newest first, stops at the first activity already in the library) or all
+  the rides since a date (bulk import of a history). Outdoor cycling activities only (not indoor or virtual rides,
+  which have no track). The FIT file comes out of the ZIP Garmin sends (`RAZipReader`). The token (about 24 h, no
+  refresh token) is obtained again when it expires or on a 401. The date of the last complete fetch is saved in
+  the library.
+- **Devices** (R3): `BPFITDecoder` now reads `file_id` (manufacturer, product, serial number, creation time) and the
+  sport of `sport` / `session`; `BPTrackReader` gives the device (FIT `file_id`, TCX `Creator`: Name, UnitId,
+  ProductID) and the sport. A ride's `deviceKey` is `p<product>-s<serial>` (the same unit in FIT and TCX). Its label:
+  the name given by the user (sidebar, editable, undoable), else the name a TCX file gave for that unit, else
+  "Device <product>". The sidebar lists the devices; selecting one filters the list.
+- **GPX times**: `GPXParser` now reads the `<time>` of each point (Z, fractional seconds, offset) and tells whether
+  every point has one (`hasTimes`, also in `BPTrackReader` for TCX and FIT). A file without times gives a ride with
+  no date rather than the import date. BikePlanner benefits too (imported traces keep their times).
+- **To check against the real Garmin service** (not reachable from the session that wrote this): the API host
+  (`https://personal.connectapi.garmin.com` assumed, override with the user default `RAGarminAPIBaseURL`), the token
+  endpoint and the shape of its answer (`RAGarminTokenURL`; the client accepts `access_token` / `accessToken` /
+  `token`, `expires_at` / `expires_in`, or a bare JWT), the activity fields (`activityId`, `activityName`,
+  `startTimeGMT`, `distance`, `activityType.typeKey`). Also: getting the key through the web session (#79).
 
 ## Handoff (2026-11-21): written without Xcode, never compiled
-The skeleton was written in a session without Xcode. First steps on the owner's Mac (Claude Code):
+The skeleton and the imports were written in a session without Xcode. First steps on the owner's Mac (Claude Code):
 1. `git checkout ride_analyzer && git pull`.
 2. Build `RideAnalyzer` (scheme `RideAnalyzer`, ad hoc signing as above) and fix the compile errors and warnings
    (#58: no warning, `analyze` clean). If Xcode rejects the project file, check the targets added by
    `scripts/xcode_add_target.py --type app / --type unit-test` (first use of these types).
-3. Run `RideAnalyzerTests`, then the BikePlanner unit tests: the project file changed, BikePlanner must still build
-   and pass.
-4. Launch the app (the owner): New Library, Import Files… (FIT / TCX / GPX, a folder), drag and drop, rename,
-   delete, undo, save, reopen.
-5. Also pending on `v10` (and therefore here): the new Garmin toolbar icon (#85, commit edb4c57) to check, then close
+3. Run `RideAnalyzerTests` (`RALibraryTests`, `RAImportTests`, `RAGarminConnectTests`), then the BikePlanner unit
+   tests: shared sources changed (`GPXParser` reads `<time>`, `BPFITDecoder` reads `file_id` / sport,
+   `BPTrackReader` gives `hasTimes`, device and sport; new tests in `GPXParserTests` and `BPTrackReaderTests`) and
+   the project file changed: BikePlanner and its Quick Look extension must still build and pass.
+   `RAZipReader` / the tests use the Compression library (`compression.h`): if the link fails, add
+   `libcompression.tbd` to the RideAnalyzer target.
+4. Launch the app (the owner): New Library, Import Files… (FIT / TCX / GPX, a folder), Import from Device…,
+   drag and drop, the progress bar and Cancel, rename a ride and a device, delete, undo, save, reopen.
+5. Garmin Connect (the owner, with his Personal API key): File ▸ Fetch from Garmin Connect…; check the points
+   listed under "To check against the real Garmin service" above and adjust `RAGarminConnect` (and its stub in
+   `RAGarminConnectTests`) to the real answers.
+6. Also pending on `v10` (and therefore here): the new Garmin toolbar icon (#85, commit edb4c57) to check, then close
    #85.
 
 ## Open questions

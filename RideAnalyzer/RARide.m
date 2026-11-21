@@ -18,6 +18,10 @@ static const double RAAscentThreshold = 3.0; // meters
         _format = @"";
         _fileName = @"";
         _contentHash = @"";
+        _deviceKey = @"";
+        _deviceName = @"";
+        _sport = @"";
+        _garminActivityID = @"";
         _notes = @"";
         _tags = @[];
     }
@@ -57,6 +61,10 @@ static const double RAAscentThreshold = 3.0; // meters
         if ([(v = plist[@"duration"]) isKindOfClass:[NSNumber class]]) _duration = [v doubleValue];
         if ([(v = plist[@"format"]) isKindOfClass:[NSString class]]) _format = [v copy];
         if ([(v = plist[@"contentHash"]) isKindOfClass:[NSString class]]) _contentHash = [v copy];
+        if ([(v = plist[@"deviceKey"]) isKindOfClass:[NSString class]]) _deviceKey = [v copy];
+        if ([(v = plist[@"deviceName"]) isKindOfClass:[NSString class]]) _deviceName = [v copy];
+        if ([(v = plist[@"sport"]) isKindOfClass:[NSString class]]) _sport = [v copy];
+        if ([(v = plist[@"garminActivityID"]) isKindOfClass:[NSString class]]) _garminActivityID = [v copy];
         if ([(v = plist[@"notes"]) isKindOfClass:[NSString class]]) _notes = [v copy];
         if ([(v = plist[@"tags"]) isKindOfClass:[NSArray class]]) {
             NSMutableArray<NSString *> *tags = [NSMutableArray array];
@@ -78,11 +86,21 @@ static const double RAAscentThreshold = 3.0; // meters
         @"format": self.format,
         @"fileName": self.fileName,
         @"contentHash": self.contentHash,
+        @"deviceKey": self.deviceKey,
+        @"deviceName": self.deviceName,
+        @"sport": self.sport,
+        @"garminActivityID": self.garminActivityID,
         @"notes": self.notes,
         @"tags": self.tags,
     } mutableCopy];
     if (self.startDate) d[@"startDate"] = self.startDate;
     return d;
+}
+
++ (NSString *)deviceKeyForProduct:(nullable NSNumber *)product serialNumber:(nullable NSNumber *)serial
+{
+    if (product == nil && serial == nil) return @"";
+    return [NSString stringWithFormat:@"p%@-s%@", product ?: @"", serial ?: @""];
 }
 
 - (double)averageSpeed

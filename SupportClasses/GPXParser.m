@@ -20,6 +20,9 @@
     NSString *curName;
     BOOL inWpt;
     CLLocation *curloc;
+    NSString *stringTime;                      // text of <time>, inside a point
+    NSDate *curTime;                           // <time> of the current point (#82)
+    NSUInteger _timedPoints, _timedRtePoints, _timedWptPoints; // points that have a <time>
     NSMutableDictionary<NSString *, NSString *> *brouterInfo;
 }
 
@@ -35,6 +38,10 @@
     _wptTypes = [NSMutableArray array];
     _wptNames = [NSMutableArray array];
     inWpt = NO;
+    curloc = nil;
+    curTime = nil;
+    stringTime = nil;
+    _timedPoints = _timedRtePoints = _timedWptPoints = 0;
 
     NSXMLParser *parser = [[NSXMLParser alloc] initWithData:data];
     parser.delegate = self;
@@ -51,6 +58,32 @@
     if (_points.count) return [_points copy];
     if (_rtePoints.count) return [_rtePoints copy];
     return [_wptPoints copy];
+}
+
+- (BOOL)hasTimes
+{
+    if (_points.count) return _timedPoints == _points.count;
+    if (_rtePoints.count) return _timedRtePoints == _rtePoints.count;
+    return _wptPoints.count > 0 && _timedWptPoints == _wptPoints.count;
+}
+
+/// GPX times are ISO 8601 (xsd:dateTime), in UTC with Z, with or without fractional seconds, or with an offset
++ (nullable NSDate *)dateFromGPXTime:(NSString *)string
+{
+    static NSISO8601DateFormatter *plain, *fractional;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        plain = [[NSISO8601DateFormatter alloc] init];
+        fractional = [[NSISO8601DateFormatter alloc] init];
+        fractional.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithFractionalSeconds;
+    });
+    NSString *s = [string stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (s.length == 0) return nil;
+    NSDate *d = [plain dateFromString:s] ?: [fractional dateFromString:s];
+    if (!d && ![s hasSuffix:@"Z"] && [s rangeOfString:@"+"].location == NSNotFound) {
+        d = [plain dateFromString:[s stringByAppendingString:@"Z"]]; // no zone: UTC
+    }
+    return d;
 }
 
 - (NSString *)traceSource
@@ -85,6 +118,8 @@
     //    <trkpt lon="0.491229" lat="44.193329"><ele>140.25</ele></trkpt>
     if ([elementName isEqualToString:@"ele"]) {
         stringEle = @"";
+    } else if (curloc && [elementName isEqualToString:@"time"]) {
+        stringTime = @"";
     } else if (inWpt && [elementName isEqualToString:@"type"]) {
         stringType = @"";
     } else if (inWpt && [elementName isEqualToString:@"name"]) {
@@ -93,6 +128,7 @@
         [elementName isEqualToString:@"wpt"] ||
         [elementName isEqualToString:@"rtept"]) {
 
+        curTime = nil;
         NSString *latS = attributeDict[@"lat"];
         NSString *lonS = attributeDict[@"lon"];
         if (latS.length > 0 && lonS.length > 0) {
@@ -117,6 +153,9 @@
     if (stringName) {
         stringName = [stringName stringByAppendingString:string];
     }
+    if (stringTime) {
+        stringTime = [stringTime stringByAppendingString:string];
+    }
 }
 - (void)parser:(NSXMLParser *)parser didEndElement:(nonnull NSString *)elementName namespaceURI:(nullable NSString *)namespaceURI qualifiedName:(nullable NSString *)qName
 {
@@ -131,6 +170,10 @@
         curloc = nloc;
 
     }
+    if (stringTime && [elementName isEqualToString:@"time"]) {
+        curTime = [GPXParser dateFromGPXTime:stringTime];
+        stringTime = nil;
+    }
     if (stringType && [elementName isEqualToString:@"type"]) {
         curType = [stringType stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
         stringType = nil;
@@ -140,6 +183,17 @@
         stringName = nil;
     }
     if ([elementName isEqualToString:@"wpt"]) inWpt = NO;
+    BOOL isPoint = [elementName isEqualToString:@"trkpt"] || [elementName isEqualToString:@"rtept"]
+        || [elementName isEqualToString:@"wpt"];
+    if (curloc && isPoint && curTime) {
+        // the point's <time> (#82); without one it keeps the parse date
+        curloc = [[CLLocation alloc] initWithCoordinate:curloc.coordinate altitude:curloc.altitude
+            horizontalAccuracy:curloc.horizontalAccuracy verticalAccuracy:curloc.verticalAccuracy timestamp:curTime];
+        if ([elementName isEqualToString:@"trkpt"]) _timedPoints++;
+        else if ([elementName isEqualToString:@"rtept"]) _timedRtePoints++;
+        else _timedWptPoints++;
+    }
+    if (isPoint) curTime = nil;
     if (curloc) {
         if ([elementName isEqualToString:@"trkpt"]) {
             [_points addObject:curloc];

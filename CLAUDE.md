@@ -56,6 +56,9 @@ Ride Analyzer (#82, branch `ride_analyzer`, `doc/05-ride-analyzer-spec.md`): sec
 same project, scheme `RideAnalyzer`, tests `RideAnalyzerTests` (`-scheme RideAnalyzer -only-testing:RideAnalyzerTests`).
 Its UI is built in code (no XIB); sources shared with BikePlanner are added to its target with
 `scripts/xcode_add_files.py --target RideAnalyzer --anchor RARide.m <path>` and must keep compiling there.
+Its tests never reach Garmin Connect: `RAStubURLProtocol` (`RideAnalyzerTests/RATestSupport`) answers the client's
+session, and the user defaults `RAGarminTokenURL` / `RAGarminAPIBaseURL` point the endpoints at it; the Personal
+API key goes to `RAMemoryKeyStore`, never the Keychain.
 Send to Garmin Connect (#79) can be left out of a build: `BP_GARMIN_CONNECT` in `BikePlanner/BPFeatures.h` (or
 `'GCC_PREPROCESSOR_DEFINITIONS=$(inherited) BP_GARMIN_CONNECT=0'`, with its own `-derivedDataPath`); such a build
 removes the toolbar button and notes it in the user defaults (shared toolbar configuration), a normal build puts it back.

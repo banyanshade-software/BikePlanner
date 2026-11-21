@@ -22,8 +22,16 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, nonatomic) NSString *format;         // @"gpx", @"tcx" or @"fit"
 @property (copy, nonatomic) NSString *fileName;       // original file, in the Rides folder of the library
 @property (copy, nonatomic) NSString *contentHash;    // SHA-256 of the original file, hex (duplicates, R2)
+@property (copy, nonatomic) NSString *deviceKey;      // which unit recorded it: @"p<product>-s<serial>", @"" unknown
+@property (copy, nonatomic) NSString *deviceName;     // as the file names it (TCX Creator), @"" for FIT
+@property (copy, nonatomic) NSString *sport;          // @"cycling", @"running", @"other", @"" unknown
+@property (copy, nonatomic) NSString *garminActivityID; // Garmin Connect activity (R1), @"" for a local file
 @property (copy, nonatomic) NSString *notes;
 @property (copy, nonatomic) NSArray<NSString *> *tags;
+
+/// @"p<product>-s<serial>": the same unit whatever the format (a FIT file has the manufacturer, a TCX file does not);
+/// @"" when the file gives neither
++ (NSString *)deviceKeyForProduct:(nullable NSNumber *)product serialNumber:(nullable NSNumber *)serial;
 
 /// km/h, 0 when the duration is unknown
 @property (readonly, nonatomic) double averageSpeed;

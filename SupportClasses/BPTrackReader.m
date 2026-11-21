@@ -24,6 +24,25 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     NSMutableString *_text;                    // text of the current element
     NSMutableDictionary<NSString *, NSString *> *_cur; // fields of the current Trackpoint / CoursePoint
     NSISO8601DateFormatter *_dateFormatter, *_fractionalDateFormatter;
+    NSUInteger _tcxTimed;                      // trackpoints of the trace that have a Time
+}
+
+/// FIT sport (2: cycling, 1: running) or TCX Activity Sport (Biking, Running, Other) → @"cycling", @"running",
+/// @"other"; nil when unknown
++ (nullable NSString *)sportNameForFIT:(nullable NSNumber *)fit tcx:(nullable NSString *)tcx
+{
+    if (fit != nil) {
+        switch (fit.unsignedIntegerValue) {
+            case 2: return @"cycling";
+            case 1: return @"running";
+            default: return @"other";
+        }
+    }
+    if (tcx.length) {
+        NSString *t = tcx.lowercaseString;
+        return [t isEqualToString:@"biking"] ? @"cycling" : [t isEqualToString:@"running"] ? @"running" : @"other";
+    }
+    return nil;
 }
 
 + (BOOL)isTCXData:(NSData *)data
@@ -79,6 +98,7 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     NSArray<CLLocation *> *trace = [p parseGPXData:data error:error];
     if (!trace) return NO;
     _format = @"gpx";
+    _hasTimes = p.hasTimes;
     _trace = trace;
     _traceSource = p.traceSource;
     _waypoints = p.waypoints;
@@ -117,6 +137,11 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     if (![d decodeData:data error:error]) return NO;
     _format = @"fit";
     _trace = d.records;
+    _hasTimes = d.hasTimes;
+    _deviceManufacturer = d.manufacturer;
+    _deviceProduct = d.product;
+    _deviceSerialNumber = d.serialNumber;
+    _sport = [BPTrackReader sportNameForFIT:d.sport tcx:nil];
     _traceSource = @"trk";
     NSMutableArray<CLLocation *> *points = [NSMutableArray array];
     NSMutableArray<NSString *> *types = [NSMutableArray array], *names = [NSMutableArray array];
@@ -156,6 +181,7 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     _dateFormatter = [[NSISO8601DateFormatter alloc] init];
     _fractionalDateFormatter = [[NSISO8601DateFormatter alloc] init];
     _fractionalDateFormatter.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithFractionalSeconds;
+    _tcxTimed = 0;
 
     NSXMLParser *parser = [[NSXMLParser alloc] initWithData:data];
     parser.delegate = self;
@@ -168,6 +194,7 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     }
     _format = @"tcx";
     _trace = [_tcxTrace copy];
+    _hasTimes = _tcxTrace.count > 0 && _tcxTimed == _tcxTrace.count;
     _traceSource = @"trk";
     _waypoints = [_tcxPoints copy];
     _waypointTypes = [_tcxTypes copy];
@@ -197,6 +224,8 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     _text = [NSMutableString string];
     if ([elementName isEqualToString:@"Trackpoint"] || [elementName isEqualToString:@"CoursePoint"]) {
         _cur = [NSMutableDictionary dictionary];
+    } else if ([elementName isEqualToString:@"Activity"] && !_sport) {
+        _sport = [BPTrackReader sportNameForFIT:nil tcx:attributeDict[@"Sport"]];
     }
 }
 
@@ -213,7 +242,10 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     if (_cur) {
         if ([elementName isEqualToString:@"Trackpoint"]) {
             CLLocation *loc = [self locationFromFields:_cur];
-            if (loc) [_tcxTrace addObject:loc];
+            if (loc) {
+                [_tcxTrace addObject:loc];
+                if (_cur[@"Time"].length) _tcxTimed++;
+            }
             _cur = nil;
         } else if ([elementName isEqualToString:@"CoursePoint"]) {
             CLLocation *loc = [self locationFromFields:_cur];
@@ -232,6 +264,11 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
             // direct fields only (not those of the extensions, e.g. HeartRateBpm/Value)
             _cur[elementName] = text;
         }
+    } else if ([parent isEqualToString:@"Creator"] && [_elements containsObject:@"Activity"]) {
+        // the device that recorded the activity (#82): Name, UnitId (serial number), ProductID
+        if ([elementName isEqualToString:@"Name"] && text.length && !_deviceName) _deviceName = text;
+        if ([elementName isEqualToString:@"UnitId"] && text.longLongValue > 0) _deviceSerialNumber = @(text.longLongValue);
+        if ([elementName isEqualToString:@"ProductID"] && text.longLongValue > 0) _deviceProduct = @(text.longLongValue);
     }
     [_elements removeLastObject];
     _text = [NSMutableString string];
