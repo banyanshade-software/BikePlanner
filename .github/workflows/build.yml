@@ -1,0 +1,54 @@
+# Build (and optionally test) Ride Analyzer on a GitHub-hosted macOS runner (#87). Not BikePlanner: its build
+# needs the owner's keys (Secret.h), which are not in the repository.
+# Started by hand for now: Actions ▸ Build RideAnalyzer ▸ Run workflow (choose the branch), or
+#   gh workflow run build.yml --ref <branch> [-f tests=true]
+# Nothing is published: no DMG here (see #87).
+name: Build RideAnalyzer
+
+on:
+  workflow_dispatch:
+    inputs:
+      tests:
+        description: "Also run the unit tests (RideAnalyzerTests)"
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      SIGN: CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=
+      DEST: -destination platform=macOS
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: Build RideAnalyzer
+        run: |
+          set -o pipefail
+          xcodebuild -project BikePlanner.xcodeproj -scheme RideAnalyzer $DEST $SIGN build 2>&1 \
+            | tee build-rideanalyzer.log | grep -E "(error|warning):|\*\* BUILD" || true
+          grep -q "\*\* BUILD SUCCEEDED" build-rideanalyzer.log
+
+      - name: Unit tests of RideAnalyzer
+        if: inputs.tests
+        run: |
+          set -o pipefail
+          xcodebuild -project BikePlanner.xcodeproj -scheme RideAnalyzer $DEST $SIGN \
+            -only-testing:RideAnalyzerTests -resultBundlePath ra-tests.xcresult test 2>&1 \
+            | tee test-rideanalyzer.log | grep -E "Test case .*(failed|expected)|error:|\*\* TEST" || true
+          grep -q "\*\* TEST SUCCEEDED" test-rideanalyzer.log
+
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: |
+            *.log
+            *.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
