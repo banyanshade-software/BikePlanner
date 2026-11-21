@@ -8,6 +8,8 @@ Read first:
 - `doc/02-architecture.md` — how it is built, key flows, **known bugs and tech debt (§9)**
 - `doc/03-distribution-constraints.md` — third-party service constraints, status of each prerequisite (app is personal for now)
 - `doc/04-embedded-brouter.md` (on branch `brouter` only) — plan for a BRouter engine embedded in the app
+- `doc/05-ride-analyzer-spec.md` (on branch `ride_analyzer` only) — features of a second app that fetches and analyses
+  the rides done (#82)
 - `doc/get_google_api_key.md` (getting the Street View key), `doc/google-maps-embed-facturation.md` (in French, for
   the owner: Google console settings so the key cannot be billed)
 
