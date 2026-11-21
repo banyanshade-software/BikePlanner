@@ -198,8 +198,12 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   temperature and the session total_calories; `BPTrackReader` gives them per point (`metrics`, also from TCX:
   HeartRateBpm, Cadence, ActivityExtension Speed / Watts; Lap Calories). GPX: none yet (Garmin's TrackPointExtension
   could be read later).
-- **Toolbar** (customizable, saved): sidebar, Import, Device (Import from Device…), Garmin Connect, Delete, Filter,
-  and the search field; enabled as the menu items.
+- **Toolbar** (customizable, saved): sidebar, Import, Device (Import from Device…), Garmin Connect, Trends, Delete,
+  Filter; enabled as the menu items.
+- **Filter bar just above the list** (owner's request, 2026-11-21): the search field; pop-up menus for the most used
+  criteria — period (any date, last 30 days, last 12 months, this year), device, distance (under 30 km, over 30 /
+  50 / 80 / 100 km), tag — each showing "Custom…" / "Several…" when the filter holds something they do not offer;
+  More… opens the sheet with every criterion; under them the summary of the filter, Clear and Save….
 - Not yet: the map's base layers of BikePlanner (OSM, Thunderforest: the Apple map for now), a click on the map to
   move the cursor, "Open in BikePlanner" (R5).
 

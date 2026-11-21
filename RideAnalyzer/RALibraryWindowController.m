@@ -30,7 +30,6 @@ static NSToolbarItemIdentifier const RAToolbarDevice = @"importFromDevice";
 static NSToolbarItemIdentifier const RAToolbarGarmin = @"garmin";
 static NSToolbarItemIdentifier const RAToolbarFilter = @"filter";
 static NSToolbarItemIdentifier const RAToolbarDelete = @"delete";
-static NSToolbarItemIdentifier const RAToolbarSearch = @"search";
 static NSToolbarItemIdentifier const RAToolbarTrends = @"trends";
 
 // a row of the sidebar
@@ -50,6 +49,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     RAFilter *_baseFilter;                      // from the sidebar or the filter sheet
     NSSearchField *_search;
     NSTextField *_filterSummary;
+    NSPopUpButton *_periodPopup, *_devicePopup, *_distancePopup, *_tagPopup;
     NSButton *_saveFilterButton;
     NSButton *_clearFilterButton;
     NSTableView *_table;
@@ -170,10 +170,29 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     _filterSummary.identifier = @"filterSummary";
     [_filterSummary setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
                                              forOrientation:NSLayoutConstraintOrientationHorizontal];
-    // the search field is in the toolbar; under it, the criteria of the filter
-    NSStackView *filterBar = [NSStackView stackViewWithViews:@[ _filterSummary, _clearFilterButton, _saveFilterButton ]];
-    filterBar.spacing = 6;
-    filterBar.edgeInsets = NSEdgeInsetsMake(6, 10, 2, 10);
+    // just above the list (R3, owner's request): the search field, the most used criteria as pop-up menus (period,
+    // device, distance, tag), More… for the sheet with all of them, Clear, Save…; the summary of the filter under
+    _periodPopup = [self filterPopupWithIdentifier:@"filterPeriod" action:@selector(periodChosen:)];
+    _devicePopup = [self filterPopupWithIdentifier:@"filterDevice" action:@selector(deviceChosen:)];
+    _distancePopup = [self filterPopupWithIdentifier:@"filterDistance" action:@selector(distanceChosen:)];
+    _tagPopup = [self filterPopupWithIdentifier:@"filterTag" action:@selector(tagChosen:)];
+    NSButton *more = [NSButton buttonWithTitle:NSLocalizedString(@"More…", @"filter bar") target:self
+                                        action:@selector(editFilter:)];
+    more.controlSize = NSControlSizeSmall;
+    more.identifier = @"editFilter";
+    NSStackView *criteria = [NSStackView stackViewWithViews:@[ _periodPopup, _devicePopup, _distancePopup, _tagPopup,
+                                                              more ]];
+    criteria.spacing = 4;
+    [criteria setClippingResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
+    NSStackView *summaryRow = [NSStackView stackViewWithViews:@[ _filterSummary, _clearFilterButton, _saveFilterButton ]];
+    summaryRow.spacing = 6;
+    NSStackView *filterBar = [NSStackView stackViewWithViews:@[ _search, criteria, summaryRow ]];
+    filterBar.orientation = NSUserInterfaceLayoutOrientationVertical;
+    filterBar.alignment = NSLayoutAttributeLeading;
+    filterBar.spacing = 4;
+    filterBar.edgeInsets = NSEdgeInsetsMake(8, 10, 2, 10);
+    [_search.widthAnchor constraintEqualToAnchor:filterBar.widthAnchor constant:-20].active = YES;
+    [summaryRow.widthAnchor constraintEqualToAnchor:filterBar.widthAnchor constant:-20].active = YES;
 
     // rides
     _table = [[NSTableView alloc] init];
@@ -272,25 +291,18 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 - (NSArray<NSToolbarItemIdentifier> *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar
 {
     return @[ NSToolbarToggleSidebarItemIdentifier, RAToolbarImport, RAToolbarDevice, RAToolbarGarmin,
-              NSToolbarFlexibleSpaceItemIdentifier, RAToolbarTrends, RAToolbarDelete, RAToolbarFilter, RAToolbarSearch ];
+              NSToolbarFlexibleSpaceItemIdentifier, RAToolbarTrends, RAToolbarDelete, RAToolbarFilter ];
 }
 
 - (NSArray<NSToolbarItemIdentifier> *)toolbarAllowedItemIdentifiers:(NSToolbar *)toolbar
 {
     return @[ NSToolbarToggleSidebarItemIdentifier, RAToolbarImport, RAToolbarDevice, RAToolbarGarmin, RAToolbarTrends, RAToolbarDelete,
-              RAToolbarFilter, RAToolbarSearch, NSToolbarFlexibleSpaceItemIdentifier, NSToolbarSpaceItemIdentifier ];
+              RAToolbarFilter, NSToolbarFlexibleSpaceItemIdentifier, NSToolbarSpaceItemIdentifier ];
 }
 
 - (nullable NSToolbarItem *)toolbar:(NSToolbar *)toolbar itemForItemIdentifier:(NSToolbarItemIdentifier)identifier
     willBeInsertedIntoToolbar:(BOOL)flag
 {
-    if ([identifier isEqualToString:RAToolbarSearch]) {
-        NSSearchToolbarItem *item = [[NSSearchToolbarItem alloc] initWithItemIdentifier:identifier];
-        item.searchField = _search;
-        item.label = NSLocalizedString(@"Search", @"toolbar");
-        item.toolTip = NSLocalizedString(@"Search the name, the notes and the tags (⌘F)", @"toolbar");
-        return item;
-    }
     // identifier → label, tooltip, SF Symbol, action
     NSDictionary<NSString *, NSArray *> *items = @{
         RAToolbarImport: @[ NSLocalizedString(@"Import", @"toolbar"),
@@ -402,11 +414,165 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     if (saved) [self.library removeSavedFilter:saved];
 }
 
+- (NSPopUpButton *)filterPopupWithIdentifier:(NSString *)identifier action:(SEL)action
+{
+    NSPopUpButton *p = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
+    p.controlSize = NSControlSizeSmall;
+    p.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    p.target = self;
+    p.action = action;
+    p.identifier = identifier;
+    return p;
+}
+
+// an item whose representedObject is what choosing it does
+- (void)addItem:(NSString *)title value:(id)value to:(NSPopUpButton *)popup
+{
+    [popup addItemWithTitle:title];
+    popup.lastItem.representedObject = value;
+}
+
+/// the presets of the period pop-up: from day (nil: no limit), as offsets from today
+- (NSArray<NSArray *> *)periodPresets
+{
+    NSCalendar *cal = [NSCalendar currentCalendar];
+    NSDate *today = [cal startOfDayForDate:[NSDate date]];
+    NSDateComponents *year = [cal components:NSCalendarUnitYear fromDate:today];
+    NSDate *startOfYear = [cal dateFromComponents:year] ?: today;
+    return @[ @[ NSLocalizedString(@"Any date", @"filter period"), [NSNull null] ],
+              @[ NSLocalizedString(@"Last 30 days", @"filter period"),
+                 [cal dateByAddingUnit:NSCalendarUnitDay value:-30 toDate:today options:0] ?: today ],
+              @[ NSLocalizedString(@"Last 12 months", @"filter period"),
+                 [cal dateByAddingUnit:NSCalendarUnitYear value:-1 toDate:today options:0] ?: today ],
+              @[ NSLocalizedString(@"This year", @"filter period"), startOfYear ] ];
+}
+
+/// rebuilds the pop-ups from the library and selects what the base filter says; a value that no item gives shows
+/// as "Custom" (set with More…)
+- (void)updateFilterPopups
+{
+    RALibraryDocument *library = self.library;
+    NSCalendar *cal = [NSCalendar currentCalendar];
+
+    [_periodPopup removeAllItems];
+    NSInteger periodIndex = -1;
+    for (NSArray *preset in [self periodPresets]) {
+        [self addItem:preset[0] value:preset[1] to:_periodPopup];
+        id from = preset[1];
+        BOOL same = _baseFilter.toDay == nil && ([from isKindOfClass:[NSNull class]] ? _baseFilter.fromDay == nil
+            : (_baseFilter.fromDay && [cal isDate:(NSDate *)_baseFilter.fromDay inSameDayAsDate:from]));
+        if (same) periodIndex = _periodPopup.numberOfItems - 1;
+    }
+    if (periodIndex < 0) {
+        [self addItem:NSLocalizedString(@"Custom period", @"filter period") value:@"custom" to:_periodPopup];
+        periodIndex = _periodPopup.numberOfItems - 1;
+    }
+    [_periodPopup selectItemAtIndex:periodIndex];
+
+    [_devicePopup removeAllItems];
+    [self addItem:NSLocalizedString(@"Any device", @"filter device") value:[NSNull null] to:_devicePopup];
+    NSInteger deviceIndex = _baseFilter.deviceKeys.count == 0 ? 0 : -1;
+    for (NSString *k in library.deviceKeys ?: @[]) {
+        [self addItem:[library labelForDeviceKey:k] value:k to:_devicePopup];
+        if (_baseFilter.deviceKeys.count == 1 && [_baseFilter.deviceKeys containsObject:k]) {
+            deviceIndex = _devicePopup.numberOfItems - 1;
+        }
+    }
+    if (deviceIndex < 0) {
+        [self addItem:NSLocalizedString(@"Several devices", @"filter device") value:@"custom" to:_devicePopup];
+        deviceIndex = _devicePopup.numberOfItems - 1;
+    }
+    [_devicePopup selectItemAtIndex:deviceIndex];
+
+    [_distancePopup removeAllItems];
+    NSArray<NSArray *> *distances = @[ @[ NSLocalizedString(@"Any distance", @"filter distance"), @0, @0 ],
+                                       @[ NSLocalizedString(@"Under 30 km", @"filter distance"), @0, @30000 ],
+                                       @[ NSLocalizedString(@"Over 30 km", @"filter distance"), @30000, @0 ],
+                                       @[ NSLocalizedString(@"Over 50 km", @"filter distance"), @50000, @0 ],
+                                       @[ NSLocalizedString(@"Over 80 km", @"filter distance"), @80000, @0 ],
+                                       @[ NSLocalizedString(@"Over 100 km", @"filter distance"), @100000, @0 ] ];
+    NSInteger distanceIndex = -1;
+    for (NSArray *d in distances) {
+        [self addItem:d[0] value:@[ d[1], d[2] ] to:_distancePopup];
+        if ([d[1] doubleValue] == _baseFilter.minDistance && [d[2] doubleValue] == _baseFilter.maxDistance) {
+            distanceIndex = _distancePopup.numberOfItems - 1;
+        }
+    }
+    if (distanceIndex < 0) {
+        [self addItem:NSLocalizedString(@"Custom distance", @"filter distance") value:@"custom" to:_distancePopup];
+        distanceIndex = _distancePopup.numberOfItems - 1;
+    }
+    [_distancePopup selectItemAtIndex:distanceIndex];
+
+    [_tagPopup removeAllItems];
+    [self addItem:NSLocalizedString(@"Any tag", @"filter tag") value:[NSNull null] to:_tagPopup];
+    NSInteger tagIndex = _baseFilter.tags.count == 0 ? 0 : -1;
+    for (NSString *t in library.allTags ?: @[]) {
+        [self addItem:[@"#" stringByAppendingString:t] value:t to:_tagPopup];
+        if (_baseFilter.tags.count == 1 && [_baseFilter.tags containsObject:t]) tagIndex = _tagPopup.numberOfItems - 1;
+    }
+    if (tagIndex < 0) {
+        [self addItem:NSLocalizedString(@"Several tags", @"filter tag") value:@"custom" to:_tagPopup];
+        tagIndex = _tagPopup.numberOfItems - 1;
+    }
+    [_tagPopup selectItemAtIndex:tagIndex];
+    _tagPopup.hidden = _tagPopup.numberOfItems <= 1;
+}
+
+/// a criterion changed in the filter bar: the base filter is no longer the one of a saved filter or of a device
+- (void)changeBaseFilter:(void (^)(RAFilter *filter))change
+{
+    RAFilter *f = [_baseFilter copy];
+    change(f);
+    _sidebarSelection = nil;
+    [self setBaseFilter:f];
+}
+
+- (void)periodChosen:(NSPopUpButton *)sender
+{
+    id value = sender.selectedItem.representedObject;
+    if ([value isEqual:@"custom"]) return;
+    [self changeBaseFilter:^(RAFilter *f) {
+        f.fromDay = [value isKindOfClass:[NSDate class]] ? value : nil;
+        f.toDay = nil;
+    }];
+}
+
+- (void)deviceChosen:(NSPopUpButton *)sender
+{
+    id value = sender.selectedItem.representedObject;
+    if ([value isEqual:@"custom"]) return;
+    [self changeBaseFilter:^(RAFilter *f) {
+        f.deviceKeys = [value isKindOfClass:[NSString class]] ? [NSSet setWithObject:value] : [NSSet set];
+    }];
+}
+
+- (void)distanceChosen:(NSPopUpButton *)sender
+{
+    id value = sender.selectedItem.representedObject;
+    if (![value isKindOfClass:[NSArray class]]) return;
+    [self changeBaseFilter:^(RAFilter *f) {
+        f.minDistance = [value[0] doubleValue];
+        f.maxDistance = [value[1] doubleValue];
+    }];
+}
+
+- (void)tagChosen:(NSPopUpButton *)sender
+{
+    id value = sender.selectedItem.representedObject;
+    if ([value isEqual:@"custom"]) return;
+    [self changeBaseFilter:^(RAFilter *f) {
+        f.tags = [value isKindOfClass:[NSString class]] ? [NSSet setWithObject:value] : [NSSet set];
+    }];
+}
+
 - (void)updateFilterBar
 {
+    [self updateFilterPopups];
     RAFilter *f = [self currentFilter];
     NSString *summary = [_baseFilter summaryWithDeviceLabel:^NSString *(NSString *k) { return [self.library labelForDeviceKey:k]; }];
     _filterSummary.stringValue = summary.length ? summary : NSLocalizedString(@"All rides", @"filter summary");
+    _filterSummary.toolTip = summary;
     _clearFilterButton.enabled = !f.empty;
     _saveFilterButton.enabled = !f.empty;
 }
