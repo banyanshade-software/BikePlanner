@@ -8,7 +8,7 @@
 #import "RARideAnalysis.h"
 
 const NSInteger RATerrainCount = 5;
-const NSInteger RARideStatsVersion = 2; // 2: track (R10)
+const NSInteger RARideStatsVersion = 3; // 2: track (R10); 3: work sums for the estimated power (R11)
 
 static const double RAMovingSpeedStats = 3.0 / 3.6; // m/s, as RARideAnalysis
 
@@ -57,13 +57,20 @@ static NSArray<NSString *> *RATerrainKeys(void)
     self.heartRateTime += other.heartRateTime;
     self.powerSum += other.powerSum;
     self.powerTime += other.powerTime;
+    self.gravityWork += other.gravityWork;
+    self.rollingWork += other.rollingWork;
+    self.inertiaWork += other.inertiaWork;
+    self.airWork += other.airWork;
+    self.estimatedPowerSum += other.estimatedPowerSum;
 }
 
 - (NSDictionary *)propertyList
 {
     return @{ @"time": @(self.time), @"distance": @(self.distance), @"ascent": @(self.ascent),
               @"hrSum": @(self.heartRateSum), @"hrTime": @(self.heartRateTime),
-              @"powerSum": @(self.powerSum), @"powerTime": @(self.powerTime) };
+              @"powerSum": @(self.powerSum), @"powerTime": @(self.powerTime),
+              @"gravityWork": @(self.gravityWork), @"rollingWork": @(self.rollingWork),
+              @"inertiaWork": @(self.inertiaWork), @"airWork": @(self.airWork) };
 }
 
 + (RATerrainStats *)statsWithPropertyList:(nullable NSDictionary *)plist
@@ -81,6 +88,10 @@ static NSArray<NSString *> *RATerrainKeys(void)
     t.heartRateTime = num(@"hrTime");
     t.powerSum = num(@"powerSum");
     t.powerTime = num(@"powerTime");
+    t.gravityWork = num(@"gravityWork");
+    t.rollingWork = num(@"rollingWork");
+    t.inertiaWork = num(@"inertiaWork");
+    t.airWork = num(@"airWork");
     return t;
 }
 
@@ -116,6 +127,11 @@ static NSArray<NSString *> *RATerrainKeys(void)
 
 + (RARideStats *)statsOfAnalysis:(RARideAnalysis *)a
 {
+    return [self statsOfAnalysis:a wind:nil];
+}
+
++ (RARideStats *)statsOfAnalysis:(RARideAnalysis *)a wind:(nullable RAWindProvider)wind
+{
     RARideStats *s = [[RARideStats alloc] init];
     s.maxSpeed = a.maxSpeed;
     s.maxHeartRate = a.maxHeartRate;
@@ -136,6 +152,31 @@ static NSArray<NSString *> *RATerrainKeys(void)
         double hr = a.heartRates[i].doubleValue, power = a.powers[i].doubleValue;
         if (RAHasValue(hr)) { interval.heartRateSum = hr * dt; interval.heartRateTime = dt; }
         if (RAHasValue(power)) { interval.powerSum = power * dt; interval.powerTime = dt; }
+        // work of the forces (R11): slope of the point, speed and acceleration of the interval
+        double slope = a.slopes[i].doubleValue, theta = atan((RAHasValue(slope) ? slope : 0) / 100);
+        double v = dd / dt;
+        double vPrev = 0;
+        if (i >= 2) {
+            double dtp = a.elapsed[i - 1].doubleValue - a.elapsed[i - 2].doubleValue;
+            double ddp = a.distances[i - 1].doubleValue - a.distances[i - 2].doubleValue;
+            vPrev = dtp > 0 ? ddp / dtp : 0;
+        }
+        double acc = vPrev > RAMovingSpeedStats ? (v - vPrev) / dt : 0;
+        double headwind = 0;
+        RAWind *w = wind ? wind(i) : nil;
+        if (w) {
+            CLLocationCoordinate2D p = a.trace[i - 1].coordinate, q = a.trace[i].coordinate;
+            headwind = [w headwindForHeading:[RAPowerModel headingFromLatitude:p.latitude longitude:p.longitude
+                                                                    toLatitude:q.latitude longitude:q.longitude]];
+        }
+        double t = a.hasTemperature ? a.temperatures[i].doubleValue : NAN;
+        double rho = [RAPowerModel airDensityAtAltitude:a.altitudes[i].doubleValue
+                                            temperature:RAHasValue(t) ? t : a.averageTemperature];
+        double air = v + headwind;
+        interval.gravityWork = RAGravity * sin(theta) * dd;
+        interval.rollingWork = RAGravity * cos(theta) * dd;
+        interval.inertiaWork = acc * dd;
+        interval.airWork = 0.5 * rho * air * fabs(air) * dd;
         [t add:interval];
         [s.total add:interval];
     }

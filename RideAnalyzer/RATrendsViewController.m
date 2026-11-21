@@ -72,7 +72,7 @@
 - (void)loadView
 {
     NSMutableArray<NSString *> *measures = [NSMutableArray array];
-    for (NSInteger m = RATrendSpeed; m <= RATrendClimbingSpeed; m++) [measures addObject:[RATrends nameOfMeasure:(RATrendMeasure)m]];
+    for (NSInteger m = RATrendSpeed; m < RATrendMeasureCount; m++) [measures addObject:[RATrends nameOfMeasure:(RATrendMeasure)m]];
     _measurePopup = [self popup:measures identifier:@"trendsMeasure"];
     NSMutableArray<NSString *> *terrains = [NSMutableArray array];
     for (NSInteger t = RATerrainAll; t <= RATerrainSteep; t++) [terrains addObject:[RATrends nameOfTerrain:(RATerrain)t]];
@@ -232,7 +232,8 @@
     (void)self.view;
     [self syncControls];
     NSArray<RARide *> *rides = _rides;
-    NSArray<RATrendPoint *> *points = [RATrends pointsForRides:rides measure:_measure terrain:_terrain grouping:_grouping];
+    NSArray<RATrendPoint *> *points = [RATrends pointsForRides:rides measure:_measure terrain:_terrain grouping:_grouping
+                                                      equipment:_library.equipment];
     _trendChart.points = points;
     _trendChart.trendLine = [RATrends trendLineOfPoints:points];
     _selection.stringValue = points.count

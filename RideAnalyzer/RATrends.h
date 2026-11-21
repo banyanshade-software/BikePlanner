@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "RARideStats.h"
 
-@class RARide;
+@class RARide, RAEquipment;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -20,7 +20,10 @@ typedef NS_ENUM(NSInteger, RATrendMeasure) {
     RATrendPowerPerBeat,     // W/bpm
     RATrendSpeedPerBeat,     // km/h per 100 bpm: efficiency without a power meter
     RATrendClimbingSpeed,    // VAM, m/h
+    RATrendEstimatedPower,   // W, estimated (R11: RAPowerModel with the equipment of the ride's date)
+    RATrendEstimatedPowerPerBeat, // W/bpm, estimated power
 };
+extern const NSInteger RATrendMeasureCount;
 
 typedef NS_ENUM(NSInteger, RATrendGrouping) {
     RATrendPerRide,
@@ -65,6 +68,10 @@ extern const NSTimeInterval RATrendMinimumTime;
 /// time on the terrain are left out; a period's value is computed from the sums of its rides (time-weighted)
 + (NSArray<RATrendPoint *> *)pointsForRides:(NSArray<RARide *> *)rides measure:(RATrendMeasure)measure
                                     terrain:(RATerrain)terrain grouping:(RATrendGrouping)grouping;
+/// the same; the estimated measures use the equipment (nil: default rider and bike)
++ (NSArray<RATrendPoint *> *)pointsForRides:(NSArray<RARide *> *)rides measure:(RATrendMeasure)measure
+                                    terrain:(RATerrain)terrain grouping:(RATrendGrouping)grouping
+                                  equipment:(nullable RAEquipment *)equipment;
 /// a straight line through the points (least squares on the date): value at the first and last point; nil with
 /// fewer than 2 points
 + (nullable NSArray<NSNumber *> *)trendLineOfPoints:(NSArray<RATrendPoint *> *)points;

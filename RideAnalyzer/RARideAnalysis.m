@@ -130,6 +130,27 @@ static NSArray<NSNumber *> *RANumbers(const double *values, NSUInteger count)
     return self;
 }
 
+- (void)useEstimatedPowers:(NSArray<NSNumber *> *)powers
+{
+    if ((_hasPower && !_powerIsEstimated) || powers.count != _count) return;
+    double sum = 0, max = 0;
+    NSUInteger count = 0;
+    BOOL any = NO;
+    for (NSUInteger i = 0; i < _count; i++) {
+        double p = powers[i].doubleValue;
+        if (!RAHasValue(p)) continue;
+        any = YES;
+        max = MAX(max, p);
+        sum += p;                // the estimate exists only where the ride moves: the average is over the moving time
+        count++;
+    }
+    _powers = [powers copy];
+    _hasPower = any;
+    _powerIsEstimated = any;
+    _averagePower = count ? sum / count : RANoValue;
+    _maxPower = any ? max : RANoValue;
+}
+
 - (NSUInteger)indexAtDistance:(double)distance
 {
     if (_count == 0) return 0;

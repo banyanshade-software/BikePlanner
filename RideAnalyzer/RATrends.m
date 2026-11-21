@@ -5,8 +5,10 @@
 
 #import "RATrends.h"
 #import "RARide.h"
+#import "RAPower.h"
 
 const NSTimeInterval RATrendMinimumTime = 120;
+const NSInteger RATrendMeasureCount = RATrendEstimatedPowerPerBeat + 1;
 
 @implementation RATrendPoint
 @end
@@ -27,6 +29,8 @@ const NSTimeInterval RATrendMinimumTime = 120;
         case RATrendPowerPerBeat: v = t.heartRate > 0 ? t.power / t.heartRate : NAN; break;
         case RATrendSpeedPerBeat: v = t.heartRate > 0 ? t.speed / t.heartRate * 100 : NAN; break;
         case RATrendClimbingSpeed: v = t.climbingSpeed; break;
+        case RATrendEstimatedPower: v = t.estimatedPowerSum / t.time; break;
+        case RATrendEstimatedPowerPerBeat: v = t.heartRate > 0 ? t.estimatedPowerSum / t.time / t.heartRate : NAN; break;
     }
     return isfinite(v) && v > 0 ? v : NAN;
 }
@@ -56,11 +60,28 @@ const NSTimeInterval RATrendMinimumTime = 120;
 + (NSArray<RATrendPoint *> *)pointsForRides:(NSArray<RARide *> *)rides measure:(RATrendMeasure)measure
                                     terrain:(RATerrain)terrain grouping:(RATrendGrouping)grouping
 {
+    return [self pointsForRides:rides measure:measure terrain:terrain grouping:grouping equipment:nil];
+}
+
+/// the stats of a ride on a terrain, with its estimated power × time (R11: the ride's bike and tyres)
++ (RATerrainStats *)statsOfRide:(RARide *)r terrain:(RATerrain)terrain equipment:(nullable RAEquipment *)equipment
+{
+    RATerrainStats *t = [[RATerrainStats alloc] init];
+    [t add:[r.stats statsForTerrain:terrain]];
+    double p = [[RAPowerModel modelForRide:r equipment:equipment] averagePowerOfStats:t];
+    t.estimatedPowerSum = isfinite(p) ? p * t.time : 0;
+    return t;
+}
+
++ (NSArray<RATrendPoint *> *)pointsForRides:(NSArray<RARide *> *)rides measure:(RATrendMeasure)measure
+                                    terrain:(RATerrain)terrain grouping:(RATrendGrouping)grouping
+                                  equipment:(nullable RAEquipment *)equipment
+{
     NSMutableArray<RATrendPoint *> *points = [NSMutableArray array];
     NSArray<RARide *> *sorted = [self datedRidesWithStats:rides];
     if (grouping == RATrendPerRide) {
         for (RARide *r in sorted) {
-            double v = [self value:measure of:[r.stats statsForTerrain:terrain]];
+            double v = [self value:measure of:[self statsOfRide:r terrain:terrain equipment:equipment]];
             if (isnan(v)) continue;
             RATrendPoint *p = [[RATrendPoint alloc] init];
             p.date = (NSDate *)r.startDate;
@@ -93,7 +114,7 @@ const NSTimeInterval RATrendMinimumTime = 120;
             sum = [[RATerrainStats alloc] init];
             count = 0;
         }
-        RATerrainStats *t = [r.stats statsForTerrain:terrain];
+        RATerrainStats *t = [self statsOfRide:r terrain:terrain equipment:equipment];
         if (t.time > 0) {
             [sum add:t];
             count++;
@@ -201,6 +222,8 @@ const NSTimeInterval RATrendMinimumTime = 120;
         case RATrendPowerPerBeat: return NSLocalizedString(@"Watts per beat (W/bpm)", @"trend");
         case RATrendSpeedPerBeat: return NSLocalizedString(@"Speed per heart rate (km/h per 100 bpm)", @"trend");
         case RATrendClimbingSpeed: return NSLocalizedString(@"Climbing speed (VAM, m/h)", @"trend");
+        case RATrendEstimatedPower: return NSLocalizedString(@"Estimated power (W)", @"trend");
+        case RATrendEstimatedPowerPerBeat: return NSLocalizedString(@"Watts per beat, estimated power (W/bpm)", @"trend");
     }
     return @"";
 }

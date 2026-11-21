@@ -285,6 +285,24 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
 - Not yet: the mounting history of a part beyond its last mounting (edited in the table), the bike criterion in the
   filter sheet (More…), a bike per device (e.g. the watch for commuting).
 
+## Estimated power (2026-11-21, R11)
+- **Model** (`RAPowerModel`): P = (m g sin θ + Crr m g cos θ + m a + ½ ρ CdA v_air |v_air|) v / η, v_air = v +
+  headwind; negative values (braking, coasting) count as 0. m: rider + bike, Crr: the tyres on the bike at the ride's
+  date, CdA: bike and position (R13; defaults 75 + 12 kg, Crr 0.005, flat bar 0.45 m² without equipment); ρ from the
+  altitude and the temperature of the file (15 °C when none); η 0.97.
+- **Wind** (`RAWind`, `RAWindProvider`: the wind at each point, speed and direction it comes from; headwind = speed ×
+  cos(wind direction − heading)): already in the computations, nil (still air) until R12 gives it.
+- **Detail** (R4): a ride without power meter gets its estimated power per point (speed over ~4 records for the
+  acceleration): curve "Estimated power", colors by power, "Estimated power avg · max" (`useEstimatedPowers:`).
+- **Trends** (R6): measures *Estimated power* and *Watts per beat, estimated power*. So that the trends do not read the
+  files again, the stats keep per terrain the work sums of each force per unit (`gravityWork`, `rollingWork`,
+  `inertiaWork` per kg, `airWork` per m² of CdA; stats version 3, computed again for older rides): the average power
+  of a terrain is then (m (gravity + inertia) + m Crr rolling + CdA air) / η / time, with the equipment of each
+  ride's date — a change of equipment applies at once. The clamping at 0 is per point in the detail but over the
+  whole terrain in the trends (the descents are therefore not meaningful there).
+- The estimate is computed for the rides shown (the filter, R3), e.g. those of the Edge, not those of the watch.
+- Not yet: the wind (R12), the rider's weight from Garmin Connect, a calibration on rides with a power meter.
+
 ## Handoff (2026-11-21): written without Xcode, never compiled
 The skeleton and the imports were written in a session without Xcode. First steps on the owner's Mac (Claude Code):
 1. `git checkout ride_analyzer && git pull`.

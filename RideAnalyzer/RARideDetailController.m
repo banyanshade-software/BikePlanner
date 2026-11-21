@@ -7,6 +7,8 @@
 #import "RALibraryDocument.h"
 #import "RARide.h"
 #import "RAChartView.h"
+#import "RAPower.h"
+#import "RAEquipment.h"
 #import "ElevationProfileView.h"
 #import <MapKit/MapKit.h>
 
@@ -253,7 +255,8 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
                             [NSString localizedStringWithFormat:@"%.0f · %.0f bpm", a.averageHeartRate, a.maxHeartRate] ]];
     }
     if (a && a.hasPower) {
-        [pairs addObject:@[ NSLocalizedString(@"Power avg · max", @"figure"),
+        [pairs addObject:@[ a.powerIsEstimated ? NSLocalizedString(@"Estimated power avg · max", @"figure")
+                                               : NSLocalizedString(@"Power avg · max", @"figure"),
                             [NSString localizedStringWithFormat:@"%.0f · %.0f W", a.averagePower, a.maxPower] ]];
     }
     if (a && a.hasCadence && RAHasValue(a.averageCadence)) {
@@ -283,6 +286,11 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
         _profile.hidden = YES;
         _charts.hidden = YES;
         return;
+    }
+    if (!analysis.hasPower && analysis.hasTimes) {
+        // no power meter: the estimated power (R11), from the equipment of the library
+        RAPowerModel *model = [RAPowerModel modelForRide:_ride equipment:self.library.equipment];
+        [analysis useEstimatedPowers:[model powersOfAnalysis:analysis wind:nil]];
     }
     _message.hidden = YES;
     _map.hidden = NO;
@@ -420,7 +428,10 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     }
     if (a.hasHeartRate) [self addChart:NSLocalizedString(@"Heart rate (bpm)", @"chart") values:a.heartRates color:[NSColor systemRedColor]];
     if (a.hasCadence) [self addChart:NSLocalizedString(@"Cadence (rpm)", @"chart") values:a.cadences color:[NSColor systemPurpleColor]];
-    if (a.hasPower) [self addChart:NSLocalizedString(@"Power (W)", @"chart") values:a.powers color:[NSColor systemBlueColor]];
+    if (a.hasPower) {
+        [self addChart:a.powerIsEstimated ? NSLocalizedString(@"Estimated power (W)", @"chart") : NSLocalizedString(@"Power (W)", @"chart")
+                values:a.powers color:a.powerIsEstimated ? [NSColor systemIndigoColor] : [NSColor systemBlueColor]];
+    }
     if (a.hasTemperature) {
         [self addChart:NSLocalizedString(@"Temperature (°C)", @"chart") values:a.temperatures color:[NSColor systemTealColor]];
     }

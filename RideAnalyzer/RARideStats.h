@@ -8,6 +8,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "RAPower.h"
 
 @class RARideAnalysis;
 
@@ -34,6 +35,14 @@ RATerrain RATerrainOfSlope(double slope);
 @property (nonatomic) NSTimeInterval heartRateTime; // s with a heart rate
 @property (nonatomic) double powerSum;              // W × s
 @property (nonatomic) NSTimeInterval powerTime;     // s with a power
+// work per kg / per m² of CdA, for the estimated power (R11, RAPowerModel: energy = m (gravity + inertia)
+// + m Crr rolling + CdA air): sums over the moving intervals of g sin θ ds, g cos θ ds, a ds, ½ ρ v_air |v_air| ds
+@property (nonatomic) double gravityWork;           // J/kg
+@property (nonatomic) double rollingWork;           // J/kg (per unit of Crr)
+@property (nonatomic) double inertiaWork;           // J/kg
+@property (nonatomic) double airWork;               // J/m²
+/// not saved: the estimated power × time of these stats, filled by the trends (R11)
+@property (nonatomic) double estimatedPowerSum;     // W × s
 /// NaN when there is no time / no value
 @property (readonly, nonatomic) double speed;       // km/h
 @property (readonly, nonatomic) double heartRate;   // bpm
@@ -64,6 +73,8 @@ extern const NSInteger RARideStatsVersion;
 - (RATerrainStats *)statsForTerrain:(RATerrain)terrain;
 
 + (RARideStats *)statsOfAnalysis:(RARideAnalysis *)analysis;
+/// with the wind along the ride (R12; nil: still air), for the air drag of the estimated power (R11)
++ (RARideStats *)statsOfAnalysis:(RARideAnalysis *)analysis wind:(nullable RAWindProvider)wind;
 - (NSDictionary *)propertyList;
 /// nil for an older version or a damaged dictionary
 + (nullable RARideStats *)statsWithPropertyList:(nullable NSDictionary *)plist;

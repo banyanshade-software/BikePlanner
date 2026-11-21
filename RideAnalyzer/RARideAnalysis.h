@@ -59,6 +59,12 @@ static inline BOOL RAHasValue(double v) { return !isnan(v); }
 @property (readonly, nonatomic) double averageTemperature;
 @property (readonly, nonatomic, nullable) NSNumber *calories;
 
+/// the powers are estimated (R11), not measured
+@property (readonly, nonatomic) BOOL powerIsEstimated;
+/// for a ride without power meter: these estimated powers (RAPowerModel, one per point) become its powers (curves,
+/// colors, averages), marked as estimated. Ignored when the file has measured powers.
+- (void)useEstimatedPowers:(NSArray<NSNumber *> *)powers;
+
 /// the point nearest to a distance from the start
 - (NSUInteger)indexAtDistance:(double)distance;
 
