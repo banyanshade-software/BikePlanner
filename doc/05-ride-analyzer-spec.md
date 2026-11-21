@@ -37,7 +37,7 @@ Status: **draft** — feature list reviewed with the owner on 2026-11-21 (R1–R
 - A command opens BikePlanner with the ride imported (as display, F8.1, or as route, F8.3).
 - The comparison of planned and done (track differences on the map, distance, ascent, actual time vs. the time
   estimated by BRouter, per stage; tuning the speed used for the estimates) is a **BikePlanner** feature, not one
-  of this app: to be proposed as a BikePlanner issue.
+  of this app: #88.
 
 ### R6 — Statistics and trends *(accepted 2026-11-21)*
 - Totals per week, month and year (distance, ascent, time, number of rides), as charts.
@@ -91,7 +91,7 @@ Status: **draft** — feature list reviewed with the owner on 2026-11-21 (R1–R
 
 ## Related BikePlanner items
 - Import an activity directly from Garmin Connect as display or as route (R1).
-- Planned vs. done comparison (R5): a BikePlanner feature, issue to create.
+- Planned vs. done comparison (R5): a BikePlanner feature, #88.
 
 ## Open questions
 - How the code is shared with BikePlanner (common framework, or shared sources in both targets): Garmin Connect web
