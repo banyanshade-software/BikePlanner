@@ -14,7 +14,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@class RARide, RAGarminConnect, RAFilter, RASavedFilter;
+@class RARide, RAGarminConnect, RAFilter, RASavedFilter, RAEquipment, RAPart;
 @protocol RAKeyStore;
 
 NS_ASSUME_NONNULL_BEGIN
@@ -126,6 +126,17 @@ typedef NS_ENUM(NSInteger, RALibraryLocation) {
 @property (readonly, nonatomic) NSArray<RARide *> *ridesWithoutStats;
 /// computes them in the background from their original files; completion on the main queue
 - (void)computeMissingStatsWithCompletion:(void (^)(NSUInteger computed))completion;
+
+// equipment (R13): rider, bikes, parts
+/// do not change it directly: changeEquipment:actionName:
+@property (readonly, nonatomic) RAEquipment *equipment;
+/// one undoable change (the block changes a copy, which then replaces the equipment). When the default bike is set,
+/// the rides without bike get it (in the same change). The new rides get the default bike.
+- (void)changeEquipment:(void (^)(RAEquipment *equipment))change actionName:(NSString *)actionName;
+/// undoable; @"": no bike
+- (void)setBikeID:(NSString *)bikeID ofRides:(NSArray<RARide *> *)rides;
+/// the parts over their wear limit not warned about yet; marks them warned (saved, not undoable)
+- (NSArray<RAPart *> *)takeNewlyWornParts;
 
 // notes and tags of a ride (R3), undoable
 - (void)setNotes:(NSString *)notes ofRide:(RARide *)ride;

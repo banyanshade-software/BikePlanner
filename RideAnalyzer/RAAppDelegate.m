@@ -97,6 +97,9 @@
     NSMenuItem *map = [self item:NSLocalizedString(@"Map of the Rides", @"menu") action:@selector(showRidesMap:) key:@"m"];
     map.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagShift;
     [window addItem:map];
+    NSMenuItem *equipment = [self item:NSLocalizedString(@"Equipment", @"menu") action:@selector(showEquipment:) key:@"e"];
+    equipment.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagShift;
+    [window addItem:equipment];
     [main addItem:[self submenu:window]];
     NSApp.windowsMenu = window;
 

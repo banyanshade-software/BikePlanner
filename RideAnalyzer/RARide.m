@@ -23,6 +23,7 @@ static const double RAAscentThreshold = 3.0; // meters
         _deviceName = @"";
         _sport = @"";
         _garminActivityID = @"";
+        _bikeID = @"";
         _notes = @"";
         _tags = @[];
     }
@@ -66,6 +67,7 @@ static const double RAAscentThreshold = 3.0; // meters
         if ([(v = plist[@"deviceName"]) isKindOfClass:[NSString class]]) _deviceName = [v copy];
         if ([(v = plist[@"sport"]) isKindOfClass:[NSString class]]) _sport = [v copy];
         if ([(v = plist[@"garminActivityID"]) isKindOfClass:[NSString class]]) _garminActivityID = [v copy];
+        if ([(v = plist[@"bikeID"]) isKindOfClass:[NSString class]]) _bikeID = [v copy];
         if ([(v = plist[@"notes"]) isKindOfClass:[NSString class]]) _notes = [v copy];
         _stats = [RARideStats statsWithPropertyList:plist[@"stats"]];
         if ([(v = plist[@"tags"]) isKindOfClass:[NSArray class]]) {
@@ -92,6 +94,7 @@ static const double RAAscentThreshold = 3.0; // meters
         @"deviceName": self.deviceName,
         @"sport": self.sport,
         @"garminActivityID": self.garminActivityID,
+        @"bikeID": self.bikeID,
         @"notes": self.notes,
         @"tags": self.tags,
     } mutableCopy];

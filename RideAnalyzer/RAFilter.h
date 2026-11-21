@@ -23,6 +23,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, nonatomic, nullable) NSDate *toDay;
 /// device keys (RARide.deviceKey, @"" = unknown device); empty: any device
 @property (copy, nonatomic) NSSet<NSString *> *deviceKeys;
+/// bikes (RARide.bikeID, R13); empty: any bike
+@property (copy, nonatomic) NSSet<NSString *> *bikeIDs;
 /// meters; 0: no limit
 @property (nonatomic) double minDistance;
 @property (nonatomic) double maxDistance;
@@ -43,6 +45,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// a short description of the criteria, for the filter bar ("2026 · Edge · > 30 km"); device names from the block
 - (NSString *)summaryWithDeviceLabel:(NSString * (^)(NSString *deviceKey))deviceLabel;
+/// the same, with the names of the bikes
+- (NSString *)summaryWithDeviceLabel:(NSString * (^)(NSString *deviceKey))deviceLabel
+                           bikeLabel:(nullable NSString * (^)(NSString *bikeID))bikeLabel;
 
 @end
 

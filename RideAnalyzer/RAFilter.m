@@ -14,6 +14,7 @@
     if (self) {
         _text = @"";
         _deviceKeys = [NSSet set];
+        _bikeIDs = [NSSet set];
         _tags = [NSSet set];
     }
     return self;
@@ -36,7 +37,7 @@
 
 - (BOOL)isEmpty
 {
-    return [self words].count == 0 && !self.fromDay && !self.toDay && self.deviceKeys.count == 0
+    return [self words].count == 0 && !self.fromDay && !self.toDay && self.deviceKeys.count == 0 && self.bikeIDs.count == 0
         && self.minDistance <= 0 && self.maxDistance <= 0 && self.minAscent <= 0 && self.tags.count == 0;
 }
 
@@ -78,6 +79,7 @@ static NSString *RAFold(NSString *s)
         }
     }
     if (self.deviceKeys.count && ![self.deviceKeys containsObject:ride.deviceKey]) return NO;
+    if (self.bikeIDs.count && ![self.bikeIDs containsObject:ride.bikeID]) return NO;
     if (self.minDistance > 0 && ride.distance < self.minDistance) return NO;
     if (self.maxDistance > 0 && ride.distance > self.maxDistance) return NO;
     if (self.minAscent > 0 && ride.ascent < self.minAscent) return NO;
@@ -107,6 +109,7 @@ static NSString *RAFold(NSString *s)
     if (self.fromDay) d[@"fromDay"] = self.fromDay;
     if (self.toDay) d[@"toDay"] = self.toDay;
     if (self.deviceKeys.count) d[@"deviceKeys"] = [self.deviceKeys.allObjects sortedArrayUsingSelector:@selector(compare:)];
+    if (self.bikeIDs.count) d[@"bikeIDs"] = [self.bikeIDs.allObjects sortedArrayUsingSelector:@selector(compare:)];
     if (self.minDistance > 0) d[@"minDistance"] = @(self.minDistance);
     if (self.maxDistance > 0) d[@"maxDistance"] = @(self.maxDistance);
     if (self.minAscent > 0) d[@"minAscent"] = @(self.minAscent);
@@ -132,6 +135,7 @@ static NSSet<NSString *> *RAStringSet(id value)
     if ([(v = plist[@"fromDay"]) isKindOfClass:[NSDate class]]) f.fromDay = v;
     if ([(v = plist[@"toDay"]) isKindOfClass:[NSDate class]]) f.toDay = v;
     f.deviceKeys = RAStringSet(plist[@"deviceKeys"]);
+    f.bikeIDs = RAStringSet(plist[@"bikeIDs"]);
     if ([(v = plist[@"minDistance"]) isKindOfClass:[NSNumber class]]) f.minDistance = [v doubleValue];
     if ([(v = plist[@"maxDistance"]) isKindOfClass:[NSNumber class]]) f.maxDistance = [v doubleValue];
     if ([(v = plist[@"minAscent"]) isKindOfClass:[NSNumber class]]) f.minAscent = [v doubleValue];
@@ -140,6 +144,12 @@ static NSSet<NSString *> *RAStringSet(id value)
 }
 
 - (NSString *)summaryWithDeviceLabel:(NSString * (^)(NSString *deviceKey))deviceLabel
+{
+    return [self summaryWithDeviceLabel:deviceLabel bikeLabel:nil];
+}
+
+- (NSString *)summaryWithDeviceLabel:(NSString * (^)(NSString *deviceKey))deviceLabel
+                           bikeLabel:(nullable NSString * (^)(NSString *bikeID))bikeLabel
 {
     NSMutableArray<NSString *> *parts = [NSMutableArray array];
     NSDateFormatter *f = [[NSDateFormatter alloc] init];
@@ -158,6 +168,11 @@ static NSSet<NSString *> *RAStringSet(id value)
         [devices addObject:deviceLabel(k)];
     }
     if (devices.count) [parts addObject:[devices componentsJoinedByString:@", "]];
+    NSMutableArray<NSString *> *bikes = [NSMutableArray array];
+    for (NSString *b in [self.bikeIDs.allObjects sortedArrayUsingSelector:@selector(compare:)]) {
+        [bikes addObject:(bikeLabel ? bikeLabel(b) : nil) ?: NSLocalizedString(@"a bike", @"filter summary")];
+    }
+    if (bikes.count) [parts addObject:[bikes componentsJoinedByString:@", "]];
     if (self.minDistance > 0 && self.maxDistance > 0) {
         [parts addObject:[NSString localizedStringWithFormat:@"%.0f–%.0f km", self.minDistance / 1000, self.maxDistance / 1000]];
     } else if (self.minDistance > 0) {

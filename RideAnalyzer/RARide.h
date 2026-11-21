@@ -28,6 +28,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, nonatomic) NSString *deviceName;     // as the file names it (TCX Creator), @"" for FIT
 @property (copy, nonatomic) NSString *sport;          // @"cycling", @"running", @"other", @"" unknown
 @property (copy, nonatomic) NSString *garminActivityID; // Garmin Connect activity (R1), @"" for a local file
+@property (copy, nonatomic) NSString *bikeID;         // the bike ridden (R13, RAEquipment), @"" not set
 @property (copy, nonatomic) NSString *notes;
 @property (copy, nonatomic) NSArray<NSString *> *tags;
 /// figures for the trends (R6), computed from the track at import; nil until computed (rides imported before)

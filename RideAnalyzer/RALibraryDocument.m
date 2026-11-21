@@ -10,6 +10,7 @@
 #import "RAFilter.h"
 #import "RARideStats.h"
 #import "RARideAnalysis.h"
+#import "RAEquipment.h"
 #import "BPTrackReader.h"
 #import <CommonCrypto/CommonDigest.h>
 
@@ -191,6 +192,7 @@ static NSString * _Nullable RAKeyFromObfuscated(id value, NSString *libraryID)
     BOOL _locationChecked;
     NSAlert *_copyAlert;
     NSMutableArray *_statsCompletions;  // callers waiting for the running computation of missing stats
+    RAEquipment *_equipment;
 }
 
 + (BOOL)autosavesInPlace
@@ -211,6 +213,7 @@ static NSString * _Nullable RAKeyFromObfuscated(id value, NSString *libraryID)
         _deviceLabels = [NSMutableDictionary dictionary];
         _deviceNames = [NSMutableDictionary dictionary];
         _savedFilters = [NSMutableArray array];
+        _equipment = [[RAEquipment alloc] init];
     }
     return self;
 }
@@ -432,6 +435,7 @@ completionHandler:(void (^)(NSError * _Nullable))completionHandler
     } mutableCopy];
     if (_garminLastFetch) plist[@"garminLastFetch"] = _garminLastFetch;
     if (_documentGarminKey) plist[@"garminKey"] = RAObfuscatedKey(_documentGarminKey, _libraryID);
+    plist[@"equipment"] = _equipment.propertyList;
     NSData *data = [NSPropertyListSerialization dataWithPropertyList:plist format:NSPropertyListBinaryFormat_v1_0
                                                              options:0 error:outError];
     if (!data) return nil;
@@ -487,6 +491,7 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     id lastFetch = plist[@"garminLastFetch"];
     _garminLastFetch = [lastFetch isKindOfClass:[NSDate class]] ? lastFetch : nil;
     _documentGarminKey = RAKeyFromObfuscated(plist[@"garminKey"], _libraryID);
+    _equipment = [RAEquipment equipmentWithPropertyList:plist[@"equipment"]];
     _savedFilters = [NSMutableArray array];
     id saved = plist[@"savedFilters"];
     if ([saved isKindOfClass:[NSArray class]]) {
@@ -735,6 +740,7 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
         if (ride.deviceKey.length && ride.deviceName.length && !_deviceNames[ride.deviceKey]) {
             _deviceNames[ride.deviceKey] = ride.deviceName;
         }
+        if (ride.bikeID.length == 0) ride.bikeID = _equipment.defaultBikeID;   // R13
         [_rides addObject:ride];
     }
     __weak RALibraryDocument *weakSelf = self;
@@ -869,6 +875,91 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
             for (void (^c)(NSUInteger) in completions) c(computed);
         });
     });
+}
+
+#pragma mark - equipment (R13)
+
+- (RAEquipment *)equipment
+{
+    return _equipment;
+}
+
+/// the bike of each ride, by identifier
+- (NSDictionary<NSString *, NSString *> *)rideBikes
+{
+    NSMutableDictionary<NSString *, NSString *> *d = [NSMutableDictionary dictionary];
+    for (RARide *r in _rides) d[r.identifier] = r.bikeID;
+    return d;
+}
+
+- (void)restoreEquipment:(NSDictionary *)plist rideBikes:(NSDictionary<NSString *, NSString *> *)bikes
+              actionName:(NSString *)actionName
+{
+    NSDictionary *currentPlist = _equipment.propertyList;
+    NSDictionary *currentBikes = [self rideBikes];
+    _equipment = [RAEquipment equipmentWithPropertyList:plist];
+    for (RARide *r in _rides) {
+        NSString *b = bikes[r.identifier];
+        if (b) r.bikeID = b;
+    }
+    __weak RALibraryDocument *weakSelf = self;
+    [self.undoManager registerUndoWithTarget:self handler:^(id target) {
+        [weakSelf restoreEquipment:currentPlist rideBikes:currentBikes actionName:actionName];
+    }];
+    [self.undoManager setActionName:actionName];
+    [self libraryDidChange];
+}
+
+- (void)changeEquipment:(void (^)(RAEquipment *equipment))change actionName:(NSString *)actionName
+{
+    NSDictionary *oldPlist = _equipment.propertyList;
+    NSDictionary *oldBikes = [self rideBikes];
+    RAEquipment *e = [_equipment copy];
+    change(e);
+    if ([e.propertyList isEqual:oldPlist]) return;
+    if (e.defaultBikeID.length && [e bikeWithID:e.defaultBikeID]) {
+        for (RARide *r in _rides) {
+            if (r.bikeID.length == 0 || ![e bikeWithID:r.bikeID]) r.bikeID = e.defaultBikeID; // none, or deleted
+        }
+    }
+    _equipment = e;
+    __weak RALibraryDocument *weakSelf = self;
+    [self.undoManager registerUndoWithTarget:self handler:^(id target) {
+        [weakSelf restoreEquipment:oldPlist rideBikes:oldBikes actionName:actionName];
+    }];
+    [self.undoManager setActionName:actionName];
+    [self libraryDidChange];
+}
+
+- (void)setBikeID:(NSString *)bikeID ofRides:(NSArray<RARide *> *)rides
+{
+    NSMutableDictionary<NSString *, NSString *> *old = [NSMutableDictionary dictionary];
+    for (RARide *r in rides) {
+        if ([r.bikeID isEqualToString:bikeID]) continue;
+        old[r.identifier] = r.bikeID;
+        r.bikeID = bikeID;
+    }
+    if (old.count == 0) return;
+    NSDictionary *plist = _equipment.propertyList;
+    __weak RALibraryDocument *weakSelf = self;
+    NSString *name = NSLocalizedString(@"Set Bike", @"undo action name");
+    [self.undoManager registerUndoWithTarget:self handler:^(id target) {
+        [weakSelf restoreEquipment:plist rideBikes:old actionName:name];
+    }];
+    [self.undoManager setActionName:name];
+    [self libraryDidChange];
+}
+
+- (NSArray<RAPart *> *)takeNewlyWornParts
+{
+    NSMutableArray<RAPart *> *parts = [NSMutableArray array];
+    for (RAPart *p in [_equipment wornPartsWithRides:_rides]) {
+        if (p.wearWarned) continue;
+        p.wearWarned = YES;
+        [parts addObject:p];
+    }
+    if (parts.count) [self updateChangeCount:NSChangeDone];
+    return parts;
 }
 
 #pragma mark - notes, tags, saved filters

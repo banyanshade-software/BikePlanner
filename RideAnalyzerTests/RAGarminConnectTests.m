@@ -88,6 +88,11 @@ static NSString *const kBase = @"https://garmin.stub";
             ? [_activities subarrayWithRange:NSMakeRange(start, MIN(limit, _activities.count - start))] : @[];
         return [RAStubResponse json:page];
     }
+    if ([path isEqualToString:@"/gear-service/gear/filterGear"]) {
+        return [RAStubResponse json:@[
+            @{ @"uuid": @"g-bike", @"displayName": @"Giant Rapid", @"gearTypeName": @"Bike", @"dateBegin": @"2024-05-01T00:00:00.0" },
+            @{ @"uuid": @"g-shoes", @"customMakeModel": @"Shoes", @"gearTypeName": @"Shoes", @"gearStatusName": @"retired" } ]];
+    }
     NSString *prefix = @"/download-service/files/activity/";
     if ([path hasPrefix:prefix]) {
         NSString *identifier = [path substringFromIndex:prefix.length];
@@ -352,6 +357,23 @@ static NSString *const kBase = @"https://garmin.stub";
     XCTAssertNil([store keyForLibrary:@"other"], @"one key per library");
     [store setKey:nil forLibrary:@"lib"];
     XCTAssertNil([store keyForLibrary:@"lib"]);
+}
+
+// the user's gear (R13): bikes and others; TO CHECK against the real service
+- (void)testGear
+{
+    RAGarminConnect *client = [self clientWithKey:@"good-key"];
+    __block NSArray<RAGarminGear *> *gear = nil;
+    [client gearWithCompletion:^(NSArray<RAGarminGear *> *g, NSError *e) { gear = g; }];
+    XCTAssertTrue(RAWaitUntil(5, ^{ return (BOOL)(gear != nil); }));
+    XCTAssertEqual(gear.count, 2u);
+    XCTAssertEqualObjects(gear[0].gearID, @"g-bike");
+    XCTAssertEqualObjects(gear[0].name, @"Giant Rapid");
+    XCTAssertTrue(gear[0].isBike);
+    XCTAssertNotNil(gear[0].since);
+    XCTAssertFalse(gear[1].isBike);
+    XCTAssertTrue(gear[1].retired);
+    XCTAssertNil([RAGarminGear gearWithJSON:@{ @"displayName": @"no id" }]);
 }
 
 @end

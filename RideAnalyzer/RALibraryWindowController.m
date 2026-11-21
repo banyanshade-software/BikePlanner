@@ -14,6 +14,8 @@
 #import "RATrendsViewController.h"
 #import "RARangeSlider.h"
 #import "RARidesMapViewController.h"
+#import "RAEquipment.h"
+#import "RAEquipmentWindowController.h"
 #import "BPTrackReader.h"
 
 static NSUserInterfaceItemIdentifier const RAColumnDate = @"date";
@@ -23,6 +25,7 @@ static NSUserInterfaceItemIdentifier const RAColumnAscent = @"ascent";
 static NSUserInterfaceItemIdentifier const RAColumnDuration = @"duration";
 static NSUserInterfaceItemIdentifier const RAColumnSpeed = @"speed";
 static NSUserInterfaceItemIdentifier const RAColumnDevice = @"device";
+static NSUserInterfaceItemIdentifier const RAColumnBike = @"bike";
 
 static void *RAProgressContext = &RAProgressContext;
 
@@ -34,13 +37,14 @@ static NSToolbarItemIdentifier const RAToolbarFilter = @"filter";
 static NSToolbarItemIdentifier const RAToolbarDelete = @"delete";
 static NSToolbarItemIdentifier const RAToolbarTrends = @"trends";
 static NSToolbarItemIdentifier const RAToolbarMap = @"ridesMap";
+static NSToolbarItemIdentifier const RAToolbarEquipment = @"equipment";
 
 // a row of the sidebar
 typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASidebarSavedFilter, RASidebarDevice };
 
 @interface RALibraryWindowController () <NSTableViewDataSource, NSTableViewDelegate, NSWindowDelegate,
                                          NSMenuItemValidation, NSTextFieldDelegate, NSSearchFieldDelegate,
-                                         NSToolbarDelegate, NSToolbarItemValidation>
+                                         NSToolbarDelegate, NSToolbarItemValidation, NSMenuDelegate>
 @end
 
 @implementation RALibraryWindowController
@@ -52,7 +56,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     RAFilter *_baseFilter;                      // from the sidebar or the filter sheet
     NSSearchField *_search;
     NSTextField *_filterSummary;
-    NSPopUpButton *_periodPopup, *_devicePopup, *_tagPopup;
+    NSPopUpButton *_periodPopup, *_devicePopup, *_bikePopup, *_tagPopup;
     RARangeSlider *_distanceSlider;     // km, from 0 to the longest ride; the ends mean "no limit"
     NSTextField *_distanceLabel;
     NSButton *_saveFilterButton;
@@ -195,6 +199,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     _distanceSlider.toolTip = NSLocalizedString(@"Distance of the rides: drag the two ends (arrow keys: left / right "
                                                 @"move, up / down choose the end)", @"filter");
     _tagPopup = [self filterPopupWithIdentifier:@"filterTag" action:@selector(tagChosen:)];
+    _bikePopup = [self filterPopupWithIdentifier:@"filterBike" action:@selector(bikeChosen:)];
     NSButton *more = [NSButton buttonWithTitle:NSLocalizedString(@"More…", @"filter bar") target:self
                                         action:@selector(editFilter:)];
     more.controlSize = NSControlSizeSmall;
@@ -209,7 +214,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     filterTitle.textColor = [NSColor secondaryLabelColor];
     NSStackView *buttons = [NSStackView stackViewWithViews:@[ more, _clearFilterButton, _saveFilterButton ]];
     buttons.spacing = 4;
-    NSStackView *filterPanel = [NSStackView stackViewWithViews:@[ filterTitle, _search, _periodPopup, _devicePopup,
+    NSStackView *filterPanel = [NSStackView stackViewWithViews:@[ filterTitle, _search, _periodPopup, _devicePopup, _bikePopup,
                                                                  _distanceLabel, _distanceSlider, _tagPopup, buttons,
                                                                  _filterSummary ]];
     filterPanel.orientation = NSUserInterfaceLayoutOrientationVertical;
@@ -218,7 +223,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     filterPanel.detachesHiddenViews = YES;
     filterPanel.edgeInsets = NSEdgeInsetsMake(8, 10, 6, 10);
     [filterPanel setCustomSpacing:2 afterView:_distanceLabel];
-    for (NSView *v in @[ _search, _periodPopup, _devicePopup, _distanceSlider, _tagPopup, _filterSummary ]) {
+    for (NSView *v in @[ _search, _periodPopup, _devicePopup, _bikePopup, _distanceSlider, _tagPopup, _filterSummary ]) {
         [v.widthAnchor constraintEqualToAnchor:filterPanel.widthAnchor constant:-20].active = YES;
     }
     NSStackView *sidebarStack = [NSStackView stackViewWithViews:@[ filterPanel, sidebarScroll ]];
@@ -246,6 +251,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
         @[ RAColumnDuration, NSLocalizedString(@"Duration", @"column"), @"duration", @65 ],
         @[ RAColumnSpeed, NSLocalizedString(@"Avg.", @"column"), @"averageSpeed", @50 ],
         @[ RAColumnDevice, NSLocalizedString(@"Device", @"column"), @"deviceKey", @90 ],
+        @[ RAColumnBike, NSLocalizedString(@"Bike", @"column"), @"bikeID", @90 ],
     ];
     for (NSArray *c in columns) {
         NSTableColumn *col = [[NSTableColumn alloc] initWithIdentifier:c[0]];
@@ -256,6 +262,9 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     }
     _table.sortDescriptors = @[ [NSSortDescriptor sortDescriptorWithKey:@"startDate" ascending:NO] ];
     [_table registerForDraggedTypes:@[ NSPasteboardTypeFileURL ]];
+    NSMenu *listMenu = [[NSMenu alloc] init];
+    listMenu.delegate = self;    // the bikes, rebuilt when it opens (menuNeedsUpdate:)
+    _table.menu = listMenu;
     NSScrollView *tableScroll = [self scrollViewWithTable:_table];
 
     // progress of an import (R1, R2): text, bar, Cancel
@@ -340,13 +349,14 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 - (NSArray<NSToolbarItemIdentifier> *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar
 {
     return @[ NSToolbarToggleSidebarItemIdentifier, RAToolbarImport, RAToolbarDevice, RAToolbarGarmin,
-              NSToolbarFlexibleSpaceItemIdentifier, RAToolbarTrends, RAToolbarMap, RAToolbarDelete, RAToolbarFilter ];
+              NSToolbarFlexibleSpaceItemIdentifier, RAToolbarTrends, RAToolbarMap, RAToolbarEquipment, RAToolbarDelete,
+              RAToolbarFilter ];
 }
 
 - (NSArray<NSToolbarItemIdentifier> *)toolbarAllowedItemIdentifiers:(NSToolbar *)toolbar
 {
     return @[ NSToolbarToggleSidebarItemIdentifier, RAToolbarImport, RAToolbarDevice, RAToolbarGarmin, RAToolbarTrends, RAToolbarMap,
-              RAToolbarDelete, RAToolbarFilter, NSToolbarFlexibleSpaceItemIdentifier, NSToolbarSpaceItemIdentifier ];
+              RAToolbarEquipment, RAToolbarDelete, RAToolbarFilter, NSToolbarFlexibleSpaceItemIdentifier, NSToolbarSpaceItemIdentifier ];
 }
 
 - (nullable NSToolbarItem *)toolbar:(NSToolbar *)toolbar itemForItemIdentifier:(NSToolbarItemIdentifier)identifier
@@ -369,6 +379,9 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
         RAToolbarMap: @[ NSLocalizedString(@"Map", @"toolbar"),
                          NSLocalizedString(@"All the rides on one map, the most ridden roads standing out (⇧⌘M)", @"toolbar"),
                          @"map", NSStringFromSelector(@selector(showRidesMap:)) ],
+        RAToolbarEquipment: @[ NSLocalizedString(@"Equipment", @"toolbar"),
+                               NSLocalizedString(@"Bikes, tyres and other parts, rider weight (⇧⌘E)", @"toolbar"),
+                               @"bicycle", NSStringFromSelector(@selector(showEquipment:)) ],
         RAToolbarDelete: @[ NSLocalizedString(@"Delete", @"toolbar"),
                             NSLocalizedString(@"Delete the selected rides", @"toolbar"),
                             @"trash", NSStringFromSelector(@selector(delete:)) ],
@@ -536,6 +549,23 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     }
     [_devicePopup selectItemAtIndex:deviceIndex];
 
+    RAEquipment *equipment = library.equipment;
+    [_bikePopup removeAllItems];
+    [self addItem:NSLocalizedString(@"Any bike", @"filter bike") value:[NSNull null] to:_bikePopup];
+    NSInteger bikeIndex = _baseFilter.bikeIDs.count == 0 ? 0 : -1;
+    for (RABike *b in equipment.bikes ?: @[]) {
+        [self addItem:b.name value:b.identifier to:_bikePopup];
+        if (_baseFilter.bikeIDs.count == 1 && [_baseFilter.bikeIDs containsObject:b.identifier]) {
+            bikeIndex = _bikePopup.numberOfItems - 1;
+        }
+    }
+    if (bikeIndex < 0) {
+        [self addItem:NSLocalizedString(@"Several bikes", @"filter bike") value:@"custom" to:_bikePopup];
+        bikeIndex = _bikePopup.numberOfItems - 1;
+    }
+    [_bikePopup selectItemAtIndex:bikeIndex];
+    _bikePopup.hidden = equipment.bikes.count == 0 && _baseFilter.bikeIDs.count == 0;
+
     // distance: from 0 to the longest ride, rounded up to 10 km (and up to the limits of the filter)
     double longest = 0;
     for (RARide *r in library.rides ?: @[]) longest = MAX(longest, r.distance);
@@ -623,6 +653,20 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     }];
 }
 
+- (void)bikeChosen:(NSPopUpButton *)sender
+{
+    id value = sender.selectedItem.representedObject;
+    if ([value isEqual:@"custom"]) return;
+    [self changeBaseFilter:^(RAFilter *f) {
+        f.bikeIDs = [value isKindOfClass:[NSString class]] ? [NSSet setWithObject:value] : [NSSet set];
+    }];
+}
+
+- (NSString *)labelOfBike:(NSString *)bikeID
+{
+    return [self.library.equipment bikeWithID:bikeID].name ?: NSLocalizedString(@"Deleted bike", @"bike");
+}
+
 - (void)tagChosen:(NSPopUpButton *)sender
 {
     id value = sender.selectedItem.representedObject;
@@ -636,7 +680,8 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 {
     [self updateFilterPopups];
     RAFilter *f = [self currentFilter];
-    NSString *summary = [_baseFilter summaryWithDeviceLabel:^NSString *(NSString *k) { return [self.library labelForDeviceKey:k]; }];
+    NSString *summary = [_baseFilter summaryWithDeviceLabel:^NSString *(NSString *k) { return [self.library labelForDeviceKey:k]; }
+                                                  bikeLabel:^NSString *(NSString *b) { return [self labelOfBike:b]; }];
     _filterSummary.stringValue = summary.length ? summary : NSLocalizedString(@"All rides", @"filter summary");
     _filterSummary.toolTip = summary;
     _clearFilterButton.enabled = !f.empty;
@@ -810,6 +855,8 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
         numeric = YES;
     } else if ([ident isEqualToString:RAColumnDevice]) {
         text = [self.library labelForDeviceKey:ride.deviceKey];
+    } else if ([ident isEqualToString:RAColumnBike]) {
+        text = ride.bikeID.length ? [self labelOfBike:ride.bikeID] : @"";
     }
     NSTextField *field = [NSTextField labelWithString:text];
     field.lineBreakMode = NSLineBreakByTruncatingTail;
@@ -958,7 +1005,84 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     alert.informativeText = [NSString localizedStringWithFormat:
         NSLocalizedString(@"Already in the library: %lu. Unreadable: %lu.", @"import summary"),
         (unsigned long)summary.duplicates, (unsigned long)summary.unreadable];
-    [alert beginSheetModalForWindow:self.window completionHandler:nil];
+    NSArray<RAPart *> *worn = [self.library takeNewlyWornParts];
+    [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse r) {
+        if (worn.count) [self warnWornParts:worn];
+    }];
+}
+
+/// a part reached its wear limit (R13): once per part
+- (void)warnWornParts:(NSArray<RAPart *> *)parts
+{
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = NSLocalizedString(@"Equipment to check", @"wear warning");
+    NSMutableArray<NSString *> *lines = [NSMutableArray array];
+    for (RAPart *p in parts) {
+        [lines addObject:[NSString localizedStringWithFormat:NSLocalizedString(@"%@: over %.0f km", @"wear warning"),
+                          p.name, p.wearLimit]];
+    }
+    alert.informativeText = [lines componentsJoinedByString:@"\n"];
+    [alert addButtonWithTitle:NSLocalizedString(@"OK", @"button")];
+    [alert addButtonWithTitle:NSLocalizedString(@"Show Equipment", @"wear warning")];
+    [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse r) {
+        if (r == NSAlertSecondButtonReturn) [self showEquipment:self];
+    }];
+}
+
+#pragma mark - bikes of the rides (R13)
+
+- (void)menuNeedsUpdate:(NSMenu *)menu
+{
+    if (menu != _table.menu) return;
+    [menu removeAllItems];
+    NSArray<RABike *> *bikes = self.library.equipment.bikes ?: @[];
+    if (bikes.count == 0) {
+        [menu addItemWithTitle:NSLocalizedString(@"Equipment…", @"list menu") action:@selector(showEquipment:)
+                 keyEquivalent:@""].target = self;
+        return;
+    }
+    NSMenuItem *header = [menu addItemWithTitle:NSLocalizedString(@"Bike", @"list menu") action:NULL keyEquivalent:@""];
+    header.enabled = NO;
+    for (RABike *b in bikes) {
+        NSMenuItem *item = [menu addItemWithTitle:b.name action:@selector(setBikeOfSelectedRides:) keyEquivalent:@""];
+        item.target = self;
+        item.representedObject = b.identifier;
+        item.indentationLevel = 1;
+        item.identifier = [@"setBike." stringByAppendingString:b.identifier];
+    }
+}
+
+/// the rides a contextual menu applies to: the selection, or the clicked row when it is not selected
+- (NSArray<RARide *> *)ridesOfMenu
+{
+    NSInteger clicked = _table.clickedRow;
+    if (clicked >= 0 && ![_table.selectedRowIndexes containsIndex:(NSUInteger)clicked] && (NSUInteger)clicked < _sorted.count) {
+        return @[ _sorted[(NSUInteger)clicked] ];
+    }
+    return [self selectedRides];
+}
+
+- (IBAction)setBikeOfSelectedRides:(NSMenuItem *)sender
+{
+    NSString *bike = [sender.representedObject isKindOfClass:[NSString class]] ? sender.representedObject : @"";
+    NSArray<RARide *> *rides = [self ridesOfMenu];
+    if (rides.count) [self.library setBikeID:bike ofRides:rides];
+}
+
+- (IBAction)showEquipment:(nullable id)sender
+{
+    RALibraryDocument *library = self.library;
+    if (!library) return;
+    for (NSWindowController *wc in library.windowControllers) {
+        if ([wc isKindOfClass:[RAEquipmentWindowController class]]) {
+            [wc showWindow:self];
+            return;
+        }
+    }
+    RAEquipmentWindowController *equipment = [[RAEquipmentWindowController alloc] initWithLibrary:library];
+    [library addWindowController:equipment];
+    [equipment.window center];
+    [equipment showWindow:self];
 }
 
 #pragma mark - actions

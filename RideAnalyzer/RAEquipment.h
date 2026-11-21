@@ -1,0 +1,134 @@
+//
+//  RAEquipment.h
+//  RideAnalyzer
+//
+//  Equipment of a library (#82, R13): the rider's weight, the bikes and their parts (tyres, chain, brake pads…).
+//  A part is mounted on a bike over a time range (from a date, to a date or still mounted); a ride uses the parts
+//  mounted on its bike at its date. Used by the estimated power (R11): mass, rolling resistance (Crr of the tyres)
+//  and air drag (CdA of the bike and position). Bikes can come from the Garmin Connect gear.
+//  Saved in the library; changed through -[RALibraryDocument changeEquipment:actionName:] (undoable).
+//
+
+#import <Foundation/Foundation.h>
+
+@class RARide;
+
+NS_ASSUME_NONNULL_BEGIN
+
+typedef NS_ENUM(NSInteger, RABikeKind) {
+    RABikeRoad,
+    RABikeHybrid,       // city / trekking / fitness (e.g. Giant Rapid: flat bar)
+    RABikeGravel,
+    RABikeMountain,
+    RABikeElectric,
+};
+
+typedef NS_ENUM(NSInteger, RARidingPosition) {
+    RAPositionUpright,  // city bike
+    RAPositionFlatBar,  // hybrid, mountain bike
+    RAPositionHoods,    // road bike, hands on the hoods
+    RAPositionDrops,    // road bike, in the drops
+};
+
+typedef NS_ENUM(NSInteger, RAPartKind) {
+    RAPartTyre,
+    RAPartChain,
+    RAPartBrakePads,
+    RAPartCassette,
+    RAPartOther,
+};
+
+typedef NS_ENUM(NSInteger, RAWheel) {
+    RAWheelFront,
+    RAWheelRear,
+    RAWheelBoth,        // a pair, same tyre front and rear
+};
+
+@interface RABike : NSObject <NSCopying>
+@property (copy, nonatomic) NSString *identifier;
+@property (copy, nonatomic) NSString *name;
+@property (nonatomic) RABikeKind kind;
+@property (nonatomic) double weight;            // kg, with bottles, bags… (0: unknown → 12 kg)
+@property (nonatomic) RARidingPosition position;
+/// m²; 0: from the position (rider included)
+@property (nonatomic) double cdA;
+/// Garmin Connect gear (uuid), @"" for a bike created here
+@property (copy, nonatomic) NSString *garminGearID;
++ (NSString *)nameOfKind:(RABikeKind)kind;
++ (NSString *)nameOfPosition:(RARidingPosition)position;
+/// typical CdA (m²) of a rider in that position
++ (double)defaultCdAForPosition:(RARidingPosition)position;
+/// the position of a kind of bike by default
++ (RARidingPosition)defaultPositionForKind:(RABikeKind)kind;
+@property (readonly, nonatomic) double effectiveCdA;
+@property (readonly, nonatomic) double effectiveWeight;
+- (NSDictionary *)propertyList;
++ (nullable RABike *)bikeWithPropertyList:(nullable id)plist;
+@end
+
+/// a part on a bike from a day to a day (nil: still mounted)
+@interface RAMounting : NSObject <NSCopying>
+@property (copy, nonatomic) NSString *bikeID;
+@property (copy, nonatomic) NSDate *from;
+@property (copy, nonatomic, nullable) NSDate *to;
+/// the date falls in [from, end of the day `to`]
+- (BOOL)containsDate:(NSDate *)date;
+- (NSDictionary *)propertyList;
++ (nullable RAMounting *)mountingWithPropertyList:(nullable id)plist;
+@end
+
+@interface RAPart : NSObject <NSCopying>
+@property (copy, nonatomic) NSString *identifier;
+@property (copy, nonatomic) NSString *name;
+@property (nonatomic) RAPartKind kind;
+@property (copy, nonatomic) NSString *model;    // e.g. "Continental Grand Prix 5000"
+@property (nonatomic) double width;             // mm, tyres (0: unknown)
+@property (nonatomic) RAWheel wheel;            // tyres
+/// rolling resistance; 0: the default for the model and width
+@property (nonatomic) double crr;
+/// km after which the part is worn (0: none)
+@property (nonatomic) double wearLimit;
+/// the wear warning was shown (once per part)
+@property (nonatomic) BOOL wearWarned;
+@property (copy, nonatomic) NSArray<RAMounting *> *mountings;
+/// an estimate for a tyre, from its model (a few known tyres) or else its width
++ (double)defaultCrrForModel:(NSString *)model width:(double)width;
++ (NSString *)nameOfKind:(RAPartKind)kind;
++ (NSString *)nameOfWheel:(RAWheel)wheel;
+/// its Crr, else the default; 0 for a part that is not a tyre
+@property (readonly, nonatomic) double effectiveCrr;
+/// the bike it is on at that date, nil when not mounted
+- (nullable NSString *)bikeIDAtDate:(NSDate *)date;
+- (NSDictionary *)propertyList;
++ (nullable RAPart *)partWithPropertyList:(nullable id)plist;
+@end
+
+@interface RAEquipment : NSObject <NSCopying>
+@property (nonatomic) double riderWeight;       // kg, 0: unknown (→ 75 kg)
+@property (copy, nonatomic) NSString *defaultBikeID;   // @"" none
+@property (copy, nonatomic) NSArray<RABike *> *bikes;
+@property (copy, nonatomic) NSArray<RAPart *> *parts;
+
+- (nullable RABike *)bikeWithID:(NSString *)identifier;
+- (nullable RAPart *)partWithID:(NSString *)identifier;
+/// the bike of a ride: its own, else the default one
+- (nullable RABike *)bikeOfRide:(RARide *)ride;
+/// the parts mounted on a bike at a date
+- (NSArray<RAPart *> *)partsOfBike:(NSString *)bikeID atDate:(NSDate *)date;
+/// the rolling resistance of a bike at a date: tyres front 40 %, rear 60 % (a pair counts for both); 0.005 when
+/// no tyre is known
+- (double)crrOfBike:(NSString *)bikeID atDate:(NSDate *)date;
+@property (readonly, nonatomic) double effectiveRiderWeight;
+
+/// meters ridden: by a bike, by a part (rides on its bike while mounted)
+- (double)distanceOfBike:(NSString *)bikeID rides:(NSArray<RARide *> *)rides;
+- (double)distanceOfPart:(RAPart *)part rides:(NSArray<RARide *> *)rides;
+/// parts over their wear limit
+- (NSArray<RAPart *> *)wornPartsWithRides:(NSArray<RARide *> *)rides;
+
+- (NSDictionary *)propertyList;
++ (RAEquipment *)equipmentWithPropertyList:(nullable id)plist;
+
+@end
+
+NS_ASSUME_NONNULL_END

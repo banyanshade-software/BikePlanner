@@ -1,0 +1,398 @@
+//
+//  RAEquipment.m
+//  RideAnalyzer
+//
+
+#import "RAEquipment.h"
+#import "RARide.h"
+
+static NSString *RANewID(void)
+{
+    return [NSUUID UUID].UUIDString;
+}
+
+static NSString *RAString(id v, NSString *fallback)
+{
+    return [v isKindOfClass:[NSString class]] ? v : fallback;
+}
+
+static double RADouble(id v)
+{
+    return [v isKindOfClass:[NSNumber class]] ? [v doubleValue] : 0;
+}
+
+#pragma mark - bike
+
+@implementation RABike
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        _identifier = RANewID();
+        _name = NSLocalizedString(@"Bike", @"equipment: default name");
+        _kind = RABikeHybrid;
+        _position = RAPositionFlatBar;
+        _garminGearID = @"";
+    }
+    return self;
+}
+
+- (id)copyWithZone:(nullable NSZone *)zone
+{
+    return [RABike bikeWithPropertyList:self.propertyList];
+}
+
++ (NSString *)nameOfKind:(RABikeKind)kind
+{
+    switch (kind) {
+        case RABikeRoad: return NSLocalizedString(@"Road", @"bike kind");
+        case RABikeHybrid: return NSLocalizedString(@"Hybrid", @"bike kind");
+        case RABikeGravel: return NSLocalizedString(@"Gravel", @"bike kind");
+        case RABikeMountain: return NSLocalizedString(@"Mountain", @"bike kind");
+        case RABikeElectric: return NSLocalizedString(@"Electric", @"bike kind");
+    }
+    return @"";
+}
+
++ (NSString *)nameOfPosition:(RARidingPosition)position
+{
+    switch (position) {
+        case RAPositionUpright: return NSLocalizedString(@"Upright", @"riding position");
+        case RAPositionFlatBar: return NSLocalizedString(@"Flat bar", @"riding position");
+        case RAPositionHoods: return NSLocalizedString(@"Hoods", @"riding position");
+        case RAPositionDrops: return NSLocalizedString(@"Drops", @"riding position");
+    }
+    return @"";
+}
+
++ (double)defaultCdAForPosition:(RARidingPosition)position
+{
+    // usual values of the literature for a rider of average size (m²)
+    switch (position) {
+        case RAPositionUpright: return 0.55;
+        case RAPositionFlatBar: return 0.45;
+        case RAPositionHoods: return 0.36;
+        case RAPositionDrops: return 0.30;
+    }
+    return 0.45;
+}
+
++ (RARidingPosition)defaultPositionForKind:(RABikeKind)kind
+{
+    switch (kind) {
+        case RABikeRoad:
+        case RABikeGravel: return RAPositionHoods;
+        case RABikeHybrid:
+        case RABikeMountain: return RAPositionFlatBar;
+        case RABikeElectric: return RAPositionUpright;
+    }
+    return RAPositionFlatBar;
+}
+
+- (double)effectiveCdA
+{
+    return self.cdA > 0 ? self.cdA : [RABike defaultCdAForPosition:self.position];
+}
+
+- (double)effectiveWeight
+{
+    return self.weight > 0 ? self.weight : 12;
+}
+
+- (NSDictionary *)propertyList
+{
+    return @{ @"identifier": self.identifier, @"name": self.name, @"kind": @(self.kind), @"weight": @(self.weight),
+              @"position": @(self.position), @"cdA": @(self.cdA), @"garminGearID": self.garminGearID };
+}
+
++ (nullable RABike *)bikeWithPropertyList:(nullable id)plist
+{
+    if (![plist isKindOfClass:[NSDictionary class]] || ![plist[@"identifier"] isKindOfClass:[NSString class]]) return nil;
+    RABike *b = [[RABike alloc] init];
+    b.identifier = plist[@"identifier"];
+    b.name = RAString(plist[@"name"], b.name);
+    b.kind = (RABikeKind)MIN(MAX(RADouble(plist[@"kind"]), RABikeRoad), RABikeElectric);
+    b.weight = RADouble(plist[@"weight"]);
+    b.position = (RARidingPosition)MIN(MAX(RADouble(plist[@"position"]), RAPositionUpright), RAPositionDrops);
+    b.cdA = RADouble(plist[@"cdA"]);
+    b.garminGearID = RAString(plist[@"garminGearID"], @"");
+    return b;
+}
+
+@end
+
+#pragma mark - mounting
+
+@implementation RAMounting
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        _bikeID = @"";
+        _from = [[NSCalendar currentCalendar] startOfDayForDate:[NSDate date]];
+    }
+    return self;
+}
+
+- (id)copyWithZone:(nullable NSZone *)zone
+{
+    return [RAMounting mountingWithPropertyList:self.propertyList];
+}
+
+- (BOOL)containsDate:(NSDate *)date
+{
+    NSCalendar *cal = [NSCalendar currentCalendar];
+    if ([date compare:[cal startOfDayForDate:self.from]] == NSOrderedAscending) return NO;
+    if (self.to) {
+        NSDate *end = [cal dateByAddingUnit:NSCalendarUnitDay value:1 toDate:[cal startOfDayForDate:(NSDate *)self.to] options:0];
+        if (end && [date compare:end] != NSOrderedAscending) return NO;
+    }
+    return YES;
+}
+
+- (NSDictionary *)propertyList
+{
+    NSMutableDictionary *d = [@{ @"bikeID": self.bikeID, @"from": self.from } mutableCopy];
+    if (self.to) d[@"to"] = self.to;
+    return d;
+}
+
++ (nullable RAMounting *)mountingWithPropertyList:(nullable id)plist
+{
+    if (![plist isKindOfClass:[NSDictionary class]] || ![plist[@"from"] isKindOfClass:[NSDate class]]) return nil;
+    RAMounting *m = [[RAMounting alloc] init];
+    m.bikeID = RAString(plist[@"bikeID"], @"");
+    m.from = plist[@"from"];
+    m.to = [plist[@"to"] isKindOfClass:[NSDate class]] ? plist[@"to"] : nil;
+    return m;
+}
+
+@end
+
+#pragma mark - part
+
+@implementation RAPart
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        _identifier = RANewID();
+        _name = NSLocalizedString(@"Tyre", @"equipment: default name");
+        _model = @"";
+        _wheel = RAWheelBoth;
+        _mountings = @[];
+    }
+    return self;
+}
+
+- (id)copyWithZone:(nullable NSZone *)zone
+{
+    return [RAPart partWithPropertyList:self.propertyList];
+}
+
++ (double)defaultCrrForModel:(NSString *)model width:(double)width
+{
+    // a few known tyres (estimates from published rolling resistance tests, at usual pressures); else by width.
+    // Rough values: the user corrects them in the equipment window.
+    NSString *m = [[model lowercaseString] stringByReplacingOccurrencesOfString:@" " withString:@""];
+    NSArray<NSArray *> *known = @[ @[ @"grandprix5000", @0.0032 ], @[ @"gp5000", @0.0032 ], @[ @"corsa", @0.0033 ],
+                                   @[ @"proone", @0.0035 ], @[ @"pro4", @0.0038 ], @[ @"gravelking", @0.0045 ],
+                                   @[ @"g-one", @0.0050 ], @[ @"marathonplus", @0.0075 ], @[ @"marathon", @0.0055 ] ];
+    for (NSArray *k in known) {
+        if ([m containsString:k[0]]) return [k[1] doubleValue];
+    }
+    if (width <= 0) return 0.0050;
+    if (width <= 28) return 0.0040;
+    if (width <= 35) return 0.0045;
+    if (width <= 45) return 0.0055;
+    return 0.0070;
+}
+
++ (NSString *)nameOfKind:(RAPartKind)kind
+{
+    switch (kind) {
+        case RAPartTyre: return NSLocalizedString(@"Tyre", @"part kind");
+        case RAPartChain: return NSLocalizedString(@"Chain", @"part kind");
+        case RAPartBrakePads: return NSLocalizedString(@"Brake pads", @"part kind");
+        case RAPartCassette: return NSLocalizedString(@"Cassette", @"part kind");
+        case RAPartOther: return NSLocalizedString(@"Other", @"part kind");
+    }
+    return @"";
+}
+
++ (NSString *)nameOfWheel:(RAWheel)wheel
+{
+    switch (wheel) {
+        case RAWheelFront: return NSLocalizedString(@"Front", @"wheel");
+        case RAWheelRear: return NSLocalizedString(@"Rear", @"wheel");
+        case RAWheelBoth: return NSLocalizedString(@"Front and rear", @"wheel");
+    }
+    return @"";
+}
+
+- (double)effectiveCrr
+{
+    if (self.kind != RAPartTyre) return 0;
+    return self.crr > 0 ? self.crr : [RAPart defaultCrrForModel:self.model width:self.width];
+}
+
+- (nullable NSString *)bikeIDAtDate:(NSDate *)date
+{
+    for (RAMounting *m in self.mountings) if ([m containsDate:date]) return m.bikeID;
+    return nil;
+}
+
+- (NSDictionary *)propertyList
+{
+    return @{ @"identifier": self.identifier, @"name": self.name, @"kind": @(self.kind), @"model": self.model,
+              @"width": @(self.width), @"wheel": @(self.wheel), @"crr": @(self.crr), @"wearLimit": @(self.wearLimit),
+              @"wearWarned": @(self.wearWarned), @"mountings": [self.mountings valueForKey:@"propertyList"] };
+}
+
++ (nullable RAPart *)partWithPropertyList:(nullable id)plist
+{
+    if (![plist isKindOfClass:[NSDictionary class]] || ![plist[@"identifier"] isKindOfClass:[NSString class]]) return nil;
+    RAPart *p = [[RAPart alloc] init];
+    p.identifier = plist[@"identifier"];
+    p.name = RAString(plist[@"name"], p.name);
+    p.kind = (RAPartKind)MIN(MAX(RADouble(plist[@"kind"]), RAPartTyre), RAPartOther);
+    p.model = RAString(plist[@"model"], @"");
+    p.width = RADouble(plist[@"width"]);
+    p.wheel = (RAWheel)MIN(MAX(RADouble(plist[@"wheel"]), RAWheelFront), RAWheelBoth);
+    p.crr = RADouble(plist[@"crr"]);
+    p.wearLimit = RADouble(plist[@"wearLimit"]);
+    p.wearWarned = RADouble(plist[@"wearWarned"]) != 0;
+    NSMutableArray<RAMounting *> *mountings = [NSMutableArray array];
+    id list = plist[@"mountings"];
+    if ([list isKindOfClass:[NSArray class]]) {
+        for (id m in list) {
+            RAMounting *mounting = [RAMounting mountingWithPropertyList:m];
+            if (mounting) [mountings addObject:mounting];
+        }
+    }
+    p.mountings = mountings;
+    return p;
+}
+
+@end
+
+#pragma mark - equipment
+
+@implementation RAEquipment
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        _defaultBikeID = @"";
+        _bikes = @[];
+        _parts = @[];
+    }
+    return self;
+}
+
+- (id)copyWithZone:(nullable NSZone *)zone
+{
+    return [RAEquipment equipmentWithPropertyList:self.propertyList];
+}
+
+- (nullable RABike *)bikeWithID:(NSString *)identifier
+{
+    for (RABike *b in self.bikes) if ([b.identifier isEqualToString:identifier]) return b;
+    return nil;
+}
+
+- (nullable RAPart *)partWithID:(NSString *)identifier
+{
+    for (RAPart *p in self.parts) if ([p.identifier isEqualToString:identifier]) return p;
+    return nil;
+}
+
+- (nullable RABike *)bikeOfRide:(RARide *)ride
+{
+    return [self bikeWithID:ride.bikeID.length ? ride.bikeID : self.defaultBikeID];
+}
+
+- (NSArray<RAPart *> *)partsOfBike:(NSString *)bikeID atDate:(NSDate *)date
+{
+    NSMutableArray<RAPart *> *parts = [NSMutableArray array];
+    for (RAPart *p in self.parts) {
+        if ([[p bikeIDAtDate:date] isEqualToString:bikeID]) [parts addObject:p];
+    }
+    return parts;
+}
+
+- (double)crrOfBike:(NSString *)bikeID atDate:(NSDate *)date
+{
+    double front = 0, rear = 0;
+    for (RAPart *p in [self partsOfBike:bikeID atDate:date]) {
+        if (p.kind != RAPartTyre) continue;
+        if (p.wheel == RAWheelFront || p.wheel == RAWheelBoth) front = p.effectiveCrr;
+        if (p.wheel == RAWheelRear || p.wheel == RAWheelBoth) rear = p.effectiveCrr;
+    }
+    if (front <= 0 && rear <= 0) return 0.0050;
+    if (front <= 0) front = rear;
+    if (rear <= 0) rear = front;
+    return 0.4 * front + 0.6 * rear;     // the rear wheel carries most of the weight
+}
+
+- (double)effectiveRiderWeight
+{
+    return self.riderWeight > 0 ? self.riderWeight : 75;
+}
+
+- (double)distanceOfBike:(NSString *)bikeID rides:(NSArray<RARide *> *)rides
+{
+    double d = 0;
+    for (RARide *r in rides) if ([[self bikeOfRide:r].identifier isEqualToString:bikeID]) d += r.distance;
+    return d;
+}
+
+- (double)distanceOfPart:(RAPart *)part rides:(NSArray<RARide *> *)rides
+{
+    double d = 0;
+    for (RARide *r in rides) {
+        if (!r.startDate) continue;
+        NSString *bike = [part bikeIDAtDate:(NSDate *)r.startDate];
+        if (bike && [[self bikeOfRide:r].identifier isEqualToString:bike]) d += r.distance;
+    }
+    return d;
+}
+
+- (NSArray<RAPart *> *)wornPartsWithRides:(NSArray<RARide *> *)rides
+{
+    NSMutableArray<RAPart *> *worn = [NSMutableArray array];
+    for (RAPart *p in self.parts) {
+        if (p.wearLimit > 0 && [self distanceOfPart:p rides:rides] >= p.wearLimit * 1000) [worn addObject:p];
+    }
+    return worn;
+}
+
+- (NSDictionary *)propertyList
+{
+    return @{ @"riderWeight": @(self.riderWeight), @"defaultBikeID": self.defaultBikeID,
+              @"bikes": [self.bikes valueForKey:@"propertyList"], @"parts": [self.parts valueForKey:@"propertyList"] };
+}
+
++ (RAEquipment *)equipmentWithPropertyList:(nullable id)plist
+{
+    RAEquipment *e = [[RAEquipment alloc] init];
+    if (![plist isKindOfClass:[NSDictionary class]]) return e;
+    e.riderWeight = RADouble(plist[@"riderWeight"]);
+    e.defaultBikeID = RAString(plist[@"defaultBikeID"], @"");
+    NSMutableArray *bikes = [NSMutableArray array], *parts = [NSMutableArray array];
+    if ([plist[@"bikes"] isKindOfClass:[NSArray class]]) {
+        for (id b in plist[@"bikes"]) { RABike *bike = [RABike bikeWithPropertyList:b]; if (bike) [bikes addObject:bike]; }
+    }
+    if ([plist[@"parts"] isKindOfClass:[NSArray class]]) {
+        for (id p in plist[@"parts"]) { RAPart *part = [RAPart partWithPropertyList:p]; if (part) [parts addObject:part]; }
+    }
+    e.bikes = bikes;
+    e.parts = parts;
+    return e;
+}
+
+@end

@@ -25,6 +25,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (IBAction)cancelImport:(nullable id)sender;
 /// Window ▸ Trends (⇧⌘T): the Trends tab (R6), or back to the Ride tab
 - (IBAction)showTrends:(nullable id)sender;
+/// Window ▸ Equipment (⇧⌘E): the equipment window of the library (R13)
+- (IBAction)showEquipment:(nullable id)sender;
+/// the bike of the rides of the contextual menu of the list (R13); representedObject: the bike identifier
+- (IBAction)setBikeOfSelectedRides:(NSMenuItem *)sender;
 /// Window ▸ Map of the Rides (⇧⌘M): the Map tab (R10), or back to the Ride tab
 - (IBAction)showRidesMap:(nullable id)sender;
 /// Edit ▸ Find… (⌘F): the search field (name, notes, tags; R3)

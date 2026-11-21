@@ -261,6 +261,30 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
 - Not yet: the roads **never ridden** (needs the road network around: Overpass, as BikePlanner's POIs, or the
   BRouter segments; to be designed), a click on a track to select its ride, BikePlanner's base maps.
 
+## Equipment (2026-11-21, R13)
+- **Model** (`RAEquipment`, saved in the library): the rider's weight (75 kg when unknown), the default bike, the
+  bikes (`RABike`: name, kind — road, hybrid, gravel, mountain, electric —, weight, riding position — upright, flat
+  bar, hoods, drops —, CdA: typical value of the position, 0.55 / 0.45 / 0.36 / 0.30 m², unless corrected; Garmin gear
+  id) and the parts (`RAPart`: tyre, chain, brake pads, cassette, other; model; width and wheel — front, rear, both —
+  of a tyre; Crr; wear limit; mountings `RAMounting`: bike, from a day, to a day or still mounted).
+- **Crr of a tyre**: corrected by the user, else an estimate — a few known tyres (GP5000 0.0032, Marathon Plus 0.0075,
+  Marathon 0.0055…), else by width (≤ 28 mm 0.0040 … > 45 mm 0.0070). Crr of a bike at a date: front tyre 40 %, rear
+  60 % (`crrOfBike:atDate:`), 0.005 when no tyre is known. Rough values to check against published tests.
+- **Rides and bikes**: `RARide.bikeID`; a new ride gets the default bike; setting a default bike gives it to the rides
+  without one (same undoable change); contextual menu of the list *Bike ▸ …*; a *Bike* column; the filter has a
+  bike criterion (pop-up of the sidebar; `RAFilter.bikeIDs`).
+- **Distances and wear**: per bike, per part (the rides on its bike while it is mounted); a part over its limit is
+  shown in the equipment window, and an alert after an import names it (once per part, `takeNewlyWornParts`).
+- **Window** (Window ▸ Equipment, ⇧⌘E, toolbar "Equipment"; `RAEquipmentWindowController`): rider weight, default
+  bike, tables of the bikes and parts (edited in place; Crr and CdA show their default in gray when empty). Changing
+  the bike of a part already ridden moves it from today (its mounting ends yesterday); for a part never ridden it is
+  a correction. Every change is undoable (`changeEquipment:actionName:` replaces the whole equipment).
+- **Garmin Connect gear**: *Import Bikes from Garmin Connect* (`gearWithCompletion:`, the bikes not yet imported).
+  TO CHECK against the real service: the endpoint (`gear-service/gear/filterGear`, the one of the Connect web app,
+  maybe not open to the Personal API) and the fields.
+- Not yet: the mounting history of a part beyond its last mounting (edited in the table), the bike criterion in the
+  filter sheet (More…), a bike per device (e.g. the watch for commuting).
+
 ## Handoff (2026-11-21): written without Xcode, never compiled
 The skeleton and the imports were written in a session without Xcode. First steps on the owner's Mac (Claude Code):
 1. `git checkout ride_analyzer && git pull`.

@@ -152,6 +152,9 @@
 		25EA8B3584E075B4C6366F4F /* RAHeatmap.m in Sources */ = {isa = PBXBuildFile; fileRef = BD32D406FC603FCE10CDE874 /* RAHeatmap.m */; };
 		8C57CB9EA014B1EEAD1A20E9 /* RARidesMapViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D1BAC8D33B6B2CED5C66589E /* RARidesMapViewController.m */; };
 		5E90332947A9950E3876EC69 /* RAHeatmapTests.m in Sources */ = {isa = PBXBuildFile; fileRef = E9C8622B153ABE3113ED5223 /* RAHeatmapTests.m */; };
+		1483C13CD46541E1EF31DDE9 /* RAEquipment.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FD9CA3C79D05AC96C6615DF /* RAEquipment.m */; };
+		2897663D4CAEC4AF268CF2FE /* RAEquipmentWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = B83A26362E90044E8EFEBCEB /* RAEquipmentWindowController.m */; };
+		0D8BC4DC8E77C9FE1C0D5053 /* RAEquipmentTests.m in Sources */ = {isa = PBXBuildFile; fileRef = EB0926EFAB0D9070A5696BFA /* RAEquipmentTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -415,6 +418,11 @@
 		D1BAC8D33B6B2CED5C66589E /* RARidesMapViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RARidesMapViewController.m; sourceTree = "<group>"; };
 		21B092D268F184F352A37895 /* RARidesMapViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RARidesMapViewController.h; sourceTree = "<group>"; };
 		E9C8622B153ABE3113ED5223 /* RAHeatmapTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAHeatmapTests.m; sourceTree = "<group>"; };
+		4FD9CA3C79D05AC96C6615DF /* RAEquipment.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAEquipment.m; sourceTree = "<group>"; };
+		D12AE958ED44A5B38B6C5D0C /* RAEquipment.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAEquipment.h; sourceTree = "<group>"; };
+		B83A26362E90044E8EFEBCEB /* RAEquipmentWindowController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAEquipmentWindowController.m; sourceTree = "<group>"; };
+		604D1D172AE42DA1A02305C2 /* RAEquipmentWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAEquipmentWindowController.h; sourceTree = "<group>"; };
+		EB0926EFAB0D9070A5696BFA /* RAEquipmentTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAEquipmentTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -752,6 +760,10 @@
 				462CB29BB8E83648304B4D83 /* RAHeatmap.h */,
 				D1BAC8D33B6B2CED5C66589E /* RARidesMapViewController.m */,
 				21B092D268F184F352A37895 /* RARidesMapViewController.h */,
+				4FD9CA3C79D05AC96C6615DF /* RAEquipment.m */,
+				D12AE958ED44A5B38B6C5D0C /* RAEquipment.h */,
+				B83A26362E90044E8EFEBCEB /* RAEquipmentWindowController.m */,
+				604D1D172AE42DA1A02305C2 /* RAEquipmentWindowController.h */,
 			);
 			path = RideAnalyzer;
 			sourceTree = "<group>";
@@ -770,6 +782,7 @@
 				25C4F5C4C635CD31DE9553C6 /* RATrendsTests.m */,
 				1874311C204525C02852888A /* RALibraryKeyTests.m */,
 				E9C8622B153ABE3113ED5223 /* RAHeatmapTests.m */,
+				EB0926EFAB0D9070A5696BFA /* RAEquipmentTests.m */,
 			);
 			path = RideAnalyzerTests;
 			sourceTree = "<group>";
@@ -1193,6 +1206,8 @@
 				2ED0086EA66AD77E754B9C0C /* RARangeSlider.m in Sources */,
 				25EA8B3584E075B4C6366F4F /* RAHeatmap.m in Sources */,
 				8C57CB9EA014B1EEAD1A20E9 /* RARidesMapViewController.m in Sources */,
+				1483C13CD46541E1EF31DDE9 /* RAEquipment.m in Sources */,
+				2897663D4CAEC4AF268CF2FE /* RAEquipmentWindowController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1211,6 +1226,7 @@
 				B33E7D3F43F04B77AD5C0116 /* RATrendsTests.m in Sources */,
 				066B133258EFEF640586D547 /* RALibraryKeyTests.m in Sources */,
 				5E90332947A9950E3876EC69 /* RAHeatmapTests.m in Sources */,
+				0D8BC4DC8E77C9FE1C0D5053 /* RAEquipmentTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
