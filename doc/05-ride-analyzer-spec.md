@@ -5,6 +5,9 @@ Branch `ride_analyzer`, from `v10`. Each feature below is proposed, then accepte
 
 Status: **draft** — feature list reviewed with the owner on 2026-11-21 (R1–R15); no design yet.
 
+Mockup (2026-11-21): `doc/05-ride-analyzer-mockup.pdf` — library and ride detail (R1–R5, R7, R11–R13, R15), trends
+(R6). Sample names and figures are invented.
+
 ## Features
 
 ### R1 — Fetch rides from Garmin Connect *(accepted 2026-11-21)*
