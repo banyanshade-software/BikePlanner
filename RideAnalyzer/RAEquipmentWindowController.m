@@ -7,6 +7,8 @@
 #import "RAEquipment.h"
 #import "RALibraryDocument.h"
 #import "RARide.h"
+#import "RATyreDatabase.h"
+#import "RATyreDatabaseWindowController.h"
 
 @interface RAEquipmentWindowController () <NSTableViewDataSource, NSTableViewDelegate>
 @end
@@ -17,6 +19,7 @@
     NSNumberFormatter *_number;
     NSDateFormatter *_day;
     NSTextField *_status;
+    RATyreDatabaseWindowController *_tyreDatabase;
 }
 
 - (instancetype)initWithLibrary:(RALibraryDocument *)library
@@ -111,9 +114,13 @@
     NSStackView *top = [NSStackView stackViewWithViews:@[
         [NSTextField labelWithString:NSLocalizedString(@"Rider weight:", @"equipment")], _riderWeightField,
         [NSTextField labelWithString:NSLocalizedString(@"kg", @"unit")],
-        [NSTextField labelWithString:NSLocalizedString(@"Default bike:", @"equipment")], _defaultBikePopup ]];
+        [NSTextField labelWithString:NSLocalizedString(@"Default bike:", @"equipment")], _defaultBikePopup,
+        [NSButton buttonWithTitle:NSLocalizedString(@"Tyre Database…", @"equipment") target:self
+                           action:@selector(showTyreDatabase:)] ]];
+    top.views.lastObject.identifier = @"showTyreDatabase";
     top.spacing = 6;
     [top setCustomSpacing:24 afterView:top.views[2]];
+    [top setCustomSpacing:24 afterView:_defaultBikePopup];
 
     _bikesTable = [self tableWithIdentifier:@"bikes" columns:@[
         @[ @"name", NSLocalizedString(@"Bike", @"column"), @180 ],
@@ -136,7 +143,8 @@
         @[ @"wearLimit", NSLocalizedString(@"Worn at (km)", @"column"), @80 ] ]];
 
     NSTextField *help = [NSTextField wrappingLabelWithString:NSLocalizedString(
-        @"Crr: rolling resistance of a tyre; empty, the value shown in gray is estimated from the model or the width. "
+        @"Crr: rolling resistance of a tyre; empty, the value shown in gray comes from the tyre database (published "
+        @"tests, Tyre Database…) for its model, else from its width. "
         @"CdA: air drag of bike and rider; empty, from the riding position. To: empty while the part is mounted. "
         @"Choosing another bike for a part already ridden moves it from today.", @"equipment")];
     help.textColor = [NSColor secondaryLabelColor];
@@ -288,7 +296,25 @@
             NSMutableArray *t = [NSMutableArray array], *v = [NSMutableArray array];
             for (NSInteger k = RAPartTyre; k <= RAPartOther; k++) { [t addObject:[RAPart nameOfKind:k]]; [v addObject:@(k)]; }
             view = [self popup:t values:v selected:@(p.kind)];
-        } else if ([c isEqualToString:@"model"]) view = [self field:p.model placeholder:nil editable:YES];
+        } else if ([c isEqualToString:@"model"]) {
+            if (tyre) {
+                // the tyres of the database to choose from, or any text
+                NSComboBox *box = [[NSComboBox alloc] init];
+                box.bordered = NO;
+                box.drawsBackground = NO;
+                box.completes = YES;
+                box.numberOfVisibleItems = 15;
+                box.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+                [box addItemsWithObjectValues:[[RATyreDatabase shared].tyres valueForKey:@"displayName"]];
+                box.stringValue = p.model;
+                box.placeholderString = NSLocalizedString(@"Model (database or any)", @"equipment");
+                box.target = self;
+                box.action = @selector(cellEdited:);
+                view = box;
+            } else {
+                view = [self field:p.model placeholder:nil editable:YES];
+            }
+        }
         else if ([c isEqualToString:@"width"]) view = tyre ? [self field:[self format:p.width] placeholder:nil editable:YES] : nil;
         else if ([c isEqualToString:@"wheel"]) {
             if (tyre) {
@@ -297,8 +323,15 @@
                 view = [self popup:t values:v selected:@(p.wheel)];
             }
         } else if ([c isEqualToString:@"crr"]) {
-            view = tyre ? [self field:[self format:p.crr]
-                          placeholder:[self format:[RAPart defaultCrrForModel:p.model width:p.width]] editable:YES] : nil;
+            if (tyre) {
+                NSTextField *f = [self field:[self format:p.crr]
+                                 placeholder:[self format:[RAPart defaultCrrForModel:p.model width:p.width]] editable:YES];
+                RATyre *known = [[RATyreDatabase shared] tyreMatchingModel:p.model width:p.width];
+                f.toolTip = known ? [NSString stringWithFormat:NSLocalizedString(@"Default: %@, %@ (%@)", @"equipment: Crr source"),
+                                     known.displayName, known.pressure, known.source]
+                                  : NSLocalizedString(@"Default: estimate from the width", @"equipment: Crr source");
+                view = f;
+            }
         } else if ([c isEqualToString:@"bike"]) {
             NSMutableArray *values = [NSMutableArray array];
             NSArray *titles = [self bikeTitles:YES values:values];
@@ -383,7 +416,19 @@
             NSString *s = [[value description] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
             if (s.length) p.name = s;
         } else if ([column isEqualToString:@"kind"]) p.kind = (RAPartKind)[value integerValue];
-        else if ([column isEqualToString:@"model"]) p.model = [value description] ?: @"";
+        else if ([column isEqualToString:@"model"]) {
+            NSString *text = [value description] ?: @"";
+            RATyre *chosen = nil;
+            for (RATyre *t in [RATyreDatabase shared].tyres) if ([t.displayName isEqualToString:text]) chosen = t;
+            if (chosen) {           // a tyre of the database: its name and width, its Crr by default
+                p.model = chosen.variant.length ? [NSString stringWithFormat:@"%@ %@", chosen.name, chosen.variant] : chosen.name;
+                p.width = chosen.width;
+                p.crr = 0;
+                if ([p.name isEqualToString:[RAPart nameOfKind:RAPartTyre]]) p.name = chosen.model;
+            } else {
+                p.model = text;
+            }
+        }
         else if ([column isEqualToString:@"width"]) p.width = [self numberOf:value];
         else if ([column isEqualToString:@"wheel"]) p.wheel = (RAWheel)[value integerValue];
         else if ([column isEqualToString:@"crr"]) p.crr = [self numberOf:value];
@@ -434,6 +479,30 @@
     NSString *bike = _defaultBikePopup.selectedItem.representedObject ?: @"";
     [_library changeEquipment:^(RAEquipment *e) { e.defaultBikeID = bike; }
                    actionName:NSLocalizedString(@"Default Bike", @"undo action name")];
+}
+
+- (IBAction)showTyreDatabase:(nullable id)sender
+{
+    if (!_tyreDatabase) {
+        _tyreDatabase = [[RATyreDatabaseWindowController alloc] initWithDatabase:[RATyreDatabase shared]];
+        __weak RAEquipmentWindowController *weakSelf = self;
+        _tyreDatabase.useHandler = ^(RATyre *tyre) { [weakSelf useTyre:tyre]; };
+        [_tyreDatabase.window center];
+    }
+    [_tyreDatabase showWindow:self];
+}
+
+/// the tyre of the database for the part selected in the parts table (a new tyre part if none is selected)
+- (void)useTyre:(RATyre *)tyre
+{
+    NSInteger row = _partsTable.selectedRow;
+    RAEquipment *e = [self equipment];
+    if (row < 0 || (NSUInteger)row >= e.parts.count || e.parts[(NSUInteger)row].kind != RAPartTyre) {
+        [self addPart:self];
+        row = (NSInteger)[self equipment].parts.count - 1;
+        [_partsTable selectRowIndexes:[NSIndexSet indexSetWithIndex:(NSUInteger)row] byExtendingSelection:NO];
+    }
+    [self setValue:tyre.displayName forColumn:@"model" ofPartAtRow:row];
 }
 
 - (IBAction)addBike:(nullable id)sender

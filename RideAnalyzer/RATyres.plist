@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>note</key>
+	<string>Rolling resistance coefficients from published tests (bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre); Crr = watts / (speed × load)). Drum tests on a smooth surface: real roads give higher values. Values change with pressure, width and tube; check and correct them per tyre in the equipment window. Collected on 2026-11-21.</string>
+	<key>tyres</key>
+	<array>
+		<dict>
+			<key>brand</key>
+			<string>Continental</string>
+			<key>category</key>
+			<string>road</string>
+			<key>crr</key>
+			<real>0.00363</real>
+			<key>model</key>
+			<string>Grand Prix 5000</string>
+			<key>pressure</key>
+			<string>80 psi / 5.5 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>25</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Continental</string>
+			<key>category</key>
+			<string>road</string>
+			<key>crr</key>
+			<real>0.00297</real>
+			<key>model</key>
+			<string>Grand Prix 5000 TL</string>
+			<key>pressure</key>
+			<string>80 psi / 5.5 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>25</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Continental</string>
+			<key>category</key>
+			<string>road</string>
+			<key>crr</key>
+			<real>0.0042</real>
+			<key>model</key>
+			<string>Grand Prix (2014)</string>
+			<key>pressure</key>
+			<string>120 psi / 8.3 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>25</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Michelin</string>
+			<key>category</key>
+			<string>road</string>
+			<key>crr</key>
+			<real>0.00453</real>
+			<key>model</key>
+			<string>Power Road</string>
+			<key>pressure</key>
+			<string>80 psi / 5.5 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>25</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Michelin</string>
+			<key>category</key>
+			<string>road</string>
+			<key>crr</key>
+			<real>0.00318</real>
+			<key>model</key>
+			<string>Power Time Trial</string>
+			<key>pressure</key>
+			<string>80 psi / 5.5 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>25</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Michelin</string>
+			<key>category</key>
+			<string>road</string>
+			<key>crr</key>
+			<real>0.00408</real>
+			<key>model</key>
+			<string>Power Competition</string>
+			<key>pressure</key>
+			<string>80 psi / 5.5 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>25</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Michelin</string>
+			<key>category</key>
+			<string>road</string>
+			<key>crr</key>
+			<real>0.00537</real>
+			<key>model</key>
+			<string>Power Endurance</string>
+			<key>pressure</key>
+			<string>80 psi / 5.5 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>25</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Schwalbe</string>
+			<key>category</key>
+			<string>touring</string>
+			<key>crr</key>
+			<real>0.00764</real>
+			<key>model</key>
+			<string>Marathon Plus</string>
+			<key>pressure</key>
+			<string>60 psi / 4.1 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>37</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Schwalbe</string>
+			<key>category</key>
+			<string>touring</string>
+			<key>crr</key>
+			<real>0.00638</real>
+			<key>model</key>
+			<string>Marathon</string>
+			<key>pressure</key>
+			<string>60 psi / 4.1 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>variant</key>
+			<string>GreenGuard</string>
+			<key>width</key>
+			<integer>37</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Schwalbe</string>
+			<key>category</key>
+			<string>touring</string>
+			<key>crr</key>
+			<real>0.00555</real>
+			<key>model</key>
+			<string>Marathon Efficiency</string>
+			<key>pressure</key>
+			<string>60 psi / 4.1 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>37</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Schwalbe</string>
+			<key>category</key>
+			<string>touring</string>
+			<key>crr</key>
+			<real>0.00677</real>
+			<key>model</key>
+			<string>Marathon Racer</string>
+			<key>pressure</key>
+			<string>75 psi / 5.2 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>37</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Schwalbe</string>
+			<key>category</key>
+			<string>touring</string>
+			<key>crr</key>
+			<real>0.00764</real>
+			<key>model</key>
+			<string>Marathon E-Plus</string>
+			<key>pressure</key>
+			<string>75 psi / 5.2 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>37</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Schwalbe</string>
+			<key>category</key>
+			<string>touring</string>
+			<key>crr</key>
+			<real>0.00644</real>
+			<key>model</key>
+			<string>Energizer Plus</string>
+			<key>pressure</key>
+			<string>60 psi / 4.1 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>37</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Continental</string>
+			<key>category</key>
+			<string>touring</string>
+			<key>crr</key>
+			<real>0.00653</real>
+			<key>model</key>
+			<string>Sport Contact II</string>
+			<key>pressure</key>
+			<string>54 psi / 3.7 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>37</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Panaracer</string>
+			<key>category</key>
+			<string>gravel</string>
+			<key>crr</key>
+			<real>0.00566</real>
+			<key>model</key>
+			<string>GravelKing TLC</string>
+			<key>pressure</key>
+			<string>high pressure for the width</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>32</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Panaracer</string>
+			<key>category</key>
+			<string>gravel</string>
+			<key>crr</key>
+			<real>0.00494</real>
+			<key>model</key>
+			<string>GravelKing TLC</string>
+			<key>pressure</key>
+			<string>high pressure for the width</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>35</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Panaracer</string>
+			<key>category</key>
+			<string>gravel</string>
+			<key>crr</key>
+			<real>0.0051</real>
+			<key>model</key>
+			<string>GravelKing TLC</string>
+			<key>pressure</key>
+			<string>36 psi / 2.6 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>40</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Panaracer</string>
+			<key>category</key>
+			<string>gravel</string>
+			<key>crr</key>
+			<real>0.00759</real>
+			<key>model</key>
+			<string>GravelKing SS Plus TLC</string>
+			<key>pressure</key>
+			<string>high pressure for the width</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>40</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Schwalbe</string>
+			<key>category</key>
+			<string>gravel</string>
+			<key>crr</key>
+			<real>0.00779</real>
+			<key>model</key>
+			<string>G-One Allround</string>
+			<key>pressure</key>
+			<string>36 psi / 2.6 bar</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>40</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Schwalbe</string>
+			<key>category</key>
+			<string>gravel</string>
+			<key>crr</key>
+			<real>0.00738</real>
+			<key>model</key>
+			<string>G-One Speed</string>
+			<key>pressure</key>
+			<string>high pressure for the width</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>40</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Schwalbe</string>
+			<key>category</key>
+			<string>gravel</string>
+			<key>crr</key>
+			<real>0.00467</real>
+			<key>model</key>
+			<string>G-One RS Super Race</string>
+			<key>pressure</key>
+			<string>high pressure for the width</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>35</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Schwalbe</string>
+			<key>category</key>
+			<string>gravel</string>
+			<key>crr</key>
+			<real>0.00482</real>
+			<key>model</key>
+			<string>G-One RS Super Race</string>
+			<key>pressure</key>
+			<string>high pressure for the width</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>40</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Schwalbe</string>
+			<key>category</key>
+			<string>gravel</string>
+			<key>crr</key>
+			<real>0.00467</real>
+			<key>model</key>
+			<string>G-One RS Pro</string>
+			<key>pressure</key>
+			<string>high pressure for the width</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>40</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Schwalbe</string>
+			<key>category</key>
+			<string>gravel</string>
+			<key>crr</key>
+			<real>0.00595</real>
+			<key>model</key>
+			<string>G-One Overland</string>
+			<key>pressure</key>
+			<string>high pressure for the width</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>50</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Continental</string>
+			<key>category</key>
+			<string>gravel</string>
+			<key>crr</key>
+			<real>0.0053</real>
+			<key>model</key>
+			<string>Terra Speed TR</string>
+			<key>pressure</key>
+			<string>high pressure for the width</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>40</integer>
+		</dict>
+		<dict>
+			<key>brand</key>
+			<string>Continental</string>
+			<key>category</key>
+			<string>gravel</string>
+			<key>crr</key>
+			<real>0.00488</real>
+			<key>model</key>
+			<string>Terra Speed TR</string>
+			<key>pressure</key>
+			<string>high pressure for the width</string>
+			<key>source</key>
+			<string>bicyclerollingresistance.com (drum test, 29 km/h, 42.5 kg per tyre)</string>
+			<key>width</key>
+			<integer>45</integer>
+		</dict>
+	</array>
+</dict>
+</plist>

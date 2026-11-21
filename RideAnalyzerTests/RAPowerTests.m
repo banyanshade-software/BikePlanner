@@ -89,7 +89,7 @@
     RARide *ride = [[RARide alloc] initWithTrace:RATrace(@[ @1, @2 ], 0) name:@"r"];
     RAPowerModel *model = [RAPowerModel modelForRide:ride equipment:e];
     XCTAssertEqualWithAccuracy(model.mass, 88, 1e-9);
-    XCTAssertEqualWithAccuracy(model.crr, 0.0032, 1e-6);
+    XCTAssertEqualWithAccuracy(model.crr, 0.00363, 1e-6);
     XCTAssertEqualWithAccuracy(model.cdA, 0.45, 1e-9);
     RAPowerModel *none = [RAPowerModel modelForRide:ride equipment:nil];
     XCTAssertEqualWithAccuracy(none.mass, 87, 1e-9, @"75 kg rider, 12 kg bike");

@@ -13,7 +13,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@class RALibraryDocument;
+@class RALibraryDocument, RATyre;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -25,6 +25,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (IBAction)removeBike:(nullable id)sender;
 - (IBAction)addPart:(nullable id)sender;
 - (IBAction)removePart:(nullable id)sender;
+/// the tyre database (published Crr): its window, whose "Use" gives a tyre to the selected part
+- (IBAction)showTyreDatabase:(nullable id)sender;
+/// gives a tyre of the database to the selected part (a new tyre part when none is selected)
+- (void)useTyre:(RATyre *)tyre;
 
 // for tests
 @property (readonly, nonatomic) NSTableView *bikesTable;

@@ -160,6 +160,9 @@
 		39D203BBD5E84F15871D4FB6 /* RAClimbs.m in Sources */ = {isa = PBXBuildFile; fileRef = 081AC968F901C36596E5764C /* RAClimbs.m */; };
 		41779B77A7BC37724772E60F /* RAClimbsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 7C171131EE687BF21C235BC0 /* RAClimbsViewController.m */; };
 		081D0959DD7866DA04BCB18D /* RAClimbsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 16DFAE8F443E374F1018EE88 /* RAClimbsTests.m */; };
+		6204968BF1BFCD1358B1C555 /* RATyreDatabase.m in Sources */ = {isa = PBXBuildFile; fileRef = BD0072266394FA3D9B91155D /* RATyreDatabase.m */; };
+		80721E15E0FC4F986C996889 /* RATyres.plist in Resources */ = {isa = PBXBuildFile; fileRef = C43CE0C3717AEC9C9A8BE7DF /* RATyres.plist */; };
+		9B01BBB2C04DB2C8CE4A5CCD /* RATyreDatabaseWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 93F0647CA0D3B34A38103341 /* RATyreDatabaseWindowController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -436,6 +439,11 @@
 		7C171131EE687BF21C235BC0 /* RAClimbsViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAClimbsViewController.m; sourceTree = "<group>"; };
 		535D96B44A8110C22CB1D411 /* RAClimbsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAClimbsViewController.h; sourceTree = "<group>"; };
 		16DFAE8F443E374F1018EE88 /* RAClimbsTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAClimbsTests.m; sourceTree = "<group>"; };
+		BD0072266394FA3D9B91155D /* RATyreDatabase.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATyreDatabase.m; sourceTree = "<group>"; };
+		D906A6E326D00FB21DC800DA /* RATyreDatabase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATyreDatabase.h; sourceTree = "<group>"; };
+		C43CE0C3717AEC9C9A8BE7DF /* RATyres.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = RATyres.plist; sourceTree = "<group>"; };
+		93F0647CA0D3B34A38103341 /* RATyreDatabaseWindowController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATyreDatabaseWindowController.m; sourceTree = "<group>"; };
+		539CEACA3F8A8C18FB111B90 /* RATyreDatabaseWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATyreDatabaseWindowController.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -783,6 +791,11 @@
 				C7EB0CB4AD95C2724A9DB81D /* RAClimbs.h */,
 				7C171131EE687BF21C235BC0 /* RAClimbsViewController.m */,
 				535D96B44A8110C22CB1D411 /* RAClimbsViewController.h */,
+				BD0072266394FA3D9B91155D /* RATyreDatabase.m */,
+				D906A6E326D00FB21DC800DA /* RATyreDatabase.h */,
+				C43CE0C3717AEC9C9A8BE7DF /* RATyres.plist */,
+				93F0647CA0D3B34A38103341 /* RATyreDatabaseWindowController.m */,
+				539CEACA3F8A8C18FB111B90 /* RATyreDatabaseWindowController.h */,
 			);
 			path = RideAnalyzer;
 			sourceTree = "<group>";
@@ -1018,6 +1031,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DC4D5510E3FCE2E2A9E01D45 /* Assets.xcassets in Resources */,
+				80721E15E0FC4F986C996889 /* RATyres.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1232,6 +1246,8 @@
 				A2289E31E29550C6F45418D1 /* RAPower.m in Sources */,
 				39D203BBD5E84F15871D4FB6 /* RAClimbs.m in Sources */,
 				41779B77A7BC37724772E60F /* RAClimbsViewController.m in Sources */,
+				6204968BF1BFCD1358B1C555 /* RATyreDatabase.m in Sources */,
+				9B01BBB2C04DB2C8CE4A5CCD /* RATyreDatabaseWindowController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

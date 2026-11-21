@@ -269,9 +269,19 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   bar, hoods, drops —, CdA: typical value of the position, 0.55 / 0.45 / 0.36 / 0.30 m², unless corrected; Garmin gear
   id) and the parts (`RAPart`: tyre, chain, brake pads, cassette, other; model; width and wheel — front, rear, both —
   of a tyre; Crr; wear limit; mountings `RAMounting`: bike, from a day, to a day or still mounted).
-- **Crr of a tyre**: corrected by the user, else an estimate — a few known tyres (GP5000 0.0032, Marathon Plus 0.0075,
-  Marathon 0.0055…), else by width (≤ 28 mm 0.0040 … > 45 mm 0.0070). Crr of a bike at a date: front tyre 40 %, rear
-  60 % (`crrOfBike:atDate:`), 0.005 when no tyre is known. Rough values to check against published tests.
+- **Crr of a tyre**: corrected by the user, else the value of its model in the **tyre database** (owner's request),
+  else an estimate by width (≤ 28 mm 0.0040 … > 45 mm 0.0070). Crr of a bike at a date: front tyre 40 %, rear 60 %
+  (`crrOfBike:atDate:`), 0.005 when no tyre is known.
+- **Tyre database** (`RATyreDatabase`, resource `RideAnalyzer/RATyres.plist`): 26 tyres (road, touring, gravel:
+  Continental, Michelin, Schwalbe, Panaracer) with the Crr of the published drum tests of bicyclerollingresistance.com
+  (29 km/h, 42.5 kg per tyre; Crr = watts / (speed × load)), the test width and pressure (collected 2026-11-21, from
+  the figures quoted in search results). A model written by the user is matched to it ("GP5000" = Grand Prix 5000,
+  the most specific name, then the nearest width). In the equipment window the model of a tyre is a combo box of the
+  database (choosing one sets the model and width, the Crr then comes from the database; the tooltip of the Crr tells
+  where the default comes from), and *Tyre Database…* opens a searchable table (`RATyreDatabaseWindowController`)
+  whose *Use for Selected Part* gives a tyre to the selected part. Drum values on a smooth surface: real roads give
+  more; the user corrects a tyre's Crr if needed. To add tyres: edit `RATyres.plist` (brand, model, variant, width,
+  crr, pressure, category, source).
 - **Rides and bikes**: `RARide.bikeID`; a new ride gets the default bike; setting a default bike gives it to the rides
   without one (same undoable change); contextual menu of the list *Bike ▸ …*; a *Bike* column; the filter has a
   bike criterion (pop-up of the sidebar; `RAFilter.bikeIDs`).

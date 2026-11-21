@@ -10,6 +10,8 @@
 #import "RAEquipment.h"
 #import "RAEquipmentWindowController.h"
 #import "RARideDetailController.h"
+#import "RATyreDatabase.h"
+#import "RATyreDatabaseWindowController.h"
 #import "RALibraryDocument.h"
 #import "RAFilter.h"
 #import "RARide.h"
@@ -55,9 +57,9 @@
 
 - (void)testDefaults
 {
-    XCTAssertEqualWithAccuracy([RAPart defaultCrrForModel:@"Continental Grand Prix 5000" width:28], 0.0032, 1e-6);
-    XCTAssertEqualWithAccuracy([RAPart defaultCrrForModel:@"GP5000" width:0], 0.0032, 1e-6);
-    XCTAssertEqualWithAccuracy([RAPart defaultCrrForModel:@"Schwalbe Marathon Plus" width:40], 0.0075, 1e-6);
+    XCTAssertEqualWithAccuracy([RAPart defaultCrrForModel:@"Continental Grand Prix 5000" width:28], 0.00363, 1e-6);
+    XCTAssertEqualWithAccuracy([RAPart defaultCrrForModel:@"GP5000" width:0], 0.00363, 1e-6);
+    XCTAssertEqualWithAccuracy([RAPart defaultCrrForModel:@"Schwalbe Marathon Plus" width:40], 0.00764, 1e-6);
     XCTAssertEqualWithAccuracy([RAPart defaultCrrForModel:@"" width:25], 0.0040, 1e-6, @"by width");
     XCTAssertEqualWithAccuracy([RAPart defaultCrrForModel:@"" width:50], 0.0070, 1e-6);
     RAPart *chain = [[RAPart alloc] init];
@@ -65,7 +67,7 @@
     XCTAssertEqual(chain.effectiveCrr, 0);
     RAPart *tyre = [[RAPart alloc] init];
     tyre.model = @"GP5000";
-    XCTAssertEqualWithAccuracy(tyre.effectiveCrr, 0.0032, 1e-6);
+    XCTAssertEqualWithAccuracy(tyre.effectiveCrr, 0.00363, 1e-6);
     tyre.crr = 0.004;
     XCTAssertEqualWithAccuracy(tyre.effectiveCrr, 0.004, 1e-9, @"corrected by the user");
 
@@ -99,9 +101,9 @@
     rear.mountings = @[ [self mountingOn:giant.identifier from:[self day:2025 month:1 day:1] to:nil] ];
     e.parts = @[ oldFront, front, rear ];
 
-    XCTAssertEqualWithAccuracy([e crrOfBike:giant.identifier atDate:[self day:2026 month:8 day:15]], 0.0075, 1e-6);
+    XCTAssertEqualWithAccuracy([e crrOfBike:giant.identifier atDate:[self day:2026 month:8 day:15]], 0.00764, 1e-6);
     XCTAssertEqualWithAccuracy([e crrOfBike:giant.identifier atDate:[self day:2026 month:11 day:15]],
-                               0.4 * 0.0032 + 0.6 * 0.0075, 1e-6);
+                               0.4 * 0.00363 + 0.6 * 0.00764, 1e-6);
     XCTAssertEqualWithAccuracy([e crrOfBike:giant.identifier atDate:[self day:2024 month:6 day:1]], 0.005, 1e-9,
                                @"no tyre known yet");
     XCTAssertEqual([e partsOfBike:giant.identifier atDate:[self day:2026 month:9 day:30]].count, 2u, @"the last day counts");
@@ -210,7 +212,7 @@
     RAPart *part = doc.equipment.parts[0];
     XCTAssertEqualObjects(part.mountings.firstObject.bikeID, bike.identifier, @"mounted on the selected bike");
     [wc setValue:@"GP5000" forColumn:@"model" ofPartAtRow:0];
-    XCTAssertEqualWithAccuracy(doc.equipment.parts[0].effectiveCrr, 0.0032, 1e-6);
+    XCTAssertEqualWithAccuracy(doc.equipment.parts[0].effectiveCrr, 0.00363, 1e-6);
 
     // moved to another bike: never ridden there (mounted today) → a correction
     [wc addBike:self];
@@ -257,6 +259,56 @@
     XCTAssertEqualObjects(ride.bikeID, road.identifier);
     [detail refreshRideInfo];
     XCTAssertFalse([equipment.stringValue containsString:@"GP5000"], @"no tyre known on the other bike");
+}
+
+// the tyre database (owner's request): published Crr per tyre, the default Crr of a tyre part
+- (void)testTyreDatabase
+{
+    RATyreDatabase *db = [RATyreDatabase shared];
+    XCTAssertGreaterThanOrEqual(db.tyres.count, 20u, @"RATyres.plist in the app's resources");
+    XCTAssertTrue(db.note.length > 0);
+    XCTAssertEqualObjects([db tyreMatchingModel:@"GP5000" width:25].name, @"Continental Grand Prix 5000");
+    XCTAssertEqualObjects([db tyreMatchingModel:@"Continental GP 5000 TL" width:25].model, @"Grand Prix 5000 TL");
+    XCTAssertEqualObjects([db tyreMatchingModel:@"Marathon Plus 40-622" width:40].model, @"Marathon Plus", @"the most specific name");
+    XCTAssertEqualObjects([db tyreMatchingModel:@"Schwalbe Marathon" width:37].model, @"Marathon");
+    XCTAssertEqual([db tyreMatchingModel:@"GravelKing" width:35].width, 35, @"the nearest width");
+    XCTAssertEqual([db tyreMatchingModel:@"GravelKing" width:42].width, 40);
+    XCTAssertNil([db tyreMatchingModel:@"Unknown Tyre" width:30]);
+    XCTAssertNil([db tyreMatchingModel:@"" width:30]);
+    XCTAssertGreaterThan([db tyresMatchingText:@"gravel"].count, 5u);
+    XCTAssertEqual([db tyresMatchingText:@"marathon plus"].count, 2u, @"Plus and E-Plus");
+
+    RATyreDatabase *custom = [[RATyreDatabase alloc] initWithPropertyList:@{ @"tyres": @[
+        @{ @"brand": @"B", @"model": @"M", @"width": @30, @"crr": @0.004 }, @{ @"model": @"no crr" } ] }];
+    XCTAssertEqual(custom.tyres.count, 1u, @"rows without Crr ignored");
+}
+
+- (void)testTyreDatabaseWindowGivesTheTyreToThePart
+{
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    RAEquipmentWindowController *wc = [[RAEquipmentWindowController alloc] initWithLibrary:doc];
+    (void)wc.window;
+    [wc addBike:self];
+    RATyre *gp = [[RATyreDatabase shared] tyreMatchingModel:@"GP5000" width:25];
+    [wc useTyre:gp];     // no part selected: a new tyre
+    XCTAssertEqual(doc.equipment.parts.count, 1u);
+    RAPart *p = doc.equipment.parts[0];
+    XCTAssertEqualObjects(p.model, @"Continental Grand Prix 5000");
+    XCTAssertEqual(p.width, 25);
+    XCTAssertEqual(p.crr, 0, @"the default: from the database");
+    XCTAssertEqualWithAccuracy(p.effectiveCrr, gp.crr, 1e-9);
+    XCTAssertEqualObjects(p.name, @"Grand Prix 5000");
+
+    RATyreDatabaseWindowController *db = [[RATyreDatabaseWindowController alloc] initWithDatabase:[RATyreDatabase shared]];
+    __block RATyre *used = nil;
+    db.useHandler = ^(RATyre *t) { used = t; };
+    db.search.stringValue = @"energizer";
+    [[NSNotificationCenter defaultCenter] postNotificationName:NSControlTextDidChangeNotification object:db.search];
+    XCTAssertEqual(db.shownTyres.count, 1u);
+    [db.table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
+    [db useSelectedTyre:self];
+    XCTAssertEqualObjects(used.model, @"Energizer Plus");
+    [wc close];
 }
 
 @end

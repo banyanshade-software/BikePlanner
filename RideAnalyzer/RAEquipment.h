@@ -91,7 +91,8 @@ typedef NS_ENUM(NSInteger, RAWheel) {
 /// the wear warning was shown (once per part)
 @property (nonatomic) BOOL wearWarned;
 @property (copy, nonatomic) NSArray<RAMounting *> *mountings;
-/// an estimate for a tyre, from its model (a few known tyres) or else its width
+/// for a tyre: the Crr of its model in the tyre database (RATyreDatabase, nearest width), else an estimate from its
+/// width (≤ 28 mm 0.0040, ≤ 35 0.0045, ≤ 45 0.0055, more 0.0070; 0.0050 when unknown)
 + (double)defaultCrrForModel:(NSString *)model width:(double)width;
 + (NSString *)nameOfKind:(RAPartKind)kind;
 + (NSString *)nameOfWheel:(RAWheel)wheel;

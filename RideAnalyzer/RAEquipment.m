@@ -5,6 +5,7 @@
 
 #import "RAEquipment.h"
 #import "RARide.h"
+#import "RATyreDatabase.h"
 
 static NSString *RANewID(void)
 {
@@ -195,15 +196,9 @@ static double RADouble(id v)
 
 + (double)defaultCrrForModel:(NSString *)model width:(double)width
 {
-    // a few known tyres (estimates from published rolling resistance tests, at usual pressures); else by width.
-    // Rough values: the user corrects them in the equipment window.
-    NSString *m = [[model lowercaseString] stringByReplacingOccurrencesOfString:@" " withString:@""];
-    NSArray<NSArray *> *known = @[ @[ @"grandprix5000", @0.0032 ], @[ @"gp5000", @0.0032 ], @[ @"corsa", @0.0033 ],
-                                   @[ @"proone", @0.0035 ], @[ @"pro4", @0.0038 ], @[ @"gravelking", @0.0045 ],
-                                   @[ @"g-one", @0.0050 ], @[ @"marathonplus", @0.0075 ], @[ @"marathon", @0.0055 ] ];
-    for (NSArray *k in known) {
-        if ([m containsString:k[0]]) return [k[1] doubleValue];
-    }
+    // the tyre database (published tests), else an estimate from the width
+    RATyre *tyre = [[RATyreDatabase shared] tyreMatchingModel:model width:width];
+    if (tyre) return tyre.crr;
     if (width <= 0) return 0.0050;
     if (width <= 28) return 0.0040;
     if (width <= 35) return 0.0045;
