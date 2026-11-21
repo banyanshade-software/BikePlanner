@@ -3,7 +3,7 @@
 A second macOS app, next to BikePlanner, that fetches the rides actually done and analyses them (#82).
 Branch `ride_analyzer`, from `v10`. Each feature below is proposed, then accepted (or not) by the owner.
 
-Status: **draft** — feature list reviewed with the owner on 2026-11-21 (R1–R14); no design yet.
+Status: **draft** — feature list reviewed with the owner on 2026-11-21 (R1–R15); no design yet.
 
 ## Features
 
@@ -13,18 +13,24 @@ Status: **draft** — feature list reviewed with the owner on 2026-11-21 (R1–R
 - The app lists the user's cycling activities, downloads their FIT files and, on later launches, fetches only the
   new ones.
 - The raw FIT files are kept locally.
+- **Bulk import** *(added 2026-11-21)*: one command fetches all the new rides since the last fetch (or over a chosen
+  period, e.g. the first import of a whole history), with progress, can be cancelled, resumes where it stopped.
 - **Also useful in BikePlanner**: *Import Track as Display…* / *Import Track as Route…* (F8.1, F8.3) can import an
   activity directly from Garmin Connect, instead of exporting it as a GPX / TCX / FIT file first.
 
 ### R2 — Import rides from local files *(accepted 2026-11-21)*
 - FIT, GPX or TCX files, by drag and drop or the File menu (reuses the parsers of BikePlanner: `BPFITDecoder`,
-  `GPXParser`).
+  `GPXParser`). Several files at once: multiple selection in the open panel, several files or a whole folder
+  dropped; one progress and one summary for the batch (imported, skipped as duplicates, unreadable).
 - Direct import from the bike computer connected by USB (its `Garmin/Activity` folder).
 - A ride already fetched from Garmin Connect (R1) is recognized and skipped (no duplicates).
 
 ### R3 — Ride library *(accepted 2026-11-21)*
 - A list of all the rides: date, name, distance, ascent, duration, average speed.
-- Sortable; filter by period; search by name.
+- Sortable; search by name.
+- **Filters** *(precised 2026-11-21)*, combinable and reusable everywhere (library, statistics R6, climbs R7, heatmap
+  R10, zones R14): period, **device** (from the FIT file: e.g. the watch used for commuting vs. the Edge), bike,
+  distance (> x km), ascent, tags. Filters can be saved with a name.
 - Each ride can be renamed, annotated (free notes, tags) and deleted.
 
 ### R4 — Ride detail view *(accepted 2026-11-21)*
@@ -43,11 +49,15 @@ Status: **draft** — feature list reviewed with the owner on 2026-11-21 (R1–R
 - Totals per week, month and year (distance, ascent, time, number of rides), as charts.
 - Personal records: longest ride, most ascent, best average speed.
 - Trend of the average speed or the heart rate over comparable rides.
+- **Charts over time** *(added 2026-11-21)*: any metric against the date (e.g. W/bpm, speed, VAM), on the rides of a
+  filter (R3), and restricted to a kind of terrain: flat only, climbs between x and y %, descents… (the ride is
+  split in segments by gradient). Also used for the climbs (R7).
 
 ### R7 — Climb analysis *(accepted 2026-11-21)*
 - Automatic detection of the climbs of a ride: length, ascent, average and max gradient, with time, climbing speed
   (VAM) and heart rate.
 - A climb ridden again is compared with the previous passages (best time, trend).
+- The analysis is stored with the ride (computed once, recomputed only on request or when the algorithm changes).
 
 ### R8 — Road types and surfaces *(accepted 2026-11-21, postponed to a later version of the app)*
 - For a ride: distance and time per road type (cycleway, tertiary road, track…) and per surface (asphalt,
@@ -60,7 +70,8 @@ Status: **draft** — feature list reviewed with the owner on 2026-11-21 (R1–R
 - An image of the ride (map, profile, key figures) to share.
 
 ### R10 — Map of all rides (heatmap) *(accepted 2026-11-21)*
-- All the tracks drawn on one map; the most ridden roads stand out. Filter by period.
+- All the tracks drawn on one map; the most ridden roads stand out. Filters of R3.
+- The map can be zoomed and panned; the default zoom shows all the tracks of the filter.
 - Shows the roads never ridden, to take into account when planning a route in BikePlanner.
 
 ### R11 — Estimated power *(requested by the owner 2026-11-21)*
@@ -73,21 +84,35 @@ Status: **draft** — feature list reviewed with the owner on 2026-11-21 (R1–R
   - the rider's weight, from Garmin Connect when available (the Personal API gives weight data), otherwise entered.
 - Each ride is linked to a bike (default bike, or chosen).
 - Estimated values are shown as such (not mixed with measured power).
+- Computed only for the rides of a chosen filter (R3): e.g. rides recorded with the Edge, not the imprecise watch
+  used for commuting.
 
 ### R12 — Weather of the ride *(accepted 2026-11-21)*
 - Wind (speed, direction) and temperature from a historical weather service, for the date and place of the ride.
 - Shown in the ride detail (R4); used by the estimated power (R11) and to explain a speed (headwind, tailwind).
+- Fetched once and stored with the ride.
 - The service is to be chosen (free, no key in the app, terms compatible): routed through an environment hook like
   the other endpoints of BikePlanner.
 
-### R13 — Equipment tracking *(accepted 2026-11-21)*
-- From the bikes and tyres entered for R11: distance per bike and per part (tyres, chain, brake pads…).
+### R13 — Equipment tracking *(accepted 2026-11-21, precised)*
+- The bikes and parts (tyres, chain, brake pads…) used by R11: distance per bike and per part.
+- A part is **valid on a time range**: mounted on a given bike from a date to a date (open while still mounted).
+  A ride uses the parts mounted on its bike at its date.
+- The equipment defined in Garmin Connect (gear: bikes…) is taken over (through the Personal API if it gives it,
+  otherwise the web session, #79); the tyres are then associated with a bike in the app.
+- The rolling resistance coefficient (Crr) of each tyre is shown and can be corrected (default from the model and
+  width).
 - A wear threshold per part, and a reminder when it is reached.
 
 ### R14 — Heart rate and power zones *(accepted 2026-11-21)*
 - Time in each zone, for a ride and over a period.
 - From the max heart rate and the power threshold (FTP), entered or taken from Garmin Connect.
 - With the estimated power (R11) when there is no power meter.
+
+### R15 — Library file *(requested by the owner 2026-11-21)*
+- The library (rides, analyses, equipment, settings) is a file chosen by the user: one per person on a shared
+  computer. The last one is reopened at launch; another one can be opened or created.
+- Each library has its own Garmin Connect account (key in the Keychain, per library).
 
 ## Related BikePlanner items
 - Import an activity directly from Garmin Connect as display or as route (R1).
@@ -97,5 +122,6 @@ Status: **draft** — feature list reviewed with the owner on 2026-11-21 (R1–R
 - How the code is shared with BikePlanner (common framework, or shared sources in both targets): Garmin Connect web
   session (#79), FIT / GPX / TCX parsers, map and track display, elevation profile, road types (#66).
 - Name of the app.
-- Where the library is stored (database file, or a folder of FIT files plus an index).
+- Format of the library file (R15): database file, or a package with the FIT files plus an index.
+- Does the Personal API give the Garmin gear (R13)? To check.
 - The historical weather service (R12).
