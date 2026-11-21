@@ -217,8 +217,10 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   Filter; enabled as the menu items.
 - **Filter in the sidebar** (owner's request, 2026-11-21; first just above the list, then moved to the sidebar,
   which only listed the saved filters and devices): the search field; pop-up menus for the most used criteria —
-  period (any date, last 30 days, last 12 months, this year), device, distance (under 30 km, over 30 / 50 / 80 /
-  100 km), tag — each showing "Custom…" / "Several…" when the filter holds something they do not offer; More…
+  period (any date, last 30 days, last 12 months, this year), device, tag — each showing "Custom…" / "Several…"
+  when the filter holds something they do not offer; the **distance** as a slider with two ends (`RARangeSlider`,
+  1 km steps, from 0 to the longest ride rounded up to 10 km, at least 50; an end means no limit; the label shows
+  the range while dragging, the list follows when the knob is released; arrow keys too); More…
   opens the sheet with every criterion; Clear, Save…; the summary of the filter. Under it, the saved filters and
   the devices (one click applies one; no "All Rides" row: Clear).
 - **Tabs beside the list**: *Ride* (the detail) and *Trends* (R6).

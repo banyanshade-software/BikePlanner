@@ -148,6 +148,7 @@
 		066B133258EFEF640586D547 /* RALibraryKeyTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 1874311C204525C02852888A /* RALibraryKeyTests.m */; };
 		EA7E7C0692F5D8C46385AE16 /* RATrendsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = AB5634B17B43D074F20FA7B0 /* RATrendsViewController.m */; };
 		DC4D5510E3FCE2E2A9E01D45 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 59D6971391036EC2D0DE929A /* Assets.xcassets */; };
+		2ED0086EA66AD77E754B9C0C /* RARangeSlider.m in Sources */ = {isa = PBXBuildFile; fileRef = 254883B0529705644742A793 /* RARangeSlider.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -404,6 +405,8 @@
 		AB5634B17B43D074F20FA7B0 /* RATrendsViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATrendsViewController.m; sourceTree = "<group>"; };
 		FEE4EA411843526BFCDF5085 /* RATrendsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATrendsViewController.h; sourceTree = "<group>"; };
 		59D6971391036EC2D0DE929A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		254883B0529705644742A793 /* RARangeSlider.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RARangeSlider.m; sourceTree = "<group>"; };
+		EEE90A5E92D7E5B981B32087 /* RARangeSlider.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RARangeSlider.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -735,6 +738,8 @@
 				AB5634B17B43D074F20FA7B0 /* RATrendsViewController.m */,
 				FEE4EA411843526BFCDF5085 /* RATrendsViewController.h */,
 				59D6971391036EC2D0DE929A /* Assets.xcassets */,
+				254883B0529705644742A793 /* RARangeSlider.m */,
+				EEE90A5E92D7E5B981B32087 /* RARangeSlider.h */,
 			);
 			path = RideAnalyzer;
 			sourceTree = "<group>";
@@ -1172,6 +1177,7 @@
 				4239653E6AF8DE7D4F392FA6 /* RATrends.m in Sources */,
 				13518DEB43AA405849427190 /* RATimeChartView.m in Sources */,
 				EA7E7C0692F5D8C46385AE16 /* RATrendsViewController.m in Sources */,
+				2ED0086EA66AD77E754B9C0C /* RARangeSlider.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

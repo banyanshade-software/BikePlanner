@@ -10,6 +10,8 @@
 #import "RARide.h"
 #import "RALibraryDocument.h"
 #import "RATestSupport.h"
+#import "RARangeSlider.h"
+#import "RALibraryWindowController.h"
 
 @interface RAFilterTests : XCTestCase
 @end
@@ -182,6 +184,53 @@
     XCTAssertEqualObjects(reopened.savedFilters.firstObject.filter, saved.filter);
     XCTAssertEqualObjects(reopened.savedFilters.firstObject.identifier, saved.identifier);
     [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
+}
+
+- (void)testRangeSlider
+{
+    RARangeSlider *slider = [[RARangeSlider alloc] initWithFrame:NSMakeRect(0, 0, 200, 22)];
+    slider.minValue = 0;
+    slider.maxValue = 120;
+    slider.step = 1;
+    slider.lowerValue = 12.4;
+    slider.upperValue = 300;
+    XCTAssertEqual(slider.lowerValue, 12, @"rounded to the step");
+    XCTAssertEqual(slider.upperValue, 120, @"clamped");
+    slider.lowerValue = 130;
+    XCTAssertLessThanOrEqual(slider.lowerValue, slider.upperValue);
+    slider.maxValue = 60;
+    XCTAssertEqual(slider.upperValue, 60, @"follows the bounds");
+}
+
+// the distance of the filter in the sidebar: a slider with two ends (owner's request); the ends mean no limit
+- (void)testDistanceSliderFiltersTheList
+{
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    NSArray<NSArray<NSNumber *> *> *tracks = @[ @[ @1, @2 ], @[ @1, @2, @3, @4, @5 ], @[ @1, @2, @3, @4, @5, @6, @7, @8, @9, @10 ] ];
+    for (NSUInteger i = 0; i < tracks.count; i++) {
+        NSString *name = [NSString stringWithFormat:@"%lu.tcx", (unsigned long)i];
+        [doc importData:RATCX(tracks[i], 86400.0 * i, nil, nil) fileName:name error:NULL]; // ~1.1, 4.4, 9.9 km
+    }
+    RALibraryWindowController *wc = [[RALibraryWindowController alloc] init];
+    wc.document = doc;
+    RARangeSlider *slider = [wc valueForKey:@"_distanceSlider"];
+    NSTextField *label = [wc valueForKey:@"_distanceLabel"];
+    XCTAssertEqual(slider.maxValue, 50, @"at least 50 km");
+    XCTAssertEqual(slider.upperValue, 50, @"no maximum");
+    XCTAssertEqual([[wc valueForKey:@"_sorted"] count], 3u);
+
+    [slider setLowerValue:3 upperValue:8 sendAction:YES];
+    XCTAssertEqual([[wc valueForKey:@"_sorted"] count], 1u, @"the 4.4 km ride");
+    XCTAssertTrue([label.stringValue containsString:@"3"]);
+    XCTAssertTrue([label.stringValue containsString:@"8"]);
+
+    [slider setLowerValue:3 upperValue:50 sendAction:YES];
+    XCTAssertEqual([[wc valueForKey:@"_sorted"] count], 2u, @"upper end: no maximum");
+    [wc clearFilter:self];
+    XCTAssertEqual(slider.lowerValue, 0);
+    XCTAssertEqual(slider.upperValue, 50);
+    wc.document = nil;
+    [wc close];
 }
 
 @end

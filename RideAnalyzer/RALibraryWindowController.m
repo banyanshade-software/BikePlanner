@@ -12,6 +12,7 @@
 #import "RAGarminFetchSheet.h"
 #import "RARideDetailController.h"
 #import "RATrendsViewController.h"
+#import "RARangeSlider.h"
 #import "BPTrackReader.h"
 
 static NSUserInterfaceItemIdentifier const RAColumnDate = @"date";
@@ -49,7 +50,9 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     RAFilter *_baseFilter;                      // from the sidebar or the filter sheet
     NSSearchField *_search;
     NSTextField *_filterSummary;
-    NSPopUpButton *_periodPopup, *_devicePopup, *_distancePopup, *_tagPopup;
+    NSPopUpButton *_periodPopup, *_devicePopup, *_tagPopup;
+    RARangeSlider *_distanceSlider;     // km, from 0 to the longest ride; the ends mean "no limit"
+    NSTextField *_distanceLabel;
     NSButton *_saveFilterButton;
     NSButton *_clearFilterButton;
     NSTableView *_table;
@@ -178,7 +181,15 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     // with all of them; the summary of the filter, Clear, Save…
     _periodPopup = [self filterPopupWithIdentifier:@"filterPeriod" action:@selector(periodChosen:)];
     _devicePopup = [self filterPopupWithIdentifier:@"filterDevice" action:@selector(deviceChosen:)];
-    _distancePopup = [self filterPopupWithIdentifier:@"filterDistance" action:@selector(distanceChosen:)];
+    _distanceLabel = [NSTextField labelWithString:@""];
+    _distanceLabel.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    _distanceLabel.identifier = @"filterDistanceLabel";
+    _distanceSlider = [[RARangeSlider alloc] initWithFrame:NSMakeRect(0, 0, 180, 22)];
+    _distanceSlider.target = self;
+    _distanceSlider.action = @selector(distanceChosen:);
+    _distanceSlider.identifier = @"filterDistance";
+    _distanceSlider.toolTip = NSLocalizedString(@"Distance of the rides: drag the two ends (arrow keys: left / right "
+                                                @"move, up / down choose the end)", @"filter");
     _tagPopup = [self filterPopupWithIdentifier:@"filterTag" action:@selector(tagChosen:)];
     NSButton *more = [NSButton buttonWithTitle:NSLocalizedString(@"More…", @"filter bar") target:self
                                         action:@selector(editFilter:)];
@@ -195,13 +206,15 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     NSStackView *buttons = [NSStackView stackViewWithViews:@[ more, _clearFilterButton, _saveFilterButton ]];
     buttons.spacing = 4;
     NSStackView *filterPanel = [NSStackView stackViewWithViews:@[ filterTitle, _search, _periodPopup, _devicePopup,
-                                                                 _distancePopup, _tagPopup, buttons, _filterSummary ]];
+                                                                 _distanceLabel, _distanceSlider, _tagPopup, buttons,
+                                                                 _filterSummary ]];
     filterPanel.orientation = NSUserInterfaceLayoutOrientationVertical;
     filterPanel.alignment = NSLayoutAttributeLeading;
     filterPanel.spacing = 6;
     filterPanel.detachesHiddenViews = YES;
     filterPanel.edgeInsets = NSEdgeInsetsMake(8, 10, 6, 10);
-    for (NSView *v in @[ _search, _periodPopup, _devicePopup, _distancePopup, _tagPopup, _filterSummary ]) {
+    [filterPanel setCustomSpacing:2 afterView:_distanceLabel];
+    for (NSView *v in @[ _search, _periodPopup, _devicePopup, _distanceSlider, _tagPopup, _filterSummary ]) {
         [v.widthAnchor constraintEqualToAnchor:filterPanel.widthAnchor constant:-20].active = YES;
     }
     NSStackView *sidebarStack = [NSStackView stackViewWithViews:@[ filterPanel, sidebarScroll ]];
@@ -513,25 +526,16 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     }
     [_devicePopup selectItemAtIndex:deviceIndex];
 
-    [_distancePopup removeAllItems];
-    NSArray<NSArray *> *distances = @[ @[ NSLocalizedString(@"Any distance", @"filter distance"), @0, @0 ],
-                                       @[ NSLocalizedString(@"Under 30 km", @"filter distance"), @0, @30000 ],
-                                       @[ NSLocalizedString(@"Over 30 km", @"filter distance"), @30000, @0 ],
-                                       @[ NSLocalizedString(@"Over 50 km", @"filter distance"), @50000, @0 ],
-                                       @[ NSLocalizedString(@"Over 80 km", @"filter distance"), @80000, @0 ],
-                                       @[ NSLocalizedString(@"Over 100 km", @"filter distance"), @100000, @0 ] ];
-    NSInteger distanceIndex = -1;
-    for (NSArray *d in distances) {
-        [self addItem:d[0] value:@[ d[1], d[2] ] to:_distancePopup];
-        if ([d[1] doubleValue] == _baseFilter.minDistance && [d[2] doubleValue] == _baseFilter.maxDistance) {
-            distanceIndex = _distancePopup.numberOfItems - 1;
-        }
-    }
-    if (distanceIndex < 0) {
-        [self addItem:NSLocalizedString(@"Custom distance", @"filter distance") value:@"custom" to:_distancePopup];
-        distanceIndex = _distancePopup.numberOfItems - 1;
-    }
-    [_distancePopup selectItemAtIndex:distanceIndex];
+    // distance: from 0 to the longest ride, rounded up to 10 km (and up to the limits of the filter)
+    double longest = 0;
+    for (RARide *r in library.rides ?: @[]) longest = MAX(longest, r.distance);
+    double top = MAX(50, ceil(MAX(longest, MAX(_baseFilter.minDistance, _baseFilter.maxDistance)) / 10000) * 10);
+    _distanceSlider.minValue = 0;
+    _distanceSlider.maxValue = top;
+    _distanceSlider.step = 1;
+    _distanceSlider.lowerValue = _baseFilter.minDistance / 1000;
+    _distanceSlider.upperValue = _baseFilter.maxDistance > 0 ? _baseFilter.maxDistance / 1000 : top;
+    [self updateDistanceLabel];
 
     [_tagPopup removeAllItems];
     [self addItem:NSLocalizedString(@"Any tag", @"filter tag") value:[NSNull null] to:_tagPopup];
@@ -576,13 +580,36 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     }];
 }
 
-- (void)distanceChosen:(NSPopUpButton *)sender
+/// the limits of the slider in meters; 0: no limit (an end of the slider)
+- (double)sliderMinDistance
 {
-    id value = sender.selectedItem.representedObject;
-    if (![value isKindOfClass:[NSArray class]]) return;
+    return _distanceSlider.lowerValue > _distanceSlider.minValue ? _distanceSlider.lowerValue * 1000 : 0;
+}
+
+- (double)sliderMaxDistance
+{
+    return _distanceSlider.upperValue < _distanceSlider.maxValue ? _distanceSlider.upperValue * 1000 : 0;
+}
+
+- (void)updateDistanceLabel
+{
+    double lo = [self sliderMinDistance] / 1000, hi = [self sliderMaxDistance] / 1000;
+    NSString *range = lo > 0 && hi > 0 ? [NSString localizedStringWithFormat:@"%.0f – %.0f km", lo, hi]
+        : lo > 0 ? [NSString localizedStringWithFormat:NSLocalizedString(@"over %.0f km", @"filter distance"), lo]
+        : hi > 0 ? [NSString localizedStringWithFormat:NSLocalizedString(@"under %.0f km", @"filter distance"), hi]
+        : NSLocalizedString(@"any", @"filter distance");
+    _distanceLabel.stringValue = [NSString stringWithFormat:NSLocalizedString(@"Distance: %@", @"filter distance"), range];
+}
+
+- (void)distanceChosen:(RARangeSlider *)sender
+{
+    [self updateDistanceLabel];
+    if (sender.tracking) return;     // applied when the knob is released
+    double lo = [self sliderMinDistance], hi = [self sliderMaxDistance];
+    if (lo == _baseFilter.minDistance && hi == _baseFilter.maxDistance) return;
     [self changeBaseFilter:^(RAFilter *f) {
-        f.minDistance = [value[0] doubleValue];
-        f.maxDistance = [value[1] doubleValue];
+        f.minDistance = lo;
+        f.maxDistance = hi;
     }];
 }
 
