@@ -54,7 +54,8 @@ xcrun xccov view --report --files-for-target BikePlanner.app <scratch>/r.xcresul
 (in zsh, `$SIGN`/`$DEST` are not word-split: write the options out, or use `${=SIGN}`.)
 Ride Analyzer (#82, branch `ride_analyzer`, `doc/05-ride-analyzer-spec.md`): second app target `RideAnalyzer` in the
 same project, scheme `RideAnalyzer`, tests `RideAnalyzerTests` (`-scheme RideAnalyzer -only-testing:RideAnalyzerTests`).
-Its UI is built in code (no XIB); sources shared with BikePlanner are added to its target with
+Its UI is built in code (no XIB); its icon: `RideAnalyzer/Assets.xcassets`, PNGs rendered from
+`doc/rideanalyzer-icon.svg` (`rsvg-convert -w <px>`), sand tones so it differs from BikePlanner's green one; sources shared with BikePlanner are added to its target with
 `scripts/xcode_add_files.py --target RideAnalyzer --anchor RARide.m <path>` and must keep compiling there.
 Its tests never reach Garmin Connect: `RAStubURLProtocol` (`RideAnalyzerTests/RATestSupport`) answers the client's
 session, and the user defaults `RAGarminTokenURL` / `RAGarminAPIBaseURL` point the endpoints at it; the Personal
@@ -83,7 +84,9 @@ scripts/xcode_add_files.py --target BikePlannerUITests --anchor BikePlannerUITes
 Resources (`.plist`, `.json`, `.bikeplan`) go to the target's Resources build phase (e.g. `BikePlanner/RemarkableSites.plist`, the
 list of start sites, #65; `BikePlanner/TourSample.bikeplan`, the route of the guided tour, #63). A file already in the project can be added to another target the same way (e.g. `BikePlannerTests/BPStubServer.m`
 is in both test targets). Removing a file: delete its lines from `project.pbxproj` (grep its name).
-A Run Script phase: `scripts/xcode_add_run_script.py --target … --name … --script …` (see its header).
+A Run Script phase: `scripts/xcode_add_run_script.py --target … --name … --script …` (see its header). A build setting
+of a target (both configurations): `scripts/xcode_set_build_setting.py --target … KEY=VALUE`. An asset catalog
+(`.xcassets`) is added like a resource.
 New files go in the anchor's group/directory. Use `SupportClasses/` + `--anchor GPXParser.m` for support classes.
 XIB files (`Document.xib`, `MainMenu.xib`, …) should be edited in Xcode by the owner when possible; if a change is
 needed, keep it minimal and say so.

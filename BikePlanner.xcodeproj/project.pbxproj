@@ -147,6 +147,7 @@
 		B33E7D3F43F04B77AD5C0116 /* RATrendsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 25C4F5C4C635CD31DE9553C6 /* RATrendsTests.m */; };
 		066B133258EFEF640586D547 /* RALibraryKeyTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 1874311C204525C02852888A /* RALibraryKeyTests.m */; };
 		EA7E7C0692F5D8C46385AE16 /* RATrendsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = AB5634B17B43D074F20FA7B0 /* RATrendsViewController.m */; };
+		DC4D5510E3FCE2E2A9E01D45 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 59D6971391036EC2D0DE929A /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -402,6 +403,7 @@
 		1874311C204525C02852888A /* RALibraryKeyTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RALibraryKeyTests.m; sourceTree = "<group>"; };
 		AB5634B17B43D074F20FA7B0 /* RATrendsViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATrendsViewController.m; sourceTree = "<group>"; };
 		FEE4EA411843526BFCDF5085 /* RATrendsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATrendsViewController.h; sourceTree = "<group>"; };
+		59D6971391036EC2D0DE929A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -732,6 +734,7 @@
 				EBB3396FBB2D4FA838E706E8 /* RATimeChartView.h */,
 				AB5634B17B43D074F20FA7B0 /* RATrendsViewController.m */,
 				FEE4EA411843526BFCDF5085 /* RATrendsViewController.h */,
+				59D6971391036EC2D0DE929A /* Assets.xcassets */,
 			);
 			path = RideAnalyzer;
 			sourceTree = "<group>";
@@ -962,6 +965,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DC4D5510E3FCE2E2A9E01D45 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1509,6 +1513,7 @@
 		CE31BDF434A8C195D9939622 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = RideAnalyzer/RideAnalyzer.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -1532,6 +1537,7 @@
 		E8BB961CE06AAC4A016BAC70 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = RideAnalyzer/RideAnalyzer.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
