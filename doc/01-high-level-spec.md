@@ -347,7 +347,7 @@ changes nothing.
   remembered.
 - F10.3 *(planned)* *Export to FIT* (Garmin course) — menu item exists, not implemented.
 - F10.4 Export is only possible once a route has been computed in the current session.
-- F10.5 *File ▸ Send to Garmin Connect…*, or the toolbar button *Garmin* (upload arrow, after *export GPX*) (#79;
+- F10.5 *File ▸ Send to Garmin Connect…*, or the toolbar button *Garmin* (a course going to a bike computer, #85; after *export GPX*) (#79;
   enabled with a route):
   - Can be left out of a build: `BP_GARMIN_CONNECT` in `BikePlanner/BPFeatures.h` (default 1; 0: no menu item, no
     toolbar button, no code of the sheet nor of the Keychain item) — Garmin's Terms of Use make it a gray zone for a

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" id="sendToDevice">
+  <!-- bike computer: case with a large screen and two buttons -->
+  <rect x="8.1" y="1.6" width="7.3" height="12.8" rx="1.8" fill="none" stroke="#000" stroke-width="1.2"/>
+  <rect x="9.7" y="3.3" width="4.1" height="5.9" rx="0.6" fill="#000"/>
+  <rect x="9.7" y="11" width="1.6" height="1.5" rx="0.4" fill="#000"/>
+  <rect x="12.2" y="11" width="1.6" height="1.5" rx="0.4" fill="#000"/>
+  <!-- course going to the device -->
+  <path d="M1 14.4 C1 11.4 4.4 12 4.4 9.2 C4.4 7.2 1.9 7.4 1.9 5.6 C1.9 4.2 3.5 4.3 6.3 4.3" fill="none" stroke="#000" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M4.6 2.6 L6.4 4.3 L4.6 6" fill="none" stroke="#000" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

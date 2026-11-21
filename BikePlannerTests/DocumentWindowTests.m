@@ -789,6 +789,12 @@
     NSToolbarItem *item = items[garmin];
     XCTAssertEqualObjects(item.label, @"Garmin");
     XCTAssertGreaterThan(item.toolTip.length, 0u);
+    // its own icon (#85): a course going to a bike computer, template image like the SF Symbols of the toolbar
+    NSImage *icon = [NSImage imageNamed:@"toolbar_send_to_device"];
+    XCTAssertNotNil(icon, @"in the asset catalog");
+    XCTAssertTrue(icon.isTemplate);
+    XCTAssertEqualObjects(item.image.name, @"toolbar_send_to_device");
+    XCTAssertTrue(item.image.isTemplate);
     XCTAssertFalse([mc validateToolbarItem:item], @"no route");
     doc.plan.fetchPOI = NO;
     [self makeRoute];
