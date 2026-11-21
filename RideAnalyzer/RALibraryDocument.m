@@ -167,12 +167,75 @@ static NSString * _Nullable RAKeyFromObfuscated(id value, NSString *libraryID)
         if (ride && fit) {
             ride.garminActivityID = a.activityID;
             if (a.name.length) ride.name = a.name;
+            // an activity cut in Garmin Connect (e.g. the computer left running in the car): the file has the whole
+            // recording, the summary the corrected ride
+            NSTimeInterval s = 0, e = 0;
+            if ([RALibraryDocument garminTrimForRide:ride activity:a data:fit start:&s end:&e]) {
+                ride.trimStart = s;
+                ride.trimEnd = e;
+                [RALibraryDocument updateFiguresOfRide:ride fromData:fit];
+            }
             [self->_candidates addObject:@[ ride, fit ]];
         } else {
             self->_summary.unreadable++;
         }
         self->_progress.completedUnitCount = (int64_t)index + 1;
         [self fetch:index + 1];
+    }];
+}
+
+@end
+
+// the corrections of Garmin Connect (applyGarminCorrections:): lists the activities page by page and collects the
+// rides to trim. Keeps itself alive while it runs.
+@interface RAGarminCorrections : NSObject
+@property (weak, nonatomic) RALibraryDocument *document;
+@property (strong, nonatomic) RAGarminConnect *client;
+@property (copy, nonatomic, nullable) NSDate *since;
+@property (strong, nonatomic) NSDictionary<NSString *, RARide *> *byActivity;
+@property (strong, nonatomic) NSProgress *progress;
+@property (copy, nonatomic, nullable) void (^completion)(NSArray<NSArray *> *toTrim, NSError * _Nullable error);
+- (void)listPage:(NSUInteger)page;
+@end
+
+@implementation RAGarminCorrections
+{
+    NSMutableArray<NSArray *> *_toTrim;     // @[ ride, @start, @end ]
+}
+
+- (void)finishWithError:(nullable NSError *)error
+{
+    void (^completion)(NSArray<NSArray *> *, NSError *) = self.completion;
+    self.completion = nil;
+    if (completion) completion(_toTrim ?: @[], error);
+}
+
+- (void)listPage:(NSUInteger)page
+{
+    if (!_toTrim) _toTrim = [NSMutableArray array];
+    if (self.progress.cancelled || !self.document) {
+        [self finishWithError:nil];
+        return;
+    }
+    [self.client activitiesFrom:page * RAGarminPageSize limit:RAGarminPageSize startDate:self.since
+                     completion:^(NSArray<RAGarminActivity *> *activities, NSError *error) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            RALibraryDocument *doc = self.document;
+            if (!activities || !doc) {
+                [self finishWithError:error];
+                return;
+            }
+            for (RAGarminActivity *a in activities) {
+                RARide *ride = self.byActivity[a.activityID];
+                NSData *data = ride ? [doc originalDataOfRide:ride] : nil;
+                NSTimeInterval s = 0, e = 0;
+                if (data && !ride.trimmed && [RALibraryDocument garminTrimForRide:ride activity:a data:data start:&s end:&e]) {
+                    [self->_toTrim addObject:@[ ride, @(s), @(e) ]];
+                }
+            }
+            if (activities.count == RAGarminPageSize && page + 1 < RAGarminMaxPages) [self listPage:page + 1];
+            else [self finishWithError:nil];
+        });
     }];
 }
 
@@ -762,6 +825,110 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     [self libraryDidChange];
 }
 
++ (void)updateFiguresOfRide:(RARide *)ride fromData:(NSData *)data
+{
+    RARideAnalysis *a = [RARideAnalysis analysisOfData:data trimStart:ride.trimStart trimEnd:ride.trimEnd];
+    if (!a) return;
+    ride.distance = a.distance;
+    ride.ascent = a.ascent;
+    if (a.hasTimes) {
+        ride.duration = a.elapsedTime;
+        ride.startDate = a.trace.firstObject.timestamp;
+    }
+    ride.stats = [RARideStats statsOfAnalysis:a];
+}
+
+- (void)trimRide:(RARide *)ride start:(NSTimeInterval)start end:(NSTimeInterval)end
+{
+    start = MAX(0, start);
+    end = end > start ? end : 0;
+    if (start == ride.trimStart && end == ride.trimEnd) return;
+    NSData *data = [self originalDataOfRide:ride];
+    if (!data) return;
+    NSTimeInterval oldStart = ride.trimStart, oldEnd = ride.trimEnd;
+    ride.trimStart = start;
+    ride.trimEnd = end;
+    [RALibraryDocument updateFiguresOfRide:ride fromData:data];
+    __weak RALibraryDocument *weakSelf = self;
+    [self.undoManager registerUndoWithTarget:self handler:^(id target) {
+        [weakSelf trimRide:ride start:oldStart end:oldEnd];
+    }];
+    if (!self.undoManager.undoing && !self.undoManager.redoing) {
+        [self.undoManager setActionName:NSLocalizedString(@"Trim Ride", @"undo action name")];
+    }
+    [self libraryDidChange];
+}
+
++ (BOOL)garminTrimForRide:(RARide *)ride activity:(RAGarminActivity *)activity data:(NSData *)data
+                    start:(NSTimeInterval *)start end:(NSTimeInterval *)end
+{
+    if (activity.distance <= 0) return NO;
+    RARideAnalysis *whole = [RARideAnalysis analysisOfData:data];
+    if (!whole || !whole.hasTimes) return NO;
+    if (whole.distance <= activity.distance * 1.03 + 300) return NO;     // the same: nothing was cut
+    NSDate *t0 = whole.trace.firstObject.timestamp;
+    NSTimeInterval s = 0;
+    if (activity.startDate && t0) s = MAX(0, [activity.startDate timeIntervalSinceDate:(NSDate *)t0]);
+    if (s < 30) s = 0;                                                   // clock differences
+    NSTimeInterval e = 0;
+    if (activity.elapsedDuration > 0) {
+        e = s + activity.elapsedDuration;
+    } else {
+        // the time at which the ride covered the activity's distance (from the trimmed start)
+        NSUInteger first = [RARideAnalysis rangeOfTrace:whole.trace trimStart:s trimEnd:0].location;
+        double d0 = first < whole.count ? whole.distances[first].doubleValue : 0;
+        for (NSUInteger i = first; i < whole.count; i++) {
+            if (whole.distances[i].doubleValue - d0 >= activity.distance) { e = whole.elapsed[i].doubleValue; break; }
+        }
+    }
+    if (e <= s || e >= whole.elapsedTime) return NO;
+    if (start) *start = s;
+    if (end) *end = e;
+    return YES;
+}
+
+- (nullable NSProgress *)applyGarminCorrections:(RAGarminConnect *)client
+                                     completion:(void (^)(NSUInteger corrected, NSError * _Nullable error))completion
+{
+    if (_importing) return nil;
+    NSMutableDictionary<NSString *, RARide *> *byActivity = [NSMutableDictionary dictionary];
+    NSDate *oldest = nil;
+    for (RARide *r in _rides) {
+        if (!r.garminActivityID.length) continue;
+        byActivity[r.garminActivityID] = r;
+        if (r.startDate && (!oldest || [r.startDate compare:oldest] == NSOrderedAscending)) oldest = r.startDate;
+    }
+    NSProgress *progress = [NSProgress discreteProgressWithTotalUnitCount:1];
+    progress.cancellable = YES;
+    progress.localizedDescription = NSLocalizedString(@"Comparing the rides with Garmin Connect…", @"progress");
+    if (byActivity.count == 0) {
+        dispatch_async(dispatch_get_main_queue(), ^{ completion(0, nil); });
+        return progress;
+    }
+    _importing = YES;
+    RAGarminCorrections *c = [[RAGarminCorrections alloc] init];
+    c.document = self;
+    c.client = client;
+    c.since = oldest ? [[NSCalendar currentCalendar] startOfDayForDate:(NSDate *)oldest] : nil;
+    c.byActivity = byActivity;
+    c.progress = progress;
+    __weak RALibraryDocument *weakSelf = self;
+    c.completion = ^(NSArray<NSArray *> *toTrim, NSError *error) {
+        RALibraryDocument *me = weakSelf;
+        if (!me) return;
+        me->_importing = NO;
+        if (toTrim.count && !progress.cancelled) {
+            [me.undoManager beginUndoGrouping];
+            for (NSArray *t in toTrim) [me trimRide:t[0] start:[t[1] doubleValue] end:[t[2] doubleValue]];
+            [me.undoManager endUndoGrouping];
+            [me.undoManager setActionName:NSLocalizedString(@"Apply Garmin Connect Corrections", @"undo action name")];
+        }
+        completion(progress.cancelled ? 0 : toTrim.count, error);
+    };
+    [c listPage:0];
+    return progress;
+}
+
 - (void)removeRides:(NSArray<RARide *> *)rides
 {
     NSMutableArray<RARide *> *removed = [NSMutableArray array];
@@ -861,12 +1028,18 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     }
     _statsCompletions = [NSMutableArray arrayWithObject:[completion copy]];
     NSMutableArray<NSData *> *datas = [NSMutableArray array];
-    for (RARide *r in rides) [datas addObject:[self originalDataOfRide:r] ?: [NSData data]];
+    NSMutableArray<NSArray<NSNumber *> *> *trims = [NSMutableArray array];
+    for (RARide *r in rides) {
+        [datas addObject:[self originalDataOfRide:r] ?: [NSData data]];
+        [trims addObject:@[ @(r.trimStart), @(r.trimEnd) ]];
+    }
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
         NSMutableArray *results = [NSMutableArray array];
-        for (NSData *data in datas) {
+        for (NSUInteger k = 0; k < datas.count; k++) {
             @autoreleasepool {
-                RARideAnalysis *a = data.length ? [RARideAnalysis analysisOfData:data] : nil;
+                NSData *data = datas[k];
+                RARideAnalysis *a = data.length ? [RARideAnalysis analysisOfData:data trimStart:trims[k][0].doubleValue
+                                                                        trimEnd:trims[k][1].doubleValue] : nil;
                 [results addObject:a ? (id)[RARideStats statsOfAnalysis:a] : (id)[NSNull null]];
             }
         }

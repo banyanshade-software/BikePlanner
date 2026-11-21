@@ -163,6 +163,7 @@
 		6204968BF1BFCD1358B1C555 /* RATyreDatabase.m in Sources */ = {isa = PBXBuildFile; fileRef = BD0072266394FA3D9B91155D /* RATyreDatabase.m */; };
 		80721E15E0FC4F986C996889 /* RATyres.plist in Resources */ = {isa = PBXBuildFile; fileRef = C43CE0C3717AEC9C9A8BE7DF /* RATyres.plist */; };
 		9B01BBB2C04DB2C8CE4A5CCD /* RATyreDatabaseWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 93F0647CA0D3B34A38103341 /* RATyreDatabaseWindowController.m */; };
+		43F643012514D9F60AF4C4A7 /* RATrimTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 2448B741C1BBB1A0D75A7324 /* RATrimTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -444,6 +445,7 @@
 		C43CE0C3717AEC9C9A8BE7DF /* RATyres.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = RATyres.plist; sourceTree = "<group>"; };
 		93F0647CA0D3B34A38103341 /* RATyreDatabaseWindowController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATyreDatabaseWindowController.m; sourceTree = "<group>"; };
 		539CEACA3F8A8C18FB111B90 /* RATyreDatabaseWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATyreDatabaseWindowController.h; sourceTree = "<group>"; };
+		2448B741C1BBB1A0D75A7324 /* RATrimTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATrimTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -817,6 +819,7 @@
 				EB0926EFAB0D9070A5696BFA /* RAEquipmentTests.m */,
 				C29547047F841E065BE1143D /* RAPowerTests.m */,
 				16DFAE8F443E374F1018EE88 /* RAClimbsTests.m */,
+				2448B741C1BBB1A0D75A7324 /* RATrimTests.m */,
 			);
 			path = RideAnalyzerTests;
 			sourceTree = "<group>";
@@ -1269,6 +1272,7 @@
 				0D8BC4DC8E77C9FE1C0D5053 /* RAEquipmentTests.m in Sources */,
 				AF46445A4A6C703C91119CEF /* RAPowerTests.m in Sources */,
 				081D0959DD7866DA04BCB18D /* RAClimbsTests.m in Sources */,
+				43F643012514D9F60AF4C4A7 /* RATrimTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

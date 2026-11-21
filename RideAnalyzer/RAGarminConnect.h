@@ -57,7 +57,8 @@ extern NSString *const RAGarminStepKey;
 @property (copy, nonatomic) NSString *name;
 @property (nullable, copy, nonatomic) NSDate *startDate;   // startTimeGMT
 @property (copy, nonatomic) NSString *typeKey;              // activityType.typeKey, e.g. road_biking
-@property (nonatomic) double distance;                      // meters
+@property (nonatomic) double distance;                      // meters (as corrected in Garmin Connect)
+@property (nonatomic) NSTimeInterval elapsedDuration;       // s, elapsedDuration, else duration; 0 when absent
 /// nil when the dictionary has no activityId
 + (nullable instancetype)activityWithJSON:(NSDictionary *)json;
 /// outdoor cycling (road, gravel, mountain, e-bike…): not indoor or virtual rides, which have no track

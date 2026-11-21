@@ -14,7 +14,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@class RARide, RAGarminConnect, RAFilter, RASavedFilter, RAEquipment, RAPart, RAClimb;
+@class RARide, RAGarminConnect, RAGarminActivity, RAFilter, RASavedFilter, RAEquipment, RAPart, RAClimb;
 @protocol RAKeyStore;
 
 NS_ASSUME_NONNULL_BEGIN
@@ -110,6 +110,21 @@ typedef NS_ENUM(NSInteger, RALibraryLocation) {
 
 /// undoable
 - (void)renameRide:(RARide *)ride to:(NSString *)name;
+/// keeps only a part of the ride's file (seconds from its first point; end 0: to the end), e.g. a computer left
+/// running in the car; its figures and stats are computed again; undoable. 0, 0: the whole file again.
+- (void)trimRide:(RARide *)ride start:(NSTimeInterval)start end:(NSTimeInterval)end;
+/// the figures of a ride (distance, ascent, duration, start, stats) from its file and its trim; any thread
++ (void)updateFiguresOfRide:(RARide *)ride fromData:(NSData *)data;
+/// the trim that makes a ride match its Garmin Connect summary when the activity was cut there (its file has the
+/// whole recording): start from the activity's start time, end from its duration, else from its distance; NO when
+/// the ride already matches (distance within 3 % + 300 m) or nothing can be deduced
++ (BOOL)garminTrimForRide:(RARide *)ride activity:(RAGarminActivity *)activity data:(NSData *)data
+                    start:(NSTimeInterval *)start end:(NSTimeInterval *)end;
+/// the Garmin Connect corrections of the rides already imported (R1): lists the activities back to the oldest ride
+/// from Garmin Connect and trims the rides that are longer than their activity. Completion on the main queue with
+/// the number of rides corrected (undoable together). Returns nil when an import is running.
+- (nullable NSProgress *)applyGarminCorrections:(RAGarminConnect *)client
+                                     completion:(void (^)(NSUInteger corrected, NSError * _Nullable error))completion;
 /// undoable; the original file goes with it (and comes back on undo)
 - (void)removeRides:(NSArray<RARide *> *)rides;
 

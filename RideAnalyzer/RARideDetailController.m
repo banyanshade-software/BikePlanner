@@ -62,6 +62,12 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     NSPopUpButton *_bikePopup;         // the bike of the ride (R13)
     NSTextField *_equipment;           // the parts mounted on it at the ride's date, mass, Crr, CdA
     NSStackView *_equipmentRow;
+    NSStackView *_trimRow;             // the part of the file that is the ride (a computer left running in the car)
+    NSTextField *_trimLabel;
+    NSButton *_trimSuggestion;         // "Trim the end at km x": a long stretch at car speed
+    NSPopUpButton *_trimMenu;
+    NSTimeInterval _suggestedTrimStart, _suggestedTrimEnd;   // offsets in the file, 0: none
+    NSTimeInterval _analysisTrimStart, _analysisTrimEnd;     // the trim of the analysis shown
     NSGridView *_figures;
     NSTableView *_climbsTable;         // the climbs of the ride (R7)
     NSScrollView *_climbsScroll;
@@ -115,6 +121,33 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
                                                        _bikePopup, _equipment ]];
     _equipmentRow.spacing = 8;
     _equipmentRow.alignment = NSLayoutAttributeFirstBaseline;
+
+    // trim (e.g. the computer left running in the car): a suggestion when the end or the start goes at car speed,
+    // and a menu to cut at the cursor
+    _trimLabel = [NSTextField labelWithString:@""];
+    _trimLabel.textColor = [NSColor systemOrangeColor];
+    _trimLabel.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    _trimLabel.identifier = @"rideTrimStatus";
+    [_trimLabel setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                          forOrientation:NSLayoutConstraintOrientationHorizontal];
+    _trimSuggestion = [NSButton buttonWithTitle:@"" target:self action:@selector(applyTrimSuggestion:)];
+    _trimSuggestion.controlSize = NSControlSizeSmall;
+    _trimSuggestion.identifier = @"rideTrimSuggestion";
+    _trimMenu = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:YES];
+    _trimMenu.controlSize = NSControlSizeSmall;
+    _trimMenu.identifier = @"rideTrim";
+    [_trimMenu addItemWithTitle:NSLocalizedString(@"Trim", @"detail")];
+    [_trimMenu addItemWithTitle:NSLocalizedString(@"Start the Ride at the Cursor", @"detail")];
+    _trimMenu.lastItem.action = @selector(trimStartAtCursor:);
+    _trimMenu.lastItem.target = self;
+    [_trimMenu addItemWithTitle:NSLocalizedString(@"End the Ride at the Cursor", @"detail")];
+    _trimMenu.lastItem.action = @selector(trimEndAtCursor:);
+    _trimMenu.lastItem.target = self;
+    [_trimMenu addItemWithTitle:NSLocalizedString(@"Whole Recording", @"detail")];
+    _trimMenu.lastItem.action = @selector(removeTrim:);
+    _trimMenu.lastItem.target = self;
+    _trimRow = [NSStackView stackViewWithViews:@[ _trimLabel, _trimSuggestion, _trimMenu ]];
+    _trimRow.spacing = 8;
 
     _figures = [NSGridView gridViewWithNumberOfColumns:4 rows:0];
     _figures.rowSpacing = 6;
@@ -182,7 +215,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     _charts.alignment = NSLayoutAttributeLeading;
     _charts.spacing = 6;
 
-    _stack = [NSStackView stackViewWithViews:@[ _title, _subtitle, _message, _notes, _tags, _equipmentRow, _figures, mapBar, _map,
+    _stack = [NSStackView stackViewWithViews:@[ _title, _subtitle, _message, _notes, _tags, _equipmentRow, _trimRow, _figures, mapBar, _map,
                                                 _profile, _climbsTitle, _climbsScroll, _charts ]];
     _stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     _stack.alignment = NSLayoutAttributeLeading;
@@ -193,7 +226,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     for (NSView *v in @[ _notes, _tags, _equipmentRow, _map, _profile, _climbsScroll, _charts ]) {
         [v.widthAnchor constraintEqualToAnchor:_stack.widthAnchor constant:-40].active = YES;
     }
-    _rideViews = @[ _subtitle, _notes, _tags, _equipmentRow, _figures, mapBar, _map, _profile, _climbsTitle, _climbsScroll,
+    _rideViews = @[ _subtitle, _notes, _tags, _equipmentRow, _trimRow, _figures, mapBar, _map, _profile, _climbsTitle, _climbsScroll,
                     _charts ];
 
     // a flipped document view, so the detail starts at the top of the scroll view
@@ -237,7 +270,10 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
         return;
     }
     [self refreshRideInfo];
-    if (same && _analysis) return;
+    if (same && _analysis && _analysisTrimStart == ride.trimStart && _analysisTrimEnd == ride.trimEnd) return;
+    NSTimeInterval trimStart = ride.trimStart, trimEnd = ride.trimEnd;
+    _analysisTrimStart = trimStart;
+    _analysisTrimEnd = trimEnd;
     // the track: read from the original file, in the background
     _analysis = nil;
     _cursorIndex = NSNotFound;
@@ -247,7 +283,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     NSData *data = [self.library originalDataOfRide:ride];
     NSUInteger generation = ++_generation;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-        RARideAnalysis *analysis = data ? [RARideAnalysis analysisOfData:data] : nil;
+        RARideAnalysis *analysis = data ? [RARideAnalysis analysisOfData:data trimStart:trimStart trimEnd:trimEnd] : nil;
         dispatch_async(dispatch_get_main_queue(), ^{
             if (generation != self->_generation) return; // another ride was selected meanwhile
             [self showAnalysis:analysis];
@@ -272,7 +308,116 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     if (_notes.currentEditor == nil) _notes.stringValue = ride.notes;
     if (_tags.currentEditor == nil) _tags.objectValue = ride.tags;
     [self updateEquipment];
+    [self updateTrim];
     [self updateFigures];
+}
+
+#pragma mark - trim
+
+/// the first and last points of a long stretch at car speed (over 45 km/h on average for 10 minutes), NSNotFound
+static void RAMotorizedEnds(RARideAnalysis *a, NSUInteger *fastFrom, NSUInteger *fastTo)
+{
+    *fastFrom = NSNotFound;
+    *fastTo = NSNotFound;
+    if (!a.hasTimes || a.count < 3) return;
+    const double window = 600, carSpeed = 45 / 3.6;
+    NSUInteger j = 0;
+    for (NSUInteger i = 0; i < a.count; i++) {
+        double t = a.elapsed[i].doubleValue;
+        if (j < i) j = i;
+        while (j + 1 < a.count && a.elapsed[j].doubleValue - t < window) j++;
+        double dt = a.elapsed[j].doubleValue - t;
+        if (dt < window) break;
+        if ((a.distances[j].doubleValue - a.distances[i].doubleValue) / dt > carSpeed) {
+            if (*fastFrom == NSNotFound) *fastFrom = i;
+            *fastTo = j;
+        }
+    }
+    if (*fastFrom == NSNotFound) return;
+    // the windows start before and end after the stretch: its first and last intervals at car speed
+    BOOL (^fast)(NSUInteger) = ^BOOL(NSUInteger k) {
+        double dt = a.elapsed[k + 1].doubleValue - a.elapsed[k].doubleValue;
+        return dt > 0 && (a.distances[k + 1].doubleValue - a.distances[k].doubleValue) / dt > carSpeed;
+    };
+    NSUInteger from = *fastFrom, to = *fastTo;
+    while (from + 1 < to && !fast(from)) from++;
+    while (to > from + 1 && !fast(to - 1)) to--;
+    *fastFrom = from;
+    *fastTo = to;
+}
+
+- (void)updateTrim
+{
+    RARide *ride = _ride;
+    _suggestedTrimStart = _suggestedTrimEnd = 0;
+    NSString *status = ride.trimmed ? NSLocalizedString(@"Part of the recording (trimmed).", @"detail") : @"";
+    _trimSuggestion.hidden = YES;
+    RARideAnalysis *a = _analysis;
+    if (a && ride && _analysisTrimStart == ride.trimStart && _analysisTrimEnd == ride.trimEnd) {
+        NSUInteger from = NSNotFound, to = NSNotFound;
+        RAMotorizedEnds(a, &from, &to);
+        if (from != NSNotFound) {
+            double km = a.distances[from].doubleValue / 1000;
+            double fast = (a.distances[to].doubleValue - a.distances[from].doubleValue) / 1000;
+            if (a.distances[from].doubleValue > 500) {
+                // ridden first, then at car speed: end the ride there
+                _suggestedTrimStart = ride.trimStart;
+                _suggestedTrimEnd = ride.trimStart + a.elapsed[from].doubleValue;
+                status = [NSString localizedStringWithFormat:NSLocalizedString(
+                    @"From km %.1f, %.0f km at car speed: the computer left running?", @"detail: trim suggestion"), km, fast];
+                _trimSuggestion.title = [NSString localizedStringWithFormat:NSLocalizedString(@"End the Ride at km %.1f", @"detail"), km];
+                _trimSuggestion.hidden = NO;
+            } else if (to + 1 < a.count) {
+                // at car speed first (driven to the start): start the ride after
+                double at = a.distances[to].doubleValue / 1000;
+                _suggestedTrimStart = ride.trimStart + a.elapsed[to].doubleValue;
+                _suggestedTrimEnd = ride.trimEnd;
+                status = [NSString localizedStringWithFormat:NSLocalizedString(
+                    @"The first %.0f km at car speed: started before the ride?", @"detail: trim suggestion"), at];
+                _trimSuggestion.title = [NSString localizedStringWithFormat:NSLocalizedString(@"Start the Ride at km %.1f", @"detail"), at];
+                _trimSuggestion.hidden = NO;
+            }
+        }
+    }
+    _trimLabel.stringValue = status;
+    [_trimMenu itemAtIndex:3].enabled = ride.trimmed;
+}
+
+- (void)applyTrimSuggestion:(id)sender
+{
+    RARide *ride = _ride;
+    if (!ride || (_suggestedTrimStart <= 0 && _suggestedTrimEnd <= 0)) return;
+    [self.library trimRide:ride start:_suggestedTrimStart end:_suggestedTrimEnd];
+}
+
+/// the offset in the file of the point under the cursor
+- (double)fileOffsetOfCursor
+{
+    RARideAnalysis *a = _analysis;
+    if (!a || !_ride || _cursorIndex == NSNotFound || _cursorIndex >= a.count) return NAN;
+    return _ride.trimStart + a.elapsed[_cursorIndex].doubleValue;
+}
+
+- (IBAction)trimStartAtCursor:(nullable id)sender
+{
+    RARide *ride = _ride;
+    double t = [self fileOffsetOfCursor];
+    if (isnan(t) || !ride) { NSBeep(); return; }
+    [self.library trimRide:ride start:t end:ride.trimEnd];
+}
+
+- (IBAction)trimEndAtCursor:(nullable id)sender
+{
+    RARide *ride = _ride;
+    double t = [self fileOffsetOfCursor];
+    if (isnan(t) || !ride) { NSBeep(); return; }
+    [self.library trimRide:ride start:ride.trimStart end:t];
+}
+
+- (IBAction)removeTrim:(nullable id)sender
+{
+    RARide *ride = _ride;
+    if (ride) [self.library trimRide:ride start:0 end:0];
 }
 
 #pragma mark - equipment of the ride (R13)
@@ -414,6 +559,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     if (![RATrackColoring analysis:analysis supportsMode:self.colorMode]) _colorMode = RAColorBySlope;
     [_colorPopup selectItemAtIndex:self.colorMode];
     [_profile setGpxPoints:analysis.trace];
+    [self updateTrim];
     [self updateClimbs];
     [self drawTrack];
     [self buildCharts];

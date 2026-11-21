@@ -21,6 +21,11 @@ static inline BOOL RAHasValue(double v) { return !isnan(v); }
 
 /// nil when the data is not a track with at least 2 points
 + (nullable instancetype)analysisOfData:(NSData *)data;
+/// only the points from trimStart to trimEnd seconds after the first one (trimEnd 0: to the end; RARide trim);
+/// the calories of the file are dropped when something is cut
++ (nullable instancetype)analysisOfData:(NSData *)data trimStart:(NSTimeInterval)trimStart trimEnd:(NSTimeInterval)trimEnd;
+/// the indexes of a trace kept by a trim (all of them without times)
++ (NSRange)rangeOfTrace:(NSArray<CLLocation *> *)trace trimStart:(NSTimeInterval)trimStart trimEnd:(NSTimeInterval)trimEnd;
 - (instancetype)initWithTrace:(NSArray<CLLocation *> *)trace
                       metrics:(NSArray<NSDictionary<NSString *, NSNumber *> *> *)metrics
                      calories:(nullable NSNumber *)calories

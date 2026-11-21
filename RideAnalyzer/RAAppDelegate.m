@@ -63,6 +63,8 @@
                          key:@""]];
     [file addItem:[self item:NSLocalizedString(@"Fetch from Garmin Connect…", @"menu")
                       action:@selector(fetchFromGarminConnect:) key:@""]];
+    [file addItem:[self item:NSLocalizedString(@"Apply Garmin Connect Corrections", @"menu")
+                      action:@selector(applyGarminCorrections:) key:@""]];
     [main addItem:[self submenu:file]];
 
     NSMenu *edit = [[NSMenu alloc] initWithTitle:NSLocalizedString(@"Edit", @"menu")];

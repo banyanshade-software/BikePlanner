@@ -29,6 +29,11 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, nonatomic) NSString *sport;          // @"cycling", @"running", @"other", @"" unknown
 @property (copy, nonatomic) NSString *garminActivityID; // Garmin Connect activity (R1), @"" for a local file
 @property (copy, nonatomic) NSString *bikeID;         // the bike ridden (R13, RAEquipment), @"" not set
+/// the part of the original file that is the ride (e.g. a computer left running in the car): seconds from its first
+/// point; trimEnd 0: to the end. The figures and stats of the ride are those of that part.
+@property (nonatomic) NSTimeInterval trimStart;
+@property (nonatomic) NSTimeInterval trimEnd;
+@property (readonly, nonatomic, getter=isTrimmed) BOOL trimmed;
 @property (copy, nonatomic) NSString *notes;
 @property (copy, nonatomic) NSArray<NSString *> *tags;
 /// figures for the trends (R6), computed from the track at import; nil until computed (rides imported before)

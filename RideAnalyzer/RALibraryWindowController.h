@@ -22,6 +22,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (IBAction)importFromDevice:(id)sender;
 /// File ▸ Fetch from Garmin Connect… (R1): new rides, or all rides since a date
 - (IBAction)fetchFromGarminConnect:(id)sender;
+/// File ▸ Apply Garmin Connect Corrections (R1): trims the rides longer than their Garmin Connect activity
+- (IBAction)applyGarminCorrections:(nullable id)sender;
 /// stops the running import or fetch (what was read is kept)
 - (IBAction)cancelImport:(nullable id)sender;
 /// Window ▸ Trends (⇧⌘T): the Trends tab (R6), or back to the Ride tab

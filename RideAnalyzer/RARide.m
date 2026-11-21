@@ -68,6 +68,8 @@ static const double RAAscentThreshold = 3.0; // meters
         if ([(v = plist[@"sport"]) isKindOfClass:[NSString class]]) _sport = [v copy];
         if ([(v = plist[@"garminActivityID"]) isKindOfClass:[NSString class]]) _garminActivityID = [v copy];
         if ([(v = plist[@"bikeID"]) isKindOfClass:[NSString class]]) _bikeID = [v copy];
+        if ([(v = plist[@"trimStart"]) isKindOfClass:[NSNumber class]]) _trimStart = MAX(0, [v doubleValue]);
+        if ([(v = plist[@"trimEnd"]) isKindOfClass:[NSNumber class]]) _trimEnd = MAX(0, [v doubleValue]);
         if ([(v = plist[@"notes"]) isKindOfClass:[NSString class]]) _notes = [v copy];
         _stats = [RARideStats statsWithPropertyList:plist[@"stats"]];
         if ([(v = plist[@"tags"]) isKindOfClass:[NSArray class]]) {
@@ -99,6 +101,8 @@ static const double RAAscentThreshold = 3.0; // meters
         @"tags": self.tags,
     } mutableCopy];
     if (self.startDate) d[@"startDate"] = self.startDate;
+    if (self.trimStart > 0) d[@"trimStart"] = @(self.trimStart);
+    if (self.trimEnd > 0) d[@"trimEnd"] = @(self.trimEnd);
     if (self.stats) d[@"stats"] = self.stats.propertyList;
     return d;
 }
@@ -137,6 +141,11 @@ static const double RAAscentThreshold = 3.0; // meters
     if (![deviceKey hasPrefix:@"p"]) return 0;
     NSString *first = [deviceKey componentsSeparatedByString:@"-"].firstObject ?: @"";
     return [first substringFromIndex:1].integerValue;
+}
+
+- (BOOL)isTrimmed
+{
+    return self.trimStart > 0 || self.trimEnd > 0;
 }
 
 - (double)averageSpeed

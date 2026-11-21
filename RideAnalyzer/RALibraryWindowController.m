@@ -1152,6 +1152,39 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     }];
 }
 
+- (IBAction)applyGarminCorrections:(nullable id)sender
+{
+    RALibraryDocument *library = self.library;
+    if (!library || library.importing) return;
+    NSString *key = library.garminKey;
+    if (key.length == 0) {
+        NSAlert *alert = [[NSAlert alloc] init];
+        alert.messageText = NSLocalizedString(@"No Garmin Connect key for this library", @"corrections");
+        alert.informativeText = NSLocalizedString(@"Enter it in File ▸ Fetch from Garmin Connect… first.", @"corrections");
+        [alert beginSheetModalForWindow:self.window completionHandler:nil];
+        return;
+    }
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
+    RAGarminConnect *client = [[RAGarminConnect alloc] initWithKey:key session:session];
+    NSProgress *progress = [library applyGarminCorrections:client completion:^(NSUInteger corrected, NSError *error) {
+        [session finishTasksAndInvalidate];
+        [self observeProgress:nil];
+        if (error) {
+            [self presentError:error modalForWindow:self.window delegate:nil didPresentSelector:NULL contextInfo:NULL];
+            return;
+        }
+        NSAlert *alert = [[NSAlert alloc] init];
+        alert.messageText = corrected
+            ? [NSString localizedStringWithFormat:NSLocalizedString(@"%lu rides trimmed as in Garmin Connect", @"corrections"),
+               (unsigned long)corrected]
+            : NSLocalizedString(@"No ride to correct", @"corrections");
+        alert.informativeText = NSLocalizedString(@"A ride longer than its Garmin Connect activity (cut there) keeps only "
+                                                  @"the part of the activity; Edit ▸ Undo goes back.", @"corrections");
+        [alert beginSheetModalForWindow:self.window completionHandler:nil];
+    }];
+    if (progress) [self observeProgress:progress];
+}
+
 - (IBAction)fetchFromGarminConnect:(id)sender
 {
     RALibraryDocument *library = self.library;
@@ -1231,7 +1264,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 {
     if (action == @selector(delete:)) return _table.selectedRowIndexes.count > 0;
     if (action == @selector(importFiles:) || action == @selector(importFromDevice:)
-        || action == @selector(fetchFromGarminConnect:)) {
+        || action == @selector(fetchFromGarminConnect:) || action == @selector(applyGarminCorrections:)) {
         return self.library && !self.library.importing;
     }
     if (action == @selector(saveFilter:) || action == @selector(clearFilter:)) return ![self currentFilter].empty;

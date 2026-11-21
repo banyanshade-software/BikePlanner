@@ -23,9 +23,40 @@ static NSArray<NSNumber *> *RANumbers(const double *values, NSUInteger count)
 
 + (nullable instancetype)analysisOfData:(NSData *)data
 {
+    return [self analysisOfData:data trimStart:0 trimEnd:0];
+}
+
++ (NSRange)rangeOfTrace:(NSArray<CLLocation *> *)trace trimStart:(NSTimeInterval)trimStart trimEnd:(NSTimeInterval)trimEnd
+{
+    NSUInteger n = trace.count;
+    NSDate *t0 = trace.firstObject.timestamp;
+    if (n == 0 || !t0 || (trimStart <= 0 && trimEnd <= 0)) return NSMakeRange(0, n);
+    NSUInteger first = 0, last = n;     // last: one past
+    while (first < n && [trace[first].timestamp timeIntervalSinceDate:t0] < trimStart) first++;
+    if (trimEnd > 0) {
+        last = first;
+        while (last < n && [trace[last].timestamp timeIntervalSinceDate:t0] <= trimEnd) last++;
+    }
+    return NSMakeRange(first, last > first ? last - first : 0);
+}
+
++ (nullable instancetype)analysisOfData:(NSData *)data trimStart:(NSTimeInterval)trimStart trimEnd:(NSTimeInterval)trimEnd
+{
     BPTrackReader *r = [BPTrackReader readerWithData:data error:NULL];
     if (!r || r.trace.count < 2) return nil;
-    return [[self alloc] initWithTrace:r.trace metrics:r.metrics calories:r.calories hasTimes:r.hasTimes];
+    NSArray<CLLocation *> *trace = r.trace;
+    NSArray *metrics = r.metrics;
+    NSNumber *calories = r.calories;
+    if (r.hasTimes) {
+        NSRange range = [self rangeOfTrace:trace trimStart:trimStart trimEnd:trimEnd];
+        if (range.length < trace.count) {
+            if (range.length < 2) return nil;
+            trace = [trace subarrayWithRange:range];
+            metrics = range.location + range.length <= metrics.count ? [metrics subarrayWithRange:range] : @[];
+            calories = nil;     // of the whole file
+        }
+    }
+    return [[self alloc] initWithTrace:trace metrics:metrics calories:calories hasTimes:r.hasTimes];
 }
 
 - (instancetype)initWithTrace:(NSArray<CLLocation *> *)trace

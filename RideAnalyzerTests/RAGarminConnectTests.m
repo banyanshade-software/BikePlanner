@@ -354,4 +354,63 @@ static NSString *const kBase = @"https://garmin.stub";
     XCTAssertNil([store keyForLibrary:@"lib"]);
 }
 
+// an activity cut in Garmin Connect (the computer left running): the file has the whole recording, the summary
+// the corrected ride (owner's case: 277 km of which 3 by bike)
+- (void)testActivityCutInGarminConnect
+{
+    [self addActivity:31 day:0 type:@"road_biking"];
+    NSMutableDictionary *cut = [_activities[0] mutableCopy];
+    cut[@"distance"] = @1112;
+    cut[@"elapsedDuration"] = @600;
+    _activities[0] = cut;
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    NSError *error = nil;
+    [self fetchInto:doc client:[self clientWithKey:@"good-key"] since:nil error:&error];
+    RARide *ride = doc.rides.firstObject;
+    XCTAssertNotNil(ride, @"%@", error);
+    XCTAssertTrue(ride.trimmed);
+    XCTAssertEqualWithAccuracy(ride.distance, 1112, 30, @"the part kept in Garmin Connect");
+    XCTAssertEqualWithAccuracy(ride.trimEnd, 600, 1e-6);
+}
+
+// a ride imported before it was cut in Garmin Connect: Apply Garmin Connect Corrections
+- (void)testApplyGarminCorrections
+{
+    [self addActivity:32 day:0 type:@"road_biking"];
+    [self addActivity:33 day:1 type:@"road_biking"];
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    doc.undoManager.groupsByEvent = NO;
+    NSError *error = nil;
+    [doc.undoManager beginUndoGrouping];
+    [self fetchInto:doc client:[self clientWithKey:@"good-key"] since:nil error:&error];
+    [doc.undoManager endUndoGrouping];
+    XCTAssertEqual(doc.rides.count, 2u);
+    for (RARide *r in doc.rides) XCTAssertFalse(r.trimmed, @"nothing cut yet");
+
+    NSUInteger index = [_activities indexOfObjectPassingTest:^BOOL(NSDictionary *a, NSUInteger i, BOOL *stop) {
+        return [a[@"activityId"] isEqual:@32];
+    }];
+    NSMutableDictionary *cut = [_activities[index] mutableCopy];
+    cut[@"distance"] = @1112;
+    cut[@"elapsedDuration"] = @600;
+    _activities[index] = cut;
+
+    __block NSUInteger corrected = 99;
+    __block BOOL done = NO;
+    XCTAssertNotNil([doc applyGarminCorrections:[self clientWithKey:@"good-key"] completion:^(NSUInteger n, NSError *e) {
+        corrected = n;
+        done = YES;
+    }]);
+    XCTAssertTrue(RAWaitUntil(10, ^{ return done; }));
+    XCTAssertEqual(corrected, 1u);
+    RARide *r32 = [doc.rides filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"garminActivityID == '32'"]].firstObject;
+    RARide *r33 = [doc.rides filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"garminActivityID == '33'"]].firstObject;
+    XCTAssertTrue(r32.trimmed);
+    XCTAssertEqualWithAccuracy(r32.distance, 1112, 30);
+    XCTAssertFalse(r33.trimmed);
+    [doc.undoManager undo];
+    XCTAssertFalse(r32.trimmed, @"undoable");
+    XCTAssertEqualWithAccuracy(r32.distance, 2224, 30);
+}
+
 @end

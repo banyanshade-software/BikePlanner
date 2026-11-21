@@ -344,6 +344,20 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   (`nameOfClimb:` / `setName:ofClimb:`, undoable) and goes to every passage of the same climb.
 - Not yet: the wind (R12) in their estimated power.
 
+## Trimmed rides (2026-11-21, owner's case: 277 km of which 3 by bike, the computer left running in the car)
+- **Trim** (`RARide.trimStart` / `trimEnd`, seconds from the first point of the file; the file itself is kept):
+  the figures, stats, climbs, track of the map and detail are those of the part kept (`analysisOfData:trimStart:
+  trimEnd:`, `trimRide:start:end:` undoable, `updateFiguresOfRide:fromData:`).
+- **Activities cut in Garmin Connect**: the file downloaded has the whole recording (to check), the activity's
+  summary the corrected distance and duration (`elapsedDuration`, else `duration`, to check). At the fetch, a ride
+  longer than its activity (distance + 3 % + 300 m) is trimmed: start from the activity's start time, end from its
+  duration (else where the ride reaches its distance). For the rides imported before the cut: File ▸ *Apply Garmin
+  Connect Corrections* lists the activities back to the oldest ride from Garmin Connect and trims those longer than
+  their activity (one undoable change).
+- **Detail**: when 10 minutes or more go at car speed (> 45 km/h on average), a line proposes to end the ride where
+  that stretch starts (or to start it after, when it is at the beginning); a *Trim* menu ends or starts the ride at
+  the cursor, or gives back the whole recording.
+
 ## Handoff (2026-11-21): written without Xcode, never compiled
 The skeleton and the imports were written in a session without Xcode. First steps on the owner's Mac (Claude Code):
 1. `git checkout ride_analyzer && git pull`.
