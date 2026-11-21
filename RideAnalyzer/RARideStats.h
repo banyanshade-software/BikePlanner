@@ -56,6 +56,8 @@ extern const NSInteger RARideStatsVersion;
 @property (nonatomic) double maxHeartRate;      // bpm, NaN without
 @property (nonatomic) double maxPower;          // W, NaN without
 @property (nonatomic) double calories;          // kcal, NaN without
+/// the track, simplified to about 8 m and packed (RAHeatmap): the map of all rides (R10) without reading the files
+@property (copy, nonatomic) NSData *track;
 /// the whole ride
 @property (readonly, nonatomic) RATerrainStats *total;
 /// one per terrain (RATerrainDescent… RATerrainSteep)

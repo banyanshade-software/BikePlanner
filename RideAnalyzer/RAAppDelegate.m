@@ -94,6 +94,9 @@
     NSMenuItem *trends = [self item:NSLocalizedString(@"Trends", @"menu") action:@selector(showTrends:) key:@"t"];
     trends.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagShift;
     [window addItem:trends];
+    NSMenuItem *map = [self item:NSLocalizedString(@"Map of the Rides", @"menu") action:@selector(showRidesMap:) key:@"m"];
+    map.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagShift;
+    [window addItem:map];
     [main addItem:[self submenu:window]];
     NSApp.windowsMenu = window;
 

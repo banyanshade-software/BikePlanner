@@ -247,6 +247,20 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
 - Not yet: the estimated power (R11), the climbs (R7, to compare the passages on the same climb), selecting a ride
   of the chart in the library window.
 
+## Map of all rides (2026-11-21, R10)
+- **Map tab** beside the list (Window ▸ Map of the Rides, ⇧⌘M, toolbar "Map"; `RARidesMapViewController`): the
+  tracks of the selected rides (two or more) or of the list, on a muted Apple map; zoomed on all of them when the
+  rides change (*Show All* goes back to it); legend, status (rides, those without track, most rides on a road).
+- **Most ridden roads** (`RAHeatmap`): the map is divided in 40 m cells; a cell counts the rides that cross it (the
+  tracks are densified every half cell so that no crossed cell is missed); each piece of track gets the level of
+  its cell — 1 ride, 2–3, 4–9, 10+ — drawn wider and warmer (blue, yellow, orange, red), the most ridden on top.
+  Computed off the main thread.
+- **Tracks**: kept in the stats of each ride (`RARideStats.track`, Douglas–Peucker to 8 m, float32 pairs; stats
+  version 2), so the files are not read again; the stats of older rides are computed again in the background when
+  the Map or Trends tab shows (one computation at a time, `computeMissingStatsWithCompletion:`).
+- Not yet: the roads **never ridden** (needs the road network around: Overpass, as BikePlanner's POIs, or the
+  BRouter segments; to be designed), a click on a track to select its ride, BikePlanner's base maps.
+
 ## Handoff (2026-11-21): written without Xcode, never compiled
 The skeleton and the imports were written in a session without Xcode. First steps on the owner's Mac (Claude Code):
 1. `git checkout ride_analyzer && git pull`.

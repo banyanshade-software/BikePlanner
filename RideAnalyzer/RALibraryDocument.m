@@ -190,6 +190,7 @@ static NSString * _Nullable RAKeyFromObfuscated(id value, NSString *libraryID)
     NSString *_documentGarminKey;   // in clear in memory, nil when the key is not kept in the document
     BOOL _locationChecked;
     NSAlert *_copyAlert;
+    NSMutableArray *_statsCompletions;  // callers waiting for the running computation of missing stats
 }
 
 + (BOOL)autosavesInPlace
@@ -830,11 +831,17 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
 
 - (void)computeMissingStatsWithCompletion:(void (^)(NSUInteger computed))completion
 {
+    // one computation at a time (the Trends and Map tabs both ask): later callers wait for the running one
+    if (_statsCompletions) {
+        [_statsCompletions addObject:[completion copy]];
+        return;
+    }
     NSArray<RARide *> *rides = [self ridesWithoutStats];
     if (rides.count == 0) {
         completion(0);
         return;
     }
+    _statsCompletions = [NSMutableArray arrayWithObject:[completion copy]];
     NSMutableArray<NSData *> *datas = [NSMutableArray array];
     for (RARide *r in rides) [datas addObject:[self originalDataOfRide:r] ?: [NSData data]];
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
@@ -857,7 +864,9 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
                 [self updateChangeCount:NSChangeDone]; // derived figures, saved with the library; not undoable
                 [self libraryDidChange];
             }
-            completion(computed);
+            NSArray *completions = self->_statsCompletions;
+            self->_statsCompletions = nil;
+            for (void (^c)(NSUInteger) in completions) c(computed);
         });
     });
 }

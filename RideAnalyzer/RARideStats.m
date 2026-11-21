@@ -4,10 +4,11 @@
 //
 
 #import "RARideStats.h"
+#import "RAHeatmap.h"
 #import "RARideAnalysis.h"
 
 const NSInteger RATerrainCount = 5;
-const NSInteger RARideStatsVersion = 1;
+const NSInteger RARideStatsVersion = 2; // 2: track (R10)
 
 static const double RAMovingSpeedStats = 3.0 / 3.6; // m/s, as RARideAnalysis
 
@@ -102,6 +103,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
         _maxHeartRate = NAN;
         _maxPower = NAN;
         _calories = NAN;
+        _track = [NSData data];
     }
     return self;
 }
@@ -119,6 +121,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
     s.maxHeartRate = a.maxHeartRate;
     s.maxPower = a.maxPower;
     s.calories = a.calories != nil ? a.calories.doubleValue : NAN;
+    s.track = [RAHeatmap packedTrackOfTrace:a.trace tolerance:8];
     if (!a.hasTimes) return s;
     // each moving interval goes to the terrain of the slope at its end
     for (NSUInteger i = 1; i < a.count; i++) {
@@ -146,7 +149,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
     for (NSInteger i = 0; i < RATerrainCount; i++) terrains[RATerrainKeys()[(NSUInteger)i]] = _terrains[(NSUInteger)i].propertyList;
     NSMutableDictionary *d = [@{ @"version": @(self.version), @"movingTime": @(self.movingTime),
                                  @"maxSpeed": @(self.maxSpeed), @"total": self.total.propertyList,
-                                 @"terrains": terrains } mutableCopy];
+                                 @"terrains": terrains, @"track": self.track } mutableCopy];
     // NaN cannot go into a property list: absent means no value
     if (!isnan(self.maxHeartRate)) d[@"maxHR"] = @(self.maxHeartRate);
     if (!isnan(self.maxPower)) d[@"maxPower"] = @(self.maxPower);
@@ -166,6 +169,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
     if ([(v = plist[@"maxHR"]) isKindOfClass:[NSNumber class]]) s.maxHeartRate = [v doubleValue];
     if ([(v = plist[@"maxPower"]) isKindOfClass:[NSNumber class]]) s.maxPower = [v doubleValue];
     if ([(v = plist[@"calories"]) isKindOfClass:[NSNumber class]]) s.calories = [v doubleValue];
+    if ([(v = plist[@"track"]) isKindOfClass:[NSData class]]) s.track = v;
     [s.total add:[RATerrainStats statsWithPropertyList:plist[@"total"]]];
     id terrains = plist[@"terrains"];
     for (NSInteger i = 0; i < RATerrainCount; i++) {

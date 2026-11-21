@@ -149,6 +149,9 @@
 		EA7E7C0692F5D8C46385AE16 /* RATrendsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = AB5634B17B43D074F20FA7B0 /* RATrendsViewController.m */; };
 		DC4D5510E3FCE2E2A9E01D45 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 59D6971391036EC2D0DE929A /* Assets.xcassets */; };
 		2ED0086EA66AD77E754B9C0C /* RARangeSlider.m in Sources */ = {isa = PBXBuildFile; fileRef = 254883B0529705644742A793 /* RARangeSlider.m */; };
+		25EA8B3584E075B4C6366F4F /* RAHeatmap.m in Sources */ = {isa = PBXBuildFile; fileRef = BD32D406FC603FCE10CDE874 /* RAHeatmap.m */; };
+		8C57CB9EA014B1EEAD1A20E9 /* RARidesMapViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D1BAC8D33B6B2CED5C66589E /* RARidesMapViewController.m */; };
+		5E90332947A9950E3876EC69 /* RAHeatmapTests.m in Sources */ = {isa = PBXBuildFile; fileRef = E9C8622B153ABE3113ED5223 /* RAHeatmapTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -407,6 +410,11 @@
 		59D6971391036EC2D0DE929A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		254883B0529705644742A793 /* RARangeSlider.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RARangeSlider.m; sourceTree = "<group>"; };
 		EEE90A5E92D7E5B981B32087 /* RARangeSlider.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RARangeSlider.h; sourceTree = "<group>"; };
+		BD32D406FC603FCE10CDE874 /* RAHeatmap.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAHeatmap.m; sourceTree = "<group>"; };
+		462CB29BB8E83648304B4D83 /* RAHeatmap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAHeatmap.h; sourceTree = "<group>"; };
+		D1BAC8D33B6B2CED5C66589E /* RARidesMapViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RARidesMapViewController.m; sourceTree = "<group>"; };
+		21B092D268F184F352A37895 /* RARidesMapViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RARidesMapViewController.h; sourceTree = "<group>"; };
+		E9C8622B153ABE3113ED5223 /* RAHeatmapTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAHeatmapTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -740,6 +748,10 @@
 				59D6971391036EC2D0DE929A /* Assets.xcassets */,
 				254883B0529705644742A793 /* RARangeSlider.m */,
 				EEE90A5E92D7E5B981B32087 /* RARangeSlider.h */,
+				BD32D406FC603FCE10CDE874 /* RAHeatmap.m */,
+				462CB29BB8E83648304B4D83 /* RAHeatmap.h */,
+				D1BAC8D33B6B2CED5C66589E /* RARidesMapViewController.m */,
+				21B092D268F184F352A37895 /* RARidesMapViewController.h */,
 			);
 			path = RideAnalyzer;
 			sourceTree = "<group>";
@@ -757,6 +769,7 @@
 				BACCA2786A8FBF7A64682CC5 /* RAViewTests.m */,
 				25C4F5C4C635CD31DE9553C6 /* RATrendsTests.m */,
 				1874311C204525C02852888A /* RALibraryKeyTests.m */,
+				E9C8622B153ABE3113ED5223 /* RAHeatmapTests.m */,
 			);
 			path = RideAnalyzerTests;
 			sourceTree = "<group>";
@@ -1178,6 +1191,8 @@
 				13518DEB43AA405849427190 /* RATimeChartView.m in Sources */,
 				EA7E7C0692F5D8C46385AE16 /* RATrendsViewController.m in Sources */,
 				2ED0086EA66AD77E754B9C0C /* RARangeSlider.m in Sources */,
+				25EA8B3584E075B4C6366F4F /* RAHeatmap.m in Sources */,
+				8C57CB9EA014B1EEAD1A20E9 /* RARidesMapViewController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1195,6 +1210,7 @@
 				69B25D8A3BE6790BC3C0EC3D /* RAViewTests.m in Sources */,
 				B33E7D3F43F04B77AD5C0116 /* RATrendsTests.m in Sources */,
 				066B133258EFEF640586D547 /* RALibraryKeyTests.m in Sources */,
+				5E90332947A9950E3876EC69 /* RAHeatmapTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -4,8 +4,9 @@
 //
 //  The window of a library (#82): sidebar with the filter (search field, period, device, distance, tag, More…, Clear,
 //  Save…) and the saved filters and devices (R3; names editable), the list of rides with the progress of an import
-//  (R1, R2), and two tabs: the detail of the selected ride (RARideDetailController, R4) and the trends of the
-//  selected rides, or of the list (RATrendsViewController, R6). Built in code, no XIB.
+//  (R1, R2), and three tabs: the detail of the selected ride (RARideDetailController, R4), the trends (R6,
+//  RATrendsViewController) and the map (R10, RARidesMapViewController) of the selected rides, or of the list.
+//  Built in code, no XIB.
 //
 
 #import <Cocoa/Cocoa.h>
@@ -24,6 +25,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (IBAction)cancelImport:(nullable id)sender;
 /// Window ▸ Trends (⇧⌘T): the Trends tab (R6), or back to the Ride tab
 - (IBAction)showTrends:(nullable id)sender;
+/// Window ▸ Map of the Rides (⇧⌘M): the Map tab (R10), or back to the Ride tab
+- (IBAction)showRidesMap:(nullable id)sender;
 /// Edit ▸ Find… (⌘F): the search field (name, notes, tags; R3)
 - (IBAction)focusSearch:(nullable id)sender;
 /// Edit ▸ Filter… / Clear Filter / Save Filter…: the criteria of the list (R3)
