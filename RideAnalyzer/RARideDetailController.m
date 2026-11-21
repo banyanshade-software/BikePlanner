@@ -123,7 +123,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     _stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     _stack.alignment = NSLayoutAttributeLeading;
     _stack.spacing = 10;
-    _stack.edgeInsets = NSEdgeInsetsMake(40, 20, 20, 20);
+    _stack.edgeInsets = NSEdgeInsetsMake(12, 20, 20, 20);
     _stack.detachesHiddenViews = YES;
     _stack.translatesAutoresizingMaskIntoConstraints = NO;
     for (NSView *v in @[ _notes, _tags, _map, _profile, _charts ]) {

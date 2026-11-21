@@ -23,11 +23,20 @@ static NSUserInterfaceItemIdentifier const RAColumnDevice = @"device";
 
 static void *RAProgressContext = &RAProgressContext;
 
+// toolbar items
+static NSToolbarItemIdentifier const RAToolbarImport = @"import";
+static NSToolbarItemIdentifier const RAToolbarDevice = @"importFromDevice";
+static NSToolbarItemIdentifier const RAToolbarGarmin = @"garmin";
+static NSToolbarItemIdentifier const RAToolbarFilter = @"filter";
+static NSToolbarItemIdentifier const RAToolbarDelete = @"delete";
+static NSToolbarItemIdentifier const RAToolbarSearch = @"search";
+
 // a row of the sidebar
 typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASidebarSavedFilter, RASidebarDevice };
 
 @interface RALibraryWindowController () <NSTableViewDataSource, NSTableViewDelegate, NSWindowDelegate,
-                                         NSMenuItemValidation, NSTextFieldDelegate, NSSearchFieldDelegate>
+                                         NSMenuItemValidation, NSTextFieldDelegate, NSSearchFieldDelegate,
+                                         NSToolbarDelegate, NSToolbarItemValidation>
 @end
 
 @implementation RALibraryWindowController
@@ -58,7 +67,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 {
     NSWindow *window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 1280, 800)
         styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable
-                  | NSWindowStyleMaskResizable | NSWindowStyleMaskFullSizeContentView
+                  | NSWindowStyleMaskResizable
         backing:NSBackingStoreBuffered defer:YES];
     window.minSize = NSMakeSize(1080, 560);
     self = [super initWithWindow:window];
@@ -72,6 +81,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
         _dateFormatter.dateStyle = NSDateFormatterShortStyle;
         _dateFormatter.timeStyle = NSDateFormatterNoStyle;
         [self buildContent];
+        [self buildToolbar];
         [window center];
         [window setFrameAutosaveName:@"RALibraryWindow"];
     }
@@ -143,27 +153,25 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     _search.target = self;
     _search.action = @selector(searchChanged:);
     _search.identifier = @"search";
-    [_search.widthAnchor constraintGreaterThanOrEqualToConstant:160].active = YES;
-    NSButton *filterButton = [NSButton buttonWithTitle:NSLocalizedString(@"Filter…", @"button") target:self
-                                                action:@selector(editFilter:)];
-    filterButton.identifier = @"editFilter";
     _clearFilterButton = [NSButton buttonWithTitle:NSLocalizedString(@"Clear", @"button") target:self
                                             action:@selector(clearFilter:)];
     _clearFilterButton.identifier = @"clearFilter";
     _saveFilterButton = [NSButton buttonWithTitle:NSLocalizedString(@"Save…", @"button") target:self
                                            action:@selector(saveFilter:)];
     _saveFilterButton.identifier = @"saveFilter";
-    NSStackView *filterRow = [NSStackView stackViewWithViews:@[ _search, filterButton, _clearFilterButton, _saveFilterButton ]];
+    _clearFilterButton.controlSize = NSControlSizeSmall;
+    _saveFilterButton.controlSize = NSControlSizeSmall;
     _filterSummary = [NSTextField labelWithString:@""];
     _filterSummary.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
     _filterSummary.textColor = [NSColor secondaryLabelColor];
     _filterSummary.lineBreakMode = NSLineBreakByTruncatingTail;
     _filterSummary.identifier = @"filterSummary";
-    NSStackView *filterBar = [NSStackView stackViewWithViews:@[ filterRow, _filterSummary ]];
-    filterBar.orientation = NSUserInterfaceLayoutOrientationVertical;
-    filterBar.alignment = NSLayoutAttributeLeading;
-    filterBar.spacing = 4;
-    filterBar.edgeInsets = NSEdgeInsetsMake(40, 10, 4, 10);
+    [_filterSummary setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                             forOrientation:NSLayoutConstraintOrientationHorizontal];
+    // the search field is in the toolbar; under it, the criteria of the filter
+    NSStackView *filterBar = [NSStackView stackViewWithViews:@[ _filterSummary, _clearFilterButton, _saveFilterButton ]];
+    filterBar.spacing = 6;
+    filterBar.edgeInsets = NSEdgeInsetsMake(6, 10, 2, 10);
 
     // rides
     _table = [[NSTableView alloc] init];
@@ -191,7 +199,6 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     _table.sortDescriptors = @[ [NSSortDescriptor sortDescriptorWithKey:@"startDate" ascending:NO] ];
     [_table registerForDraggedTypes:@[ NSPasteboardTypeFileURL ]];
     NSScrollView *tableScroll = [self scrollViewWithTable:_table];
-    tableScroll.automaticallyAdjustsContentInsets = NO; // the filter bar is above it
 
     // progress of an import (R1, R2): text, bar, Cancel
     _progressLabel = [NSTextField labelWithString:@""];
@@ -245,6 +252,77 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     [_split addSplitViewItem:d];
     _split.splitView.autosaveName = @"RALibrarySplit";
     self.window.contentViewController = _split;
+}
+
+#pragma mark - toolbar
+
+- (void)buildToolbar
+{
+    NSToolbar *toolbar = [[NSToolbar alloc] initWithIdentifier:@"RALibraryToolbar"];
+    toolbar.delegate = self;
+    toolbar.allowsUserCustomization = YES;
+    toolbar.autosavesConfiguration = YES;
+    toolbar.displayMode = NSToolbarDisplayModeIconOnly;
+    self.window.toolbar = toolbar;
+    self.window.toolbarStyle = NSWindowToolbarStyleUnified;
+}
+
+- (NSArray<NSToolbarItemIdentifier> *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar
+{
+    return @[ NSToolbarToggleSidebarItemIdentifier, RAToolbarImport, RAToolbarDevice, RAToolbarGarmin,
+              NSToolbarFlexibleSpaceItemIdentifier, RAToolbarDelete, RAToolbarFilter, RAToolbarSearch ];
+}
+
+- (NSArray<NSToolbarItemIdentifier> *)toolbarAllowedItemIdentifiers:(NSToolbar *)toolbar
+{
+    return @[ NSToolbarToggleSidebarItemIdentifier, RAToolbarImport, RAToolbarDevice, RAToolbarGarmin, RAToolbarDelete,
+              RAToolbarFilter, RAToolbarSearch, NSToolbarFlexibleSpaceItemIdentifier, NSToolbarSpaceItemIdentifier ];
+}
+
+- (nullable NSToolbarItem *)toolbar:(NSToolbar *)toolbar itemForItemIdentifier:(NSToolbarItemIdentifier)identifier
+    willBeInsertedIntoToolbar:(BOOL)flag
+{
+    if ([identifier isEqualToString:RAToolbarSearch]) {
+        NSSearchToolbarItem *item = [[NSSearchToolbarItem alloc] initWithItemIdentifier:identifier];
+        item.searchField = _search;
+        item.label = NSLocalizedString(@"Search", @"toolbar");
+        item.toolTip = NSLocalizedString(@"Search the name, the notes and the tags (⌘F)", @"toolbar");
+        return item;
+    }
+    // identifier → label, tooltip, SF Symbol, action
+    NSDictionary<NSString *, NSArray *> *items = @{
+        RAToolbarImport: @[ NSLocalizedString(@"Import", @"toolbar"),
+                            NSLocalizedString(@"Import FIT, GPX or TCX files or folders", @"toolbar"),
+                            @"square.and.arrow.down", NSStringFromSelector(@selector(importFiles:)) ],
+        RAToolbarDevice: @[ NSLocalizedString(@"Device", @"toolbar"),
+                            NSLocalizedString(@"Import the rides of a device connected by USB", @"toolbar"),
+                            @"externaldrive", NSStringFromSelector(@selector(importFromDevice:)) ],
+        RAToolbarGarmin: @[ NSLocalizedString(@"Garmin Connect", @"toolbar"),
+                            NSLocalizedString(@"Fetch the rides from Garmin Connect", @"toolbar"),
+                            @"icloud.and.arrow.down", NSStringFromSelector(@selector(fetchFromGarminConnect:)) ],
+        RAToolbarDelete: @[ NSLocalizedString(@"Delete", @"toolbar"),
+                            NSLocalizedString(@"Delete the selected rides", @"toolbar"),
+                            @"trash", NSStringFromSelector(@selector(delete:)) ],
+        RAToolbarFilter: @[ NSLocalizedString(@"Filter", @"toolbar"),
+                            NSLocalizedString(@"Filter the rides: period, devices, distance, ascent, tags (⌥⌘F)", @"toolbar"),
+                            @"line.3.horizontal.decrease.circle", NSStringFromSelector(@selector(editFilter:)) ],
+    };
+    NSArray *spec = items[identifier];
+    if (!spec) return nil;
+    NSToolbarItem *item = [[NSToolbarItem alloc] initWithItemIdentifier:identifier];
+    item.label = spec[0];
+    item.paletteLabel = spec[0];
+    item.toolTip = spec[1];
+    item.image = [NSImage imageWithSystemSymbolName:spec[2] accessibilityDescription:spec[0]];
+    item.target = self;
+    item.action = NSSelectorFromString(spec[3]);
+    item.bordered = YES;
+    return item;
+}
+
+- (BOOL)validateToolbarItem:(NSToolbarItem *)item
+{
+    return [self validateAction:item.action];
 }
 
 #pragma mark - filter (R3)
@@ -731,13 +809,19 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 
 - (BOOL)validateMenuItem:(NSMenuItem *)item
 {
-    if (item.action == @selector(delete:)) return _table.selectedRowIndexes.count > 0;
-    if (item.action == @selector(importFiles:) || item.action == @selector(importFromDevice:)
-        || item.action == @selector(fetchFromGarminConnect:)) {
+    return [self validateAction:item.action];
+}
+
+// menus and toolbar
+- (BOOL)validateAction:(nullable SEL)action
+{
+    if (action == @selector(delete:)) return _table.selectedRowIndexes.count > 0;
+    if (action == @selector(importFiles:) || action == @selector(importFromDevice:)
+        || action == @selector(fetchFromGarminConnect:)) {
         return self.library && !self.library.importing;
     }
-    if (item.action == @selector(saveFilter:)) return ![self currentFilter].empty;
-    if (item.action == @selector(deleteSavedFilter:)) {
+    if (action == @selector(saveFilter:) || action == @selector(clearFilter:)) return ![self currentFilter].empty;
+    if (action == @selector(deleteSavedFilter:)) {
         NSInteger row = _sidebar.clickedRow >= 0 ? _sidebar.clickedRow : _sidebar.selectedRow;
         return row >= 0 && (NSUInteger)row < _sidebarRows.count && _sidebarRows[(NSUInteger)row][@"saved"] != nil;
     }

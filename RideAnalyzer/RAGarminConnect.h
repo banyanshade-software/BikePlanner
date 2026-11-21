@@ -24,6 +24,8 @@ typedef NS_ENUM(NSInteger, RAGarminError) {
     RAGarminErrorBadAnswer,       // unexpected answer (not JSON, no token, no FIT file in the archive)
 };
 extern NSString *const RAGarminHTTPStatusKey;
+/// which request failed: @"token", @"list" or @"download" (the recovery suggestion of the error says it too)
+extern NSString *const RAGarminStepKey;
 
 /// endpoints and the identification of the app's requests; user defaults override the endpoints (tests, or if
 /// Garmin moves them): RAGarminTokenURL, RAGarminAPIBaseURL
@@ -73,6 +75,10 @@ extern NSString *const RAGarminHTTPStatusKey;
 /// the FIT file of an activity (taken out of the ZIP)
 - (void)fitFileOfActivity:(NSString *)activityID
      completion:(void (^)(NSData * _Nullable fit, NSError * _Nullable error))completion;
+
+/// seconds before the one retry of a transient error (HTTP 408, 429, 502–504) when the answer has no Retry-After;
+/// 2 by default
+@property (nonatomic) NSTimeInterval retryDelay;
 
 /// the token in use (nil before the first request), for tests
 @property (readonly, nonatomic, nullable) NSString *token;

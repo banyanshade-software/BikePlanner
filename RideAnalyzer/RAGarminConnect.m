@@ -9,6 +9,7 @@
 
 NSString *const RAGarminErrorDomain = @"RAGarminConnect";
 NSString *const RAGarminHTTPStatusKey = @"RAGarminHTTPStatus";
+NSString *const RAGarminStepKey = @"RAGarminStep";
 
 static NSString *const RADefaultTokenURL =
     @"https://personal.connectapi.garmin.com/personalapitoken-service/personal-api/personal-api-key/token";
@@ -176,6 +177,7 @@ static NSString *const RADefaultAPIBaseURL = @"https://personal.connectapi.garmi
     if (self) {
         _apiKey = [apiKey copy];
         _session = session;
+        _retryDelay = 2;
     }
     return self;
 }
@@ -186,6 +188,14 @@ static NSString *const RADefaultAPIBaseURL = @"https://personal.connectapi.garmi
 }
 
 + (NSError *)errorWithCode:(RAGarminError)code status:(NSInteger)status
+{
+    return [self errorWithCode:code status:status step:nil body:nil];
+}
+
+// step: which request ("token", "list", "download"); body: the start of the answer, to understand an error (the
+// answers of the token service never hold the key; the token itself is not shown)
++ (NSError *)errorWithCode:(RAGarminError)code status:(NSInteger)status step:(nullable NSString *)step
+                      body:(nullable NSData *)body
 {
     NSString *d = @"";
     switch (code) {
@@ -199,7 +209,45 @@ static NSString *const RADefaultAPIBaseURL = @"https://personal.connectapi.garmi
     }
     NSMutableDictionary *info = [@{ NSLocalizedDescriptionKey: d } mutableCopy];
     if (status) info[RAGarminHTTPStatusKey] = @(status);
+    NSMutableArray<NSString *> *details = [NSMutableArray array];
+    NSDictionary<NSString *, NSString *> *steps = @{
+        @"token": NSLocalizedString(@"Step: exchanging the key for a token.", @"Garmin"),
+        @"list": NSLocalizedString(@"Step: listing the activities.", @"Garmin"),
+        @"download": NSLocalizedString(@"Step: downloading an activity.", @"Garmin"),
+    };
+    if (step && steps[step]) [details addObject:steps[step]];
+    if (step) info[RAGarminStepKey] = step;
+    NSString *text = body.length ? [[NSString alloc] initWithData:[body subdataWithRange:NSMakeRange(0, MIN(body.length, (NSUInteger)300))]
+                                                         encoding:NSUTF8StringEncoding] : nil;
+    text = [text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    if (text.length && ![step isEqualToString:@"token"]) [details addObject:text];
+    else if (text.length && code != RAGarminErrorBadAnswer) [details addObject:text]; // an error page, not a token
+    if (code == RAGarminErrorHTTP && (status == 408 || status == 429 || status >= 500)) {
+        [details addObject:NSLocalizedString(@"Garmin Connect is busy or did not answer in time: try again later.", @"Garmin")];
+    }
+    if (details.count) info[NSLocalizedRecoverySuggestionErrorKey] = [details componentsJoinedByString:@"\n"];
+    NSLog(@"RideAnalyzer: Garmin Connect %@: HTTP %ld", step ?: @"request", (long)status); // never the key or the token
     return [NSError errorWithDomain:RAGarminErrorDomain code:code userInfo:info];
+}
+
+/// an answer worth one more try: the server timed out, is overloaded or failing
++ (BOOL)isTransientStatus:(NSInteger)status
+{
+    return status == 408 || status == 429 || status == 502 || status == 503 || status == 504;
+}
+
+/// the delay before the retry: Retry-After when given (at most 30 s), else retryDelay
+- (NSTimeInterval)retryDelayForResponse:(NSURLResponse *)response
+{
+    NSString *after = [response isKindOfClass:[NSHTTPURLResponse class]]
+        ? [((NSHTTPURLResponse *)response) valueForHTTPHeaderField:@"Retry-After"] : nil;
+    double seconds = after.doubleValue;
+    return seconds > 0 ? MIN(seconds, 30) : self.retryDelay;
+}
+
+- (void)after:(NSTimeInterval)delay do:(dispatch_block_t)block
+{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), block);
 }
 
 + (nullable NSDate *)expiryOfJWT:(NSString *)token
@@ -244,40 +292,68 @@ static NSString *const RADefaultAPIBaseURL = @"https://personal.connectapi.garmi
 // completion on the main queue
 - (void)obtainTokenWithCompletion:(void (^)(NSError * _Nullable error))completion
 {
+    [self obtainTokenRetried:NO completion:completion];
+}
+
+- (void)obtainTokenRetried:(BOOL)retried completion:(void (^)(NSError * _Nullable error))completion
+{
     if (_apiKey.length == 0) {
         completion([RAGarminConnect errorWithCode:RAGarminErrorNoKey status:0]);
         return;
     }
     NSMutableURLRequest *r = [RAEnvironment requestWithURL:[RAEnvironment garminTokenURL]];
     r.HTTPMethod = @"POST";
+    // an empty body with its length: without, a server may wait for a body and time out (HTTP 408)
+    r.HTTPBody = [NSData data];
+    [r setValue:@"0" forHTTPHeaderField:@"Content-Length"];
     [r setValue:[@"ApiKey " stringByAppendingString:_apiKey] forHTTPHeaderField:@"Authorization"];
-    [r setValue:@"application/json" forHTTPHeaderField:@"Accept"];
+    // any type: with "Accept: application/json" only, Garmin answered HTTP 406 (the owner's first try, 2026-11-21);
+    // the answer is read as JSON or as a bare token
+    [r setValue:@"application/json, text/plain, */*" forHTTPHeaderField:@"Accept"];
     [[_session dataTaskWithRequest:r completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         NSInteger status = [response isKindOfClass:[NSHTTPURLResponse class]] ? ((NSHTTPURLResponse *)response).statusCode : 0;
         dispatch_async(dispatch_get_main_queue(), ^{
             if (error) { completion(error); return; }
-            if (status == 401 || status == 403) { completion([RAGarminConnect errorWithCode:RAGarminErrorKeyRejected status:status]); return; }
-            if (status < 200 || status >= 300) { completion([RAGarminConnect errorWithCode:RAGarminErrorHTTP status:status]); return; }
+            if ([RAGarminConnect isTransientStatus:status] && !retried) {
+                [self after:[self retryDelayForResponse:response] do:^{ [self obtainTokenRetried:YES completion:completion]; }];
+                return;
+            }
+            if (status == 401 || status == 403) {
+                completion([RAGarminConnect errorWithCode:RAGarminErrorKeyRejected status:status step:@"token" body:data]);
+                return;
+            }
+            if (status < 200 || status >= 300) {
+                completion([RAGarminConnect errorWithCode:RAGarminErrorHTTP status:status step:@"token" body:data]);
+                return;
+            }
             completion([self takeTokenFromData:data ?: [NSData data]] ? nil
-                       : [RAGarminConnect errorWithCode:RAGarminErrorBadAnswer status:status]);
+                       : [RAGarminConnect errorWithCode:RAGarminErrorBadAnswer status:status step:@"token" body:nil]);
         });
     }] resume];
 }
 
-// an API request with a valid token; a 401 gets a new token and one retry. Completion on the main queue.
-- (void)get:(NSURL *)url retried:(BOOL)retried completion:(void (^)(NSData * _Nullable data, NSError * _Nullable error))completion
+// an API request with a valid token; a 401 gets a new token and one retry, a transient error (408, 429, 5xx) one
+// retry after a delay. step: for the error messages. Completion on the main queue.
+- (void)get:(NSURL *)url step:(NSString *)step completion:(void (^)(NSData * _Nullable data, NSError * _Nullable error))completion
+{
+    [self get:url step:step retried:NO completion:completion];
+}
+
+- (void)get:(NSURL *)url step:(NSString *)step retried:(BOOL)retried
+ completion:(void (^)(NSData * _Nullable data, NSError * _Nullable error))completion
 {
     if (!_token || [_tokenExpiry timeIntervalSinceNow] < 60) {
         [self obtainTokenWithCompletion:^(NSError *error) {
             if (error) completion(nil, error);
-            else [self sendGet:url retried:retried completion:completion];
+            else [self sendGet:url step:step retried:retried completion:completion];
         }];
     } else {
-        [self sendGet:url retried:retried completion:completion];
+        [self sendGet:url step:step retried:retried completion:completion];
     }
 }
 
-- (void)sendGet:(NSURL *)url retried:(BOOL)retried completion:(void (^)(NSData * _Nullable data, NSError * _Nullable error))completion
+- (void)sendGet:(NSURL *)url step:(NSString *)step retried:(BOOL)retried
+     completion:(void (^)(NSData * _Nullable data, NSError * _Nullable error))completion
 {
     NSMutableURLRequest *r = [RAEnvironment requestWithURL:url];
     [r setValue:[@"Bearer " stringByAppendingString:_token ?: @""] forHTTPHeaderField:@"Authorization"];
@@ -287,10 +363,19 @@ static NSString *const RADefaultAPIBaseURL = @"https://personal.connectapi.garmi
             if (error) { completion(nil, error); return; }
             if (status == 401 && !retried) {
                 self->_token = nil;
-                [self get:url retried:YES completion:completion];
+                [self get:url step:step retried:YES completion:completion];
                 return;
             }
-            if (status < 200 || status >= 300) { completion(nil, [RAGarminConnect errorWithCode:RAGarminErrorHTTP status:status]); return; }
+            if ([RAGarminConnect isTransientStatus:status] && !retried) {
+                [self after:[self retryDelayForResponse:response] do:^{
+                    [self get:url step:step retried:YES completion:completion];
+                }];
+                return;
+            }
+            if (status < 200 || status >= 300) {
+                completion(nil, [RAGarminConnect errorWithCode:RAGarminErrorHTTP status:status step:step body:data]);
+                return;
+            }
             completion(data ?: [NSData data], nil);
         });
     }] resume];
@@ -318,11 +403,11 @@ static NSString *const RADefaultAPIBaseURL = @"https://personal.connectapi.garmi
         [items addObject:[NSURLQueryItem queryItemWithName:@"endDate" value:[RAGarminConnect dayString:[NSDate date]]]];
     }
     c.queryItems = items;
-    [self get:c.URL retried:NO completion:^(NSData *data, NSError *error) {
+    [self get:c.URL step:@"list" completion:^(NSData *data, NSError *error) {
         if (!data) { completion(nil, error); return; }
         id json = [NSJSONSerialization JSONObjectWithData:data options:0 error:NULL];
         if (![json isKindOfClass:[NSArray class]]) {
-            completion(nil, [RAGarminConnect errorWithCode:RAGarminErrorBadAnswer status:0]);
+            completion(nil, [RAGarminConnect errorWithCode:RAGarminErrorBadAnswer status:0 step:@"list" body:data]);
             return;
         }
         NSMutableArray<RAGarminActivity *> *activities = [NSMutableArray array];
@@ -339,7 +424,7 @@ static NSString *const RADefaultAPIBaseURL = @"https://personal.connectapi.garmi
 {
     NSURL *url = [[RAEnvironment garminAPIBaseURL] URLByAppendingPathComponent:
                   [@"download-service/files/activity/" stringByAppendingString:activityID]];
-    [self get:url retried:NO completion:^(NSData *data, NSError *error) {
+    [self get:url step:@"download" completion:^(NSData *data, NSError *error) {
         if (!data) { completion(nil, error); return; }
         if (![RAZipReader isZipData:data]) { // already a FIT file
             completion(data.length ? data : nil, data.length ? nil : [RAGarminConnect errorWithCode:RAGarminErrorBadAnswer status:0]);

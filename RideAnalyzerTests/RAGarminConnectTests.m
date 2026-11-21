@@ -25,6 +25,7 @@ static NSString *const kBase = @"https://garmin.stub";
     NSInteger _tokenCount;
     BOOL _rejectKey;
     BOOL _expireNextAPICall;
+    NSInteger _busyAnswers;      // the next requests answered with HTTP 408
 }
 
 - (void)setUp
@@ -38,6 +39,7 @@ static NSString *const kBase = @"https://garmin.stub";
     _tokenCount = 0;
     _rejectKey = NO;
     _expireNextAPICall = NO;
+    _busyAnswers = 0;
     __weak RAGarminConnectTests *weakSelf = self;
     RAStubURLProtocol.handler = ^RAStubResponse *(NSURLRequest *r) { return [weakSelf answer:r]; };
 }
@@ -55,7 +57,14 @@ static NSString *const kBase = @"https://garmin.stub";
 {
     NSString *path = r.URL.path;
     NSString *auth = [r valueForHTTPHeaderField:@"Authorization"] ?: @"";
+    if (_busyAnswers > 0) {
+        _busyAnswers--;
+        return [RAStubResponse status:408 body:[@"Request Timeout" dataUsingEncoding:NSUTF8StringEncoding]];
+    }
     if ([path isEqualToString:@"/token"]) {
+        if ([[r valueForHTTPHeaderField:@"Accept"] isEqualToString:@"application/json"]) {
+            return [RAStubResponse status:406 body:nil]; // as Garmin did
+        }
         if (![r.HTTPMethod isEqualToString:@"POST"] || ![auth isEqualToString:@"ApiKey good-key"] || _rejectKey) {
             return [RAStubResponse status:401 body:nil];
         }
@@ -106,7 +115,9 @@ static NSString *const kBase = @"https://garmin.stub";
 
 - (RAGarminConnect *)clientWithKey:(NSString *)key
 {
-    return [[RAGarminConnect alloc] initWithKey:key session:[RAStubURLProtocol session]];
+    RAGarminConnect *client = [[RAGarminConnect alloc] initWithKey:key session:[RAStubURLProtocol session]];
+    client.retryDelay = 0;
+    return client;
 }
 
 - (RAImportSummary *)fetchInto:(RALibraryDocument *)doc client:(RAGarminConnect *)client since:(nullable NSDate *)since
@@ -208,6 +219,32 @@ static NSString *const kBase = @"https://garmin.stub";
     XCTAssertTrue(RAWaitUntil(5, ^{ return (BOOL)(list != nil); }));
     XCTAssertEqual(_tokenCount, 2);
     XCTAssertTrue([RAStubURLProtocol.requests.lastObject.URL.query containsString:@"startDate=2026-11-18"]);
+}
+
+// the owner's first try (2026-11-21) got HTTP 406 on the token: the token request accepts any type (and has an empty
+// body with its length); a timeout (408) gets one retry, a second one is an error that says which request failed
+- (void)testTimeouts
+{
+    [self addActivity:11 day:0 type:@"road_biking"];
+    RAGarminConnect *client = [self clientWithKey:@"good-key"];
+    _busyAnswers = 1;
+    __block NSArray<RAGarminActivity *> *list = nil;
+    [client activitiesFrom:0 limit:50 startDate:nil completion:^(NSArray<RAGarminActivity *> *a, NSError *e) { list = a; }];
+    XCTAssertTrue(RAWaitUntil(5, ^{ return (BOOL)(list != nil); }), @"retried after the 408");
+    NSURLRequest *token = [RAStubURLProtocol.requests filteredArrayUsingPredicate:
+                           [NSPredicate predicateWithFormat:@"URL.path == '/token'"]].lastObject;
+    XCTAssertEqualObjects([token valueForHTTPHeaderField:@"Content-Length"], @"0");
+    XCTAssertTrue([[token valueForHTTPHeaderField:@"Accept"] containsString:@"*/*"], @"not JSON only (HTTP 406)");
+
+    RAGarminConnect *other = [self clientWithKey:@"good-key"];
+    _busyAnswers = 2;
+    __block NSError *error = nil;
+    [other activitiesFrom:0 limit:50 startDate:nil completion:^(NSArray<RAGarminActivity *> *a, NSError *e) { error = e; }];
+    XCTAssertTrue(RAWaitUntil(5, ^{ return (BOOL)(error != nil); }));
+    XCTAssertEqual(error.code, RAGarminErrorHTTP);
+    XCTAssertEqualObjects(error.userInfo[RAGarminHTTPStatusKey], @408);
+    XCTAssertEqualObjects(error.userInfo[RAGarminStepKey], @"token");
+    XCTAssertTrue([error.localizedRecoverySuggestion containsString:@"Request Timeout"], @"%@", error.localizedRecoverySuggestion);
 }
 
 - (void)testRejectedKey

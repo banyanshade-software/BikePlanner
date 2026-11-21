@@ -163,6 +163,12 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
 - **GPX times**: `GPXParser` now reads the `<time>` of each point (Z, fractional seconds, offset) and tells whether
   every point has one (`hasTimes`, also in `BPTrackReader` for TCX and FIT). A file without times gives a ride with
   no date rather than the import date. BikePlanner benefits too (imported traces keep their times).
+- **First try with the owner's key (2026-11-21): HTTP 406** (Not Acceptable), most likely on the token request,
+  which accepted JSON only. Changes: the token request accepts any type (`application/json, text/plain, */*`; the
+  answer is read as JSON or as a bare token) and sends an empty body with `Content-Length: 0`; a transient answer
+  (408, 429, 502–504) gets one retry after `Retry-After` or 2 s; the error says which request failed (token, list,
+  download; `RAGarminStepKey`) and shows the start of the answer; the log has a line
+  "RideAnalyzer: Garmin Connect <step>: HTTP <status>" (never the key or the token).
 - **To check against the real Garmin service** (not reachable from the session that wrote this): the API host
   (`https://personal.connectapi.garmin.com` assumed, override with the user default `RAGarminAPIBaseURL`), the token
   endpoint and the shape of its answer (`RAGarminTokenURL`; the client accepts `access_token` / `accessToken` /
@@ -192,6 +198,8 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   temperature and the session total_calories; `BPTrackReader` gives them per point (`metrics`, also from TCX:
   HeartRateBpm, Cadence, ActivityExtension Speed / Watts; Lap Calories). GPX: none yet (Garmin's TrackPointExtension
   could be read later).
+- **Toolbar** (customizable, saved): sidebar, Import, Device (Import from Device…), Garmin Connect, Delete, Filter,
+  and the search field; enabled as the menu items.
 - Not yet: the map's base layers of BikePlanner (OSM, Thunderforest: the Apple map for now), a click on the map to
   move the cursor, "Open in BikePlanner" (R5).
 
