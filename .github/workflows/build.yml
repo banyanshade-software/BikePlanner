@@ -2,7 +2,8 @@
 # needs the owner's keys (Secret.h), which are not in the repository.
 # Started by hand for now: Actions ▸ Build RideAnalyzer ▸ Run workflow (choose the branch), or
 #   gh workflow run build.yml --ref <branch> [-f tests=true]
-# Nothing is published: no DMG here (see #87).
+# Artifacts of a run (7 days): RideAnalyzer-app (the app, zipped), logs, test-results (with "tests").
+# No DMG here (see #87).
 name: Build RideAnalyzer
 
 on:
@@ -29,15 +30,31 @@ jobs:
       - name: Build RideAnalyzer
         run: |
           set -o pipefail
-          xcodebuild -project BikePlanner.xcodeproj -scheme RideAnalyzer $DEST $SIGN build 2>&1 \
+          xcodebuild -project BikePlanner.xcodeproj -scheme RideAnalyzer -configuration Release $DEST $SIGN \
+            -derivedDataPath build/DerivedData build 2>&1 \
             | tee build-rideanalyzer.log | grep -E "(error|warning):|\*\* BUILD" || true
           grep -q "\*\* BUILD SUCCEEDED" build-rideanalyzer.log
+
+      # the app, zipped (ad hoc signed, not notarized: first launch with right-click ▸ Open)
+      - name: Zip the app
+        run: |
+          APP=build/DerivedData/Build/Products/Release/RideAnalyzer.app
+          ditto -c -k --sequesterRsrc --keepParent "$APP" RideAnalyzer.zip
+          ls -l RideAnalyzer.zip
+
+      - name: Keep the app
+        uses: actions/upload-artifact@v4
+        with:
+          name: RideAnalyzer-app
+          path: RideAnalyzer.zip
+          retention-days: 7
 
       - name: Unit tests of RideAnalyzer
         if: inputs.tests
         run: |
           set -o pipefail
           xcodebuild -project BikePlanner.xcodeproj -scheme RideAnalyzer $DEST $SIGN \
+            -derivedDataPath build/DerivedData \
             -only-testing:RideAnalyzerTests -resultBundlePath ra-tests.xcresult test 2>&1 \
             | tee test-rideanalyzer.log | grep -E "Test case .*(failed|expected)|error:|\*\* TEST" || true
           grep -q "\*\* TEST SUCCEEDED" test-rideanalyzer.log
@@ -48,7 +65,16 @@ jobs:
         with:
           name: logs
           path: |
-            *.log
-            *.xcresult
-          if-no-files-found: ignore
+            build-rideanalyzer.log
+            test-rideanalyzer.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Keep the test results
+        if: always() && inputs.tests
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ra-tests.xcresult
+          if-no-files-found: warn
           retention-days: 7
