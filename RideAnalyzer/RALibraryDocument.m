@@ -7,6 +7,7 @@
 #import "RALibraryWindowController.h"
 #import "RARide.h"
 #import "RAGarminConnect.h"
+#import "RAFilter.h"
 #import "BPTrackReader.h"
 #import <CommonCrypto/CommonDigest.h>
 
@@ -139,6 +140,7 @@ static const NSUInteger RAGarminMaxPages = 200; // 10,000 activities
     NSMutableDictionary<NSString *, NSString *> *_deviceNames;    // learned from TCX files
     NSDate *_garminLastFetch;
     BOOL _importing;
+    NSMutableArray<RASavedFilter *> *_savedFilters;
 }
 
 + (BOOL)autosavesInPlace
@@ -158,6 +160,7 @@ static const NSUInteger RAGarminMaxPages = 200; // 10,000 activities
         _libraryID = [NSUUID UUID].UUIDString;
         _deviceLabels = [NSMutableDictionary dictionary];
         _deviceNames = [NSMutableDictionary dictionary];
+        _savedFilters = [NSMutableArray array];
     }
     return self;
 }
@@ -197,6 +200,7 @@ static const NSUInteger RAGarminMaxPages = 200; // 10,000 activities
         @"rides": [_rides valueForKey:@"propertyList"],
         @"deviceLabels": _deviceLabels,
         @"deviceNames": _deviceNames,
+        @"savedFilters": [_savedFilters valueForKey:@"propertyList"],
     } mutableCopy];
     if (_garminLastFetch) plist[@"garminLastFetch"] = _garminLastFetch;
     NSData *data = [NSPropertyListSerialization dataWithPropertyList:plist format:NSPropertyListBinaryFormat_v1_0
@@ -253,6 +257,14 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     _deviceNames = RAStringDictionary(plist[@"deviceNames"]);
     id lastFetch = plist[@"garminLastFetch"];
     _garminLastFetch = [lastFetch isKindOfClass:[NSDate class]] ? lastFetch : nil;
+    _savedFilters = [NSMutableArray array];
+    id saved = plist[@"savedFilters"];
+    if ([saved isKindOfClass:[NSArray class]]) {
+        for (id p in saved) {
+            RASavedFilter *f = [RASavedFilter savedFilterWithPropertyList:p];
+            if (f) [_savedFilters addObject:f];
+        }
+    }
     [self libraryDidChange];
     return YES;
 }
@@ -567,6 +579,104 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     }];
     if (!self.undoManager.undoing && !self.undoManager.redoing) {
         [self.undoManager setActionName:NSLocalizedString(@"Rename Device", @"undo action name")];
+    }
+    [self libraryDidChange];
+}
+
+#pragma mark - notes, tags, saved filters
+
+- (void)setNotes:(NSString *)notes ofRide:(RARide *)ride
+{
+    NSString *old = ride.notes;
+    if ([old isEqualToString:notes]) return;
+    ride.notes = notes;
+    __weak RALibraryDocument *weakSelf = self;
+    [self.undoManager registerUndoWithTarget:self handler:^(id target) {
+        [weakSelf setNotes:old ofRide:ride];
+    }];
+    if (!self.undoManager.undoing && !self.undoManager.redoing) {
+        [self.undoManager setActionName:NSLocalizedString(@"Edit Notes", @"undo action name")];
+    }
+    [self libraryDidChange];
+}
+
+- (void)setTags:(NSArray<NSString *> *)tags ofRide:(RARide *)ride
+{
+    NSMutableArray<NSString *> *clean = [NSMutableArray array];
+    for (NSString *t in tags) {
+        NSString *s = [t stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        if ([s hasPrefix:@"#"]) s = [s substringFromIndex:1];
+        if (s.length && ![clean containsObject:s]) [clean addObject:s];
+    }
+    NSArray<NSString *> *old = ride.tags;
+    if ([old isEqualToArray:clean]) return;
+    ride.tags = clean;
+    __weak RALibraryDocument *weakSelf = self;
+    [self.undoManager registerUndoWithTarget:self handler:^(id target) {
+        [weakSelf setTags:old ofRide:ride];
+    }];
+    if (!self.undoManager.undoing && !self.undoManager.redoing) {
+        [self.undoManager setActionName:NSLocalizedString(@"Edit Tags", @"undo action name")];
+    }
+    [self libraryDidChange];
+}
+
+- (NSArray<NSString *> *)allTags
+{
+    NSMutableSet<NSString *> *tags = [NSMutableSet set];
+    for (RARide *r in _rides) [tags addObjectsFromArray:r.tags];
+    return [tags.allObjects sortedArrayUsingSelector:@selector(localizedStandardCompare:)];
+}
+
+- (NSArray<RASavedFilter *> *)savedFilters
+{
+    return [_savedFilters copy];
+}
+
+- (void)insertSavedFilter:(RASavedFilter *)saved atIndex:(NSUInteger)index
+{
+    [_savedFilters insertObject:saved atIndex:MIN(index, _savedFilters.count)];
+    __weak RALibraryDocument *weakSelf = self;
+    [self.undoManager registerUndoWithTarget:self handler:^(id target) {
+        [weakSelf removeSavedFilter:saved];
+    }];
+    [self libraryDidChange];
+}
+
+- (RASavedFilter *)saveFilter:(RAFilter *)filter name:(NSString *)name
+{
+    RASavedFilter *saved = [[RASavedFilter alloc] initWithName:name filter:filter];
+    [self insertSavedFilter:saved atIndex:_savedFilters.count];
+    [self.undoManager setActionName:NSLocalizedString(@"Save Filter", @"undo action name")];
+    return saved;
+}
+
+- (void)removeSavedFilter:(RASavedFilter *)savedFilter
+{
+    NSUInteger index = [_savedFilters indexOfObjectIdenticalTo:savedFilter];
+    if (index == NSNotFound) return;
+    [_savedFilters removeObjectAtIndex:index];
+    __weak RALibraryDocument *weakSelf = self;
+    [self.undoManager registerUndoWithTarget:self handler:^(id target) {
+        [weakSelf insertSavedFilter:savedFilter atIndex:index];
+    }];
+    if (!self.undoManager.undoing && !self.undoManager.redoing) {
+        [self.undoManager setActionName:NSLocalizedString(@"Delete Filter", @"undo action name")];
+    }
+    [self libraryDidChange];
+}
+
+- (void)renameSavedFilter:(RASavedFilter *)savedFilter to:(NSString *)name
+{
+    NSString *old = savedFilter.name;
+    if (name.length == 0 || [old isEqualToString:name]) return;
+    savedFilter.name = name;
+    __weak RALibraryDocument *weakSelf = self;
+    [self.undoManager registerUndoWithTarget:self handler:^(id target) {
+        [weakSelf renameSavedFilter:savedFilter to:old];
+    }];
+    if (!self.undoManager.undoing && !self.undoManager.redoing) {
+        [self.undoManager setActionName:NSLocalizedString(@"Rename Filter", @"undo action name")];
     }
     [self libraryDidChange];
 }

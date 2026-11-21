@@ -6,8 +6,11 @@
 #import "RALibraryWindowController.h"
 #import "RALibraryDocument.h"
 #import "RARide.h"
+#import "RAFilter.h"
+#import "RAFilterSheet.h"
 #import "RAGarminConnect.h"
 #import "RAGarminFetchSheet.h"
+#import "RARideDetailController.h"
 #import "BPTrackReader.h"
 
 static NSUserInterfaceItemIdentifier const RAColumnDate = @"date";
@@ -21,18 +24,23 @@ static NSUserInterfaceItemIdentifier const RAColumnDevice = @"device";
 static void *RAProgressContext = &RAProgressContext;
 
 // a row of the sidebar
-typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASidebarDevice };
+typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASidebarSavedFilter, RASidebarDevice };
 
 @interface RALibraryWindowController () <NSTableViewDataSource, NSTableViewDelegate, NSWindowDelegate,
-                                         NSMenuItemValidation, NSTextFieldDelegate>
+                                         NSMenuItemValidation, NSTextFieldDelegate, NSSearchFieldDelegate>
 @end
 
 @implementation RALibraryWindowController
 {
     NSSplitViewController *_split;
     NSTableView *_sidebar;
-    NSArray<NSDictionary *> *_sidebarRows;      // @{ @"kind": @(RASidebarKind), @"key": device key }
-    NSString *_deviceFilter;                    // nil: all rides
+    NSArray<NSDictionary *> *_sidebarRows;      // @{ @"kind", @"title", @"key" (device), @"saved" (RASavedFilter) }
+    NSDictionary *_sidebarSelection;            // the row that gives the base filter
+    RAFilter *_baseFilter;                      // from the sidebar or the filter sheet
+    NSSearchField *_search;
+    NSTextField *_filterSummary;
+    NSButton *_saveFilterButton;
+    NSButton *_clearFilterButton;
     NSTableView *_table;
     NSArray<RARide *> *_sorted;
     NSTextField *_footer;
@@ -40,34 +48,29 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     NSTextField *_progressLabel;
     NSProgressIndicator *_progressIndicator;
     NSProgress *_progress;
-    NSTextField *_detailTitle;
-    NSTextField *_detailSubtitle;
-    NSGridView *_detailFigures;
-    NSStackView *_detail;
+    RARideDetailController *_detail;
     NSDateFormatter *_dateFormatter;
-    NSDateFormatter *_longDateFormatter;
     RAGarminFetchSheet *_garminSheet;
+    RAFilterSheet *_filterSheet;
 }
 
 - (instancetype)init
 {
-    NSWindow *window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 1200, 760)
+    NSWindow *window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 1280, 800)
         styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable
                   | NSWindowStyleMaskResizable | NSWindowStyleMaskFullSizeContentView
         backing:NSBackingStoreBuffered defer:YES];
-    window.minSize = NSMakeSize(800, 500);
+    window.minSize = NSMakeSize(1080, 560);
     self = [super initWithWindow:window];
     if (self) {
         window.delegate = self;
         window.identifier = @"library";
         _sorted = @[];
         _sidebarRows = @[];
+        _baseFilter = [[RAFilter alloc] init];
         _dateFormatter = [[NSDateFormatter alloc] init];
         _dateFormatter.dateStyle = NSDateFormatterShortStyle;
         _dateFormatter.timeStyle = NSDateFormatterNoStyle;
-        _longDateFormatter = [[NSDateFormatter alloc] init];
-        _longDateFormatter.dateStyle = NSDateFormatterFullStyle;
-        _longDateFormatter.timeStyle = NSDateFormatterShortStyle;
         [self buildContent];
         [window center];
         [window setFrameAutosaveName:@"RALibraryWindow"];
@@ -83,6 +86,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     if (document) {
         [nc addObserver:self selector:@selector(libraryDidChange:) name:RALibraryDidChangeNotification object:document];
     }
+    _detail.library = document;
     [self reload];
 }
 
@@ -118,7 +122,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 
 - (void)buildContent
 {
-    // sidebar: all rides, then the devices (R3)
+    // sidebar: all rides, the saved filters, the devices (R3)
     _sidebar = [[NSTableView alloc] init];
     _sidebar.headerView = nil;
     _sidebar.style = NSTableViewStyleSourceList;
@@ -126,7 +130,40 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     _sidebar.dataSource = self;
     _sidebar.delegate = self;
     _sidebar.identifier = @"sidebar";
+    NSMenu *sidebarMenu = [[NSMenu alloc] init];
+    [sidebarMenu addItemWithTitle:NSLocalizedString(@"Delete Filter", @"sidebar menu") action:@selector(deleteSavedFilter:)
+                    keyEquivalent:@""].target = self;
+    _sidebar.menu = sidebarMenu;
     NSScrollView *sidebarScroll = [self scrollViewWithTable:_sidebar];
+
+    // filter bar: search, criteria, save
+    _search = [[NSSearchField alloc] init];
+    _search.placeholderString = NSLocalizedString(@"Name, notes, tags", @"search");
+    _search.delegate = self;
+    _search.target = self;
+    _search.action = @selector(searchChanged:);
+    _search.identifier = @"search";
+    [_search.widthAnchor constraintGreaterThanOrEqualToConstant:160].active = YES;
+    NSButton *filterButton = [NSButton buttonWithTitle:NSLocalizedString(@"Filter…", @"button") target:self
+                                                action:@selector(editFilter:)];
+    filterButton.identifier = @"editFilter";
+    _clearFilterButton = [NSButton buttonWithTitle:NSLocalizedString(@"Clear", @"button") target:self
+                                            action:@selector(clearFilter:)];
+    _clearFilterButton.identifier = @"clearFilter";
+    _saveFilterButton = [NSButton buttonWithTitle:NSLocalizedString(@"Save…", @"button") target:self
+                                           action:@selector(saveFilter:)];
+    _saveFilterButton.identifier = @"saveFilter";
+    NSStackView *filterRow = [NSStackView stackViewWithViews:@[ _search, filterButton, _clearFilterButton, _saveFilterButton ]];
+    _filterSummary = [NSTextField labelWithString:@""];
+    _filterSummary.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    _filterSummary.textColor = [NSColor secondaryLabelColor];
+    _filterSummary.lineBreakMode = NSLineBreakByTruncatingTail;
+    _filterSummary.identifier = @"filterSummary";
+    NSStackView *filterBar = [NSStackView stackViewWithViews:@[ filterRow, _filterSummary ]];
+    filterBar.orientation = NSUserInterfaceLayoutOrientationVertical;
+    filterBar.alignment = NSLayoutAttributeLeading;
+    filterBar.spacing = 4;
+    filterBar.edgeInsets = NSEdgeInsetsMake(40, 10, 4, 10);
 
     // rides
     _table = [[NSTableView alloc] init];
@@ -136,13 +173,13 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     _table.dataSource = self;
     _table.delegate = self;
     NSArray *columns = @[
-        @[ RAColumnDate, NSLocalizedString(@"Date", @"column"), @"startDate", @90 ],
-        @[ RAColumnName, NSLocalizedString(@"Name", @"column"), @"name", @200 ],
-        @[ RAColumnDistance, NSLocalizedString(@"km", @"column"), @"distance", @60 ],
-        @[ RAColumnAscent, NSLocalizedString(@"Ascent", @"column"), @"ascent", @60 ],
-        @[ RAColumnDuration, NSLocalizedString(@"Duration", @"column"), @"duration", @70 ],
-        @[ RAColumnSpeed, NSLocalizedString(@"Avg.", @"column"), @"averageSpeed", @60 ],
-        @[ RAColumnDevice, NSLocalizedString(@"Device", @"column"), @"deviceKey", @100 ],
+        @[ RAColumnDate, NSLocalizedString(@"Date", @"column"), @"startDate", @80 ],
+        @[ RAColumnName, NSLocalizedString(@"Name", @"column"), @"name", @180 ],
+        @[ RAColumnDistance, NSLocalizedString(@"km", @"column"), @"distance", @50 ],
+        @[ RAColumnAscent, NSLocalizedString(@"Ascent", @"column"), @"ascent", @55 ],
+        @[ RAColumnDuration, NSLocalizedString(@"Duration", @"column"), @"duration", @65 ],
+        @[ RAColumnSpeed, NSLocalizedString(@"Avg.", @"column"), @"averageSpeed", @50 ],
+        @[ RAColumnDevice, NSLocalizedString(@"Device", @"column"), @"deviceKey", @90 ],
     ];
     for (NSArray *c in columns) {
         NSTableColumn *col = [[NSTableColumn alloc] initWithIdentifier:c[0]];
@@ -154,6 +191,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     _table.sortDescriptors = @[ [NSSortDescriptor sortDescriptorWithKey:@"startDate" ascending:NO] ];
     [_table registerForDraggedTypes:@[ NSPasteboardTypeFileURL ]];
     NSScrollView *tableScroll = [self scrollViewWithTable:_table];
+    tableScroll.automaticallyAdjustsContentInsets = NO; // the filter bar is above it
 
     // progress of an import (R1, R2): text, bar, Cancel
     _progressLabel = [NSTextField labelWithString:@""];
@@ -171,49 +209,28 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     cancel.controlSize = NSControlSizeSmall;
     cancel.identifier = @"importCancel";
     _progressBar = [NSStackView stackViewWithViews:@[ _progressLabel, _progressIndicator, cancel ]];
-    _progressBar.edgeInsets = NSEdgeInsetsMake(6, 10, 6, 10);
+    _progressBar.edgeInsets = NSEdgeInsetsMake(4, 10, 4, 10);
     _progressBar.hidden = YES;
 
     _footer = [NSTextField labelWithString:@""];
     _footer.textColor = [NSColor secondaryLabelColor];
     _footer.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
-    NSStackView *list = [NSStackView stackViewWithViews:@[ _progressBar, tableScroll, _footer ]];
+    _footer.identifier = @"listFooter";
+    NSStackView *list = [NSStackView stackViewWithViews:@[ filterBar, _progressBar, tableScroll, _footer ]];
     list.orientation = NSUserInterfaceLayoutOrientationVertical;
     list.alignment = NSLayoutAttributeLeading;
     list.distribution = NSStackViewDistributionFill;
     list.detachesHiddenViews = YES;
     [tableScroll setContentHuggingPriority:NSLayoutPriorityDefaultLow - 1 forOrientation:NSLayoutConstraintOrientationVertical];
     list.edgeInsets = NSEdgeInsetsMake(0, 0, 8, 0);
-    list.spacing = 6;
-    [tableScroll.widthAnchor constraintEqualToAnchor:list.widthAnchor].active = YES;
-    [_progressBar.widthAnchor constraintEqualToAnchor:list.widthAnchor].active = YES;
+    list.spacing = 4;
+    for (NSView *v in @[ filterBar, _progressBar, tableScroll ]) {
+        [v.widthAnchor constraintEqualToAnchor:list.widthAnchor].active = YES;
+    }
     [_footer.leadingAnchor constraintEqualToAnchor:list.leadingAnchor constant:10].active = YES;
 
-    // detail (R4: map, profile and curves to come)
-    _detailTitle = [NSTextField labelWithString:@""];
-    _detailTitle.font = [NSFont boldSystemFontOfSize:20];
-    _detailSubtitle = [NSTextField labelWithString:@""];
-    _detailSubtitle.textColor = [NSColor secondaryLabelColor];
-    _detailFigures = [NSGridView gridViewWithNumberOfColumns:2 rows:0];
-    _detailFigures.rowSpacing = 6;
-    _detailFigures.columnSpacing = 16;
-    NSTextField *placeholder = [NSTextField wrappingLabelWithString:NSLocalizedString(
-        @"Map, elevation profile and curves of the ride: to come.", @"detail placeholder")];
-    placeholder.textColor = [NSColor tertiaryLabelColor];
-    _detail = [NSStackView stackViewWithViews:@[ _detailTitle, _detailSubtitle, _detailFigures, placeholder ]];
-    _detail.orientation = NSUserInterfaceLayoutOrientationVertical;
-    _detail.alignment = NSLayoutAttributeLeading;
-    _detail.spacing = 10;
-    _detail.edgeInsets = NSEdgeInsetsMake(40, 20, 20, 20);
-    NSView *detailContainer = [[NSView alloc] init];
-    _detail.translatesAutoresizingMaskIntoConstraints = NO;
-    [detailContainer addSubview:_detail];
-    [NSLayoutConstraint activateConstraints:@[
-        [_detail.topAnchor constraintEqualToAnchor:detailContainer.topAnchor],
-        [_detail.leadingAnchor constraintEqualToAnchor:detailContainer.leadingAnchor],
-        [_detail.trailingAnchor constraintEqualToAnchor:detailContainer.trailingAnchor],
-        [_detail.bottomAnchor constraintLessThanOrEqualToAnchor:detailContainer.bottomAnchor],
-    ]];
+    // detail (R4)
+    _detail = [[RARideDetailController alloc] init];
 
     _split = [[NSSplitViewController alloc] init];
     NSSplitViewItem *s = [NSSplitViewItem sidebarWithViewController:[self controllerWithView:sidebarScroll]];
@@ -221,13 +238,94 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     s.maximumThickness = 260;
     NSSplitViewItem *l = [NSSplitViewItem splitViewItemWithViewController:[self controllerWithView:list]];
     l.minimumThickness = 420;
-    NSSplitViewItem *d = [NSSplitViewItem splitViewItemWithViewController:[self controllerWithView:detailContainer]];
-    d.minimumThickness = 300;
+    NSSplitViewItem *d = [NSSplitViewItem splitViewItemWithViewController:_detail];
+    d.minimumThickness = 420;
     [_split addSplitViewItem:s];
     [_split addSplitViewItem:l];
     [_split addSplitViewItem:d];
     _split.splitView.autosaveName = @"RALibrarySplit";
     self.window.contentViewController = _split;
+}
+
+#pragma mark - filter (R3)
+
+/// the base filter (sidebar or sheet) with the search text
+- (RAFilter *)currentFilter
+{
+    return [_baseFilter filterWithText:_search.stringValue ?: @""];
+}
+
+- (void)setBaseFilter:(RAFilter *)filter
+{
+    _baseFilter = [filter copy];
+    [self reload];
+}
+
+- (void)searchChanged:(id)sender
+{
+    [self reload];
+}
+
+- (IBAction)editFilter:(nullable id)sender
+{
+    RALibraryDocument *library = self.library;
+    NSMutableArray<NSArray<NSString *> *> *devices = [NSMutableArray array];
+    for (NSString *k in library.deviceKeys ?: @[]) [devices addObject:@[ k, [library labelForDeviceKey:k] ]];
+    _filterSheet = [[RAFilterSheet alloc] initWithFilter:_baseFilter devices:devices tags:library.allTags ?: @[]];
+    [_filterSheet beginSheetForWindow:self.window completion:^(RAFilter *filter) {
+        self->_filterSheet = nil;
+        if (!filter) return;
+        self->_sidebarSelection = nil; // a filter of its own, no longer the one of the sidebar
+        [self setBaseFilter:filter];
+    }];
+}
+
+- (IBAction)clearFilter:(nullable id)sender
+{
+    _search.stringValue = @"";
+    _sidebarSelection = nil;
+    [self setBaseFilter:[[RAFilter alloc] init]];
+}
+
+- (IBAction)saveFilter:(nullable id)sender
+{
+    RAFilter *filter = [self currentFilter];
+    if (filter.empty) return;
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = NSLocalizedString(@"Save the filter", @"save filter");
+    alert.informativeText = [filter summaryWithDeviceLabel:^NSString *(NSString *k) { return [self.library labelForDeviceKey:k]; }];
+    NSTextField *name = [NSTextField textFieldWithString:@""];
+    name.placeholderString = NSLocalizedString(@"Name of the filter", @"save filter");
+    name.frame = NSMakeRect(0, 0, 260, 24);
+    alert.accessoryView = name;
+    [alert addButtonWithTitle:NSLocalizedString(@"Save", @"button")];
+    [alert addButtonWithTitle:NSLocalizedString(@"Cancel", @"button")];
+    alert.window.initialFirstResponder = name;
+    [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response) {
+        NSString *n = [name.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+        if (response != NSAlertFirstButtonReturn || n.length == 0) return;
+        RASavedFilter *saved = [self.library saveFilter:filter name:n];
+        self->_search.stringValue = @"";
+        self->_sidebarSelection = @{ @"kind": @(RASidebarSavedFilter), @"saved": saved };
+        [self setBaseFilter:saved.filter];
+    }];
+}
+
+- (IBAction)deleteSavedFilter:(nullable id)sender
+{
+    NSInteger row = _sidebar.clickedRow >= 0 ? _sidebar.clickedRow : _sidebar.selectedRow;
+    if (row < 0 || (NSUInteger)row >= _sidebarRows.count) return;
+    RASavedFilter *saved = _sidebarRows[(NSUInteger)row][@"saved"];
+    if (saved) [self.library removeSavedFilter:saved];
+}
+
+- (void)updateFilterBar
+{
+    RAFilter *f = [self currentFilter];
+    NSString *summary = [_baseFilter summaryWithDeviceLabel:^NSString *(NSString *k) { return [self.library labelForDeviceKey:k]; }];
+    _filterSummary.stringValue = summary.length ? summary : NSLocalizedString(@"All rides", @"filter summary");
+    _clearFilterButton.enabled = !f.empty;
+    _saveFilterButton.enabled = !f.empty;
 }
 
 #pragma mark - content
@@ -239,20 +337,33 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 
 - (void)reloadSidebar
 {
-    NSMutableArray<NSDictionary *> *rows = [NSMutableArray arrayWithObject:@{ @"kind": @(RASidebarAll) }];
-    NSArray<NSString *> *keys = self.library.deviceKeys ?: @[];
-    if (keys.count) {
-        [rows addObject:@{ @"kind": @(RASidebarHeader) }];
-        for (NSString *k in keys) [rows addObject:@{ @"kind": @(RASidebarDevice), @"key": k }];
+    RALibraryDocument *library = self.library;
+    NSMutableArray<NSDictionary *> *rows = [NSMutableArray arrayWithObject:@{ @"kind": @(RASidebarAll),
+        @"title": NSLocalizedString(@"All Rides", @"sidebar") }];
+    NSArray<RASavedFilter *> *saved = library.savedFilters ?: @[];
+    if (saved.count) {
+        [rows addObject:@{ @"kind": @(RASidebarHeader), @"title": NSLocalizedString(@"Filters", @"sidebar") }];
+        for (RASavedFilter *f in saved) [rows addObject:@{ @"kind": @(RASidebarSavedFilter), @"title": f.name, @"saved": f }];
     }
-    if (_deviceFilter && ![keys containsObject:_deviceFilter]) _deviceFilter = nil;
+    NSArray<NSString *> *keys = library.deviceKeys ?: @[];
+    if (keys.count) {
+        [rows addObject:@{ @"kind": @(RASidebarHeader), @"title": NSLocalizedString(@"Devices", @"sidebar") }];
+        for (NSString *k in keys) {
+            [rows addObject:@{ @"kind": @(RASidebarDevice), @"title": [library labelForDeviceKey:k], @"key": k }];
+        }
+    }
     _sidebarRows = rows;
     [_sidebar reloadData];
-    NSUInteger selected = 0;
-    for (NSUInteger i = 0; i < rows.count; i++) {
-        if (_deviceFilter && [rows[i][@"key"] isEqualToString:_deviceFilter]) selected = i;
+    // keep the selected row (the same saved filter or device); none when the filter is the sheet's
+    NSInteger selected = _baseFilter.empty && !_sidebarSelection ? 0 : -1;
+    for (NSUInteger i = 0; i < rows.count && _sidebarSelection; i++) {
+        if ((_sidebarSelection[@"saved"] && rows[i][@"saved"] == _sidebarSelection[@"saved"])
+            || (_sidebarSelection[@"key"] && [rows[i][@"key"] isEqualToString:_sidebarSelection[@"key"]])) {
+            selected = (NSInteger)i;
+        }
     }
-    [_sidebar selectRowIndexes:[NSIndexSet indexSetWithIndex:selected] byExtendingSelection:NO];
+    if (selected >= 0) [_sidebar selectRowIndexes:[NSIndexSet indexSetWithIndex:(NSUInteger)selected] byExtendingSelection:NO];
+    else [_sidebar deselectAll:self];
 }
 
 - (void)reload
@@ -260,10 +371,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     if (!_table) return;
     [self reloadSidebar];
     NSArray<RARide *> *selected = [self selectedRides];
-    NSArray<RARide *> *rides = self.library.rides ?: @[];
-    if (_deviceFilter) {
-        rides = [rides filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"deviceKey == %@", _deviceFilter]];
-    }
+    NSArray<RARide *> *rides = [[self currentFilter] filteredRides:self.library.rides ?: @[]];
     _sorted = [rides sortedArrayUsingDescriptors:_table.sortDescriptors];
     [_table reloadData];
     NSMutableIndexSet *rows = [NSMutableIndexSet indexSet];
@@ -273,7 +381,9 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     }
     [_table selectRowIndexes:rows byExtendingSelection:NO];
     [self updateFooter];
-    [self updateDetail];
+    [self updateFilterBar];
+    [_detail showRides:[self selectedRides]];
+    [_detail refreshRideInfo];
 }
 
 - (NSArray<RARide *> *)selectedRides
@@ -306,47 +416,12 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
         ascent += r.ascent;
         duration += r.duration;
     }
+    NSUInteger total = self.library.rides.count;
+    NSString *of = _sorted.count == total ? @""
+        : [NSString localizedStringWithFormat:NSLocalizedString(@" (of %lu)", @"list footer"), (unsigned long)total];
     _footer.stringValue = [NSString localizedStringWithFormat:
-        NSLocalizedString(@"%lu rides · %@ km · %.0f m ascent · %@", @"list footer"),
-        (unsigned long)_sorted.count, [self kilometers:distance], ascent, [self durationString:duration]];
-}
-
-- (void)addFigure:(NSString *)label value:(NSString *)value
-{
-    NSTextField *l = [NSTextField labelWithString:label];
-    l.textColor = [NSColor secondaryLabelColor];
-    NSTextField *v = [NSTextField labelWithString:value];
-    v.font = [NSFont systemFontOfSize:15 weight:NSFontWeightSemibold];
-    [_detailFigures addRowWithViews:@[ l, v ]];
-}
-
-- (void)updateDetail
-{
-    while (_detailFigures.numberOfRows > 0) [_detailFigures removeRowAtIndex:0];
-    NSArray<RARide *> *selected = [self selectedRides];
-    if (selected.count != 1) {
-        _detailTitle.stringValue = selected.count == 0 ? NSLocalizedString(@"No Ride Selected", @"detail")
-            : [NSString localizedStringWithFormat:NSLocalizedString(@"%lu Rides Selected", @"detail"),
-               (unsigned long)selected.count];
-        _detailSubtitle.stringValue = @"";
-        return;
-    }
-    RARide *ride = selected.firstObject;
-    _detailTitle.stringValue = ride.name;
-    _detailSubtitle.stringValue = [NSString stringWithFormat:@"%@ · %@ · %@",
-        ride.startDate ? [_longDateFormatter stringFromDate:ride.startDate] : @"—",
-        [self.library labelForDeviceKey:ride.deviceKey], ride.format.uppercaseString];
-    [self addFigure:NSLocalizedString(@"Distance", @"figure")
-              value:[NSString stringWithFormat:@"%@ km", [self kilometers:ride.distance]]];
-    [self addFigure:NSLocalizedString(@"Ascent", @"figure")
-              value:[NSString localizedStringWithFormat:@"%.0f m", ride.ascent]];
-    [self addFigure:NSLocalizedString(@"Duration", @"figure") value:[self durationString:ride.duration]];
-    [self addFigure:NSLocalizedString(@"Average speed", @"figure")
-              value:ride.averageSpeed > 0 ? [NSString localizedStringWithFormat:@"%.1f km/h", ride.averageSpeed]
-                                          : @"—"];
-    if (ride.garminActivityID.length) {
-        [self addFigure:NSLocalizedString(@"Garmin Connect", @"figure") value:ride.garminActivityID];
-    }
+        NSLocalizedString(@"%lu rides%@ · %@ km · %.0f m ascent · %@", @"list footer"),
+        (unsigned long)_sorted.count, of, [self kilometers:distance], ascent, [self durationString:duration]];
 }
 
 #pragma mark - table data source and delegate
@@ -369,22 +444,17 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 - (NSView *)sidebarViewForRow:(NSInteger)row
 {
     NSDictionary *item = _sidebarRows[(NSUInteger)row];
-    switch ((RASidebarKind)[item[@"kind"] integerValue]) {
-        case RASidebarAll:
-            return [NSTextField labelWithString:NSLocalizedString(@"All Rides", @"sidebar")];
-        case RASidebarHeader:
-            return [NSTextField labelWithString:NSLocalizedString(@"Devices", @"sidebar")];
-        case RASidebarDevice: {
-            // the device name can be edited in place (double-click), undoable
-            NSTextField *f = [NSTextField labelWithString:[self.library labelForDeviceKey:item[@"key"]]];
-            f.editable = YES;
-            f.delegate = self;
-            f.identifier = [@"device." stringByAppendingString:item[@"key"]];
-            f.lineBreakMode = NSLineBreakByTruncatingTail;
-            return f;
-        }
+    NSTextField *f = [NSTextField labelWithString:item[@"title"] ?: @""];
+    f.lineBreakMode = NSLineBreakByTruncatingTail;
+    RASidebarKind kind = (RASidebarKind)[item[@"kind"] integerValue];
+    if (kind == RASidebarDevice || kind == RASidebarSavedFilter) {
+        // names editable in place (double-click), undoable
+        f.editable = YES;
+        f.delegate = self;
+        f.identifier = kind == RASidebarDevice ? [@"device." stringByAppendingString:item[@"key"]]
+                                               : [@"filter." stringByAppendingString:((RASavedFilter *)item[@"saved"]).identifier];
     }
-    return [NSTextField labelWithString:@""];
+    return f;
 }
 
 - (nullable NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(nullable NSTableColumn *)tableColumn
@@ -435,14 +505,30 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 - (void)tableViewSelectionDidChange:(NSNotification *)notification
 {
     if (notification.object == _table) {
-        [self updateDetail];
-    } else if (notification.object == _sidebar) {
-        NSInteger row = _sidebar.selectedRow;
-        NSString *filter = row >= 0 ? _sidebarRows[(NSUInteger)row][@"key"] : nil;
-        if (filter == _deviceFilter || [filter isEqualToString:_deviceFilter]) return;
-        _deviceFilter = filter;
-        [self reload];
+        [_detail showRides:[self selectedRides]];
+        return;
     }
+    if (notification.object != _sidebar) return;
+    NSInteger row = _sidebar.selectedRow;
+    if (row < 0) return; // deselected by the code (a filter of the sheet)
+    NSDictionary *item = _sidebarRows[(NSUInteger)row];
+    RAFilter *filter = [[RAFilter alloc] init];
+    switch ((RASidebarKind)[item[@"kind"] integerValue]) {
+        case RASidebarAll:
+        case RASidebarHeader:
+            _sidebarSelection = nil;
+            break;
+        case RASidebarSavedFilter:
+            filter = ((RASavedFilter *)item[@"saved"]).filter;
+            _sidebarSelection = item;
+            break;
+        case RASidebarDevice:
+            filter.deviceKeys = [NSSet setWithObject:item[@"key"]];
+            _sidebarSelection = item;
+            break;
+    }
+    if ([filter isEqual:_baseFilter]) return;
+    [self setBaseFilter:filter];
 }
 
 - (void)renameFromField:(NSTextField *)field
@@ -458,15 +544,24 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     [self.library renameRide:ride to:name];
 }
 
-// end of the edition of a device name in the sidebar
+// end of the edition of a device or filter name in the sidebar
 - (void)controlTextDidEndEditing:(NSNotification *)notification
 {
     NSTextField *field = notification.object;
-    if (![field.identifier hasPrefix:@"device."]) return;
-    NSString *key = [field.identifier substringFromIndex:@"device.".length];
     NSString *label = [field.stringValue stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
-    [self.library setLabel:label forDeviceKey:key];
-    field.stringValue = [self.library labelForDeviceKey:key];
+    if ([field.identifier hasPrefix:@"device."]) {
+        NSString *key = [field.identifier substringFromIndex:@"device.".length];
+        [self.library setLabel:label forDeviceKey:key];
+        field.stringValue = [self.library labelForDeviceKey:key];
+    } else if ([field.identifier hasPrefix:@"filter."]) {
+        NSString *identifier = [field.identifier substringFromIndex:@"filter.".length];
+        for (RASavedFilter *f in self.library.savedFilters) {
+            if ([f.identifier isEqualToString:identifier]) {
+                [self.library renameSavedFilter:f to:label];
+                field.stringValue = f.name;
+            }
+        }
+    }
 }
 
 // drag and drop of files or folders on the list (R2)
@@ -629,12 +724,22 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     if (rides.count) [self.library removeRides:rides];
 }
 
+- (IBAction)focusSearch:(nullable id)sender
+{
+    [self.window makeFirstResponder:_search];
+}
+
 - (BOOL)validateMenuItem:(NSMenuItem *)item
 {
     if (item.action == @selector(delete:)) return _table.selectedRowIndexes.count > 0;
     if (item.action == @selector(importFiles:) || item.action == @selector(importFromDevice:)
         || item.action == @selector(fetchFromGarminConnect:)) {
         return self.library && !self.library.importing;
+    }
+    if (item.action == @selector(saveFilter:)) return ![self currentFilter].empty;
+    if (item.action == @selector(deleteSavedFilter:)) {
+        NSInteger row = _sidebar.clickedRow >= 0 ? _sidebar.clickedRow : _sidebar.selectedRow;
+        return row >= 0 && (NSUInteger)row < _sidebarRows.count && _sidebarRows[(NSUInteger)row][@"saved"] != nil;
     }
     return YES;
 }

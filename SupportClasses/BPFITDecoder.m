@@ -18,6 +18,8 @@ enum {
     BPFITFieldTimestamp = 253,
     // record
     BPFITRecordLat = 0, BPFITRecordLon = 1, BPFITRecordAltitude = 2, BPFITRecordEnhancedAltitude = 78,
+    BPFITRecordHeartRate = 3, BPFITRecordCadence = 4, BPFITRecordSpeed = 6, BPFITRecordPower = 7,
+    BPFITRecordTemperature = 13, BPFITRecordEnhancedSpeed = 73,
     // course_point
     BPFITCoursePointTimestamp = 1, BPFITCoursePointLat = 2, BPFITCoursePointLon = 3, BPFITCoursePointType = 5,
     BPFITCoursePointName = 6,
@@ -25,7 +27,7 @@ enum {
     BPFITFileIdType = 0, BPFITFileIdManufacturer = 1, BPFITFileIdProduct = 2, BPFITFileIdSerialNumber = 3,
     BPFITFileIdTimeCreated = 4,
     // sport: sport; session: sport
-    BPFITSportSport = 0, BPFITSessionSport = 5,
+    BPFITSportSport = 0, BPFITSessionSport = 5, BPFITSessionTotalCalories = 11,
 };
 
 // seconds between 1970-01-01 and the FIT epoch, 1989-12-31 00:00 UTC
@@ -54,6 +56,7 @@ typedef struct {
     NSMutableArray<NSNumber *> *_coursePointTypes;
     NSMutableArray<NSString *> *_coursePointNames;
     NSUInteger _timedRecords;
+    NSMutableArray<NSDictionary<NSString *, NSNumber *> *> *_recordMetrics;
 }
 
 + (BOOL)isFITData:(NSData *)data
@@ -105,6 +108,8 @@ static uint64_t BPFITReadUInt(const uint8_t *p, NSUInteger size, BOOL bigEndian)
     _coursePointTypes = [NSMutableArray array];
     _coursePointNames = [NSMutableArray array];
     _timedRecords = 0;
+    _recordMetrics = [NSMutableArray array];
+    _calories = nil;
     _fileType = nil;
     _manufacturer = nil;
     _product = nil;
@@ -221,6 +226,8 @@ static uint64_t BPFITReadUInt(const uint8_t *p, NSUInteger size, BOOL bigEndian)
         if (def->global == BPFITMesgSport || def->global == BPFITMesgSession) {
             NSNumber *sport = values[@(def->global == BPFITMesgSport ? BPFITSportSport : BPFITSessionSport)];
             if (sport != nil && _sport == nil) _sport = sport;
+            NSNumber *kcal = def->global == BPFITMesgSession ? values[@(BPFITSessionTotalCalories)] : nil;
+            if (kcal != nil) _calories = @(_calories.unsignedIntegerValue + kcal.unsignedIntegerValue); // sessions add up
             continue;
         }
         if (def->global == BPFITMesgRecord) {
@@ -232,6 +239,15 @@ static uint64_t BPFITReadUInt(const uint8_t *p, NSUInteger size, BOOL bigEndian)
             if (loc) {
                 [_records addObject:loc];
                 if (lastTimestamp) _timedRecords++;
+                // heart rate (bpm), cadence (rpm), speed (m/s, scale 1000), power (W), temperature (°C)
+                NSMutableDictionary<NSString *, NSNumber *> *m = [NSMutableDictionary dictionary];
+                NSNumber *n;
+                if ((n = values[@(BPFITRecordHeartRate)]) != nil) m[@"hr"] = n;
+                if ((n = values[@(BPFITRecordCadence)]) != nil) m[@"cadence"] = n;
+                if ((n = values[@(BPFITRecordEnhancedSpeed)] ?: values[@(BPFITRecordSpeed)]) != nil) m[@"speed"] = @(n.doubleValue / 1000.0);
+                if ((n = values[@(BPFITRecordPower)]) != nil) m[@"power"] = n;
+                if ((n = values[@(BPFITRecordTemperature)]) != nil) m[@"temperature"] = n;
+                [_recordMetrics addObject:m];
             }
         } else {
             NSNumber *lat = values[@(BPFITCoursePointLat)], *lon = values[@(BPFITCoursePointLon)];
@@ -261,6 +277,7 @@ static uint64_t BPFITReadUInt(const uint8_t *p, NSUInteger size, BOOL bigEndian)
 
 - (NSArray<CLLocation *> *)records { return [_records copy] ?: @[]; }
 - (BOOL)hasTimes { return _records.count > 0 && _timedRecords == _records.count; }
+- (NSArray<NSDictionary<NSString *, NSNumber *> *> *)recordMetrics { return [_recordMetrics copy] ?: @[]; }
 - (NSArray<CLLocation *> *)coursePoints { return [_coursePoints copy] ?: @[]; }
 - (NSArray<NSNumber *> *)coursePointTypes { return [_coursePointTypes copy] ?: @[]; }
 - (NSArray<NSString *> *)coursePointNames { return [_coursePointNames copy] ?: @[]; }

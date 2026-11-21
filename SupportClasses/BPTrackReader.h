@@ -47,6 +47,11 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly, nonatomic, nullable) NSNumber *deviceSerialNumber;
 /// @"cycling", @"running" or @"other" (FIT sport / session, TCX Activity Sport)
 @property (readonly, nonatomic, nullable) NSString *sport;
+/// for each point of the trace (same count): @"hr" (bpm), @"cadence" (rpm), @"speed" (m/s), @"power" (W),
+/// @"temperature" (°C), those the file gives (FIT records, TCX trackpoints with ActivityExtension); empty for GPX
+@property (readonly, nonatomic) NSArray<NSDictionary<NSString *, NSNumber *> *> *metrics;
+/// total calories (kcal): FIT sessions, TCX laps; nil when absent
+@property (readonly, nonatomic, nullable) NSNumber *calories;
 /// GPX <wpt>; TCX <CoursePoint> / FIT course_point, except turn cues (left, right, straight…)
 @property (readonly, nonatomic) NSArray<CLLocation *> *waypoints;
 /// for each waypoint: its GPX <type>, or the GPX type of the custom POI matching the TCX PointType; @"" when none

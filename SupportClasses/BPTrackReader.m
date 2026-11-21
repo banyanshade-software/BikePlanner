@@ -25,6 +25,9 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     NSMutableDictionary<NSString *, NSString *> *_cur; // fields of the current Trackpoint / CoursePoint
     NSISO8601DateFormatter *_dateFormatter, *_fractionalDateFormatter;
     NSUInteger _tcxTimed;                      // trackpoints of the trace that have a Time
+    NSMutableArray<NSDictionary<NSString *, NSNumber *> *> *_tcxMetrics;
+    double _tcxCalories;
+    BOOL _tcxHasCalories;
 }
 
 /// FIT sport (2: cycling, 1: running) or TCX Activity Sport (Biking, Running, Other) → @"cycling", @"running",
@@ -43,6 +46,13 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
         return [t isEqualToString:@"biking"] ? @"cycling" : [t isEqualToString:@"running"] ? @"running" : @"other";
     }
     return nil;
+}
+
++ (NSArray<NSDictionary<NSString *, NSNumber *> *> *)emptyMetricsForCount:(NSUInteger)count
+{
+    NSMutableArray *a = [NSMutableArray arrayWithCapacity:count];
+    for (NSUInteger i = 0; i < count; i++) [a addObject:@{}];
+    return a;
 }
 
 + (BOOL)isTCXData:(NSData *)data
@@ -100,6 +110,7 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     _format = @"gpx";
     _hasTimes = p.hasTimes;
     _trace = trace;
+    _metrics = [BPTrackReader emptyMetricsForCount:trace.count];
     _traceSource = p.traceSource;
     _waypoints = p.waypoints;
     _waypointTypes = p.waypointTypes;
@@ -137,6 +148,8 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     if (![d decodeData:data error:error]) return NO;
     _format = @"fit";
     _trace = d.records;
+    _metrics = d.recordMetrics.count == d.records.count ? d.recordMetrics : [BPTrackReader emptyMetricsForCount:d.records.count];
+    _calories = d.calories;
     _hasTimes = d.hasTimes;
     _deviceManufacturer = d.manufacturer;
     _deviceProduct = d.product;
@@ -182,6 +195,9 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     _fractionalDateFormatter = [[NSISO8601DateFormatter alloc] init];
     _fractionalDateFormatter.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithFractionalSeconds;
     _tcxTimed = 0;
+    _tcxMetrics = [NSMutableArray array];
+    _tcxCalories = 0;
+    _tcxHasCalories = NO;
 
     NSXMLParser *parser = [[NSXMLParser alloc] initWithData:data];
     parser.delegate = self;
@@ -194,6 +210,8 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     }
     _format = @"tcx";
     _trace = [_tcxTrace copy];
+    _metrics = [_tcxMetrics copy];
+    _calories = _tcxHasCalories ? @(_tcxCalories) : nil;
     _hasTimes = _tcxTrace.count > 0 && _tcxTimed == _tcxTrace.count;
     _traceSource = @"trk";
     _waypoints = [_tcxPoints copy];
@@ -245,6 +263,15 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
             if (loc) {
                 [_tcxTrace addObject:loc];
                 if (_cur[@"Time"].length) _tcxTimed++;
+                // heart rate, cadence, speed (m/s), power: as in the FIT records
+                NSMutableDictionary<NSString *, NSNumber *> *m = [NSMutableDictionary dictionary];
+                NSDictionary<NSString *, NSString *> *keys = @{ @"HeartRate": @"hr", @"Cadence": @"cadence",
+                                                                @"Speed": @"speed", @"Watts": @"power" };
+                [keys enumerateKeysAndObjectsUsingBlock:^(NSString *field, NSString *key, BOOL *stop) {
+                    NSString *v = self->_cur[field];
+                    if (v.length) m[key] = @(v.doubleValue);
+                }];
+                [_tcxMetrics addObject:m];
             }
             _cur = nil;
         } else if ([elementName isEqualToString:@"CoursePoint"]) {
@@ -263,7 +290,15 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
                    || [parent isEqualToString:@"Position"]) {
             // direct fields only (not those of the extensions, e.g. HeartRateBpm/Value)
             _cur[elementName] = text;
+        } else if ([parent isEqualToString:@"HeartRateBpm"] && [elementName isEqualToString:@"Value"]) {
+            _cur[@"HeartRate"] = text;
+        } else if ([parent isEqualToString:@"TPX"]
+                   && ([elementName isEqualToString:@"Speed"] || [elementName isEqualToString:@"Watts"])) {
+            _cur[elementName] = text; // ActivityExtension v2
         }
+    } else if ([parent isEqualToString:@"Lap"] && [elementName isEqualToString:@"Calories"] && text.length) {
+        _tcxCalories += text.doubleValue;
+        _tcxHasCalories = YES;
     } else if ([parent isEqualToString:@"Creator"] && [_elements containsObject:@"Activity"]) {
         // the device that recorded the activity (#82): Name, UnitId (serial number), ProductID
         if ([elementName isEqualToString:@"Name"] && text.length && !_deviceName) _deviceName = text;

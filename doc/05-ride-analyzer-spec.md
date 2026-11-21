@@ -169,20 +169,50 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   `token`, `expires_at` / `expires_in`, or a bare JWT), the activity fields (`activityId`, `activityName`,
   `startTimeGMT`, `distance`, `activityType.typeKey`). Also: getting the key through the web session (#79).
 
+## Search, filters, ride detail (2026-11-21, R3, R4)
+- **Search** (R3): the search field above the list (Edit ▸ Find…, ⌘F) looks for every word in the name, the notes
+  and the tags, case and accents ignored.
+- **Filters** (R3, `RAFilter`): period (days), devices, distance (min / max), minimum ascent, tags (any of them);
+  combinable, edited in a sheet (Edit ▸ Filter…, ⌥⌘F, `RAFilterSheet`), summarized under the search field, cleared
+  with Clear. **Saved filters**: Save… names the current filter (search text included); the sidebar lists them
+  (names editable in place, Delete Filter in the contextual menu), all undoable and saved in the library. Selecting
+  a device in the sidebar filters on it. The footer gives the totals of the rides shown ("of N" when filtered).
+- **Notes and tags** (R3): edited in the detail (a text field, a token field with completion), undoable; tags are
+  trimmed, without "#", without duplicates.
+- **Ride detail** (R4, `RARideDetailController`): the track is read from the original file in the background
+  (`RARideAnalysis`: distance and time from the start, speed — recorded or from distance / time —, slope over about
+  100 m, heart rate, cadence, power, temperature; moving time — faster than 3 km/h —, pauses, averages and maxima,
+  calories). Shown: the summary; the map (MapKit) with the track colored by speed, slope, heart rate or power and
+  its legend (`RATrackColoring`: speed < 18 / 18–24 / 24–30 / > 30 km/h; slope < −4 / −4…−1 / flat / 1–4 / 4–8 /
+  > 8 %; heart rate by fractions of the ride's max, power by fractions of its average); the elevation profile
+  (`ElevationProfileView`, shared with BikePlanner: zoom, cursor); the curves (`RAChartView`) of the channels the file
+  has. One cursor: a click in the profile or a curve moves it on the map and in every curve; zooming the profile
+  zooms the curves. The figures are measured only: estimated power comes with R11.
+- **FIT / TCX metrics**: `BPFITDecoder` reads the record fields heart_rate, cadence, speed / enhanced_speed, power,
+  temperature and the session total_calories; `BPTrackReader` gives them per point (`metrics`, also from TCX:
+  HeartRateBpm, Cadence, ActivityExtension Speed / Watts; Lap Calories). GPX: none yet (Garmin's TrackPointExtension
+  could be read later).
+- Not yet: the map's base layers of BikePlanner (OSM, Thunderforest: the Apple map for now), a click on the map to
+  move the cursor, "Open in BikePlanner" (R5).
+
 ## Handoff (2026-11-21): written without Xcode, never compiled
 The skeleton and the imports were written in a session without Xcode. First steps on the owner's Mac (Claude Code):
 1. `git checkout ride_analyzer && git pull`.
 2. Build `RideAnalyzer` (scheme `RideAnalyzer`, ad hoc signing as above) and fix the compile errors and warnings
    (#58: no warning, `analyze` clean). If Xcode rejects the project file, check the targets added by
    `scripts/xcode_add_target.py --type app / --type unit-test` (first use of these types).
-3. Run `RideAnalyzerTests` (`RALibraryTests`, `RAImportTests`, `RAGarminConnectTests`), then the BikePlanner unit
+3. Run `RideAnalyzerTests` (`RALibraryTests`, `RAImportTests`, `RAGarminConnectTests`, `RAFilterTests`,
+   `RARideAnalysisTests`, `RAViewTests`), then the BikePlanner unit
    tests: shared sources changed (`GPXParser` reads `<time>`, `BPFITDecoder` reads `file_id` / sport,
    `BPTrackReader` gives `hasTimes`, device and sport; new tests in `GPXParserTests` and `BPTrackReaderTests`) and
    the project file changed: BikePlanner and its Quick Look extension must still build and pass.
    `RAZipReader` / the tests use the Compression library (`compression.h`): if the link fails, add
    `libcompression.tbd` to the RideAnalyzer target.
 4. Launch the app (the owner): New Library, Import Files… (FIT / TCX / GPX, a folder), Import from Device…,
-   drag and drop, the progress bar and Cancel, rename a ride and a device, delete, undo, save, reopen.
+   drag and drop, the progress bar and Cancel, rename a ride and a device, delete, undo, save, reopen; search,
+   Filter…, Save…, the saved filters in the sidebar; notes and tags; the detail (map colors, profile, curves,
+   cursor). The window and the detail are built in code: their layout (stack views, split view, scroll view of
+   the detail) is the most likely to need adjustments.
 5. Garmin Connect (the owner, with his Personal API key): File ▸ Fetch from Garmin Connect…; check the points
    listed under "To check against the real Garmin service" above and adjust `RAGarminConnect` (and its stub in
    `RAGarminConnectTests`) to the real answers.

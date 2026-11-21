@@ -42,6 +42,11 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly, nonatomic, nullable) NSDate *timeCreated;
 /// FIT sport of the first sport or session message (2: cycling…); nil when absent
 @property (readonly, nonatomic, nullable) NSNumber *sport;
+/// for each record of `records`: @"hr" (bpm), @"cadence" (rpm), @"speed" (m/s), @"power" (W), @"temperature" (°C),
+/// those the record has
+@property (readonly, nonatomic) NSArray<NSDictionary<NSString *, NSNumber *> *> *recordMetrics;
+/// total_calories of the sessions (kcal); nil when absent
+@property (readonly, nonatomic, nullable) NSNumber *calories;
 
 @end
 

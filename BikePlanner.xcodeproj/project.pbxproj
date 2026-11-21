@@ -132,6 +132,15 @@
 		93D1EA9160B816798FDAA741 /* RAImportTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 5D701CD4335C783BFADDC94C /* RAImportTests.m */; };
 		90978E6DF3AA5F6F9FFD2E5C /* RAGarminConnectTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 33FD8125A9EE68E98D219120 /* RAGarminConnectTests.m */; };
 		5A7BDCB8546363491EC3BE0F /* BPFITBuilder.m in Sources */ = {isa = PBXBuildFile; fileRef = C0E3F74750DE07CB5843A5F8 /* BPFITBuilder.m */; };
+		85AAA2F24DB156D91BE3CCBF /* RAFilter.m in Sources */ = {isa = PBXBuildFile; fileRef = AB449D80A8AF170F1876E98E /* RAFilter.m */; };
+		F74C852692DC05360720320E /* RAFilterTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 12BD65500669D7E1C8B92234 /* RAFilterTests.m */; };
+		5F2F2FDD86562C98606A61C9 /* RARideAnalysis.m in Sources */ = {isa = PBXBuildFile; fileRef = 6431F758018632C8D5C20A5C /* RARideAnalysis.m */; };
+		CA907630E68FF10FA8251927 /* RARideAnalysisTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 86ACB0617FA7AE643B6F98D7 /* RARideAnalysisTests.m */; };
+		4A60C9EFAB20161EB0566904 /* RAChartView.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C44405364A0A682045CD30E /* RAChartView.m */; };
+		160EC7414EE7213F8DC5B9CA /* RARideDetailController.m in Sources */ = {isa = PBXBuildFile; fileRef = BF990A889C66A18DCB9D2AF2 /* RARideDetailController.m */; };
+		DC426A9C06D8AEDBDA97BFC9 /* ElevationProfileView.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE922E4CDE45001F2966 /* ElevationProfileView.m */; };
+		FEE37A074B7C7D548CE1B59D /* RAFilterSheet.m in Sources */ = {isa = PBXBuildFile; fileRef = 590237726E5D9AAB87D84083 /* RAFilterSheet.m */; };
+		69B25D8A3BE6790BC3C0EC3D /* RAViewTests.m in Sources */ = {isa = PBXBuildFile; fileRef = BACCA2786A8FBF7A64682CC5 /* RAViewTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -364,6 +373,19 @@
 		F144B662DE7D22E1556D7B14 /* RATestSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATestSupport.h; sourceTree = "<group>"; };
 		5D701CD4335C783BFADDC94C /* RAImportTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAImportTests.m; sourceTree = "<group>"; };
 		33FD8125A9EE68E98D219120 /* RAGarminConnectTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAGarminConnectTests.m; sourceTree = "<group>"; };
+		AB449D80A8AF170F1876E98E /* RAFilter.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAFilter.m; sourceTree = "<group>"; };
+		CA915BF0644C154B5FF5FD07 /* RAFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAFilter.h; sourceTree = "<group>"; };
+		12BD65500669D7E1C8B92234 /* RAFilterTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAFilterTests.m; sourceTree = "<group>"; };
+		6431F758018632C8D5C20A5C /* RARideAnalysis.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RARideAnalysis.m; sourceTree = "<group>"; };
+		D5436D5B042FE78CD8D8DE8B /* RARideAnalysis.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RARideAnalysis.h; sourceTree = "<group>"; };
+		86ACB0617FA7AE643B6F98D7 /* RARideAnalysisTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RARideAnalysisTests.m; sourceTree = "<group>"; };
+		5C44405364A0A682045CD30E /* RAChartView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAChartView.m; sourceTree = "<group>"; };
+		1885426746F1412F5E9F4769 /* RAChartView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAChartView.h; sourceTree = "<group>"; };
+		BF990A889C66A18DCB9D2AF2 /* RARideDetailController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RARideDetailController.m; sourceTree = "<group>"; };
+		787A0D1CBEF303F8589C9160 /* RARideDetailController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RARideDetailController.h; sourceTree = "<group>"; };
+		590237726E5D9AAB87D84083 /* RAFilterSheet.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAFilterSheet.m; sourceTree = "<group>"; };
+		D624EFCD7C7C8F3476CCEB56 /* RAFilterSheet.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAFilterSheet.h; sourceTree = "<group>"; };
+		BACCA2786A8FBF7A64682CC5 /* RAViewTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAViewTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -676,6 +698,16 @@
 				B599BF6F26D1ABB5DE59966A /* RAGarminConnect.h */,
 				1167EA4327FF65DB559F828B /* RAGarminFetchSheet.m */,
 				06231C627A76B3482DD8238A /* RAGarminFetchSheet.h */,
+				AB449D80A8AF170F1876E98E /* RAFilter.m */,
+				CA915BF0644C154B5FF5FD07 /* RAFilter.h */,
+				6431F758018632C8D5C20A5C /* RARideAnalysis.m */,
+				D5436D5B042FE78CD8D8DE8B /* RARideAnalysis.h */,
+				5C44405364A0A682045CD30E /* RAChartView.m */,
+				1885426746F1412F5E9F4769 /* RAChartView.h */,
+				BF990A889C66A18DCB9D2AF2 /* RARideDetailController.m */,
+				787A0D1CBEF303F8589C9160 /* RARideDetailController.h */,
+				590237726E5D9AAB87D84083 /* RAFilterSheet.m */,
+				D624EFCD7C7C8F3476CCEB56 /* RAFilterSheet.h */,
 			);
 			path = RideAnalyzer;
 			sourceTree = "<group>";
@@ -688,6 +720,9 @@
 				F144B662DE7D22E1556D7B14 /* RATestSupport.h */,
 				5D701CD4335C783BFADDC94C /* RAImportTests.m */,
 				33FD8125A9EE68E98D219120 /* RAGarminConnectTests.m */,
+				12BD65500669D7E1C8B92234 /* RAFilterTests.m */,
+				86ACB0617FA7AE643B6F98D7 /* RARideAnalysisTests.m */,
+				BACCA2786A8FBF7A64682CC5 /* RAViewTests.m */,
 			);
 			path = RideAnalyzerTests;
 			sourceTree = "<group>";
@@ -1097,6 +1132,12 @@
 				87E8D72CB210D1F126CBB08E /* RAZipReader.m in Sources */,
 				9F06C7A269B8E812E1A5B2FD /* RAGarminConnect.m in Sources */,
 				CD046523D0771F81041B4959 /* RAGarminFetchSheet.m in Sources */,
+				85AAA2F24DB156D91BE3CCBF /* RAFilter.m in Sources */,
+				5F2F2FDD86562C98606A61C9 /* RARideAnalysis.m in Sources */,
+				4A60C9EFAB20161EB0566904 /* RAChartView.m in Sources */,
+				160EC7414EE7213F8DC5B9CA /* RARideDetailController.m in Sources */,
+				DC426A9C06D8AEDBDA97BFC9 /* ElevationProfileView.m in Sources */,
+				FEE37A074B7C7D548CE1B59D /* RAFilterSheet.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1109,6 +1150,9 @@
 				93D1EA9160B816798FDAA741 /* RAImportTests.m in Sources */,
 				90978E6DF3AA5F6F9FFD2E5C /* RAGarminConnectTests.m in Sources */,
 				5A7BDCB8546363491EC3BE0F /* BPFITBuilder.m in Sources */,
+				F74C852692DC05360720320E /* RAFilterTests.m in Sources */,
+				CA907630E68FF10FA8251927 /* RARideAnalysisTests.m in Sources */,
+				69B25D8A3BE6790BC3C0EC3D /* RAViewTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -14,7 +14,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@class RARide, RAGarminConnect;
+@class RARide, RAGarminConnect, RAFilter, RASavedFilter;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -84,6 +84,19 @@ typedef NS_ENUM(NSInteger, RAImportStatus) {
 - (NSString *)labelForDeviceKey:(NSString *)deviceKey;
 /// undoable; nil or empty: back to the default
 - (void)setLabel:(nullable NSString *)label forDeviceKey:(NSString *)deviceKey;
+
+// notes and tags of a ride (R3), undoable
+- (void)setNotes:(NSString *)notes ofRide:(RARide *)ride;
+/// trimmed, empty ones and duplicates dropped, order kept
+- (void)setTags:(NSArray<NSString *> *)tags ofRide:(RARide *)ride;
+/// every tag used in the library, sorted
+@property (readonly, nonatomic) NSArray<NSString *> *allTags;
+
+// saved filters (R3), undoable
+@property (readonly, nonatomic) NSArray<RASavedFilter *> *savedFilters;
+- (RASavedFilter *)saveFilter:(RAFilter *)filter name:(NSString *)name;
+- (void)removeSavedFilter:(RASavedFilter *)savedFilter;
+- (void)renameSavedFilter:(RASavedFilter *)savedFilter to:(NSString *)name;
 
 @end
 

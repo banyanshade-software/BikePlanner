@@ -78,6 +78,13 @@
     del.keyEquivalentModifierMask = NSEventModifierFlagCommand;
     [edit addItem:del];
     [edit addItem:[self item:NSLocalizedString(@"Select All", @"menu") action:@selector(selectAll:) key:@"a"]];
+    [edit addItem:[NSMenuItem separatorItem]];
+    [edit addItem:[self item:NSLocalizedString(@"Find…", @"menu") action:@selector(focusSearch:) key:@"f"]];
+    NSMenuItem *filter = [self item:NSLocalizedString(@"Filter…", @"menu") action:@selector(editFilter:) key:@"f"];
+    filter.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagOption;
+    [edit addItem:filter];
+    [edit addItem:[self item:NSLocalizedString(@"Clear Filter", @"menu") action:@selector(clearFilter:) key:@""]];
+    [edit addItem:[self item:NSLocalizedString(@"Save Filter…", @"menu") action:@selector(saveFilter:) key:@""]];
     [main addItem:[self submenu:edit]];
 
     NSMenu *window = [[NSMenu alloc] initWithTitle:NSLocalizedString(@"Window", @"menu")];

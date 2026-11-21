@@ -249,6 +249,61 @@ static const int32_t kNoPos = 0x7FFFFFFF;
     XCTAssertFalse(r.hasTimes);
 }
 
+// heart rate, cadence, speed, power, temperature and calories (Ride Analyzer, #82)
+- (void)testFITMetrics
+{
+    NSDate *t0 = [NSDate dateWithTimeIntervalSince1970:1795000000];
+    uint32_t ts = [BPFITBuilder fitTimestamp:t0];
+    BPFITBuilder *b = [[BPFITBuilder alloc] init];
+    // record: timestamp, lat, lon, heart_rate, cadence, speed, power, temperature
+    [b defineLocal:0 global:20 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @0, @4, @(BPFITSInt32) ], @[ @1, @4, @(BPFITSInt32) ],
+                                         @[ @3, @1, @(BPFITUInt8) ], @[ @4, @1, @(BPFITUInt8) ], @[ @6, @2, @(BPFITUInt16) ],
+                                         @[ @7, @2, @(BPFITUInt16) ], @[ @13, @1, @(0x01) ] ]];
+    [b dataLocal:0 values:@[ @(ts), @([BPFITBuilder semicircles:45]), @([BPFITBuilder semicircles:5]),
+                             @142, @88, @8250, @215, @(-3) ]];
+    [b dataLocal:0 values:@[ @(ts + 1), @([BPFITBuilder semicircles:45.001]), @([BPFITBuilder semicircles:5]),
+                             @0xFF, @0xFF, @0xFFFF, @0xFFFF, @0x7F ]]; // all invalid
+    // session: total_calories
+    [b defineLocal:1 global:18 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @11, @2, @(BPFITUInt16) ] ]];
+    [b dataLocal:1 values:@[ @(ts + 2), @640 ]];
+    BPTrackReader *r = [BPTrackReader readerWithData:b.data error:NULL];
+    XCTAssertEqual(r.metrics.count, r.trace.count);
+    NSDictionary *m = r.metrics[0];
+    XCTAssertEqualObjects(m[@"hr"], @142);
+    XCTAssertEqualObjects(m[@"cadence"], @88);
+    XCTAssertEqualWithAccuracy([m[@"speed"] doubleValue], 8.25, 1e-9, @"m/s, scale 1000");
+    XCTAssertEqualObjects(m[@"power"], @215);
+    XCTAssertEqualObjects(m[@"temperature"], @(-3));
+    XCTAssertEqual([r.metrics[1] count], 0u, @"invalid values are left out");
+    XCTAssertEqualObjects(r.calories, @640);
+}
+
+- (void)testTCXMetrics
+{
+    NSString *tcx = @"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        @"<TrainingCenterDatabase xmlns=\"http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2\""
+        @" xmlns:ns3=\"http://www.garmin.com/xmlschemas/ActivityExtension/v2\">"
+        @"<Activities><Activity Sport=\"Biking\"><Id>2026-11-16T08:00:00Z</Id>"
+        @"<Lap StartTime=\"2026-11-16T08:00:00Z\"><Calories>300</Calories><Track>"
+        @"<Trackpoint><Time>2026-11-16T08:00:00Z</Time><Position><LatitudeDegrees>45</LatitudeDegrees>"
+        @"<LongitudeDegrees>5</LongitudeDegrees></Position><HeartRateBpm><Value>131</Value></HeartRateBpm>"
+        @"<Cadence>85</Cadence><Extensions><ns3:TPX><ns3:Speed>7.5</ns3:Speed><ns3:Watts>190</ns3:Watts></ns3:TPX>"
+        @"</Extensions></Trackpoint>"
+        @"<Trackpoint><Time>2026-11-16T08:00:05Z</Time><Position><LatitudeDegrees>45.001</LatitudeDegrees>"
+        @"<LongitudeDegrees>5</LongitudeDegrees></Position></Trackpoint>"
+        @"</Track></Lap><Lap StartTime=\"2026-11-16T09:00:00Z\"><Calories>150</Calories></Lap>"
+        @"</Activity></Activities></TrainingCenterDatabase>";
+    BPTrackReader *r = [BPTrackReader readerWithData:BPData(tcx) error:NULL];
+    XCTAssertEqual(r.metrics.count, 2u);
+    XCTAssertEqualObjects(r.metrics[0], (@{ @"hr": @131, @"cadence": @85, @"speed": @7.5, @"power": @190 }));
+    XCTAssertEqual([r.metrics[1] count], 0u);
+    XCTAssertEqualObjects(r.calories, @450, @"the laps add up");
+
+    r = [BPTrackReader readerWithData:BPData(kBRouterGPX) error:NULL];
+    XCTAssertEqual(r.metrics.count, r.trace.count, @"GPX: one empty entry per point");
+    XCTAssertNil(r.calories);
+}
+
 // the device and sport of a TCX activity (#82): Creator Name, UnitId, ProductID; Activity Sport
 - (void)testTCXDeviceAndSport
 {
