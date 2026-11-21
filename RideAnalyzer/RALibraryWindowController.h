@@ -4,8 +4,9 @@
 //
 //  The window of a library (#82): sidebar with the filter (search field, period, device, distance, tag, More…, Clear,
 //  Save…) and the saved filters and devices (R3; names editable), the list of rides with the progress of an import
-//  (R1, R2), and three tabs: the detail of the selected ride (RARideDetailController, R4), the trends (R6,
-//  RATrendsViewController) and the map (R10, RARidesMapViewController) of the selected rides, or of the list.
+//  (R1, R2), and four tabs: the detail of the selected ride (RARideDetailController, R4), the trends (R6,
+//  RATrendsViewController), the map (R10, RARidesMapViewController) and the climbs (R7, RAClimbsViewController)
+//  of the selected rides, or of the list.
 //  Built in code, no XIB.
 //
 
@@ -25,6 +26,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (IBAction)cancelImport:(nullable id)sender;
 /// Window ▸ Trends (⇧⌘T): the Trends tab (R6), or back to the Ride tab
 - (IBAction)showTrends:(nullable id)sender;
+/// Window ▸ Climbs (⇧⌘K): the Climbs tab (R7), or back to the Ride tab
+- (IBAction)showClimbs:(nullable id)sender;
 /// Window ▸ Equipment (⇧⌘E): the equipment window of the library (R13)
 - (IBAction)showEquipment:(nullable id)sender;
 /// the bike of the rides of the contextual menu of the list (R13); representedObject: the bike identifier

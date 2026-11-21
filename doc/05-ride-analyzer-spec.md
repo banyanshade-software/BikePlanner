@@ -303,6 +303,24 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
 - The estimate is computed for the rides shown (the filter, R3), e.g. those of the Edge, not those of the watch.
 - Not yet: the wind (R12), the rider's weight from Garmin Connect, a calibration on rides with a power meter.
 
+## Climbs (2026-11-21, R7)
+- **Detection** (`RAClimbDetector`, with the stats of the ride: `RARideStats.climbs`, stats version 4, computed once):
+  altitudes smoothed over 5 points; a climb goes from a low point to a high point as long as the road does not go
+  down more than 10 m (or a quarter of the gain so far), starting where the road last leaves the bottom (within
+  1.5 m: a flat or a small bump before it is not part of it); kept from 30 m of gain over 300 m or more at 3 % or
+  more. Figures (`RAClimb`): start, end, km in the ride, length, gain, average and max gradient (over ~100 m), and the
+  stats of its moving intervals: time, VAM, heart rate, measured power, work sums of the estimated power (R11).
+- **Same climb** (`RAClimbGroup`): climbs of different rides starting and ending within 150 m of each other, lengths
+  within 15 %; passages oldest first, best time, rank of a passage.
+- **Climbs tab** beside the list (Window ▸ Climbs, ⇧⌘K, toolbar "Climbs"; `RAClimbsViewController`): the climbs of the
+  selected rides (two or more) or of the list, the most ridden first; with one ride selected, the climbs of that ride
+  in order, with its time and rank among the passages of the list ("This ride"). For the chosen climb: its passages
+  (date, ride, time, VAM, bpm, power — measured, or "≈" estimated with the equipment of the ride's date —, rank) and
+  the time of each passage against the date with its trend line (a click selects the passage).
+- **Names**: a climb can be named in the table; the name is kept in the library with the climb's position
+  (`nameOfClimb:` / `setName:ofClimb:`, undoable) and goes to every passage of the same climb.
+- Not yet: the climbs drawn on the map and the profile of the ride detail, the wind (R12) in their estimated power.
+
 ## Handoff (2026-11-21): written without Xcode, never compiled
 The skeleton and the imports were written in a session without Xcode. First steps on the owner's Mac (Claude Code):
 1. `git checkout ride_analyzer && git pull`.

@@ -14,7 +14,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@class RARide, RAGarminConnect, RAFilter, RASavedFilter, RAEquipment, RAPart;
+@class RARide, RAGarminConnect, RAFilter, RASavedFilter, RAEquipment, RAPart, RAClimb;
 @protocol RAKeyStore;
 
 NS_ASSUME_NONNULL_BEGIN
@@ -137,6 +137,12 @@ typedef NS_ENUM(NSInteger, RALibraryLocation) {
 - (void)setBikeID:(NSString *)bikeID ofRides:(NSArray<RARide *> *)rides;
 /// the parts over their wear limit not warned about yet; marks them warned (saved, not undoable)
 - (NSArray<RAPart *> *)takeNewlyWornParts;
+
+// names of the climbs (R7): a name goes to every passage of the same climb (RAClimb isSameClimbAs:)
+/// @"" when not named
+- (NSString *)nameOfClimb:(RAClimb *)climb;
+/// undoable; empty: no name
+- (void)setName:(NSString *)name ofClimb:(RAClimb *)climb;
 
 // notes and tags of a ride (R3), undoable
 - (void)setNotes:(NSString *)notes ofRide:(RARide *)ride;

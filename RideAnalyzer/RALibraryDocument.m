@@ -11,6 +11,7 @@
 #import "RARideStats.h"
 #import "RARideAnalysis.h"
 #import "RAEquipment.h"
+#import "RAClimbs.h"
 #import "BPTrackReader.h"
 #import <CommonCrypto/CommonDigest.h>
 
@@ -193,6 +194,7 @@ static NSString * _Nullable RAKeyFromObfuscated(id value, NSString *libraryID)
     NSAlert *_copyAlert;
     NSMutableArray *_statsCompletions;  // callers waiting for the running computation of missing stats
     RAEquipment *_equipment;
+    NSMutableArray<NSDictionary *> *_climbNames;   // @{ @"name", @"climb": climb property list }
 }
 
 + (BOOL)autosavesInPlace
@@ -214,6 +216,7 @@ static NSString * _Nullable RAKeyFromObfuscated(id value, NSString *libraryID)
         _deviceNames = [NSMutableDictionary dictionary];
         _savedFilters = [NSMutableArray array];
         _equipment = [[RAEquipment alloc] init];
+        _climbNames = [NSMutableArray array];
     }
     return self;
 }
@@ -436,6 +439,7 @@ completionHandler:(void (^)(NSError * _Nullable))completionHandler
     if (_garminLastFetch) plist[@"garminLastFetch"] = _garminLastFetch;
     if (_documentGarminKey) plist[@"garminKey"] = RAObfuscatedKey(_documentGarminKey, _libraryID);
     plist[@"equipment"] = _equipment.propertyList;
+    plist[@"climbNames"] = _climbNames;
     NSData *data = [NSPropertyListSerialization dataWithPropertyList:plist format:NSPropertyListBinaryFormat_v1_0
                                                              options:0 error:outError];
     if (!data) return nil;
@@ -492,6 +496,14 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     _garminLastFetch = [lastFetch isKindOfClass:[NSDate class]] ? lastFetch : nil;
     _documentGarminKey = RAKeyFromObfuscated(plist[@"garminKey"], _libraryID);
     _equipment = [RAEquipment equipmentWithPropertyList:plist[@"equipment"]];
+    _climbNames = [NSMutableArray array];
+    id names = plist[@"climbNames"];
+    if ([names isKindOfClass:[NSArray class]]) {
+        for (id n in names) {
+            if ([n isKindOfClass:[NSDictionary class]] && [n[@"name"] isKindOfClass:[NSString class]]
+                && [RAClimb climbWithPropertyList:n[@"climb"]]) [_climbNames addObject:n];
+        }
+    }
     _savedFilters = [NSMutableArray array];
     id saved = plist[@"savedFilters"];
     if ([saved isKindOfClass:[NSArray class]]) {
@@ -960,6 +972,41 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     }
     if (parts.count) [self updateChangeCount:NSChangeDone];
     return parts;
+}
+
+#pragma mark - names of the climbs (R7)
+
+- (NSUInteger)indexOfClimbName:(RAClimb *)climb
+{
+    for (NSUInteger i = 0; i < _climbNames.count; i++) {
+        RAClimb *named = [RAClimb climbWithPropertyList:_climbNames[i][@"climb"]];
+        if (named && [named isSameClimbAs:climb]) return i;
+    }
+    return NSNotFound;
+}
+
+- (NSString *)nameOfClimb:(RAClimb *)climb
+{
+    NSUInteger i = [self indexOfClimbName:climb];
+    return i == NSNotFound ? @"" : _climbNames[i][@"name"];
+}
+
+- (void)setName:(NSString *)name ofClimb:(RAClimb *)climb
+{
+    NSString *clean = [name stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    NSString *old = [self nameOfClimb:climb];
+    if ([old isEqualToString:clean]) return;
+    NSUInteger i = [self indexOfClimbName:climb];
+    if (i != NSNotFound) [_climbNames removeObjectAtIndex:i];
+    if (clean.length) [_climbNames addObject:@{ @"name": clean, @"climb": climb.propertyList }];
+    __weak RALibraryDocument *weakSelf = self;
+    [self.undoManager registerUndoWithTarget:self handler:^(id target) {
+        [weakSelf setName:old ofClimb:climb];
+    }];
+    if (!self.undoManager.undoing && !self.undoManager.redoing) {
+        [self.undoManager setActionName:NSLocalizedString(@"Name Climb", @"undo action name")];
+    }
+    [self libraryDidChange];
 }
 
 #pragma mark - notes, tags, saved filters

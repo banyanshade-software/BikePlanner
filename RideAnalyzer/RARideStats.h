@@ -10,7 +10,7 @@
 #import <Foundation/Foundation.h>
 #import "RAPower.h"
 
-@class RARideAnalysis;
+@class RARideAnalysis, RAClimb;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -67,12 +67,17 @@ extern const NSInteger RARideStatsVersion;
 @property (nonatomic) double calories;          // kcal, NaN without
 /// the track, simplified to about 8 m and packed (RAHeatmap): the map of all rides (R10) without reading the files
 @property (copy, nonatomic) NSData *track;
+/// the climbs of the ride (R7, RAClimbDetector), in order
+@property (copy, nonatomic) NSArray<RAClimb *> *climbs;
 /// the whole ride
 @property (readonly, nonatomic) RATerrainStats *total;
 /// one per terrain (RATerrainDescent… RATerrainSteep)
 - (RATerrainStats *)statsForTerrain:(RATerrain)terrain;
 
 + (RARideStats *)statsOfAnalysis:(RARideAnalysis *)analysis;
+/// the stats of one moving interval (from the point before to point i), nil when not moving or without times
++ (nullable RATerrainStats *)statsOfIntervalAtIndex:(NSUInteger)i ofAnalysis:(RARideAnalysis *)analysis
+                                               wind:(nullable RAWindProvider)wind;
 /// with the wind along the ride (R12; nil: still air), for the air drag of the estimated power (R11)
 + (RARideStats *)statsOfAnalysis:(RARideAnalysis *)analysis wind:(nullable RAWindProvider)wind;
 - (NSDictionary *)propertyList;

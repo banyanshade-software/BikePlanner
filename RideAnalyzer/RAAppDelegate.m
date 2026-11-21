@@ -97,6 +97,9 @@
     NSMenuItem *map = [self item:NSLocalizedString(@"Map of the Rides", @"menu") action:@selector(showRidesMap:) key:@"m"];
     map.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagShift;
     [window addItem:map];
+    NSMenuItem *climbs = [self item:NSLocalizedString(@"Climbs", @"menu") action:@selector(showClimbs:) key:@"k"];
+    climbs.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagShift;
+    [window addItem:climbs];
     NSMenuItem *equipment = [self item:NSLocalizedString(@"Equipment", @"menu") action:@selector(showEquipment:) key:@"e"];
     equipment.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagShift;
     [window addItem:equipment];

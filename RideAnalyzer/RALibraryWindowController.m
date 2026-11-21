@@ -16,6 +16,7 @@
 #import "RARidesMapViewController.h"
 #import "RAEquipment.h"
 #import "RAEquipmentWindowController.h"
+#import "RAClimbsViewController.h"
 #import "BPTrackReader.h"
 
 static NSUserInterfaceItemIdentifier const RAColumnDate = @"date";
@@ -38,6 +39,7 @@ static NSToolbarItemIdentifier const RAToolbarDelete = @"delete";
 static NSToolbarItemIdentifier const RAToolbarTrends = @"trends";
 static NSToolbarItemIdentifier const RAToolbarMap = @"ridesMap";
 static NSToolbarItemIdentifier const RAToolbarEquipment = @"equipment";
+static NSToolbarItemIdentifier const RAToolbarClimbs = @"climbs";
 
 // a row of the sidebar
 typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASidebarSavedFilter, RASidebarDevice };
@@ -71,7 +73,8 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     RARideDetailController *_detail;
     RATrendsViewController *_trends;
     RARidesMapViewController *_ridesMap;
-    NSTabViewController *_tabs;     // Ride (the detail), Trends and Map, beside the list
+    RAClimbsViewController *_climbs;
+    NSTabViewController *_tabs;     // Ride (the detail), Trends, Map and Climbs, beside the list
     NSDateFormatter *_dateFormatter;
     RAGarminFetchSheet *_garminSheet;
     RAFilterSheet *_filterSheet;
@@ -113,6 +116,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     _detail.library = document;
     _trends.library = document;
     _ridesMap.library = document;
+    _climbs.library = document;
     [self reload];
 }
 
@@ -314,9 +318,12 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     [_tabs addChildViewController:_detail];
     [_tabs addChildViewController:_trends];
     [_tabs addChildViewController:_ridesMap];
+    _climbs = [[RAClimbsViewController alloc] init];
+    [_tabs addChildViewController:_climbs];
     _tabs.tabViewItems[0].identifier = @"ride";
     _tabs.tabViewItems[1].identifier = @"trends";
     _tabs.tabViewItems[2].identifier = @"map";
+    _tabs.tabViewItems[3].identifier = @"climbs";
 
     _split = [[NSSplitViewController alloc] init];
     NSSplitViewItem *s = [NSSplitViewItem sidebarWithViewController:[self controllerWithView:sidebarStack]];
@@ -349,14 +356,14 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 - (NSArray<NSToolbarItemIdentifier> *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar
 {
     return @[ NSToolbarToggleSidebarItemIdentifier, RAToolbarImport, RAToolbarDevice, RAToolbarGarmin,
-              NSToolbarFlexibleSpaceItemIdentifier, RAToolbarTrends, RAToolbarMap, RAToolbarEquipment, RAToolbarDelete,
-              RAToolbarFilter ];
+              NSToolbarFlexibleSpaceItemIdentifier, RAToolbarTrends, RAToolbarMap, RAToolbarClimbs, RAToolbarEquipment,
+              RAToolbarDelete, RAToolbarFilter ];
 }
 
 - (NSArray<NSToolbarItemIdentifier> *)toolbarAllowedItemIdentifiers:(NSToolbar *)toolbar
 {
     return @[ NSToolbarToggleSidebarItemIdentifier, RAToolbarImport, RAToolbarDevice, RAToolbarGarmin, RAToolbarTrends, RAToolbarMap,
-              RAToolbarEquipment, RAToolbarDelete, RAToolbarFilter, NSToolbarFlexibleSpaceItemIdentifier, NSToolbarSpaceItemIdentifier ];
+              RAToolbarClimbs, RAToolbarEquipment, RAToolbarDelete, RAToolbarFilter, NSToolbarFlexibleSpaceItemIdentifier, NSToolbarSpaceItemIdentifier ];
 }
 
 - (nullable NSToolbarItem *)toolbar:(NSToolbar *)toolbar itemForItemIdentifier:(NSToolbarItemIdentifier)identifier
@@ -379,6 +386,9 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
         RAToolbarMap: @[ NSLocalizedString(@"Map", @"toolbar"),
                          NSLocalizedString(@"All the rides on one map, the most ridden roads standing out (⇧⌘M)", @"toolbar"),
                          @"map", NSStringFromSelector(@selector(showRidesMap:)) ],
+        RAToolbarClimbs: @[ NSLocalizedString(@"Climbs", @"toolbar"),
+                            NSLocalizedString(@"The climbs ridden and their passages (⇧⌘K)", @"toolbar"),
+                            @"mountain.2", NSStringFromSelector(@selector(showClimbs:)) ],
         RAToolbarEquipment: @[ NSLocalizedString(@"Equipment", @"toolbar"),
                                NSLocalizedString(@"Bikes, tyres and other parts, rider weight (⇧⌘E)", @"toolbar"),
                                @"bicycle", NSStringFromSelector(@selector(showEquipment:)) ],
@@ -754,6 +764,8 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     BOOL several = selected.count >= 2;
     [_trends showRides:several ? selected : _sorted selected:several];
     [_ridesMap showRides:several ? selected : _sorted selected:several];
+    // climbs: with one ride selected, its climbs compared with the list
+    [_climbs showRides:several ? selected : _sorted focus:selected.count == 1 ? selected.firstObject : nil selected:several];
 }
 
 - (NSArray<RARide *> *)selectedRides
@@ -1176,6 +1188,13 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 {
     // the Trends tab, or back to the Ride tab when it shows
     _tabs.selectedTabViewItemIndex = _tabs.selectedTabViewItemIndex == 1 ? 0 : 1;
+    [self showSelection];
+}
+
+- (IBAction)showClimbs:(nullable id)sender
+{
+    // the Climbs tab, or back to the Ride tab when it shows
+    _tabs.selectedTabViewItemIndex = _tabs.selectedTabViewItemIndex == 3 ? 0 : 3;
     [self showSelection];
 }
 
