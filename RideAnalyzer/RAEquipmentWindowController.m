@@ -6,7 +6,6 @@
 #import "RAEquipmentWindowController.h"
 #import "RAEquipment.h"
 #import "RALibraryDocument.h"
-#import "RAGarminConnect.h"
 #import "RARide.h"
 
 @interface RAEquipmentWindowController () <NSTableViewDataSource, NSTableViewDelegate>
@@ -109,16 +108,12 @@
     _defaultBikePopup.target = self;
     _defaultBikePopup.action = @selector(defaultBikeChosen:);
     _defaultBikePopup.identifier = @"defaultBike";
-    NSButton *garmin = [NSButton buttonWithTitle:NSLocalizedString(@"Import Bikes from Garmin Connect", @"equipment")
-                                          target:self action:@selector(importGarminBikes:)];
-    garmin.identifier = @"importGarminBikes";
     NSStackView *top = [NSStackView stackViewWithViews:@[
         [NSTextField labelWithString:NSLocalizedString(@"Rider weight:", @"equipment")], _riderWeightField,
         [NSTextField labelWithString:NSLocalizedString(@"kg", @"unit")],
-        [NSTextField labelWithString:NSLocalizedString(@"Default bike:", @"equipment")], _defaultBikePopup, garmin ]];
+        [NSTextField labelWithString:NSLocalizedString(@"Default bike:", @"equipment")], _defaultBikePopup ]];
     top.spacing = 6;
     [top setCustomSpacing:24 afterView:top.views[2]];
-    [top setCustomSpacing:24 afterView:_defaultBikePopup];
 
     _bikesTable = [self tableWithIdentifier:@"bikes" columns:@[
         @[ @"name", NSLocalizedString(@"Bike", @"column"), @180 ],
@@ -494,62 +489,6 @@
         [parts removeObject:[e partWithID:partID]];
         e.parts = parts;
     } actionName:NSLocalizedString(@"Delete Part", @"undo action name")];
-}
-
-#pragma mark - Garmin Connect gear
-
-- (NSUInteger)importGear:(NSArray *)gear
-{
-    RAEquipment *current = [self equipment];
-    NSMutableArray<RAGarminGear *> *bikes = [NSMutableArray array];
-    for (RAGarminGear *g in gear) {
-        if (![g isKindOfClass:[RAGarminGear class]] || !g.isBike) continue;
-        BOOL known = NO;
-        for (RABike *b in current.bikes) if ([b.garminGearID isEqualToString:g.gearID]) known = YES;
-        if (!known) [bikes addObject:g];
-    }
-    if (bikes.count == 0) return 0;
-    [_library changeEquipment:^(RAEquipment *e) {
-        NSMutableArray *list = [e.bikes mutableCopy];
-        for (RAGarminGear *g in bikes) {
-            RABike *b = [[RABike alloc] init];
-            b.name = g.name;
-            b.garminGearID = g.gearID;
-            [list addObject:b];
-        }
-        e.bikes = list;
-        if (e.defaultBikeID.length == 0) e.defaultBikeID = [list.firstObject identifier] ?: @"";
-    } actionName:NSLocalizedString(@"Import Bikes", @"undo action name")];
-    return bikes.count;
-}
-
-- (IBAction)importGarminBikes:(nullable id)sender
-{
-    RALibraryDocument *library = _library;
-    NSString *key = library.garminKey;
-    if (key.length == 0) {
-        NSAlert *alert = [[NSAlert alloc] init];
-        alert.messageText = NSLocalizedString(@"No Garmin Connect key for this library", @"equipment");
-        alert.informativeText = NSLocalizedString(@"Enter it in File ▸ Fetch from Garmin Connect… first.", @"equipment");
-        [alert beginSheetModalForWindow:self.window completionHandler:nil];
-        return;
-    }
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
-    RAGarminConnect *client = [[RAGarminConnect alloc] initWithKey:key session:session];
-    [client gearWithCompletion:^(NSArray<RAGarminGear *> *gear, NSError *error) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [session finishTasksAndInvalidate];
-            if (!gear) {
-                if (error) [self.window presentError:error modalForWindow:self.window delegate:nil didPresentSelector:NULL contextInfo:NULL];
-                return;
-            }
-            NSUInteger n = [self importGear:gear];
-            NSAlert *alert = [[NSAlert alloc] init];
-            alert.messageText = n ? [NSString localizedStringWithFormat:NSLocalizedString(@"%lu bikes imported", @"equipment"), (unsigned long)n]
-                                  : NSLocalizedString(@"No new bike in Garmin Connect", @"equipment");
-            [alert beginSheetModalForWindow:self.window completionHandler:nil];
-        });
-    }];
 }
 
 @end

@@ -55,6 +55,9 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     NSTextField *_message;
     NSTextField *_notes;
     NSTokenField *_tags;
+    NSPopUpButton *_bikePopup;         // the bike of the ride (R13)
+    NSTextField *_equipment;           // the parts mounted on it at the ride's date, mass, Crr, CdA
+    NSStackView *_equipmentRow;
     NSGridView *_figures;
     NSPopUpButton *_colorPopup;
     NSStackView *_legend;
@@ -88,6 +91,22 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     _tags.delegate = self;
     _tags.identifier = @"rideTags";
 
+    // equipment of the ride (R13): its bike, and what was mounted on it that day
+    _bikePopup = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
+    _bikePopup.target = self;
+    _bikePopup.action = @selector(bikeChosen:);
+    _bikePopup.identifier = @"rideBike";
+    _equipment = [NSTextField wrappingLabelWithString:@""];
+    _equipment.textColor = [NSColor secondaryLabelColor];
+    _equipment.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    _equipment.identifier = @"rideEquipment";
+    [_equipment setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                         forOrientation:NSLayoutConstraintOrientationHorizontal];
+    _equipmentRow = [NSStackView stackViewWithViews:@[ [NSTextField labelWithString:NSLocalizedString(@"Bike", @"detail")],
+                                                       _bikePopup, _equipment ]];
+    _equipmentRow.spacing = 8;
+    _equipmentRow.alignment = NSLayoutAttributeFirstBaseline;
+
     _figures = [NSGridView gridViewWithNumberOfColumns:4 rows:0];
     _figures.rowSpacing = 6;
     _figures.columnSpacing = 12;
@@ -120,7 +139,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     _charts.alignment = NSLayoutAttributeLeading;
     _charts.spacing = 6;
 
-    _stack = [NSStackView stackViewWithViews:@[ _title, _subtitle, _message, _notes, _tags, _figures, mapBar, _map,
+    _stack = [NSStackView stackViewWithViews:@[ _title, _subtitle, _message, _notes, _tags, _equipmentRow, _figures, mapBar, _map,
                                                 _profile, _charts ]];
     _stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     _stack.alignment = NSLayoutAttributeLeading;
@@ -128,10 +147,10 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     _stack.edgeInsets = NSEdgeInsetsMake(12, 20, 20, 20);
     _stack.detachesHiddenViews = YES;
     _stack.translatesAutoresizingMaskIntoConstraints = NO;
-    for (NSView *v in @[ _notes, _tags, _map, _profile, _charts ]) {
+    for (NSView *v in @[ _notes, _tags, _equipmentRow, _map, _profile, _charts ]) {
         [v.widthAnchor constraintEqualToAnchor:_stack.widthAnchor constant:-40].active = YES;
     }
-    _rideViews = @[ _subtitle, _notes, _tags, _figures, mapBar, _map, _profile, _charts ];
+    _rideViews = @[ _subtitle, _notes, _tags, _equipmentRow, _figures, mapBar, _map, _profile, _charts ];
 
     // a flipped document view, so the detail starts at the top of the scroll view
     NSView *document = [[RAFlippedView alloc] init];
@@ -203,7 +222,50 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
                              [self.library labelForDeviceKey:ride.deviceKey] ?: @"", ride.format.uppercaseString];
     if (_notes.currentEditor == nil) _notes.stringValue = ride.notes;
     if (_tags.currentEditor == nil) _tags.objectValue = ride.tags;
+    [self updateEquipment];
     [self updateFigures];
+}
+
+#pragma mark - equipment of the ride (R13)
+
+- (void)updateEquipment
+{
+    RARide *ride = _ride;
+    RAEquipment *e = self.library.equipment;
+    if (!ride || !e) return;
+    [_bikePopup removeAllItems];
+    [_bikePopup addItemWithTitle:NSLocalizedString(@"None", @"detail: no bike")];
+    _bikePopup.lastItem.representedObject = @"";
+    for (RABike *b in e.bikes) {
+        [_bikePopup addItemWithTitle:b.name];
+        _bikePopup.lastItem.representedObject = b.identifier;
+    }
+    RABike *bike = [e bikeOfRide:ride];
+    [_bikePopup selectItemAtIndex:MAX(0, [_bikePopup indexOfItemWithRepresentedObject:bike.identifier ?: @""])];
+    if (e.bikes.count == 0) {
+        _equipment.stringValue = NSLocalizedString(@"No bike yet: Window ▸ Equipment.", @"detail");
+        return;
+    }
+    NSMutableArray<NSString *> *parts = [NSMutableArray array];
+    if (bike && ride.startDate) {
+        for (RAPart *p in [e partsOfBike:bike.identifier atDate:(NSDate *)ride.startDate]) {
+            NSString *what = p.model.length ? p.model : p.name;
+            [parts addObject:p.kind == RAPartTyre
+                ? [NSString stringWithFormat:@"%@ (%@)", what, [[RAPart nameOfWheel:p.wheel] lowercaseString]] : what];
+        }
+    }
+    RAPowerModel *model = [RAPowerModel modelForRide:ride equipment:e];
+    NSString *figures = [NSString localizedStringWithFormat:NSLocalizedString(@"%.0f kg · Crr %.4f · CdA %.2f m²", @"detail: equipment"),
+                         model.mass, model.crr, model.cdA];
+    _equipment.stringValue = parts.count ? [NSString stringWithFormat:@"%@ — %@", [parts componentsJoinedByString:@", "], figures]
+                                         : figures;
+}
+
+- (void)bikeChosen:(id)sender
+{
+    RARide *ride = _ride;
+    NSString *bike = _bikePopup.selectedItem.representedObject;
+    if (ride && [bike isKindOfClass:[NSString class]]) [self.library setBikeID:bike ofRides:@[ ride ]];
 }
 
 - (NSString *)durationString:(NSTimeInterval)t

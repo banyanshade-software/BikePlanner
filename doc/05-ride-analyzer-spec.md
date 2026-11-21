@@ -258,6 +258,8 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
 - **Tracks**: kept in the stats of each ride (`RARideStats.track`, Douglas–Peucker to 8 m, float32 pairs; stats
   version 2), so the files are not read again; the stats of older rides are computed again in the background when
   the Map or Trends tab shows (one computation at a time, `computeMissingStatsWithCompletion:`).
+- **Known bug #89**: the tab shows nothing until the window is resized, and drawing is slow; the computation and the
+  drawing must be asynchronous.
 - Not yet: the roads **never ridden** (needs the road network around: Overpass, as BikePlanner's POIs, or the
   BRouter segments; to be designed), a click on a track to select its ride, BikePlanner's base maps.
 
@@ -279,9 +281,14 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   bike, tables of the bikes and parts (edited in place; Crr and CdA show their default in gray when empty). Changing
   the bike of a part already ridden moves it from today (its mounting ends yesterday); for a part never ridden it is
   a correction. Every change is undoable (`changeEquipment:actionName:` replaces the whole equipment).
-- **Garmin Connect gear**: *Import Bikes from Garmin Connect* (`gearWithCompletion:`, the bikes not yet imported).
-  TO CHECK against the real service: the endpoint (`gear-service/gear/filterGear`, the one of the Connect web app,
-  maybe not open to the Personal API) and the fields.
+- **Garmin Connect gear**: not available. The import of the bikes tried `gear-service/gear/filterGear` and got HTTP
+  404 with the owner's key (2026-11-21). The Personal API serves a fixed list of 26 endpoints, and the gear is not
+  among them: others report the same 404 for gear, devices and workouts. The button was removed, so bikes and parts
+  are entered by hand. Only the Garmin Connect web session (#79, login in a `WKWebView`) could read the gear and the
+  gear of each activity: an open question.
+- **Equipment of each ride** (detail, owner's request): the bike of the ride (pop-up menu, undoable) and what was
+  mounted on it at the ride's date (tyres with their wheel, other parts), with the mass, Crr and CdA of the
+  estimated power. The estimated power shown is not recomputed until the ride is selected again.
 - Not yet: the mounting history of a part beyond its last mounting (edited in the table), the bike criterion in the
   filter sheet (More…), a bike per device (e.g. the watch for commuting).
 
@@ -346,6 +353,7 @@ The skeleton and the imports were written in a session without Xcode. First step
    #85.
 
 ## Open questions
+- Gear of the rides from Garmin Connect (R13): not in the Personal API; through the web session (#79)?
 - Name of the app (the target is `RideAnalyzer` for now).
 - Does the Personal API give the Garmin gear (R13)? To check.
 - Map, profile and track display shared with BikePlanner (R4): which classes can be reused as they are

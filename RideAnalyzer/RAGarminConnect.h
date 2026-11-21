@@ -64,19 +64,6 @@ extern NSString *const RAGarminStepKey;
 @property (readonly, nonatomic) BOOL isOutdoorCycling;
 @end
 
-/// one piece of the user's Garmin Connect gear (R13): bikes, shoes…
-/// TO CHECK against the real service: the endpoint (gear-service/gear/filterGear, the one of the Connect web app)
-/// and the fields (uuid, displayName / customMakeModel, gearTypeName, dateBegin, gearStatusName).
-@interface RAGarminGear : NSObject
-@property (copy, nonatomic) NSString *gearID;
-@property (copy, nonatomic) NSString *name;
-@property (copy, nonatomic) NSString *typeName;    // "Bike", "Shoes"…
-@property (nullable, copy, nonatomic) NSDate *since;
-@property (nonatomic) BOOL retired;
-@property (readonly, nonatomic) BOOL isBike;
-+ (nullable instancetype)gearWithJSON:(NSDictionary *)json;
-@end
-
 @interface RAGarminConnect : NSObject
 
 - (instancetype)initWithKey:(NSString *)apiKey session:(NSURLSession *)session NS_DESIGNATED_INITIALIZER;
@@ -85,8 +72,6 @@ extern NSString *const RAGarminStepKey;
 /// a page of activities, newest first; startDate / endDate: days (the API takes YYYY-MM-DD)
 - (void)activitiesFrom:(NSUInteger)start limit:(NSUInteger)limit startDate:(nullable NSDate *)startDate
      completion:(void (^)(NSArray<RAGarminActivity *> * _Nullable activities, NSError * _Nullable error))completion;
-/// the user's gear (R13)
-- (void)gearWithCompletion:(void (^)(NSArray<RAGarminGear *> * _Nullable gear, NSError * _Nullable error))completion;
 /// the FIT file of an activity (taken out of the ZIP)
 - (void)fitFileOfActivity:(NSString *)activityID
      completion:(void (^)(NSData * _Nullable fit, NSError * _Nullable error))completion;

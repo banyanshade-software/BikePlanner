@@ -9,7 +9,7 @@
 #import <XCTest/XCTest.h>
 #import "RAEquipment.h"
 #import "RAEquipmentWindowController.h"
-#import "RAGarminConnect.h"
+#import "RARideDetailController.h"
 #import "RALibraryDocument.h"
 #import "RAFilter.h"
 #import "RARide.h"
@@ -220,15 +220,43 @@
     XCTAssertEqualObjects(doc.equipment.parts[0].mountings[0].bikeID, second);
     [wc setValue:@"" forColumn:@"bike" ofPartAtRow:0];
     XCTAssertNotNil(doc.equipment.parts[0].mountings[0].to, @"unmounted");
-
-    RAGarminGear *g = [[RAGarminGear alloc] init];
-    g.gearID = @"g1";
-    g.name = @"Garmin bike";
-    g.typeName = @"Bike";
-    XCTAssertEqual([wc importGear:@[ g ]], 1u);
-    XCTAssertEqual([wc importGear:@[ g ]], 0u, @"already there");
-    XCTAssertEqualObjects(doc.equipment.bikes.lastObject.garminGearID, @"g1");
     [wc close];
+}
+
+// each ride shows its equipment (owner's request): its bike, the parts mounted that day, mass, Crr, CdA
+- (void)testEquipmentOfARideInTheDetail
+{
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    [doc importData:RATCX(@[ @1, @2, @3 ], 0, nil, nil) fileName:@"a.tcx" error:NULL];
+    RARide *ride = doc.rides.firstObject;
+    RABike *giant = [[RABike alloc] init];
+    giant.name = @"Giant";
+    RABike *road = [[RABike alloc] init];
+    road.name = @"Route";
+    RAPart *front = [[RAPart alloc] init];
+    front.model = @"GP5000";
+    front.wheel = RAWheelFront;
+    front.mountings = @[ [self mountingOn:giant.identifier from:[self day:2020 month:1 day:1] to:nil] ];
+    [doc changeEquipment:^(RAEquipment *e) {
+        e.bikes = @[ giant, road ];
+        e.defaultBikeID = giant.identifier;
+        e.parts = @[ front ];
+    } actionName:@"x"];
+
+    RARideDetailController *detail = [[RARideDetailController alloc] init];
+    detail.library = doc;
+    [detail showRides:@[ ride ]];
+    NSPopUpButton *bike = [detail valueForKey:@"_bikePopup"];
+    NSTextField *equipment = [detail valueForKey:@"_equipment"];
+    XCTAssertEqualObjects(bike.titleOfSelectedItem, @"Giant");
+    XCTAssertTrue([equipment.stringValue containsString:@"GP5000"], @"%@", equipment.stringValue);
+    XCTAssertTrue([equipment.stringValue containsString:@"87 kg"], @"75 kg rider, 12 kg bike");
+
+    [bike selectItemWithTitle:@"Route"];
+    [bike sendAction:bike.action to:bike.target];
+    XCTAssertEqualObjects(ride.bikeID, road.identifier);
+    [detail refreshRideInfo];
+    XCTAssertFalse([equipment.stringValue containsString:@"GP5000"], @"no tyre known on the other bike");
 }
 
 @end

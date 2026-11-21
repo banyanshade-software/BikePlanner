@@ -161,42 +161,6 @@ static NSString *const RADefaultAPIBaseURL = @"https://personal.connectapi.garmi
 
 @end
 
-#pragma mark - gear
-
-@implementation RAGarminGear
-
-+ (nullable instancetype)gearWithJSON:(NSDictionary *)json
-{
-    if (![json isKindOfClass:[NSDictionary class]]) return nil;
-    id uuid = json[@"uuid"] ?: json[@"gearPk"];
-    if (![uuid isKindOfClass:[NSString class]] && ![uuid isKindOfClass:[NSNumber class]]) return nil;
-    RAGarminGear *g = [[RAGarminGear alloc] init];
-    g.gearID = [uuid description];
-    NSString *name = nil;
-    for (NSString *k in @[ @"displayName", @"customMakeModel", @"gearModelName" ]) {
-        if ([json[k] isKindOfClass:[NSString class]] && [json[k] length]) { name = json[k]; break; }
-    }
-    g.name = name ?: NSLocalizedString(@"Garmin gear", @"gear without name");
-    g.typeName = [json[@"gearTypeName"] isKindOfClass:[NSString class]] ? json[@"gearTypeName"] : @"";
-    g.retired = [json[@"gearStatusName"] isKindOfClass:[NSString class]]
-        && [[json[@"gearStatusName"] lowercaseString] isEqualToString:@"retired"];
-    id begin = json[@"dateBegin"];
-    if ([begin isKindOfClass:[NSString class]] && [begin length] >= 10) {
-        NSDateFormatter *f = [[NSDateFormatter alloc] init];
-        f.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
-        f.dateFormat = @"yyyy-MM-dd";
-        g.since = [f dateFromString:[begin substringToIndex:10]];
-    }
-    return g;
-}
-
-- (BOOL)isBike
-{
-    return [self.typeName.lowercaseString containsString:@"bike"];
-}
-
-@end
-
 #pragma mark - client
 
 @implementation RAGarminConnect
@@ -452,26 +416,6 @@ static NSString *const RADefaultAPIBaseURL = @"https://personal.connectapi.garmi
             if (a) [activities addObject:a];
         }
         completion(activities, nil);
-    }];
-}
-
-- (void)gearWithCompletion:(void (^)(NSArray<RAGarminGear *> * _Nullable gear, NSError * _Nullable error))completion
-{
-    NSURL *url = [[RAEnvironment garminAPIBaseURL] URLByAppendingPathComponent:@"gear-service/gear/filterGear"];
-    [self get:url step:@"gear" completion:^(NSData *data, NSError *error) {
-        if (!data) { completion(nil, error); return; }
-        id json = [NSJSONSerialization JSONObjectWithData:data options:0 error:NULL];
-        if ([json isKindOfClass:[NSDictionary class]] && [json[@"gear"] isKindOfClass:[NSArray class]]) json = json[@"gear"];
-        if (![json isKindOfClass:[NSArray class]]) {
-            completion(nil, [RAGarminConnect errorWithCode:RAGarminErrorBadAnswer status:0 step:@"gear" body:data]);
-            return;
-        }
-        NSMutableArray<RAGarminGear *> *gear = [NSMutableArray array];
-        for (id item in json) {
-            RAGarminGear *g = [RAGarminGear gearWithJSON:item];
-            if (g) [gear addObject:g];
-        }
-        completion(gear, nil);
     }];
 }
 
