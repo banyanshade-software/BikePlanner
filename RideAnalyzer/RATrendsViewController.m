@@ -1,9 +1,9 @@
 //
-//  RATrendsWindowController.m
+//  RATrendsViewController.m
 //  RideAnalyzer
 //
 
-#import "RATrendsWindowController.h"
+#import "RATrendsViewController.h"
 #import "RALibraryDocument.h"
 #import "RARide.h"
 #import "RAFilter.h"
@@ -13,14 +13,14 @@
 @interface RATrendsFlippedView : NSView
 @end
 
-@interface RATrendsWindowController () <RATimeChartViewDelegate>
+@interface RATrendsViewController () <RATimeChartViewDelegate>
 @end
 
-@implementation RATrendsWindowController
+@implementation RATrendsViewController
 {
-    __weak RALibraryDocument *_library;
-    NSPopUpButton *_filterPopup, *_measurePopup, *_terrainPopup, *_groupingPopup, *_totalPopup, *_periodPopup;
-    NSTextField *_status;
+    NSPopUpButton *_measurePopup, *_terrainPopup, *_groupingPopup, *_totalPopup, *_periodPopup;
+    NSArray<RARide *> *_rides;
+    BOOL _selected;
     NSTextField *_selection;
     NSGridView *_recordsGrid;
     BOOL _computingStats;
@@ -55,23 +55,22 @@
     return t;
 }
 
-- (instancetype)initWithLibrary:(RALibraryDocument *)library
+- (instancetype)init
 {
-    NSWindow *window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 980, 820)
-        styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable
-                  | NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:YES];
-    window.minSize = NSMakeSize(700, 600);
-    window.identifier = @"trends";
-    self = [super initWithWindow:window];
+    self = [super initWithNibName:nil bundle:nil];
     if (!self) return nil;
-    _library = library;
+    self.title = NSLocalizedString(@"Trends", @"tab");
+    _rides = @[];
     _measure = RATrendPowerPerBeat;
     _terrain = RATerrainClimb;
     _grouping = RATrendPerRide;
     _totalMeasure = RATotalDistance;
     _period = RAPeriodMonth;
+    return self;
+}
 
-    _filterPopup = [self popup:@[] identifier:@"trendsFilter"];
+- (void)loadView
+{
     NSMutableArray<NSString *> *measures = [NSMutableArray array];
     for (NSInteger m = RATrendSpeed; m <= RATrendClimbingSpeed; m++) [measures addObject:[RATrends nameOfMeasure:(RATrendMeasure)m]];
     _measurePopup = [self popup:measures identifier:@"trendsMeasure"];
@@ -87,13 +86,13 @@
                                   NSLocalizedString(@"Per year", @"trends") ] identifier:@"totalsPeriod"];
 
     NSStackView *controls = [NSStackView stackViewWithViews:@[
-        [self labeled:NSLocalizedString(@"Rides", @"trends") control:_filterPopup],
         [self labeled:NSLocalizedString(@"Measure", @"trends") control:_measurePopup],
         [self labeled:NSLocalizedString(@"Terrain", @"trends") control:_terrainPopup],
         [self labeled:NSLocalizedString(@"Group", @"trends") control:_groupingPopup] ]];
     controls.alignment = NSLayoutAttributeBottom;
     controls.spacing = 14;
     _status = [NSTextField labelWithString:@""];
+    _status.identifier = @"trendsStatus";
     _status.textColor = [NSColor secondaryLabelColor];
     _status.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
 
@@ -101,7 +100,7 @@
     _trendChart.delegate = self;
     _trendChart.identifier = @"trendChart";
     _trendChart.emptyMessage = NSLocalizedString(@"No ride with this measure on this terrain.", @"trends");
-    [_trendChart.heightAnchor constraintEqualToConstant:280].active = YES;
+    [_trendChart.heightAnchor constraintEqualToConstant:240].active = YES;
     _selection = [NSTextField labelWithString:@" "];
     _selection.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
 
@@ -112,7 +111,7 @@
     _totalsChart.delegate = self;
     _totalsChart.identifier = @"totalsChart";
     _totalsChart.emptyMessage = NSLocalizedString(@"No dated ride.", @"trends");
-    [_totalsChart.heightAnchor constraintEqualToConstant:200].active = YES;
+    [_totalsChart.heightAnchor constraintEqualToConstant:180].active = YES;
 
     _recordsGrid = [NSGridView gridViewWithNumberOfColumns:3 rows:0];
     _recordsGrid.rowSpacing = 6;
@@ -125,9 +124,10 @@
     stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     stack.alignment = NSLayoutAttributeLeading;
     stack.spacing = 10;
-    stack.edgeInsets = NSEdgeInsetsMake(16, 20, 20, 20);
+    stack.edgeInsets = NSEdgeInsetsMake(12, 14, 16, 14);
+    controls.spacing = 10;
     for (NSView *v in @[ _trendChart, _totalsChart ]) {
-        [v.widthAnchor constraintEqualToAnchor:stack.widthAnchor constant:-40].active = YES;
+        [v.widthAnchor constraintEqualToAnchor:stack.widthAnchor constant:-28].active = YES;
     }
     NSScrollView *scroll = [[NSScrollView alloc] init];
     scroll.hasVerticalScroller = YES;
@@ -146,31 +146,36 @@
         [document.topAnchor constraintEqualToAnchor:scroll.contentView.topAnchor],
         [document.leadingAnchor constraintEqualToAnchor:scroll.contentView.leadingAnchor],
     ]];
-    window.contentView = scroll;
-
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(libraryDidChange:)
-                                                 name:RALibraryDidChangeNotification object:library];
+    self.view = scroll;
     [self syncControls];
+}
+
+- (void)viewWillAppear
+{
+    [super viewWillAppear];
     [self refresh];
     [self computeMissingStats];
-    return self;
-}
-
-- (void)dealloc
-{
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
-}
-
-- (NSString *)windowTitleForDocumentDisplayName:(NSString *)displayName
-{
-    return [NSString stringWithFormat:NSLocalizedString(@"%@ — Trends", @"trends window title"), displayName];
 }
 
 #pragma mark - data
 
-- (void)libraryDidChange:(NSNotification *)n
+- (void)setLibrary:(nullable RALibraryDocument *)library
 {
-    [self refresh];
+    _library = library;
+    _rides = @[];
+}
+
+- (NSArray<RARide *> *)rides
+{
+    return _rides;
+}
+
+- (void)showRides:(NSArray<RARide *> *)rides selected:(BOOL)selected
+{
+    _rides = [rides copy];
+    _selected = selected;
+    // charts are drawn only when the tab shows (refresh when it appears)
+    if (self.viewLoaded && self.view.window && !self.view.hiddenOrHasHiddenAncestor) [self refresh];
 }
 
 - (void)computeMissingStats
@@ -185,25 +190,8 @@
     }];
 }
 
-- (NSArray<RARide *> *)rides
-{
-    RALibraryDocument *library = _library;
-    NSArray<RARide *> *rides = library.rides ?: @[];
-    NSArray<RASavedFilter *> *saved = library.savedFilters ?: @[];
-    if (_filterIndex > 0 && (NSUInteger)_filterIndex <= saved.count) {
-        rides = [saved[(NSUInteger)_filterIndex - 1].filter filteredRides:rides];
-    }
-    return rides;
-}
-
 - (void)syncControls
 {
-    NSArray<RASavedFilter *> *saved = _library.savedFilters ?: @[];
-    [_filterPopup removeAllItems];
-    [_filterPopup addItemWithTitle:NSLocalizedString(@"All rides", @"trends")];
-    for (RASavedFilter *f in saved) [_filterPopup addItemWithTitle:f.name];
-    if ((NSUInteger)_filterIndex > saved.count) _filterIndex = 0;
-    [_filterPopup selectItemAtIndex:_filterIndex];
     [_measurePopup selectItemAtIndex:_measure - RATrendSpeed];
     [_terrainPopup selectItemAtIndex:_terrain - RATerrainAll];
     [_groupingPopup selectItemAtIndex:_grouping];
@@ -213,7 +201,6 @@
 
 - (void)controlsChanged:(id)sender
 {
-    _filterIndex = _filterPopup.indexOfSelectedItem;
     _measure = (RATrendMeasure)(_measurePopup.indexOfSelectedItem + RATrendSpeed);
     _terrain = (RATerrain)(_terrainPopup.indexOfSelectedItem + RATerrainAll);
     _grouping = (RATrendGrouping)_groupingPopup.indexOfSelectedItem;
@@ -224,9 +211,12 @@
 
 - (void)updateStatus
 {
-    NSArray<RARide *> *rides = [self rides];
-    NSUInteger missing = _library.ridesWithoutStats.count;
-    NSString *s = [NSString localizedStringWithFormat:NSLocalizedString(@"%lu rides", @"trends status"), (unsigned long)rides.count];
+    NSUInteger missing = 0;
+    for (RARide *r in _rides) if (!r.stats) missing++;
+    NSString *s = [NSString localizedStringWithFormat:_selected
+        ? NSLocalizedString(@"%lu selected rides", @"trends status")
+        : NSLocalizedString(@"%lu rides of the list (select several to compare only them)", @"trends status"),
+        (unsigned long)_rides.count];
     if (_computingStats) {
         s = [s stringByAppendingFormat:@" · %@", [NSString localizedStringWithFormat:
              NSLocalizedString(@"computing the figures of %lu rides…", @"trends status"), (unsigned long)missing]];
@@ -239,8 +229,9 @@
 
 - (void)refresh
 {
+    (void)self.view;
     [self syncControls];
-    NSArray<RARide *> *rides = [self rides];
+    NSArray<RARide *> *rides = _rides;
     NSArray<RATrendPoint *> *points = [RATrends pointsForRides:rides measure:_measure terrain:_terrain grouping:_grouping];
     _trendChart.points = points;
     _trendChart.trendLine = [RATrends trendLineOfPoints:points];

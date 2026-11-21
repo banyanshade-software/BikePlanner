@@ -144,8 +144,9 @@
 		4173835C79F25A95E1540EDA /* RARideStats.m in Sources */ = {isa = PBXBuildFile; fileRef = 1A87E376A4CCAD289EB1D99C /* RARideStats.m */; };
 		4239653E6AF8DE7D4F392FA6 /* RATrends.m in Sources */ = {isa = PBXBuildFile; fileRef = 1FAB9D35CF69807BEB9EEAC1 /* RATrends.m */; };
 		13518DEB43AA405849427190 /* RATimeChartView.m in Sources */ = {isa = PBXBuildFile; fileRef = 21BA90F74B8FEC4E95610FDF /* RATimeChartView.m */; };
-		1F0416D80B3E376A7606030C /* RATrendsWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = E4DF7D04A61A5328AB32DB8F /* RATrendsWindowController.m */; };
 		B33E7D3F43F04B77AD5C0116 /* RATrendsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 25C4F5C4C635CD31DE9553C6 /* RATrendsTests.m */; };
+		066B133258EFEF640586D547 /* RALibraryKeyTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 1874311C204525C02852888A /* RALibraryKeyTests.m */; };
+		EA7E7C0692F5D8C46385AE16 /* RATrendsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = AB5634B17B43D074F20FA7B0 /* RATrendsViewController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -397,9 +398,10 @@
 		634D0271A08EF1E0DD7F570E /* RATrends.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATrends.h; sourceTree = "<group>"; };
 		21BA90F74B8FEC4E95610FDF /* RATimeChartView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATimeChartView.m; sourceTree = "<group>"; };
 		EBB3396FBB2D4FA838E706E8 /* RATimeChartView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATimeChartView.h; sourceTree = "<group>"; };
-		E4DF7D04A61A5328AB32DB8F /* RATrendsWindowController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATrendsWindowController.m; sourceTree = "<group>"; };
-		EC8BE49717756F835EF78067 /* RATrendsWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATrendsWindowController.h; sourceTree = "<group>"; };
 		25C4F5C4C635CD31DE9553C6 /* RATrendsTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATrendsTests.m; sourceTree = "<group>"; };
+		1874311C204525C02852888A /* RALibraryKeyTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RALibraryKeyTests.m; sourceTree = "<group>"; };
+		AB5634B17B43D074F20FA7B0 /* RATrendsViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATrendsViewController.m; sourceTree = "<group>"; };
+		FEE4EA411843526BFCDF5085 /* RATrendsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATrendsViewController.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -728,8 +730,8 @@
 				634D0271A08EF1E0DD7F570E /* RATrends.h */,
 				21BA90F74B8FEC4E95610FDF /* RATimeChartView.m */,
 				EBB3396FBB2D4FA838E706E8 /* RATimeChartView.h */,
-				E4DF7D04A61A5328AB32DB8F /* RATrendsWindowController.m */,
-				EC8BE49717756F835EF78067 /* RATrendsWindowController.h */,
+				AB5634B17B43D074F20FA7B0 /* RATrendsViewController.m */,
+				FEE4EA411843526BFCDF5085 /* RATrendsViewController.h */,
 			);
 			path = RideAnalyzer;
 			sourceTree = "<group>";
@@ -746,6 +748,7 @@
 				86ACB0617FA7AE643B6F98D7 /* RARideAnalysisTests.m */,
 				BACCA2786A8FBF7A64682CC5 /* RAViewTests.m */,
 				25C4F5C4C635CD31DE9553C6 /* RATrendsTests.m */,
+				1874311C204525C02852888A /* RALibraryKeyTests.m */,
 			);
 			path = RideAnalyzerTests;
 			sourceTree = "<group>";
@@ -1164,7 +1167,7 @@
 				4173835C79F25A95E1540EDA /* RARideStats.m in Sources */,
 				4239653E6AF8DE7D4F392FA6 /* RATrends.m in Sources */,
 				13518DEB43AA405849427190 /* RATimeChartView.m in Sources */,
-				1F0416D80B3E376A7606030C /* RATrendsWindowController.m in Sources */,
+				EA7E7C0692F5D8C46385AE16 /* RATrendsViewController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1181,6 +1184,7 @@
 				CA907630E68FF10FA8251927 /* RARideAnalysisTests.m in Sources */,
 				69B25D8A3BE6790BC3C0EC3D /* RAViewTests.m in Sources */,
 				B33E7D3F43F04B77AD5C0116 /* RATrendsTests.m in Sources */,
+				066B133258EFEF640586D547 /* RALibraryKeyTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

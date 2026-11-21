@@ -106,6 +106,36 @@ static const double RAAscentThreshold = 3.0; // meters
     return [NSString stringWithFormat:@"p%@-s%@", product ?: @"", serial ?: @""];
 }
 
++ (nullable NSString *)nameOfGarminProduct:(NSInteger)product
+{
+    // from the garmin_product type of the FIT SDK profile (Profile.xlsx, also the Garmin FIT SDKs on GitHub); only
+    // the cycling computers and a few watches. TO CHECK there when adding one: products of watches differ by
+    // region and size, and nothing here could be verified against the SDK when it was written (2026-11-21).
+    static NSDictionary<NSNumber *, NSString *> *names;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        names = @{
+            @1036: @"Edge 500", @1169: @"Edge 800", @1325: @"Edge 200", @1561: @"Edge 510", @1567: @"Edge 810",
+            @1836: @"Edge 1000", @2067: @"Edge 520", @2530: @"Edge 820", @2713: @"Edge 1030", @2909: @"Edge 130",
+            @3112: @"Edge 520 Plus", @3121: @"Edge 530", @3122: @"Edge 830", @3558: @"Edge 130 Plus",
+            @3570: @"Edge 1030 Plus", @3843: @"Edge 1040", @4061: @"Edge 540", @4062: @"Edge 840",
+            @2544: @"fēnix 5S", @2604: @"fēnix 5X", @2697: @"fēnix 5", @2691: @"Forerunner 935",
+            @3076: @"Forerunner 245", @3077: @"Forerunner 245 Music", @3113: @"Forerunner 945",
+            @3589: @"Forerunner 745", @3652: @"Forerunner 945 LTE", @3869: @"Forerunner 55",
+            @2700: @"vívoactive 3",
+        };
+    });
+    return names[@(product)];
+}
+
++ (NSInteger)productOfDeviceKey:(NSString *)deviceKey
+{
+    // p<product>-s<serial>
+    if (![deviceKey hasPrefix:@"p"]) return 0;
+    NSString *first = [deviceKey componentsSeparatedByString:@"-"].firstObject ?: @"";
+    return [first substringFromIndex:1].integerValue;
+}
+
 - (double)averageSpeed
 {
     return self.duration > 0 ? self.distance / self.duration * 3.6 : 0;

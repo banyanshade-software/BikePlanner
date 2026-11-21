@@ -36,6 +36,11 @@ NS_ASSUME_NONNULL_BEGIN
 /// @"p<product>-s<serial>": the same unit whatever the format (a FIT file has the manufacturer, a TCX file does not);
 /// @"" when the file gives neither
 + (NSString *)deviceKeyForProduct:(nullable NSNumber *)product serialNumber:(nullable NSNumber *)serial;
+/// the model of a Garmin product number (FIT garmin_product, TCX ProductID), e.g. 3122 → "Edge 830"; nil when not in
+/// the table (the user names the device then)
++ (nullable NSString *)nameOfGarminProduct:(NSInteger)product;
+/// the product number of a device key, 0 when none
++ (NSInteger)productOfDeviceKey:(NSString *)deviceKey;
 
 /// km/h, 0 when the duration is unknown
 @property (readonly, nonatomic) double averageSpeed;

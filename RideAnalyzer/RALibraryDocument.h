@@ -15,6 +15,7 @@
 #import <Cocoa/Cocoa.h>
 
 @class RARide, RAGarminConnect, RAFilter, RASavedFilter;
+@protocol RAKeyStore;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -35,10 +36,19 @@ typedef NS_ENUM(NSInteger, RAImportStatus) {
 @property (nonatomic) BOOL cancelled;
 @end
 
+/// where a library is compared with the place it was last opened or saved from on this user account
+typedef NS_ENUM(NSInteger, RALibraryLocation) {
+    RALibraryLocationNew,             // never seen on this account, or no file yet
+    RALibraryLocationSame,
+    RALibraryLocationMoved,           // last seen at another place: moved, or copied in the Finder
+    RALibraryLocationOpenElsewhere,   // another open library has the same identifier: a copy
+};
+
 @interface RALibraryDocument : NSDocument
 
 @property (readonly, nonatomic) NSArray<RARide *> *rides;
-/// stable identifier of the library (its Garmin Connect key in the Keychain goes with it)
+/// stable identifier of the library (its Garmin Connect key in the Keychain goes with it); a copy of the library
+/// gets a new one (-becomeCopyCarryingKey:)
 @property (readonly, nonatomic) NSString *libraryID;
 /// end of the last complete fetch from Garmin Connect (R1), nil before the first one
 @property (readonly, nonatomic, nullable) NSDate *garminLastFetch;
@@ -68,6 +78,32 @@ typedef NS_ENUM(NSInteger, RAImportStatus) {
 /// main queue, with an error when the listing failed (nothing imported). Returns nil when an import is running.
 - (nullable NSProgress *)fetchFromGarmin:(RAGarminConnect *)client since:(nullable NSDate *)since
                               completion:(void (^)(RAImportSummary * _Nullable summary, NSError * _Nullable error))completion;
+
+// Garmin Connect Personal API key of the library. Kept in the Keychain of the user account, one per library
+// (two people sharing a Mac account each have their own library, so their own key), or, if the user chooses, in
+// the library file itself, obfuscated (to use the library on another Mac; anyone with the file has the key).
+/// the key: from the document when it keeps it, else from the key store
+@property (readonly, nonatomic, nullable) NSString *garminKey;
+@property (readonly, nonatomic) BOOL keepsGarminKeyInDocument;
+/// nil or empty: no key. Moves the key between the key store and the document; marks the document edited when
+/// the document changes (not undoable: the Keychain is not)
+- (void)setGarminKey:(nullable NSString *)key keepInDocument:(BOOL)keepInDocument;
+/// the Keychain by default; tests: a RAMemoryKeyStore (nil: back to the Keychain)
+@property (class, nonatomic, null_resettable) id<RAKeyStore> keyStore;
+
+// copies of a library: a library opened from another place than the last one (Finder copy, or moved), or while
+// another open library has the same identifier, asks whether it is a copy; Save As and Duplicate make a copy for
+// the same person. The places are kept in the user defaults (RALibraryLocations: identifier → path).
+/// tests: nil for the standard user defaults
+@property (class, nonatomic, null_resettable) NSUserDefaults *locationDefaults;
+@property (readonly, nonatomic) RALibraryLocation location;
+/// the place recorded for this library's identifier, nil if none
+@property (readonly, nonatomic, nullable) NSString *recordedPath;
+/// records the document's file as the place of its identifier
+- (void)recordLocation;
+/// a new identifier. carryKey: the key goes with the copy (same person); otherwise the copy has no key and no last
+/// fetch date (someone else's Garmin Connect account). Marks the document edited.
+- (void)becomeCopyCarryingKey:(BOOL)carryKey;
 
 /// the original file of a ride, nil if missing
 - (nullable NSData *)originalDataOfRide:(RARide *)ride;

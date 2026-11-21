@@ -132,21 +132,21 @@
     RALibraryDocument *doc = [[RALibraryDocument alloc] init];
     doc.undoManager.groupsByEvent = NO;
     [doc.undoManager beginUndoGrouping];
-    [doc importData:RAFIT(@[ @1, @2 ], 0, 3570, 42) fileName:@"a.fit" error:NULL];
-    [doc importData:RAFIT(@[ @1, @3 ], 86400, 3121, 7) fileName:@"b.fit" error:NULL];
+    [doc importData:RAFIT(@[ @1, @2 ], 0, 9570, 42) fileName:@"a.fit" error:NULL];
+    [doc importData:RAFIT(@[ @1, @3 ], 86400, 9121, 7) fileName:@"b.fit" error:NULL];
     [doc.undoManager endUndoGrouping];
-    XCTAssertEqualObjects([doc labelForDeviceKey:@"p3570-s42"], @"Device 3570", @"no name in a FIT file");
+    XCTAssertEqualObjects([doc labelForDeviceKey:@"p9570-s42"], @"Device 9570", @"no name in a FIT file");
     [doc.undoManager beginUndoGrouping];
-    [doc setLabel:@"Edge" forDeviceKey:@"p3570-s42"];
+    [doc setLabel:@"Edge" forDeviceKey:@"p9570-s42"];
     [doc.undoManager endUndoGrouping];
-    XCTAssertEqualObjects([doc labelForDeviceKey:@"p3570-s42"], @"Edge");
-    XCTAssertEqualObjects(doc.deviceKeys, (@[ @"p3121-s7", @"p3570-s42" ]), @"sorted by label: Device 3121, Edge");
+    XCTAssertEqualObjects([doc labelForDeviceKey:@"p9570-s42"], @"Edge");
+    XCTAssertEqualObjects(doc.deviceKeys, (@[ @"p9121-s7", @"p9570-s42" ]), @"sorted by label: Device 9121, Edge");
     [doc.undoManager undo];
-    XCTAssertEqualObjects([doc labelForDeviceKey:@"p3570-s42"], @"Device 3570");
+    XCTAssertEqualObjects([doc labelForDeviceKey:@"p9570-s42"], @"Device 9570");
 
     // saved with the library
     [doc.undoManager beginUndoGrouping];
-    [doc setLabel:@"Montre" forDeviceKey:@"p3121-s7"];
+    [doc setLabel:@"Montre" forDeviceKey:@"p9121-s7"];
     [doc.undoManager endUndoGrouping];
     NSFileWrapper *package = [doc fileWrapperOfType:RALibraryDocumentType error:NULL];
     NSURL *url = [_folder URLByAppendingPathComponent:@"lib.ridelib"];
@@ -154,7 +154,23 @@
     RALibraryDocument *reopened = [[RALibraryDocument alloc] init];
     XCTAssertTrue([reopened readFromFileWrapper:[[NSFileWrapper alloc] initWithURL:url options:NSFileWrapperReadingImmediate error:NULL]
                                          ofType:RALibraryDocumentType error:NULL]);
-    XCTAssertEqualObjects([reopened labelForDeviceKey:@"p3121-s7"], @"Montre");
+    XCTAssertEqualObjects([reopened labelForDeviceKey:@"p9121-s7"], @"Montre");
+}
+
+- (void)testGarminProductNames
+{
+    XCTAssertEqualObjects([RARide nameOfGarminProduct:3122], @"Edge 830");
+    XCTAssertNil([RARide nameOfGarminProduct:9999]);
+    XCTAssertEqual([RARide productOfDeviceKey:@"p3121-s7"], 3121);
+    XCTAssertEqual([RARide productOfDeviceKey:@""], 0);
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    [doc importData:RAFIT(@[ @1, @2 ], 0, 3121, 7) fileName:@"a.fit" error:NULL];
+    XCTAssertEqualObjects(doc.rides.firstObject.deviceName, @"Edge 530", @"named from its Garmin product number");
+    XCTAssertEqualObjects([doc labelForDeviceKey:@"p3121-s7"], @"Edge 530");
+    XCTAssertEqualObjects([doc labelForDeviceKey:@"p3570-s1"], @"Edge 1030 Plus", @"a ride imported before the names");
+    XCTAssertEqualObjects([doc labelForDeviceKey:@"p9999-s1"], @"Device 9999");
+    [doc setLabel:@"Mon Edge" forDeviceKey:@"p3121-s7"];
+    XCTAssertEqualObjects([doc labelForDeviceKey:@"p3121-s7"], @"Mon Edge", @"the user's name first");
 }
 
 - (void)testDeviceActivityFolders

@@ -12,7 +12,8 @@ Mockup (2026-11-21): `doc/05-ride-analyzer-mockup.pdf` — library and ride deta
 
 ### R1 — Fetch rides from Garmin Connect *(accepted 2026-11-21)*
 - The Garmin Connect Personal API key is obtained in the embedded browser, in the user's Garmin Connect session
-  (the web part of #79, *Settings ▸ Personal API token*), then kept in the Keychain. No key in the app.
+  (the web part of #79, *Settings ▸ Personal API token*), then kept in the Keychain (or, if the user chooses, in
+  the library file, R15). No key in the app.
 - The app lists the user's cycling activities, downloads their FIT files and, on later launches, fetches only the
   new ones.
 - The raw FIT files are kept locally.
@@ -115,7 +116,17 @@ Mockup (2026-11-21): `doc/05-ride-analyzer-mockup.pdf` — library and ride deta
 ### R15 — Library file *(requested by the owner 2026-11-21)*
 - The library (rides, analyses, equipment, settings) is a file chosen by the user: one per person on a shared
   computer. The last one is reopened at launch; another one can be opened or created.
-- Each library has its own Garmin Connect account (key in the Keychain, per library).
+- Each library has its own Garmin Connect account (key in the Keychain, per library: two people sharing one Mac
+  account each have their own library, so their own key). Not in the user defaults: they are per account, and a
+  plain file.
+- Option (2026-11-21): the key kept in the library file (checkbox of the fetch sheet), to use the library on
+  another Mac. Obfuscated (XOR with a pad derived from the `libraryID`), not encrypted: anyone with the file has
+  the key; the sheet says so.
+- Copies: a copy of the library must not share the key of the original. The app records, per user account, where
+  each library was last opened or saved (`RALibraryLocations`, identifier → path). A library opened from another
+  place asks *Moved* / *Copy for Someone Else* / *Copy for Me*; one opened while another open library has the same
+  identifier asks the last two. A copy gets a new `libraryID`; for someone else, without the key or the last fetch
+  date; for me, the key is copied. Save As and Duplicate make a copy for the same person.
 
 ## Related BikePlanner items
 - Import an activity directly from Garmin Connect as display or as route (R1).
@@ -149,7 +160,8 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   2 %), in the library or earlier in the same import. A Garmin activity that is the duplicate of a ride imported
   from a file is linked to it (so the next fetches stop there).
 - **Garmin Connect** (R1, `RAGarminConnect`, `RAGarminFetchSheet`): File ▸ Fetch from Garmin Connect… asks for the
-  Personal API key (pasted for now; kept in the Keychain, one per library, by the library's `libraryID`) and what
+  Personal API key (pasted for now; kept in the Keychain, one per library, by the library's `libraryID`, or in the
+  library file, R15) and what
   to fetch: the new rides (the listing, newest first, stops at the first activity already in the library) or all
   the rides since a date (bulk import of a history). Outdoor cycling activities only (not indoor or virtual rides,
   which have no track). The FIT file comes out of the ZIP Garmin sends (`RAZipReader`). The token (about 24 h, no
@@ -158,8 +170,11 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
 - **Devices** (R3): `BPFITDecoder` now reads `file_id` (manufacturer, product, serial number, creation time) and the
   sport of `sport` / `session`; `BPTrackReader` gives the device (FIT `file_id`, TCX `Creator`: Name, UnitId,
   ProductID) and the sport. A ride's `deviceKey` is `p<product>-s<serial>` (the same unit in FIT and TCX). Its label:
-  the name given by the user (sidebar, editable, undoable), else the name a TCX file gave for that unit, else
-  "Device <product>". The sidebar lists the devices; selecting one filters the list.
+  the name given by the user (sidebar, editable, undoable), else the name a TCX file gave for that unit, else the
+  model of its Garmin product number (`+[RARide nameOfGarminProduct:]`, a table of the Edge computers and some
+  watches from the FIT SDK `garmin_product` type — to check against the SDK's Profile, not verified when written;
+  FIT files are named at import, older rides when shown), else "Device <product>". The sidebar lists the devices;
+  selecting one filters the list.
 - **GPX times**: `GPXParser` now reads the `<time>` of each point (Z, fractional seconds, offset) and tells whether
   every point has one (`hasTimes`, also in `BPTrackReader` for TCX and FIT). A file without times gives a ride with
   no date rather than the import date. BikePlanner benefits too (imported traces keep their times).
@@ -176,7 +191,7 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   `startTimeGMT`, `distance`, `activityType.typeKey`). Also: getting the key through the web session (#79).
 
 ## Search, filters, ride detail (2026-11-21, R3, R4)
-- **Search** (R3): the search field above the list (Edit ▸ Find…, ⌘F) looks for every word in the name, the notes
+- **Search** (R3): the search field of the sidebar (Edit ▸ Find…, ⌘F) looks for every word in the name, the notes
   and the tags, case and accents ignored.
 - **Filters** (R3, `RAFilter`): period (days), devices, distance (min / max), minimum ascent, tags (any of them);
   combinable, edited in a sheet (Edit ▸ Filter…, ⌥⌘F, `RAFilterSheet`), summarized under the search field, cleared
@@ -200,10 +215,13 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   could be read later).
 - **Toolbar** (customizable, saved): sidebar, Import, Device (Import from Device…), Garmin Connect, Trends, Delete,
   Filter; enabled as the menu items.
-- **Filter bar just above the list** (owner's request, 2026-11-21): the search field; pop-up menus for the most used
-  criteria — period (any date, last 30 days, last 12 months, this year), device, distance (under 30 km, over 30 /
-  50 / 80 / 100 km), tag — each showing "Custom…" / "Several…" when the filter holds something they do not offer;
-  More… opens the sheet with every criterion; under them the summary of the filter, Clear and Save….
+- **Filter in the sidebar** (owner's request, 2026-11-21; first just above the list, then moved to the sidebar,
+  which only listed the saved filters and devices): the search field; pop-up menus for the most used criteria —
+  period (any date, last 30 days, last 12 months, this year), device, distance (under 30 km, over 30 / 50 / 80 /
+  100 km), tag — each showing "Custom…" / "Several…" when the filter holds something they do not offer; More…
+  opens the sheet with every criterion; Clear, Save…; the summary of the filter. Under it, the saved filters and
+  the devices (one click applies one; no "All Rides" row: Clear).
+- **Tabs beside the list**: *Ride* (the detail) and *Trends* (R6).
 - Not yet: the map's base layers of BikePlanner (OSM, Thunderforest: the Apple map for now), a click on the map to
   move the cursor, "Open in BikePlanner" (R5).
 
@@ -212,9 +230,11 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   (`stats`, versioned): moving time, max speed, heart rate, power, calories, and per terrain — the slope of each
   moving interval: descents (< −1 %), flat (−1 to 1 %), climbs of 1–4 %, 4–8 %, over 8 % — the moving time,
   distance, ascent, heart rate × time and power × time. The rides imported before (or with an older version) get
-  theirs in the background when the trends window opens (`computeMissingStatsWithCompletion:`).
-- **Trends window** (Window ▸ Trends, ⇧⌘T, toolbar "Trends"; `RATrendsWindowController`, one per library):
-  - rides: all, or those of a saved filter (R3);
+  theirs in the background when the Trends tab shows (`computeMissingStatsWithCompletion:`). The measures of a
+  terrain are therefore those of the parts of the rides on that terrain, not of the whole rides.
+- **Trends tab** (beside the list; Window ▸ Trends, ⇧⌘T, toolbar "Trends" switch to it and back;
+  `RATrendsViewController`; first a window of its own, made a tab at the owner's request 2026-11-21):
+  - rides: the selected rides when two or more are selected, else the rides of the list (the filter, R3);
   - **progression**: a measure — average speed, heart rate, power (measured), W/bpm, speed per heart rate
     (km/h per 100 bpm, without a power meter), climbing speed (VAM) — on a terrain, per ride, week or month
     (a period's value from the sums of its rides), with a trend line (least squares); a ride needs at least

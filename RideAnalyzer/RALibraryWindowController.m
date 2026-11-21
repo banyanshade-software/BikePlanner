@@ -11,7 +11,7 @@
 #import "RAGarminConnect.h"
 #import "RAGarminFetchSheet.h"
 #import "RARideDetailController.h"
-#import "RATrendsWindowController.h"
+#import "RATrendsViewController.h"
 #import "BPTrackReader.h"
 
 static NSUserInterfaceItemIdentifier const RAColumnDate = @"date";
@@ -60,6 +60,8 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     NSProgressIndicator *_progressIndicator;
     NSProgress *_progress;
     RARideDetailController *_detail;
+    RATrendsViewController *_trends;
+    NSTabViewController *_tabs;     // Ride (the detail) and Trends, beside the list
     NSDateFormatter *_dateFormatter;
     RAGarminFetchSheet *_garminSheet;
     RAFilterSheet *_filterSheet;
@@ -99,6 +101,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
         [nc addObserver:self selector:@selector(libraryDidChange:) name:RALibraryDidChangeNotification object:document];
     }
     _detail.library = document;
+    _trends.library = document;
     [self reload];
 }
 
@@ -134,7 +137,8 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 
 - (void)buildContent
 {
-    // sidebar: all rides, the saved filters, the devices (R3)
+    // sidebar (R3, owner's request): the filter on top, then the saved filters and the devices (one click applies
+    // one; names editable)
     _sidebar = [[NSTableView alloc] init];
     _sidebar.headerView = nil;
     _sidebar.style = NSTableViewStyleSourceList;
@@ -148,7 +152,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     _sidebar.menu = sidebarMenu;
     NSScrollView *sidebarScroll = [self scrollViewWithTable:_sidebar];
 
-    // filter bar: search, criteria, save
+    // the filter: search, criteria, save
     _search = [[NSSearchField alloc] init];
     _search.placeholderString = NSLocalizedString(@"Name, notes, tags", @"search");
     _search.delegate = self;
@@ -170,8 +174,8 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     _filterSummary.identifier = @"filterSummary";
     [_filterSummary setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
                                              forOrientation:NSLayoutConstraintOrientationHorizontal];
-    // just above the list (R3, owner's request): the search field, the most used criteria as pop-up menus (period,
-    // device, distance, tag), More… for the sheet with all of them, Clear, Save…; the summary of the filter under
+    // the search field, the most used criteria as pop-up menus (period, device, distance, tag), More… for the sheet
+    // with all of them; the summary of the filter, Clear, Save…
     _periodPopup = [self filterPopupWithIdentifier:@"filterPeriod" action:@selector(periodChosen:)];
     _devicePopup = [self filterPopupWithIdentifier:@"filterDevice" action:@selector(deviceChosen:)];
     _distancePopup = [self filterPopupWithIdentifier:@"filterDistance" action:@selector(distanceChosen:)];
@@ -180,19 +184,35 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
                                         action:@selector(editFilter:)];
     more.controlSize = NSControlSizeSmall;
     more.identifier = @"editFilter";
-    NSStackView *criteria = [NSStackView stackViewWithViews:@[ _periodPopup, _devicePopup, _distancePopup, _tagPopup,
-                                                              more ]];
-    criteria.spacing = 4;
-    [criteria setClippingResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
-    NSStackView *summaryRow = [NSStackView stackViewWithViews:@[ _filterSummary, _clearFilterButton, _saveFilterButton ]];
-    summaryRow.spacing = 6;
-    NSStackView *filterBar = [NSStackView stackViewWithViews:@[ _search, criteria, summaryRow ]];
-    filterBar.orientation = NSUserInterfaceLayoutOrientationVertical;
-    filterBar.alignment = NSLayoutAttributeLeading;
-    filterBar.spacing = 4;
-    filterBar.edgeInsets = NSEdgeInsetsMake(8, 10, 2, 10);
-    [_search.widthAnchor constraintEqualToAnchor:filterBar.widthAnchor constant:-20].active = YES;
-    [summaryRow.widthAnchor constraintEqualToAnchor:filterBar.widthAnchor constant:-20].active = YES;
+    _filterSummary.lineBreakMode = NSLineBreakByWordWrapping;
+    _filterSummary.cell.wraps = YES;
+    _filterSummary.cell.truncatesLastVisibleLine = YES;
+    _filterSummary.maximumNumberOfLines = 3;
+    _filterSummary.preferredMaxLayoutWidth = 190;
+    NSTextField *filterTitle = [NSTextField labelWithString:NSLocalizedString(@"Filter", @"sidebar")];
+    filterTitle.font = [NSFont boldSystemFontOfSize:NSFont.smallSystemFontSize];
+    filterTitle.textColor = [NSColor secondaryLabelColor];
+    NSStackView *buttons = [NSStackView stackViewWithViews:@[ more, _clearFilterButton, _saveFilterButton ]];
+    buttons.spacing = 4;
+    NSStackView *filterPanel = [NSStackView stackViewWithViews:@[ filterTitle, _search, _periodPopup, _devicePopup,
+                                                                 _distancePopup, _tagPopup, buttons, _filterSummary ]];
+    filterPanel.orientation = NSUserInterfaceLayoutOrientationVertical;
+    filterPanel.alignment = NSLayoutAttributeLeading;
+    filterPanel.spacing = 6;
+    filterPanel.detachesHiddenViews = YES;
+    filterPanel.edgeInsets = NSEdgeInsetsMake(8, 10, 6, 10);
+    for (NSView *v in @[ _search, _periodPopup, _devicePopup, _distancePopup, _tagPopup, _filterSummary ]) {
+        [v.widthAnchor constraintEqualToAnchor:filterPanel.widthAnchor constant:-20].active = YES;
+    }
+    NSStackView *sidebarStack = [NSStackView stackViewWithViews:@[ filterPanel, sidebarScroll ]];
+    sidebarStack.orientation = NSUserInterfaceLayoutOrientationVertical;
+    sidebarStack.alignment = NSLayoutAttributeLeading;
+    sidebarStack.distribution = NSStackViewDistributionFill;
+    sidebarStack.spacing = 0;
+    for (NSView *v in @[ filterPanel, sidebarScroll ]) {
+        [v.widthAnchor constraintEqualToAnchor:sidebarStack.widthAnchor].active = YES;
+    }
+    [sidebarScroll setContentHuggingPriority:NSLayoutPriorityDefaultLow - 1 forOrientation:NSLayoutConstraintOrientationVertical];
 
     // rides
     _table = [[NSTableView alloc] init];
@@ -244,7 +264,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     _footer.textColor = [NSColor secondaryLabelColor];
     _footer.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
     _footer.identifier = @"listFooter";
-    NSStackView *list = [NSStackView stackViewWithViews:@[ filterBar, _progressBar, tableScroll, _footer ]];
+    NSStackView *list = [NSStackView stackViewWithViews:@[ _progressBar, tableScroll, _footer ]];
     list.orientation = NSUserInterfaceLayoutOrientationVertical;
     list.alignment = NSLayoutAttributeLeading;
     list.distribution = NSStackViewDistributionFill;
@@ -252,21 +272,30 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     [tableScroll setContentHuggingPriority:NSLayoutPriorityDefaultLow - 1 forOrientation:NSLayoutConstraintOrientationVertical];
     list.edgeInsets = NSEdgeInsetsMake(0, 0, 8, 0);
     list.spacing = 4;
-    for (NSView *v in @[ filterBar, _progressBar, tableScroll ]) {
+    for (NSView *v in @[ _progressBar, tableScroll ]) {
         [v.widthAnchor constraintEqualToAnchor:list.widthAnchor].active = YES;
     }
     [_footer.leadingAnchor constraintEqualToAnchor:list.leadingAnchor constant:10].active = YES;
 
-    // detail (R4)
+    // beside the list, two tabs: the detail of the selected ride (R4), the trends of the selected rides or of the
+    // list (R6)
     _detail = [[RARideDetailController alloc] init];
+    _detail.title = NSLocalizedString(@"Ride", @"tab");
+    _trends = [[RATrendsViewController alloc] init];
+    _tabs = [[NSTabViewController alloc] init];
+    _tabs.tabStyle = NSTabViewControllerTabStyleSegmentedControlOnTop;
+    [_tabs addChildViewController:_detail];
+    [_tabs addChildViewController:_trends];
+    _tabs.tabViewItems[0].identifier = @"ride";
+    _tabs.tabViewItems[1].identifier = @"trends";
 
     _split = [[NSSplitViewController alloc] init];
-    NSSplitViewItem *s = [NSSplitViewItem sidebarWithViewController:[self controllerWithView:sidebarScroll]];
-    s.minimumThickness = 180;
-    s.maximumThickness = 260;
+    NSSplitViewItem *s = [NSSplitViewItem sidebarWithViewController:[self controllerWithView:sidebarStack]];
+    s.minimumThickness = 210;
+    s.maximumThickness = 300;
     NSSplitViewItem *l = [NSSplitViewItem splitViewItemWithViewController:[self controllerWithView:list]];
     l.minimumThickness = 420;
-    NSSplitViewItem *d = [NSSplitViewItem splitViewItemWithViewController:_detail];
+    NSSplitViewItem *d = [NSSplitViewItem splitViewItemWithViewController:_tabs];
     d.minimumThickness = 420;
     [_split addSplitViewItem:s];
     [_split addSplitViewItem:l];
@@ -587,11 +616,11 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 - (void)reloadSidebar
 {
     RALibraryDocument *library = self.library;
-    NSMutableArray<NSDictionary *> *rows = [NSMutableArray arrayWithObject:@{ @"kind": @(RASidebarAll),
-        @"title": NSLocalizedString(@"All Rides", @"sidebar") }];
+    // all rides: Clear in the filter above
+    NSMutableArray<NSDictionary *> *rows = [NSMutableArray array];
     NSArray<RASavedFilter *> *saved = library.savedFilters ?: @[];
     if (saved.count) {
-        [rows addObject:@{ @"kind": @(RASidebarHeader), @"title": NSLocalizedString(@"Filters", @"sidebar") }];
+        [rows addObject:@{ @"kind": @(RASidebarHeader), @"title": NSLocalizedString(@"Saved Filters", @"sidebar") }];
         for (RASavedFilter *f in saved) [rows addObject:@{ @"kind": @(RASidebarSavedFilter), @"title": f.name, @"saved": f }];
     }
     NSArray<NSString *> *keys = library.deviceKeys ?: @[];
@@ -604,7 +633,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     _sidebarRows = rows;
     [_sidebar reloadData];
     // keep the selected row (the same saved filter or device); none when the filter is the sheet's
-    NSInteger selected = _baseFilter.empty && !_sidebarSelection ? 0 : -1;
+    NSInteger selected = -1;
     for (NSUInteger i = 0; i < rows.count && _sidebarSelection; i++) {
         if ((_sidebarSelection[@"saved"] && rows[i][@"saved"] == _sidebarSelection[@"saved"])
             || (_sidebarSelection[@"key"] && [rows[i][@"key"] isEqualToString:_sidebarSelection[@"key"]])) {
@@ -631,8 +660,17 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     [_table selectRowIndexes:rows byExtendingSelection:NO];
     [self updateFooter];
     [self updateFilterBar];
-    [_detail showRides:[self selectedRides]];
+    [self showSelection];
     [_detail refreshRideInfo];
+}
+
+/// the detail of the selected ride; the trends of the selected rides, or of the list when fewer than two are
+- (void)showSelection
+{
+    NSArray<RARide *> *selected = [self selectedRides];
+    [_detail showRides:selected];
+    BOOL several = selected.count >= 2;
+    [_trends showRides:several ? selected : _sorted selected:several];
 }
 
 - (NSArray<RARide *> *)selectedRides
@@ -754,7 +792,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 - (void)tableViewSelectionDidChange:(NSNotification *)notification
 {
     if (notification.object == _table) {
-        [_detail showRides:[self selectedRides]];
+        [self showSelection];
         return;
     }
     if (notification.object != _sidebar) return;
@@ -941,15 +979,14 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 {
     RALibraryDocument *library = self.library;
     if (!library || library.importing) return;
-    id<RAKeyStore> store = [RAKeychainKeyStore shared];
-    _garminSheet = [[RAGarminFetchSheet alloc] initWithKey:[store keyForLibrary:library.libraryID]
+    _garminSheet = [[RAGarminFetchSheet alloc] initWithKey:library.garminKey
+                                            keepInDocument:library.keepsGarminKeyInDocument
                                                  lastFetch:library.garminLastFetch];
-    [_garminSheet beginSheetForWindow:self.window completion:^(BOOL fetch, NSString *key, NSDate *since) {
+    [_garminSheet beginSheetForWindow:self.window
+                           completion:^(BOOL fetch, NSString *key, BOOL keepInDocument, NSDate *since) {
         self->_garminSheet = nil;
         if (!fetch) return;
-        if (![key isEqualToString:[store keyForLibrary:library.libraryID] ?: @""]) {
-            [store setKey:key forLibrary:library.libraryID];
-        }
+        [library setGarminKey:key keepInDocument:keepInDocument];
         NSURLSession *session = [NSURLSession sessionWithConfiguration:
                                  [NSURLSessionConfiguration ephemeralSessionConfiguration]];
         RAGarminConnect *client = [[RAGarminConnect alloc] initWithKey:key session:session];
@@ -975,18 +1012,9 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 
 - (IBAction)showTrends:(nullable id)sender
 {
-    RALibraryDocument *library = self.library;
-    if (!library) return;
-    for (NSWindowController *wc in library.windowControllers) {
-        if ([wc isKindOfClass:[RATrendsWindowController class]]) {
-            [wc showWindow:self];
-            return;
-        }
-    }
-    RATrendsWindowController *trends = [[RATrendsWindowController alloc] initWithLibrary:library];
-    [library addWindowController:trends];
-    [trends.window center];
-    [trends showWindow:self];
+    // the Trends tab, or back to the Ride tab when it shows
+    _tabs.selectedTabViewItemIndex = _tabs.selectedTabViewItemIndex == 1 ? 0 : 1;
+    [self showSelection];
 }
 
 - (IBAction)focusSearch:(nullable id)sender

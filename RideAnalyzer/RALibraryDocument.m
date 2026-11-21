@@ -21,6 +21,50 @@ static NSString *const RARidesFolderName = @"Rides";
 static const NSInteger RALibraryFormatVersion = 1;
 static const NSUInteger RAGarminPageSize = 50;
 static const NSUInteger RAGarminMaxPages = 200; // 10,000 activities
+static NSString *const RALibraryLocationsKey = @"RALibraryLocations";
+
+static id<RAKeyStore> RAKeyStoreOverride;
+static NSUserDefaults *RALocationDefaultsOverride;
+
+// The key kept in a library file is obfuscated, not encrypted: XOR with a pad derived from the library identifier,
+// so that it does not show in clear in the file. Anyone with the file and this source can read it.
+static NSData *RAKeyPad(NSString *libraryID, NSUInteger length)
+{
+    NSMutableData *pad = [NSMutableData dataWithCapacity:length + CC_SHA256_DIGEST_LENGTH];
+    for (unsigned block = 0; pad.length < length; block++) {
+        NSString *seed = [NSString stringWithFormat:@"RideAnalyzer.garminKey.%@.%u", libraryID, block];
+        NSData *seedData = [seed dataUsingEncoding:NSUTF8StringEncoding];
+        unsigned char digest[CC_SHA256_DIGEST_LENGTH];
+        CC_SHA256(seedData.bytes, (CC_LONG)seedData.length, digest);
+        [pad appendBytes:digest length:sizeof digest];
+    }
+    pad.length = length;
+    return pad;
+}
+
+static NSData *RAKeyXor(NSData *data, NSString *libraryID)
+{
+    NSMutableData *out = [data mutableCopy];
+    const unsigned char *p = RAKeyPad(libraryID, data.length).bytes;
+    unsigned char *o = out.mutableBytes;
+    for (NSUInteger i = 0; i < out.length; i++) o[i] ^= p[i];
+    return out;
+}
+
+static NSString *RAObfuscatedKey(NSString *key, NSString *libraryID)
+{
+    NSData *data = [key dataUsingEncoding:NSUTF8StringEncoding] ?: [NSData data];
+    return [@"1:" stringByAppendingString:[RAKeyXor(data, libraryID) base64EncodedStringWithOptions:0]];
+}
+
+static NSString * _Nullable RAKeyFromObfuscated(id value, NSString *libraryID)
+{
+    if (![value isKindOfClass:[NSString class]] || ![value hasPrefix:@"1:"]) return nil;
+    NSData *data = [[NSData alloc] initWithBase64EncodedString:[value substringFromIndex:2] options:0];
+    if (data.length == 0) return nil;
+    NSString *key = [[NSString alloc] initWithData:RAKeyXor(data, libraryID) encoding:NSUTF8StringEncoding];
+    return key.length ? key : nil;
+}
 
 @implementation RAImportSummary
 @end
@@ -143,6 +187,9 @@ static const NSUInteger RAGarminMaxPages = 200; // 10,000 activities
     NSDate *_garminLastFetch;
     BOOL _importing;
     NSMutableArray<RASavedFilter *> *_savedFilters;
+    NSString *_documentGarminKey;   // in clear in memory, nil when the key is not kept in the document
+    BOOL _locationChecked;
+    NSAlert *_copyAlert;
 }
 
 + (BOOL)autosavesInPlace
@@ -192,6 +239,184 @@ static const NSUInteger RAGarminMaxPages = 200; // 10,000 activities
     [self addWindowController:[[RALibraryWindowController alloc] init]];
 }
 
+#pragma mark - Garmin Connect key
+
++ (id<RAKeyStore>)keyStore
+{
+    return RAKeyStoreOverride ?: [RAKeychainKeyStore shared];
+}
+
++ (void)setKeyStore:(nullable id<RAKeyStore>)keyStore
+{
+    RAKeyStoreOverride = keyStore;
+}
+
+- (nullable NSString *)garminKey
+{
+    if (_documentGarminKey) return _documentGarminKey;
+    return [RALibraryDocument.keyStore keyForLibrary:_libraryID];
+}
+
+- (BOOL)keepsGarminKeyInDocument
+{
+    return _documentGarminKey != nil;
+}
+
+- (void)setGarminKey:(nullable NSString *)key keepInDocument:(BOOL)keepInDocument
+{
+    if (key.length == 0) key = nil;
+    id<RAKeyStore> store = RALibraryDocument.keyStore;
+    NSString *stored = [store keyForLibrary:_libraryID];
+    if (key && keepInDocument) {
+        if (stored) [store setKey:nil forLibrary:_libraryID];
+        if (![_documentGarminKey isEqualToString:key]) {
+            _documentGarminKey = [key copy];
+            [self updateChangeCount:NSChangeDone];
+        }
+    } else {
+        if (!(key == stored || [key isEqualToString:stored])) [store setKey:key forLibrary:_libraryID];
+        if (_documentGarminKey) {
+            _documentGarminKey = nil;
+            [self updateChangeCount:NSChangeDone];
+        }
+    }
+}
+
+#pragma mark - copies
+
++ (NSUserDefaults *)locationDefaults
+{
+    return RALocationDefaultsOverride ?: [NSUserDefaults standardUserDefaults];
+}
+
++ (void)setLocationDefaults:(nullable NSUserDefaults *)defaults
+{
+    RALocationDefaultsOverride = defaults;
+}
+
+- (nullable NSString *)recordedPath
+{
+    id locations = [RALibraryDocument.locationDefaults dictionaryForKey:RALibraryLocationsKey][_libraryID];
+    return [locations isKindOfClass:[NSString class]] ? locations : nil;
+}
+
+- (void)recordLocation
+{
+    NSString *path = self.fileURL.URLByStandardizingPath.path;
+    if (!path || [path isEqualToString:self.recordedPath]) return;
+    NSUserDefaults *defaults = RALibraryDocument.locationDefaults;
+    NSMutableDictionary *locations = [[defaults dictionaryForKey:RALibraryLocationsKey] mutableCopy]
+        ?: [NSMutableDictionary dictionary];
+    locations[_libraryID] = path;
+    [defaults setObject:locations forKey:RALibraryLocationsKey];
+}
+
+- (RALibraryLocation)location
+{
+    for (NSDocument *doc in [NSDocumentController sharedDocumentController].documents) {
+        if (doc != self && [doc isKindOfClass:[RALibraryDocument class]]
+            && [((RALibraryDocument *)doc).libraryID isEqualToString:_libraryID]) {
+            return RALibraryLocationOpenElsewhere;
+        }
+    }
+    NSString *path = self.fileURL.URLByStandardizingPath.path;
+    NSString *recorded = self.recordedPath;
+    if (!path || !recorded) return RALibraryLocationNew;
+    return [recorded isEqualToString:path] ? RALibraryLocationSame : RALibraryLocationMoved;
+}
+
+- (void)becomeCopyCarryingKey:(BOOL)carryKey
+{
+    NSString *oldID = _libraryID;
+    _libraryID = [NSUUID UUID].UUIDString;
+    id<RAKeyStore> store = RALibraryDocument.keyStore;
+    if (carryKey) {
+        NSString *key = [store keyForLibrary:oldID];
+        if (key) [store setKey:key forLibrary:_libraryID];
+    } else {
+        _documentGarminKey = nil;
+        _garminLastFetch = nil;
+    }
+    [self updateChangeCount:NSChangeDone];
+    [self recordLocation];
+    [self libraryDidChange];
+}
+
+- (void)showWindows
+{
+    [super showWindows];
+    [self checkLocation];
+}
+
+// asks once, when the window of a library opened from a file shows
+- (void)checkLocation
+{
+    if (_locationChecked || !self.fileURL) return;
+    _locationChecked = YES;
+    RALibraryLocation location = self.location;
+    if (location == RALibraryLocationNew || location == RALibraryLocationSame) {
+        [self recordLocation];
+        return;
+    }
+    NSWindow *window = self.windowForSheet;
+    if (!window) return;
+    NSAlert *alert = [[NSAlert alloc] init];
+    BOOL moved = location == RALibraryLocationMoved;
+    if (moved) {
+        alert.messageText = NSLocalizedString(@"Was this library moved or copied?", @"copy of a library");
+        alert.informativeText = [NSString stringWithFormat:NSLocalizedString(
+            @"It was last opened from “%@”. A copy for someone else gets its own Garmin Connect key and fetches its "
+            @"rides from the start.", @"copy of a library"), self.recordedPath.stringByAbbreviatingWithTildeInPath];
+        [alert addButtonWithTitle:NSLocalizedString(@"Moved", @"copy of a library")];
+    } else {
+        alert.messageText = NSLocalizedString(@"This library is a copy of an open library", @"copy of a library");
+        alert.informativeText = NSLocalizedString(
+            @"A copy for someone else gets its own Garmin Connect key and fetches its rides from the start.",
+            @"copy of a library");
+    }
+    [alert addButtonWithTitle:NSLocalizedString(@"Copy for Someone Else", @"copy of a library")];
+    [alert addButtonWithTitle:NSLocalizedString(@"Copy for Me", @"copy of a library")];
+    _copyAlert = alert;
+    [alert beginSheetModalForWindow:window completionHandler:^(NSModalResponse response) {
+        self->_copyAlert = nil;
+        NSInteger button = response - NSAlertFirstButtonReturn;
+        if (moved) button -= 1;     // -1: moved, 0: someone else, 1: me
+        if (button < 0) {
+            [self recordLocation];
+        } else {
+            [self becomeCopyCarryingKey:button == 1];
+        }
+    }];
+}
+
+- (void)saveToURL:(NSURL *)url ofType:(NSString *)typeName forSaveOperation:(NSSaveOperationType)saveOperation
+completionHandler:(void (^)(NSError * _Nullable))completionHandler
+{
+    // Save As keeps the old file: this document becomes a copy, for the same person
+    if (saveOperation == NSSaveAsOperation && self.fileURL && ![url.URLByStandardizingPath isEqual:self.fileURL.URLByStandardizingPath]) {
+        [self becomeCopyCarryingKey:YES];
+    }
+    [super saveToURL:url ofType:typeName forSaveOperation:saveOperation completionHandler:^(NSError *error) {
+        if (!error && saveOperation != NSAutosaveElsewhereOperation) [self recordLocation];
+        completionHandler(error);
+    }];
+}
+
+- (void)moveToURL:(NSURL *)url completionHandler:(nullable void (^)(NSError * _Nullable))completionHandler
+{
+    [super moveToURL:url completionHandler:^(NSError *error) {
+        if (!error) [self recordLocation];
+        if (completionHandler) completionHandler(error);
+    }];
+}
+
+- (nullable __kindof NSDocument *)duplicateAndReturnError:(NSError * _Nullable *)outError
+{
+    NSDocument *copy = [super duplicateAndReturnError:outError];
+    if ([copy isKindOfClass:[RALibraryDocument class]]) [(RALibraryDocument *)copy becomeCopyCarryingKey:YES];
+    return copy;
+}
+
 #pragma mark - reading and writing
 
 - (nullable NSFileWrapper *)fileWrapperOfType:(NSString *)typeName error:(NSError * _Nullable *)outError
@@ -205,6 +430,7 @@ static const NSUInteger RAGarminMaxPages = 200; // 10,000 activities
         @"savedFilters": [_savedFilters valueForKey:@"propertyList"],
     } mutableCopy];
     if (_garminLastFetch) plist[@"garminLastFetch"] = _garminLastFetch;
+    if (_documentGarminKey) plist[@"garminKey"] = RAObfuscatedKey(_documentGarminKey, _libraryID);
     NSData *data = [NSPropertyListSerialization dataWithPropertyList:plist format:NSPropertyListBinaryFormat_v1_0
                                                              options:0 error:outError];
     if (!data) return nil;
@@ -259,6 +485,7 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     _deviceNames = RAStringDictionary(plist[@"deviceNames"]);
     id lastFetch = plist[@"garminLastFetch"];
     _garminLastFetch = [lastFetch isKindOfClass:[NSDate class]] ? lastFetch : nil;
+    _documentGarminKey = RAKeyFromObfuscated(plist[@"garminKey"], _libraryID);
     _savedFilters = [NSMutableArray array];
     id saved = plist[@"savedFilters"];
     if ([saved isKindOfClass:[NSArray class]]) {
@@ -304,6 +531,10 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     ride.contentHash = [self sha256OfData:data];
     ride.deviceKey = [RARide deviceKeyForProduct:reader.deviceProduct serialNumber:reader.deviceSerialNumber];
     ride.deviceName = reader.deviceName ?: @"";
+    if (ride.deviceName.length == 0 && reader.deviceProduct != nil
+        && (reader.deviceManufacturer == nil || reader.deviceManufacturer.integerValue == 1)) { // Garmin
+        ride.deviceName = [RARide nameOfGarminProduct:reader.deviceProduct.integerValue] ?: @"";
+    }
     ride.sport = reader.sport ?: @"";
     ride.stats = [RARideStats statsOfAnalysis:[[RARideAnalysis alloc] initWithTrace:reader.trace metrics:reader.metrics
                                                                          calories:reader.calories hasTimes:reader.hasTimes]];
@@ -556,11 +787,12 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
 {
     NSString *label = _deviceLabels[deviceKey] ?: _deviceNames[deviceKey];
     if (label.length) return label;
-    // p<product>-s<serial>
-    NSString *first = [deviceKey componentsSeparatedByString:@"-"].firstObject ?: @"";
-    NSString *product = first.length > 1 ? [first substringFromIndex:1] : @"";
-    return product.length ? [NSString stringWithFormat:NSLocalizedString(@"Device %@", @"device: product number"), product]
-                          : NSLocalizedString(@"Unknown device", @"device");
+    // rides imported before the names of the products (and FIT files: they have only numbers)
+    NSInteger product = [RARide productOfDeviceKey:deviceKey];
+    label = product > 0 ? [RARide nameOfGarminProduct:product] : nil;
+    if (label) return label;
+    return product > 0 ? [NSString stringWithFormat:NSLocalizedString(@"Device %ld", @"device: product number"), (long)product]
+                       : NSLocalizedString(@"Unknown device", @"device");
 }
 
 - (NSArray<NSString *> *)deviceKeys

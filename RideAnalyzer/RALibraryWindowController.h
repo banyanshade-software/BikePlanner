@@ -2,9 +2,10 @@
 //  RALibraryWindowController.h
 //  RideAnalyzer
 //
-//  The window of a library (#82): sidebar (all rides, saved filters, devices — R3; names editable), the list of
-//  rides with its search field and filter (R3) and the progress of an import (R1, R2), and the detail of the
-//  selected ride (RARideDetailController, R4). Built in code, no XIB.
+//  The window of a library (#82): sidebar with the filter (search field, period, device, distance, tag, More…, Clear,
+//  Save…) and the saved filters and devices (R3; names editable), the list of rides with the progress of an import
+//  (R1, R2), and two tabs: the detail of the selected ride (RARideDetailController, R4) and the trends of the
+//  selected rides, or of the list (RATrendsViewController, R6). Built in code, no XIB.
 //
 
 #import <Cocoa/Cocoa.h>
@@ -21,7 +22,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (IBAction)fetchFromGarminConnect:(id)sender;
 /// stops the running import or fetch (what was read is kept)
 - (IBAction)cancelImport:(nullable id)sender;
-/// Window ▸ Trends (⇧⌘T): the progression window of the library (R6)
+/// Window ▸ Trends (⇧⌘T): the Trends tab (R6), or back to the Ride tab
 - (IBAction)showTrends:(nullable id)sender;
 /// Edit ▸ Find… (⌘F): the search field (name, notes, tags; R3)
 - (IBAction)focusSearch:(nullable id)sender;

@@ -12,7 +12,8 @@
 #import "RATrends.h"
 #import "RARide.h"
 #import "RALibraryDocument.h"
-#import "RATrendsWindowController.h"
+#import "RATrendsViewController.h"
+#import "RALibraryWindowController.h"
 #import "RATimeChartView.h"
 #import "RATestSupport.h"
 
@@ -153,22 +154,54 @@
     XCTAssertEqualObjects(fastest.ride, rides[0], @"26 km/h over 60 km; the 27 km/h ride is 45 km");
 }
 
-- (void)testTrendsWindow
+- (void)testTrendsView
 {
     RALibraryDocument *doc = [[RALibraryDocument alloc] init];
     [doc importData:RAFIT(@[ @100, @150, @130 ], 0, 3122, 1) fileName:@"a.fit" error:NULL];
     [doc importData:RAFIT(@[ @100, @110, @130 ], 86400 * 40, 3122, 1) fileName:@"b.fit" error:NULL];
-    RATrendsWindowController *trends = [[RATrendsWindowController alloc] initWithLibrary:doc];
+    RATrendsViewController *trends = [[RATrendsViewController alloc] init];
+    trends.library = doc;
     trends.measure = RATrendSpeed;
     trends.terrain = RATerrainAll;
     trends.grouping = RATrendPerRide;
+    [trends showRides:doc.rides selected:NO];
     [trends refresh];
     XCTAssertEqual(trends.trendChart.points.count, 2u);
     XCTAssertEqual(trends.totalsChart.points.count, 2u, @"two months");
     XCTAssertGreaterThan(trends.records.count, 0u);
-    trends.filterIndex = 5; // no such saved filter: all rides
+    [trends showRides:@[ doc.rides.firstObject ] selected:YES];
     [trends refresh];
-    XCTAssertEqual(trends.filterIndex, 0);
+    XCTAssertEqual(trends.trendChart.points.count, 1u, @"only the rides given");
+    XCTAssertTrue([trends.status.stringValue containsString:@"1"]);
+}
+
+// the Trends tab of the library window: the selected rides when several are, else the rides of the list
+- (void)testTrendsTabFollowsSelection
+{
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    for (int i = 0; i < 3; i++) {
+        [doc importData:RAFIT(@[ @100, @150, @130 ], 86400 * 10 * i, 3122, 1)
+               fileName:[NSString stringWithFormat:@"%d.fit", i] error:NULL];
+    }
+    RALibraryWindowController *wc = [[RALibraryWindowController alloc] init];
+    wc.document = doc;
+    (void)wc.window;
+    RATrendsViewController *trends = [wc valueForKey:@"_trends"];
+    NSTableView *table = [wc valueForKey:@"_table"];
+    XCTAssertNotNil(trends);
+    XCTAssertEqual(trends.rides.count, 3u, @"nothing selected: the list");
+    [table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
+    XCTAssertEqual(trends.rides.count, 3u, @"one ride selected: still the list");
+    [table selectRowIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(0, 2)] byExtendingSelection:NO];
+    XCTAssertEqual(trends.rides.count, 2u, @"the selected rides");
+    NSTabViewController *tabs = [wc valueForKey:@"_tabs"];
+    XCTAssertEqual(tabs.selectedTabViewItemIndex, 0);
+    [wc showTrends:self];
+    XCTAssertEqual(tabs.selectedTabViewItemIndex, 1);
+    [wc showTrends:self];
+    XCTAssertEqual(tabs.selectedTabViewItemIndex, 0, @"back to the ride");
+    wc.document = nil;
+    [wc close];
 }
 
 - (void)testTimeChartRange
