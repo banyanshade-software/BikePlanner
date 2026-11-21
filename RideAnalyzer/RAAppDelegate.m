@@ -90,6 +90,10 @@
     NSMenu *window = [[NSMenu alloc] initWithTitle:NSLocalizedString(@"Window", @"menu")];
     [window addItem:[self item:NSLocalizedString(@"Minimize", @"menu") action:@selector(performMiniaturize:) key:@"m"]];
     [window addItem:[self item:NSLocalizedString(@"Zoom", @"menu") action:@selector(performZoom:) key:@""]];
+    [window addItem:[NSMenuItem separatorItem]];
+    NSMenuItem *trends = [self item:NSLocalizedString(@"Trends", @"menu") action:@selector(showTrends:) key:@"t"];
+    trends.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagShift;
+    [window addItem:trends];
     [main addItem:[self submenu:window]];
     NSApp.windowsMenu = window;
 

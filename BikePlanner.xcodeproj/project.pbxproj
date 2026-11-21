@@ -141,6 +141,11 @@
 		DC426A9C06D8AEDBDA97BFC9 /* ElevationProfileView.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B8EE922E4CDE45001F2966 /* ElevationProfileView.m */; };
 		FEE37A074B7C7D548CE1B59D /* RAFilterSheet.m in Sources */ = {isa = PBXBuildFile; fileRef = 590237726E5D9AAB87D84083 /* RAFilterSheet.m */; };
 		69B25D8A3BE6790BC3C0EC3D /* RAViewTests.m in Sources */ = {isa = PBXBuildFile; fileRef = BACCA2786A8FBF7A64682CC5 /* RAViewTests.m */; };
+		4173835C79F25A95E1540EDA /* RARideStats.m in Sources */ = {isa = PBXBuildFile; fileRef = 1A87E376A4CCAD289EB1D99C /* RARideStats.m */; };
+		4239653E6AF8DE7D4F392FA6 /* RATrends.m in Sources */ = {isa = PBXBuildFile; fileRef = 1FAB9D35CF69807BEB9EEAC1 /* RATrends.m */; };
+		13518DEB43AA405849427190 /* RATimeChartView.m in Sources */ = {isa = PBXBuildFile; fileRef = 21BA90F74B8FEC4E95610FDF /* RATimeChartView.m */; };
+		1F0416D80B3E376A7606030C /* RATrendsWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = E4DF7D04A61A5328AB32DB8F /* RATrendsWindowController.m */; };
+		B33E7D3F43F04B77AD5C0116 /* RATrendsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 25C4F5C4C635CD31DE9553C6 /* RATrendsTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -386,6 +391,15 @@
 		590237726E5D9AAB87D84083 /* RAFilterSheet.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAFilterSheet.m; sourceTree = "<group>"; };
 		D624EFCD7C7C8F3476CCEB56 /* RAFilterSheet.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAFilterSheet.h; sourceTree = "<group>"; };
 		BACCA2786A8FBF7A64682CC5 /* RAViewTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAViewTests.m; sourceTree = "<group>"; };
+		1A87E376A4CCAD289EB1D99C /* RARideStats.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RARideStats.m; sourceTree = "<group>"; };
+		3192CD5CA937C02E30E1CBEC /* RARideStats.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RARideStats.h; sourceTree = "<group>"; };
+		1FAB9D35CF69807BEB9EEAC1 /* RATrends.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATrends.m; sourceTree = "<group>"; };
+		634D0271A08EF1E0DD7F570E /* RATrends.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATrends.h; sourceTree = "<group>"; };
+		21BA90F74B8FEC4E95610FDF /* RATimeChartView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATimeChartView.m; sourceTree = "<group>"; };
+		EBB3396FBB2D4FA838E706E8 /* RATimeChartView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATimeChartView.h; sourceTree = "<group>"; };
+		E4DF7D04A61A5328AB32DB8F /* RATrendsWindowController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATrendsWindowController.m; sourceTree = "<group>"; };
+		EC8BE49717756F835EF78067 /* RATrendsWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RATrendsWindowController.h; sourceTree = "<group>"; };
+		25C4F5C4C635CD31DE9553C6 /* RATrendsTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RATrendsTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -708,6 +722,14 @@
 				787A0D1CBEF303F8589C9160 /* RARideDetailController.h */,
 				590237726E5D9AAB87D84083 /* RAFilterSheet.m */,
 				D624EFCD7C7C8F3476CCEB56 /* RAFilterSheet.h */,
+				1A87E376A4CCAD289EB1D99C /* RARideStats.m */,
+				3192CD5CA937C02E30E1CBEC /* RARideStats.h */,
+				1FAB9D35CF69807BEB9EEAC1 /* RATrends.m */,
+				634D0271A08EF1E0DD7F570E /* RATrends.h */,
+				21BA90F74B8FEC4E95610FDF /* RATimeChartView.m */,
+				EBB3396FBB2D4FA838E706E8 /* RATimeChartView.h */,
+				E4DF7D04A61A5328AB32DB8F /* RATrendsWindowController.m */,
+				EC8BE49717756F835EF78067 /* RATrendsWindowController.h */,
 			);
 			path = RideAnalyzer;
 			sourceTree = "<group>";
@@ -723,6 +745,7 @@
 				12BD65500669D7E1C8B92234 /* RAFilterTests.m */,
 				86ACB0617FA7AE643B6F98D7 /* RARideAnalysisTests.m */,
 				BACCA2786A8FBF7A64682CC5 /* RAViewTests.m */,
+				25C4F5C4C635CD31DE9553C6 /* RATrendsTests.m */,
 			);
 			path = RideAnalyzerTests;
 			sourceTree = "<group>";
@@ -1138,6 +1161,10 @@
 				160EC7414EE7213F8DC5B9CA /* RARideDetailController.m in Sources */,
 				DC426A9C06D8AEDBDA97BFC9 /* ElevationProfileView.m in Sources */,
 				FEE37A074B7C7D548CE1B59D /* RAFilterSheet.m in Sources */,
+				4173835C79F25A95E1540EDA /* RARideStats.m in Sources */,
+				4239653E6AF8DE7D4F392FA6 /* RATrends.m in Sources */,
+				13518DEB43AA405849427190 /* RATimeChartView.m in Sources */,
+				1F0416D80B3E376A7606030C /* RATrendsWindowController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1153,6 +1180,7 @@
 				F74C852692DC05360720320E /* RAFilterTests.m in Sources */,
 				CA907630E68FF10FA8251927 /* RARideAnalysisTests.m in Sources */,
 				69B25D8A3BE6790BC3C0EC3D /* RAViewTests.m in Sources */,
+				B33E7D3F43F04B77AD5C0116 /* RATrendsTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

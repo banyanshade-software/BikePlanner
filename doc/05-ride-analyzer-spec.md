@@ -203,6 +203,24 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
 - Not yet: the map's base layers of BikePlanner (OSM, Thunderforest: the Apple map for now), a click on the map to
   move the cursor, "Open in BikePlanner" (R5).
 
+## Progression (2026-11-21, R6)
+- **Stats of a ride** (`RARideStats`), computed from its track at import and kept with the ride in the library
+  (`stats`, versioned): moving time, max speed, heart rate, power, calories, and per terrain — the slope of each
+  moving interval: descents (< −1 %), flat (−1 to 1 %), climbs of 1–4 %, 4–8 %, over 8 % — the moving time,
+  distance, ascent, heart rate × time and power × time. The rides imported before (or with an older version) get
+  theirs in the background when the trends window opens (`computeMissingStatsWithCompletion:`).
+- **Trends window** (Window ▸ Trends, ⇧⌘T, toolbar "Trends"; `RATrendsWindowController`, one per library):
+  - rides: all, or those of a saved filter (R3);
+  - **progression**: a measure — average speed, heart rate, power (measured), W/bpm, speed per heart rate
+    (km/h per 100 bpm, without a power meter), climbing speed (VAM) — on a terrain, per ride, week or month
+    (a period's value from the sums of its rides), with a trend line (least squares); a ride needs at least
+    2 min on the terrain; a click on a point names the ride or the period;
+  - **totals** per week, month or year (distance, ascent, moving time, number of rides), empty periods included;
+  - **records**: longest ride, most ascent, best average speed over 50 km, longest moving time, highest power.
+  - `RATrends` (computations), `RATimeChartView` (points with trend line, or bars).
+- Not yet: the estimated power (R11), the climbs (R7, to compare the passages on the same climb), selecting a ride
+  of the chart in the library window.
+
 ## Handoff (2026-11-21): written without Xcode, never compiled
 The skeleton and the imports were written in a session without Xcode. First steps on the owner's Mac (Claude Code):
 1. `git checkout ride_analyzer && git pull`.
@@ -210,7 +228,7 @@ The skeleton and the imports were written in a session without Xcode. First step
    (#58: no warning, `analyze` clean). If Xcode rejects the project file, check the targets added by
    `scripts/xcode_add_target.py --type app / --type unit-test` (first use of these types).
 3. Run `RideAnalyzerTests` (`RALibraryTests`, `RAImportTests`, `RAGarminConnectTests`, `RAFilterTests`,
-   `RARideAnalysisTests`, `RAViewTests`), then the BikePlanner unit
+   `RARideAnalysisTests`, `RAViewTests`, `RATrendsTests`), then the BikePlanner unit
    tests: shared sources changed (`GPXParser` reads `<time>`, `BPFITDecoder` reads `file_id` / sport,
    `BPTrackReader` gives `hasTimes`, device and sport; new tests in `GPXParserTests` and `BPTrackReaderTests`) and
    the project file changed: BikePlanner and its Quick Look extension must still build and pass.

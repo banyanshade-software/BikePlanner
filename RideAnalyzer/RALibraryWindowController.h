@@ -21,6 +21,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (IBAction)fetchFromGarminConnect:(id)sender;
 /// stops the running import or fetch (what was read is kept)
 - (IBAction)cancelImport:(nullable id)sender;
+/// Window ▸ Trends (⇧⌘T): the progression window of the library (R6)
+- (IBAction)showTrends:(nullable id)sender;
 /// Edit ▸ Find… (⌘F): the search field (name, notes, tags; R3)
 - (IBAction)focusSearch:(nullable id)sender;
 /// Edit ▸ Filter… / Clear Filter / Save Filter…: the criteria of the list (R3)

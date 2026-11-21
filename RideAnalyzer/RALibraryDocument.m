@@ -8,6 +8,8 @@
 #import "RARide.h"
 #import "RAGarminConnect.h"
 #import "RAFilter.h"
+#import "RARideStats.h"
+#import "RARideAnalysis.h"
 #import "BPTrackReader.h"
 #import <CommonCrypto/CommonDigest.h>
 
@@ -303,6 +305,8 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     ride.deviceKey = [RARide deviceKeyForProduct:reader.deviceProduct serialNumber:reader.deviceSerialNumber];
     ride.deviceName = reader.deviceName ?: @"";
     ride.sport = reader.sport ?: @"";
+    ride.stats = [RARideStats statsOfAnalysis:[[RARideAnalysis alloc] initWithTrace:reader.trace metrics:reader.metrics
+                                                                         calories:reader.calories hasTimes:reader.hasTimes]];
     return ride;
 }
 
@@ -581,6 +585,49 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
         [self.undoManager setActionName:NSLocalizedString(@"Rename Device", @"undo action name")];
     }
     [self libraryDidChange];
+}
+
+#pragma mark - stats of older rides (R6)
+
+- (NSArray<RARide *> *)ridesWithoutStats
+{
+    NSMutableArray<RARide *> *rides = [NSMutableArray array];
+    for (RARide *r in _rides) if (!r.stats) [rides addObject:r];
+    return rides;
+}
+
+- (void)computeMissingStatsWithCompletion:(void (^)(NSUInteger computed))completion
+{
+    NSArray<RARide *> *rides = [self ridesWithoutStats];
+    if (rides.count == 0) {
+        completion(0);
+        return;
+    }
+    NSMutableArray<NSData *> *datas = [NSMutableArray array];
+    for (RARide *r in rides) [datas addObject:[self originalDataOfRide:r] ?: [NSData data]];
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+        NSMutableArray *results = [NSMutableArray array];
+        for (NSData *data in datas) {
+            @autoreleasepool {
+                RARideAnalysis *a = data.length ? [RARideAnalysis analysisOfData:data] : nil;
+                [results addObject:a ? (id)[RARideStats statsOfAnalysis:a] : (id)[NSNull null]];
+            }
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSUInteger computed = 0;
+            for (NSUInteger i = 0; i < rides.count; i++) {
+                if ([results[i] isKindOfClass:[RARideStats class]] && [self->_rides containsObject:rides[i]]) {
+                    rides[i].stats = results[i];
+                    computed++;
+                }
+            }
+            if (computed) {
+                [self updateChangeCount:NSChangeDone]; // derived figures, saved with the library; not undoable
+                [self libraryDidChange];
+            }
+            completion(computed);
+        });
+    });
 }
 
 #pragma mark - notes, tags, saved filters

@@ -85,6 +85,12 @@ typedef NS_ENUM(NSInteger, RAImportStatus) {
 /// undoable; nil or empty: back to the default
 - (void)setLabel:(nullable NSString *)label forDeviceKey:(NSString *)deviceKey;
 
+// trends (R6)
+/// the rides whose stats are missing (imported before the stats existed, or computed by an older version)
+@property (readonly, nonatomic) NSArray<RARide *> *ridesWithoutStats;
+/// computes them in the background from their original files; completion on the main queue
+- (void)computeMissingStatsWithCompletion:(void (^)(NSUInteger computed))completion;
+
 // notes and tags of a ride (R3), undoable
 - (void)setNotes:(NSString *)notes ofRide:(RARide *)ride;
 /// trimmed, empty ones and duplicates dropped, order kept

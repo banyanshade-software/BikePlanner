@@ -4,6 +4,7 @@
 //
 
 #import "RARide.h"
+#import "RARideStats.h"
 
 static const double RAAscentThreshold = 3.0; // meters
 
@@ -66,6 +67,7 @@ static const double RAAscentThreshold = 3.0; // meters
         if ([(v = plist[@"sport"]) isKindOfClass:[NSString class]]) _sport = [v copy];
         if ([(v = plist[@"garminActivityID"]) isKindOfClass:[NSString class]]) _garminActivityID = [v copy];
         if ([(v = plist[@"notes"]) isKindOfClass:[NSString class]]) _notes = [v copy];
+        _stats = [RARideStats statsWithPropertyList:plist[@"stats"]];
         if ([(v = plist[@"tags"]) isKindOfClass:[NSArray class]]) {
             NSMutableArray<NSString *> *tags = [NSMutableArray array];
             for (id t in v) if ([t isKindOfClass:[NSString class]]) [tags addObject:t];
@@ -94,6 +96,7 @@ static const double RAAscentThreshold = 3.0; // meters
         @"tags": self.tags,
     } mutableCopy];
     if (self.startDate) d[@"startDate"] = self.startDate;
+    if (self.stats) d[@"stats"] = self.stats.propertyList;
     return d;
 }
 

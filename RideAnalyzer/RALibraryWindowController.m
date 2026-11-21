@@ -11,6 +11,7 @@
 #import "RAGarminConnect.h"
 #import "RAGarminFetchSheet.h"
 #import "RARideDetailController.h"
+#import "RATrendsWindowController.h"
 #import "BPTrackReader.h"
 
 static NSUserInterfaceItemIdentifier const RAColumnDate = @"date";
@@ -30,6 +31,7 @@ static NSToolbarItemIdentifier const RAToolbarGarmin = @"garmin";
 static NSToolbarItemIdentifier const RAToolbarFilter = @"filter";
 static NSToolbarItemIdentifier const RAToolbarDelete = @"delete";
 static NSToolbarItemIdentifier const RAToolbarSearch = @"search";
+static NSToolbarItemIdentifier const RAToolbarTrends = @"trends";
 
 // a row of the sidebar
 typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASidebarSavedFilter, RASidebarDevice };
@@ -270,12 +272,12 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 - (NSArray<NSToolbarItemIdentifier> *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar
 {
     return @[ NSToolbarToggleSidebarItemIdentifier, RAToolbarImport, RAToolbarDevice, RAToolbarGarmin,
-              NSToolbarFlexibleSpaceItemIdentifier, RAToolbarDelete, RAToolbarFilter, RAToolbarSearch ];
+              NSToolbarFlexibleSpaceItemIdentifier, RAToolbarTrends, RAToolbarDelete, RAToolbarFilter, RAToolbarSearch ];
 }
 
 - (NSArray<NSToolbarItemIdentifier> *)toolbarAllowedItemIdentifiers:(NSToolbar *)toolbar
 {
-    return @[ NSToolbarToggleSidebarItemIdentifier, RAToolbarImport, RAToolbarDevice, RAToolbarGarmin, RAToolbarDelete,
+    return @[ NSToolbarToggleSidebarItemIdentifier, RAToolbarImport, RAToolbarDevice, RAToolbarGarmin, RAToolbarTrends, RAToolbarDelete,
               RAToolbarFilter, RAToolbarSearch, NSToolbarFlexibleSpaceItemIdentifier, NSToolbarSpaceItemIdentifier ];
 }
 
@@ -300,6 +302,9 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
         RAToolbarGarmin: @[ NSLocalizedString(@"Garmin Connect", @"toolbar"),
                             NSLocalizedString(@"Fetch the rides from Garmin Connect", @"toolbar"),
                             @"icloud.and.arrow.down", NSStringFromSelector(@selector(fetchFromGarminConnect:)) ],
+        RAToolbarTrends: @[ NSLocalizedString(@"Trends", @"toolbar"),
+                            NSLocalizedString(@"Progression, totals and records (⇧⌘T)", @"toolbar"),
+                            @"chart.bar.xaxis", NSStringFromSelector(@selector(showTrends:)) ],
         RAToolbarDelete: @[ NSLocalizedString(@"Delete", @"toolbar"),
                             NSLocalizedString(@"Delete the selected rides", @"toolbar"),
                             @"trash", NSStringFromSelector(@selector(delete:)) ],
@@ -800,6 +805,22 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 {
     NSArray<RARide *> *rides = [self selectedRides];
     if (rides.count) [self.library removeRides:rides];
+}
+
+- (IBAction)showTrends:(nullable id)sender
+{
+    RALibraryDocument *library = self.library;
+    if (!library) return;
+    for (NSWindowController *wc in library.windowControllers) {
+        if ([wc isKindOfClass:[RATrendsWindowController class]]) {
+            [wc showWindow:self];
+            return;
+        }
+    }
+    RATrendsWindowController *trends = [[RATrendsWindowController alloc] initWithLibrary:library];
+    [library addWindowController:trends];
+    [trends.window center];
+    [trends showWindow:self];
 }
 
 - (IBAction)focusSearch:(nullable id)sender

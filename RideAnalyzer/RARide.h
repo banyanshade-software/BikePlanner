@@ -9,6 +9,8 @@
 #import <Foundation/Foundation.h>
 #import <CoreLocation/CoreLocation.h>
 
+@class RARideStats;
+
 NS_ASSUME_NONNULL_BEGIN
 
 @interface RARide : NSObject
@@ -28,6 +30,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, nonatomic) NSString *garminActivityID; // Garmin Connect activity (R1), @"" for a local file
 @property (copy, nonatomic) NSString *notes;
 @property (copy, nonatomic) NSArray<NSString *> *tags;
+/// figures for the trends (R6), computed from the track at import; nil until computed (rides imported before)
+@property (strong, nonatomic, nullable) RARideStats *stats;
 
 /// @"p<product>-s<serial>": the same unit whatever the format (a FIT file has the manufacturer, a TCX file does not);
 /// @"" when the file gives neither
