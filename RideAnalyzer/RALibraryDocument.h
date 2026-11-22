@@ -14,7 +14,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@class RARide, RAGarminConnect, RAGarminActivity, RAFilter, RASavedFilter, RAEquipment, RAPart, RAClimb;
+@class RARoadMatch, RARide, RAGarminConnect, RAGarminActivity, RAFilter, RASavedFilter, RAEquipment, RAPart, RAClimb;
 @protocol RAKeyStore;
 
 NS_ASSUME_NONNULL_BEGIN
@@ -168,6 +168,19 @@ typedef NS_ENUM(NSInteger, RALibraryLocation) {
 /// being computed or an import runs. Completion on the main queue.
 - (nullable NSProgress *)recomputeAnalysisOfRides:(NSArray<RARide *> *)rides
                                        completion:(void (^)(NSUInteger computed))completion;
+
+// road types and surfaces (R8, RARoadMatcher: OpenStreetMap through Overpass)
+/// the roads of these rides (those not matched yet, or by an older version), one at a time in the background,
+/// cancellable; then their stats again (the surfaces in the estimated power). Stops at the first network error
+/// (completion with it and the number found until then). nil when an import or a road search runs.
+- (nullable NSProgress *)findRoadsOfRides:(NSArray<RARide *> *)rides
+                               completion:(void (^)(NSUInteger found, NSError * _Nullable error))completion;
+@property (readonly, nonatomic) BOOL findingRoads;
+/// the roads of a ride found (the detail finds those of the ride it shows): kept with it, its stats again; not
+/// undoable (data of OpenStreetMap); marks the document edited
+- (void)setRoads:(RARoadMatch *)roads ofRide:(RARide *)ride;
+/// the rides without roads, or matched by an older version
+- (NSArray<RARide *> *)ridesWithoutRoads:(NSArray<RARide *> *)rides;
 
 // equipment (R13): rider, bikes, parts
 /// do not change it directly: changeEquipment:actionName:

@@ -1060,6 +1060,10 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
                                         action:@selector(recomputeAnalysis:) keyEquivalent:@""];
     again.target = self;
     again.identifier = @"recomputeAnalysis";
+    NSMenuItem *roads = [menu addItemWithTitle:NSLocalizedString(@"Find Road Types", @"list menu")
+                                        action:@selector(findRoadTypes:) keyEquivalent:@""];
+    roads.target = self;
+    roads.identifier = @"findRoadTypes";
     [menu addItem:[NSMenuItem separatorItem]];
     NSArray<RABike *> *bikes = self.library.equipment.bikes ?: @[];
     if (bikes.count == 0) {
@@ -1291,6 +1295,27 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     if (progress) [self observeProgress:progress];
 }
 
+/// R8: the road types and surfaces of the selected rides (OpenStreetMap), then their stats again
+- (IBAction)findRoadTypes:(nullable id)sender
+{
+    RALibraryDocument *library = self.library;
+    NSArray<RARide *> *rides = [sender isKindOfClass:[NSMenuItem class]] && ((NSMenuItem *)sender).menu == _table.menu
+        ? [self ridesOfMenu] : [self selectedRides];
+    if (rides.count == 0) rides = _sorted;      // nothing selected: the rides of the list
+    if (!library || rides.count == 0) return;
+    NSProgress *progress = [library findRoadsOfRides:rides completion:^(NSUInteger found, NSError *error) {
+        [self observeProgress:nil];
+        if (error) {
+            NSAlert *alert = [[NSAlert alloc] init];
+            alert.messageText = [NSString localizedStringWithFormat:NSLocalizedString(@"Roads found for %lu rides", @"roads"),
+                                 (unsigned long)found];
+            alert.informativeText = error.localizedDescription;
+            [alert beginSheetModalForWindow:self.window completionHandler:nil];
+        }
+    }];
+    if (progress) [self observeProgress:progress];
+}
+
 - (IBAction)delete:(nullable id)sender
 {
     NSArray<RARide *> *rides = [self selectedRides];
@@ -1340,6 +1365,9 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 - (BOOL)validateAction:(nullable SEL)action
 {
     if (action == @selector(delete:)) return _table.selectedRowIndexes.count > 0;
+    if (action == @selector(findRoadTypes:)) {
+        return self.library && !self.library.findingRoads && !self.library.importing && _sorted.count > 0;
+    }
     if (action == @selector(recomputeAnalysis:)) {
         return (_table.selectedRowIndexes.count > 0 || _table.clickedRow >= 0) && self.library
                && !self.library.computingStats && !self.library.importing;

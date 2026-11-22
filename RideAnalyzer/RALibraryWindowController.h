@@ -28,6 +28,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (IBAction)updateWeighingsFromGarmin:(nullable id)sender;
 /// R7: the analysis of the selected rides again (climbs, figures), from their original files
 - (IBAction)recomputeAnalysis:(nullable id)sender;
+/// R8: the road types and surfaces of the selected rides (else of the list), from OpenStreetMap
+- (IBAction)findRoadTypes:(nullable id)sender;
 /// stops the running import or fetch (what was read is kept)
 - (IBAction)cancelImport:(nullable id)sender;
 /// Window ▸ Trends (⇧⌘T): the Trends tab (R6), or back to the Ride tab

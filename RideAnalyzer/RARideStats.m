@@ -61,6 +61,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
     self.powerTime += other.powerTime;
     self.gravityWork += other.gravityWork;
     self.rollingWork += other.rollingWork;
+    self.surfaceRollingWork += other.surfaceRollingWork;
     self.inertiaWork += other.inertiaWork;
     self.airWork += other.airWork;
     self.estimatedPowerSum += other.estimatedPowerSum;
@@ -72,6 +73,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
               @"hrSum": @(self.heartRateSum), @"hrTime": @(self.heartRateTime),
               @"powerSum": @(self.powerSum), @"powerTime": @(self.powerTime),
               @"gravityWork": @(self.gravityWork), @"rollingWork": @(self.rollingWork),
+              @"surfaceRollingWork": @(self.surfaceRollingWork),
               @"inertiaWork": @(self.inertiaWork), @"airWork": @(self.airWork) };
 }
 
@@ -92,6 +94,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
     t.powerTime = num(@"powerTime");
     t.gravityWork = num(@"gravityWork");
     t.rollingWork = num(@"rollingWork");
+    t.surfaceRollingWork = num(@"surfaceRollingWork");
     t.inertiaWork = num(@"inertiaWork");
     t.airWork = num(@"airWork");
     return t;
@@ -175,7 +178,10 @@ static NSArray<NSString *> *RATerrainKeys(void)
     double sensor = RAHasValue(s0) && RAHasValue(s1) && s0 > 0 && s1 > 0 ? (s0 + s1) / 2 / 3.6 : v;
     double air = sensor + headwind;
     interval.gravityWork = RAGravity * sin(theta) * dd;
-    interval.rollingWork = RAGravity * cos(theta) * dd;
+    // R8: the surface of the road when known (its factor of the tyres' Crr), else the bike's usual roads (at power time)
+    double factor = a.rollingFactors && i < a.rollingFactors.count ? a.rollingFactors[i].doubleValue : 0;
+    if (factor > 0) interval.surfaceRollingWork = RAGravity * cos(theta) * dd * factor;
+    else interval.rollingWork = RAGravity * cos(theta) * dd;
     interval.inertiaWork = acc * dd;
     interval.airWork = 0.5 * rho * air * fabs(air) * dd;
     return interval;
@@ -190,6 +196,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
     s.calories = a.calories != nil ? a.calories.doubleValue : NAN;
     s.track = [RAHeatmap packedTrackOfTrace:a.trace tolerance:8];
     s.climbs = [RAClimbDetector climbsOfAnalysis:a wind:wind];
+    s.usesRoads = a.rollingFactors != nil;
     if (!a.hasTimes) return s;
     // each moving interval goes to the terrain of the slope at its end
     for (NSUInteger i = 1; i < a.count; i++) {
@@ -209,7 +216,8 @@ static NSArray<NSString *> *RATerrainKeys(void)
     NSMutableDictionary *d = [@{ @"version": @(self.version), @"movingTime": @(self.movingTime),
                                  @"maxSpeed": @(self.maxSpeed), @"total": self.total.propertyList,
                                  @"terrains": terrains, @"track": self.track,
-                                 @"climbs": [self.climbs valueForKey:@"propertyList"] } mutableCopy];
+                                 @"climbs": [self.climbs valueForKey:@"propertyList"],
+                                 @"usesRoads": @(self.usesRoads) } mutableCopy];
     // NaN cannot go into a property list: absent means no value
     if (!isnan(self.maxHeartRate)) d[@"maxHR"] = @(self.maxHeartRate);
     if (!isnan(self.maxPower)) d[@"maxPower"] = @(self.maxPower);
@@ -230,6 +238,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
     if ([(v = plist[@"maxPower"]) isKindOfClass:[NSNumber class]]) s.maxPower = [v doubleValue];
     if ([(v = plist[@"calories"]) isKindOfClass:[NSNumber class]]) s.calories = [v doubleValue];
     if ([(v = plist[@"track"]) isKindOfClass:[NSData class]]) s.track = v;
+    s.usesRoads = [plist[@"usesRoads"] boolValue];
     if ([(v = plist[@"climbs"]) isKindOfClass:[NSArray class]]) {
         NSMutableArray<RAClimb *> *climbs = [NSMutableArray array];
         for (id c in v) { RAClimb *climb = [RAClimb climbWithPropertyList:c]; if (climb) [climbs addObject:climb]; }

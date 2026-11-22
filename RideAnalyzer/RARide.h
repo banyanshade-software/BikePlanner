@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <CoreLocation/CoreLocation.h>
 
-@class RARideStats;
+@class RARideStats, RARoadMatch;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -40,6 +40,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, atomic) NSArray<NSString *> *tags;
 /// figures for the trends (R6), computed from the track at import; nil until computed (rides imported before)
 @property (strong, atomic, nullable) RARideStats *stats;
+/// R8: the roads of its file's trace (OpenStreetMap), nil: not matched yet
+@property (strong, atomic, nullable) RARoadMatch *roads;
 
 /// @"p<product>-s<serial>": the same unit whatever the format (a FIT file has the manufacturer, a TCX file does not);
 /// @"" when the file gives neither

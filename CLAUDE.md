@@ -59,6 +59,8 @@ Its UI is built in code (no XIB); its icon: `RideAnalyzer/Assets.xcassets`, PNGs
 `scripts/xcode_add_files.py --target RideAnalyzer --anchor RARide.m <path>` and must keep compiling there.
 Its views compute in the background with `RAComputation` (cancelled when the selection or the settings change, only
 the latest result shown; the work reads main-thread snapshots): tests wait with `RAWaitUntil(…, !view.computing)`.
+Road types (R8): Overpass through `RARoadMatcher` (session `RARoadMatcher.session` = the stub's in tests, servers
+`RAOverpassServers`, cache `RAWaysCacheDirectory`); without a stub session the unit tests never call it.
 Its tests never reach Garmin Connect: `RAStubURLProtocol` (`RideAnalyzerTests/RATestSupport`) answers the client's
 session, and the user defaults `RAGarminTokenURL` / `RAGarminAPIBaseURL` point the endpoints at it; the Personal
 API key goes to `RAMemoryKeyStore` (`RALibraryDocument.keyStore`), never the Keychain, and the places of the libraries

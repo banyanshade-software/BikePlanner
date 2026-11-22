@@ -82,6 +82,7 @@
     del.keyEquivalentModifierMask = NSEventModifierFlagCommand;
     [edit addItem:del];
     [edit addItem:[self item:NSLocalizedString(@"Analyse Again", @"menu") action:@selector(recomputeAnalysis:) key:@""]];
+    [edit addItem:[self item:NSLocalizedString(@"Find Road Types", @"menu") action:@selector(findRoadTypes:) key:@""]];
     [edit addItem:[self item:NSLocalizedString(@"Select All", @"menu") action:@selector(selectAll:) key:@"a"]];
     [edit addItem:[NSMenuItem separatorItem]];
     [edit addItem:[self item:NSLocalizedString(@"Find…", @"menu") action:@selector(focusSearch:) key:@"f"]];

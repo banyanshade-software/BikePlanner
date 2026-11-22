@@ -39,6 +39,7 @@ const double RAWheelInertia = 1.5;
     if (self) {
         _mass = 75 + 12;
         _crr = 0.005;
+        _tyreCrr = 0.005;
         _cdA = [RABike defaultCdAForPosition:RAPositionFlatBar];
         _efficiency = RADrivetrainEfficiency;
         _wheelInertia = RAWheelInertia;
@@ -49,14 +50,15 @@ const double RAWheelInertia = 1.5;
 + (instancetype)modelForRide:(nullable RARide *)ride equipment:(nullable RAEquipment *)equipment
 {
     RAPowerModel *m = [[RAPowerModel alloc] init];
+    m.tyreCrr = 0.005;
     m.crr = 0.005 * [RABike rollingFactorOfSurface:RASurfaceAsphalt];
     RAEquipment *e = equipment ?: [[RAEquipment alloc] init];
     RABike *bike = ride ? [e bikeOfRide:(RARide *)ride] : [e bikeWithID:e.defaultBikeID];
     m.mass = [e riderWeightAtDate:ride.startDate] + (bike ? bike.effectiveWeight : 12);   // weighing of the day (R11)
     if (bike) {
         m.cdA = bike.effectiveCdA;
-        m.crr = [e crrOfBike:bike.identifier atDate:ride.startDate ?: [NSDate date]]
-              * [RABike rollingFactorOfSurface:bike.surface];
+        m.tyreCrr = [e crrOfBike:bike.identifier atDate:ride.startDate ?: [NSDate date]];
+        m.crr = m.tyreCrr * [RABike rollingFactorOfSurface:bike.surface];
     }
     return m;
 }
@@ -81,10 +83,16 @@ const double RAWheelInertia = 1.5;
 - (double)powerAtSpeed:(double)speed slope:(double)slope acceleration:(double)acceleration
               headwind:(double)headwind airDensity:(double)density
 {
+    return [self powerAtSpeed:speed slope:slope acceleration:acceleration headwind:headwind airDensity:density crr:self.crr];
+}
+
+- (double)powerAtSpeed:(double)speed slope:(double)slope acceleration:(double)acceleration
+              headwind:(double)headwind airDensity:(double)density crr:(double)crr
+{
     if (!(speed > 0)) return 0;
     double theta = atan(slope / 100);
     double air = speed + headwind;
-    double force = self.mass * RAGravity * (sin(theta) + self.crr * cos(theta)) + (self.mass + self.wheelInertia) * acceleration
+    double force = self.mass * RAGravity * (sin(theta) + crr * cos(theta)) + (self.mass + self.wheelInertia) * acceleration
                  + 0.5 * density * self.cdA * air * fabs(air);
     double p = force * speed / self.efficiency;
     return p > 0 ? p : 0;
@@ -133,8 +141,10 @@ const double RAWheelInertia = 1.5;
         double rho = [RAPowerModel airDensityAtAltitude:a.altitudes[i].doubleValue
                                             temperature:a.hasTemperature ? a.temperatures[i].doubleValue : temperature];
         double slope = a.slopes[i].doubleValue;
+        // R8: the surface of the road of the point when known
+        double factor = a.rollingFactors && i < a.rollingFactors.count ? a.rollingFactors[i].doubleValue : 0;
         [out addObject:@([self powerAtSpeed:v[i] slope:RAHasValue(slope) ? slope : 0 acceleration:acc
-                                   headwind:headwind airDensity:rho])];
+                                   headwind:headwind airDensity:rho crr:factor > 0 ? self.tyreCrr * factor : self.crr])];
     }
     free(v);
     return out;
@@ -144,7 +154,7 @@ const double RAWheelInertia = 1.5;
 {
     if (t.time <= 0) return NAN;
     double energy = self.mass * t.gravityWork + (self.mass + self.wheelInertia) * t.inertiaWork
-                  + self.mass * self.crr * t.rollingWork + self.cdA * t.airWork;
+                  + self.mass * (self.crr * t.rollingWork + self.tyreCrr * t.surfaceRollingWork) + self.cdA * t.airWork;
     double p = energy / self.efficiency / t.time;
     return p > 0 ? p : 0;
 }

@@ -4,6 +4,7 @@
 //
 
 #import "RARide.h"
+#import "RARoads.h"
 #import "RARideStats.h"
 
 static const double RAAscentThreshold = 3.0; // meters
@@ -72,6 +73,7 @@ static const double RAAscentThreshold = 3.0; // meters
         if ([(v = plist[@"trimEnd"]) isKindOfClass:[NSNumber class]]) _trimEnd = MAX(0, [v doubleValue]);
         if ([(v = plist[@"notes"]) isKindOfClass:[NSString class]]) _notes = [v copy];
         _stats = [RARideStats statsWithPropertyList:plist[@"stats"]];
+        _roads = [RARoadMatch matchWithPropertyList:plist[@"roads"]];
         if ([(v = plist[@"tags"]) isKindOfClass:[NSArray class]]) {
             NSMutableArray<NSString *> *tags = [NSMutableArray array];
             for (id t in v) if ([t isKindOfClass:[NSString class]]) [tags addObject:t];
@@ -104,6 +106,7 @@ static const double RAAscentThreshold = 3.0; // meters
     if (self.trimStart > 0) d[@"trimStart"] = @(self.trimStart);
     if (self.trimEnd > 0) d[@"trimEnd"] = @(self.trimEnd);
     if (self.stats) d[@"stats"] = self.stats.propertyList;
+    if (self.roads) d[@"roads"] = self.roads.propertyList;
     return d;
 }
 

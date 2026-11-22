@@ -315,7 +315,7 @@
            [self row:@[ [self sheetPopup:@"bikePosition" titles:positions],
                         [NSTextField labelWithString:NSLocalizedString(@"CdA:", @"bike sheet")],
                         [self sheetField:@"bikeCdA" width:50], [self unit:@"m²"] ]] ],
-        @[ [NSTextField labelWithString:NSLocalizedString(@"Usual roads:", @"bike sheet")], [self sheetPopup:@"bikeSurface" titles:surfaces] ],
+        @[ [NSTextField labelWithString:NSLocalizedString(@"Usual roads (where the map has no surface):", @"bike sheet")], [self sheetPopup:@"bikeSurface" titles:surfaces] ],
         @[ [NSTextField labelWithString:NSLocalizedString(@"Front tyre:", @"bike sheet")], [self tyreRow:@"front" wheel:RAWheelFront crr:_frontCrr] ],
         @[ [NSTextField labelWithString:NSLocalizedString(@"Rear tyre:", @"bike sheet")], [self tyreRow:@"rear" wheel:RAWheelRear crr:_rearCrr] ],
         @[ [NSTextField labelWithString:NSLocalizedString(@"Tyres over time:", @"bike sheet")], history ],

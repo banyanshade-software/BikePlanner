@@ -38,7 +38,9 @@ extern const double RAWheelInertia;         // 1.5 kg
 
 @interface RAPowerModel : NSObject
 @property (nonatomic) double mass;          // kg, rider and bike
-@property (nonatomic) double crr;           // tyres × surface
+@property (nonatomic) double crr;           // tyres × the bike's usual roads (where the road is unknown)
+/// the tyres alone (R8: × the factor of each road's surface where it is known, RARideAnalysis.rollingFactors)
+@property (nonatomic) double tyreCrr;
 @property (nonatomic) double cdA;           // m²
 @property (nonatomic) double wheelInertia;  // kg, equivalent mass of the wheels (1.5)
 @property (nonatomic) double efficiency;

@@ -38,7 +38,9 @@ RATerrain RATerrainOfSlope(double slope);
 // work per kg / per m² of CdA, for the estimated power (R11, RAPowerModel: energy = m (gravity + inertia)
 // + m Crr rolling + CdA air): sums over the moving intervals of g sin θ ds, g cos θ ds, a ds, ½ ρ v_air |v_air| ds
 @property (nonatomic) double gravityWork;           // J/kg
-@property (nonatomic) double rollingWork;           // J/kg (per unit of Crr)
+@property (nonatomic) double rollingWork;           // J/kg (per unit of Crr), where the road is unknown
+/// R8: where the road is known, already × the factor of its surface (RARoadMatch): J/kg per unit of the tyres' Crr
+@property (nonatomic) double surfaceRollingWork;
 @property (nonatomic) double inertiaWork;           // J/kg
 @property (nonatomic) double airWork;               // J/m²
 /// not saved: the estimated power × time of these stats, filled by the trends (R11)
@@ -69,6 +71,8 @@ extern const NSInteger RARideStatsVersion;
 @property (copy, nonatomic) NSData *track;
 /// the climbs of the ride (R7, RAClimbDetector), in order
 @property (copy, nonatomic) NSArray<RAClimb *> *climbs;
+/// R8: computed with the roads of the ride (its surfaces in surfaceRollingWork)
+@property (nonatomic) BOOL usesRoads;
 /// the whole ride
 @property (readonly, nonatomic) RATerrainStats *total;
 /// one per terrain (RATerrainDescent… RATerrainSteep)

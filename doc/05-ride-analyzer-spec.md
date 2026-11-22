@@ -68,7 +68,7 @@ Mockup (2026-11-21): `doc/05-ride-analyzer-mockup.pdf` — library and ride deta
   gravel…), with the average speed on each; reuses the *Road types* display of BikePlanner (#66).
 - Types from OpenStreetMap: the track is matched to the roads (through BRouter or Overpass).
 - Used by the estimated power (R11): the rolling resistance of each stretch from its surface, instead of the
-  "usual roads" of the bike.
+  "usual roads" of the bike (done 2026-11-22: § Road types and surfaces).
 
 ### R9 — Export and sharing *(accepted 2026-11-21)*
 - Export a ride as GPX, optionally cleaned up: pauses removed, start and end trimmed near home.
@@ -404,6 +404,33 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
 - **Detail**: when 10 minutes or more go at car speed (> 45 km/h on average), a line proposes to end the ride where
   that stretch starts (or to start it after, when it is at the beginning); a *Trim* menu ends or starts the ride at
   the cursor, or gives back the whole recording.
+
+## Road types and surfaces (2026-11-22, R8)
+- **Matching** (`RARoadMatcher`, `RARoads.m`): the ways with a `highway` tag around the file's whole trace come from
+  Overpass, by cells of 0.01° (the cells of the points, and the next one when a point is within 60 m of the border),
+  20 cells per request (`[out:json][timeout:120];(way["highway"](s,w,n,e);…);out tags geom;`, POST, the app's
+  User-Agent), servers `RAOverpassServers` (default overpass-api.de, then overpass.kumi.systems); each cell's ways
+  are kept in a cache folder for 180 days (`RAWaysCacheDirectory`, default Caches/RideAnalyzer/OSMWays): the roads
+  ridden often are fetched once. Each point goes to the nearest way within 30 m, the difference of direction counting
+  as up to 20 m (crossings), the way of the previous point kept while it is about as good (8 m). TO CHECK once against
+  the real Overpass (Claude's shell has no network).
+- **Result** (`RARoadMatch`, kept with the ride, `RARide.roads`; not undoable): runs of points of the file's trace
+  with the road class (BikePlanner's classes, #66: cycleway, path, track, small, tertiary, secondary, primary, other;
+  "none" off the map), the surface class (paved, unpaved, unknown) and the **rolling factor** of the surface
+  (`RARollingFactorOfTags`: asphalt 1.3 — 1.15 excellent, 1.45 intermediate, 1.7 bad —, paving stones 1.5, compacted
+  1.8, fine gravel 2.0, cobbles 2.2, gravel 2.5, dirt / grass 3.0; without surface tag a track by its tracktype —
+  grade1 1.4 … grade4–5 3.0, 2.5 without —, a path 2.0, roads and cycleways 1.3).
+- **Estimated power** (R11): the Crr of a point is the tyres' Crr × its road's factor where the road is known, else ×
+  the bike's usual roads (`RARideAnalysis.rollingFactors`, `RAPowerModel.tyreCrr`); the stats keep the two parts
+  (`rollingWork` where unknown, `surfaceRollingWork` already × the factor; `RARideStats.usesRoads`); a ride whose roads
+  are found after its stats gets its stats again (`ridesWithoutStats`). The climbs' estimated power too.
+- **When**: the detail finds the roads of the ride it shows (in the background, cancelled with the selection; once
+  per session after a failure; not with `RANoAutomaticRoads`; never the real service in the unit tests: only with a
+  stub session, `RARoadMatcher.session`); *Edit ▸ Find Road Types* and the list's contextual menu for the selected
+  rides (else the list), one at a time, with progress, cancellable, stopping at the first network error.
+- **Detail**: section *Roads and surfaces*: per road class (longest first) then per surface class, km, % and the
+  average speed on it; "© OpenStreetMap contributors — n % of the track on a mapped way".
+- Not yet: the track colored by road type / surface (BikePlanner's highlight, #54), the trends by surface.
 
 ## Asynchronous computations (2026-11-22, owner's request)
 - What a view computes from the selection or its settings runs in the background and is **cancelled** when they

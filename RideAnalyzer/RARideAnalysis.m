@@ -47,16 +47,20 @@ static NSArray<NSNumber *> *RANumbers(const double *values, NSUInteger count)
     NSArray<CLLocation *> *trace = r.trace;
     NSArray *metrics = r.metrics;
     NSNumber *calories = r.calories;
+    NSUInteger first = 0;
     if (r.hasTimes) {
         NSRange range = [self rangeOfTrace:trace trimStart:trimStart trimEnd:trimEnd];
         if (range.length < trace.count) {
             if (range.length < 2) return nil;
+            first = range.location;
             trace = [trace subarrayWithRange:range];
             metrics = range.location + range.length <= metrics.count ? [metrics subarrayWithRange:range] : @[];
             calories = nil;     // of the whole file
         }
     }
-    return [[self alloc] initWithTrace:trace metrics:metrics calories:calories hasTimes:r.hasTimes];
+    RARideAnalysis *a = [[self alloc] initWithTrace:trace metrics:metrics calories:calories hasTimes:r.hasTimes];
+    a.firstFileIndex = first;
+    return a;
 }
 
 - (instancetype)initWithTrace:(NSArray<CLLocation *> *)trace

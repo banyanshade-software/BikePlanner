@@ -4,6 +4,8 @@
 //
 
 #import "RALibraryDocument.h"
+#import "RARoads.h"
+#import "RAComputation.h"
 #import "RALibraryWindowController.h"
 #import "RARide.h"
 #import "RAGarminConnect.h"
@@ -296,6 +298,7 @@ NSTimeInterval RAStatsBatchInterval = 2;
     NSAlert *_copyAlert;
     NSMutableArray *_statsCompletions;  // callers waiting for the running computation of missing stats
     NSMutableArray *_statsProgress;     // and their progress blocks (a batch of rides done)
+    BOOL _findingRoads;                 // R8
     RAEquipment *_equipment;
     NSMutableArray<NSDictionary *> *_climbNames;   // @{ @"name", @"climb": climb property list }
 }
@@ -921,6 +924,8 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
 {
     RARideAnalysis *a = [RARideAnalysis analysisOfData:data trimStart:ride.trimStart trimEnd:ride.trimEnd];
     if (!a) return;
+    RARoadMatch *roads = ride.roads;
+    if (roads) a.rollingFactors = [roads rollingFactorsFrom:a.firstFileIndex count:a.count];   // R8
     ride.distance = a.distance;
     ride.ascent = a.ascent;
     if (!ride.trimmed) {
@@ -1132,7 +1137,8 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
 - (NSArray<RARide *> *)ridesWithoutStats
 {
     NSMutableArray<RARide *> *rides = [NSMutableArray array];
-    for (RARide *r in _rides) if (!r.stats) [rides addObject:r];
+    // R8: also those whose roads were found after their stats
+    for (RARide *r in _rides) if (!r.stats || (r.roads && !r.stats.usesRoads)) [rides addObject:r];
     return rides;
 }
 
@@ -1183,9 +1189,11 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     _statsProgress = progress ? [NSMutableArray arrayWithObject:[progress copy]] : [NSMutableArray array];
     NSMutableArray<NSData *> *datas = [NSMutableArray array];
     NSMutableArray<NSArray<NSNumber *> *> *trims = [NSMutableArray array];
+    NSMutableArray *roads = [NSMutableArray array];
     for (RARide *r in rides) {
         [datas addObject:[self originalDataOfRide:r] ?: [NSData data]];
         [trims addObject:@[ @(r.trimStart), @(r.trimEnd) ]];
+        [roads addObject:r.roads ?: (id)[NSNull null]];
     }
     __block NSUInteger computed = 0;
     // the stats are given to the rides by batches (every 2 s): the views show the rides done so far
@@ -1221,6 +1229,8 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
                 NSData *data = datas[k];
                 RARideAnalysis *a = data.length ? [RARideAnalysis analysisOfData:data trimStart:trims[k][0].doubleValue
                                                                         trimEnd:trims[k][1].doubleValue] : nil;
+                RARoadMatch *match = [roads[k] isKindOfClass:[RARoadMatch class]] ? roads[k] : nil;
+                if (a && match) a.rollingFactors = [match rollingFactorsFrom:a.firstFileIndex count:a.count];   // R8
                 [results addObject:a ? (id)[RARideStats statsOfAnalysis:a] : (id)[NSNull null]];
             }
             reporting.completedUnitCount = (int64_t)k + 1;
@@ -1235,6 +1245,88 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
             }
         }
     });
+}
+
+#pragma mark - roads (R8)
+
+- (BOOL)findingRoads
+{
+    return _findingRoads;
+}
+
+- (NSArray<RARide *> *)ridesWithoutRoads:(NSArray<RARide *> *)rides
+{
+    NSMutableArray<RARide *> *out = [NSMutableArray array];
+    for (RARide *r in rides) if (!r.roads || r.roads.version < RARoadMatchVersion) [out addObject:r];
+    return out;
+}
+
+- (void)setRoads:(RARoadMatch *)roads ofRide:(RARide *)ride
+{
+    if (![_rides containsObject:ride]) return;
+    ride.roads = roads;
+    [self updateChangeCount:NSChangeDone];   // data of OpenStreetMap, saved with the library; not undoable
+    [self libraryDidChange];
+    if (!_findingRoads) [self computeStatsAfterRoads];
+}
+
+/// the stats of the rides whose roads were found (computed again once the running computation ends)
+- (void)computeStatsAfterRoads
+{
+    BOOL running = _statsCompletions != nil;
+    __weak RALibraryDocument *weakSelf = self;
+    [self computeMissingStatsWithCompletion:^(NSUInteger computed) {
+        if (running) [weakSelf computeMissingStatsWithCompletion:^(NSUInteger n) {}];
+    }];
+}
+
+- (nullable NSProgress *)findRoadsOfRides:(NSArray<RARide *> *)rides
+                               completion:(void (^)(NSUInteger found, NSError * _Nullable error))completion
+{
+    if (_importing || _findingRoads) return nil;
+    NSArray<RARide *> *todo = [self ridesWithoutRoads:rides];
+    NSProgress *progress = [NSProgress discreteProgressWithTotalUnitCount:(int64_t)MAX(todo.count, (NSUInteger)1)];
+    progress.cancellable = YES;
+    progress.localizedDescription = NSLocalizedString(@"Finding the roads on OpenStreetMap…", @"progress");
+    if (todo.count == 0) {
+        progress.completedUnitCount = 1;
+        dispatch_async(dispatch_get_main_queue(), ^{ completion(0, nil); });
+        return progress;
+    }
+    _findingRoads = YES;
+    NSMutableArray<NSData *> *datas = [NSMutableArray array];
+    for (RARide *r in todo) [datas addObject:[self originalDataOfRide:r] ?: [NSData data]];
+    RACancellation *cancellation = [[RACancellation alloc] init];
+    progress.cancellationHandler = ^{ [cancellation cancel]; };
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+        __block NSUInteger found = 0;
+        NSError *error = nil;
+        for (NSUInteger k = 0; k < todo.count && !cancellation.cancelled; k++) {
+            RARoadMatch *match = nil;
+            @autoreleasepool {
+                BPTrackReader *reader = datas[k].length ? [BPTrackReader readerWithData:datas[k] error:NULL] : nil;
+                if (reader.trace.count >= 2) {
+                    match = [RARoadMatcher matchTrace:reader.trace cancellation:cancellation error:&error];
+                }
+            }
+            if (error) break;
+            if (match) {
+                RARide *ride = todo[k];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [self setRoads:match ofRide:ride];
+                    found++;
+                });
+            }
+            progress.completedUnitCount = (int64_t)k + 1;
+        }
+        NSError *failure = cancellation.cancelled ? nil : error;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self->_findingRoads = NO;
+            if (found) [self computeStatsAfterRoads];
+            completion(found, failure);
+        });
+    });
+    return progress;
 }
 
 #pragma mark - equipment (R13)

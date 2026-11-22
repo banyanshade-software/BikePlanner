@@ -166,6 +166,9 @@
 		43F643012514D9F60AF4C4A7 /* RATrimTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 2448B741C1BBB1A0D75A7324 /* RATrimTests.m */; };
 		51E5E125462C5D54CEC1690A /* RAComputation.m in Sources */ = {isa = PBXBuildFile; fileRef = 06EB49A9CF363E9A041109CF /* RAComputation.m */; };
 		F585E569A92ECD8B5C9B2358 /* RAComputationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 94C59FA4565F8502DA0CF555 /* RAComputationTests.m */; };
+		3F66EF898ECCD52B8F15407B /* RARoads.m in Sources */ = {isa = PBXBuildFile; fileRef = 7770A9EC719FDB9BD2122D7E /* RARoads.m */; };
+		56216F3235861D88F6141471 /* BRouterGeoJSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 89125B9A98FFE575BE6A66EC /* BRouterGeoJSON.m */; };
+		048F56645212A24135E77F97 /* RARoadsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 2EC926B0EDC5A19A4265222E /* RARoadsTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -451,6 +454,9 @@
 		06EB49A9CF363E9A041109CF /* RAComputation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAComputation.m; sourceTree = "<group>"; };
 		E05DBF74140B983150CD6110 /* RAComputation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAComputation.h; sourceTree = "<group>"; };
 		94C59FA4565F8502DA0CF555 /* RAComputationTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAComputationTests.m; sourceTree = "<group>"; };
+		7770A9EC719FDB9BD2122D7E /* RARoads.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RARoads.m; sourceTree = "<group>"; };
+		06419A92AC3B4CF4E6526C20 /* RARoads.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RARoads.h; sourceTree = "<group>"; };
+		2EC926B0EDC5A19A4265222E /* RARoadsTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RARoadsTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -805,6 +811,8 @@
 				539CEACA3F8A8C18FB111B90 /* RATyreDatabaseWindowController.h */,
 				06EB49A9CF363E9A041109CF /* RAComputation.m */,
 				E05DBF74140B983150CD6110 /* RAComputation.h */,
+				7770A9EC719FDB9BD2122D7E /* RARoads.m */,
+				06419A92AC3B4CF4E6526C20 /* RARoads.h */,
 			);
 			path = RideAnalyzer;
 			sourceTree = "<group>";
@@ -828,6 +836,7 @@
 				16DFAE8F443E374F1018EE88 /* RAClimbsTests.m */,
 				2448B741C1BBB1A0D75A7324 /* RATrimTests.m */,
 				94C59FA4565F8502DA0CF555 /* RAComputationTests.m */,
+				2EC926B0EDC5A19A4265222E /* RARoadsTests.m */,
 			);
 			path = RideAnalyzerTests;
 			sourceTree = "<group>";
@@ -1260,6 +1269,8 @@
 				6204968BF1BFCD1358B1C555 /* RATyreDatabase.m in Sources */,
 				9B01BBB2C04DB2C8CE4A5CCD /* RATyreDatabaseWindowController.m in Sources */,
 				51E5E125462C5D54CEC1690A /* RAComputation.m in Sources */,
+				3F66EF898ECCD52B8F15407B /* RARoads.m in Sources */,
+				56216F3235861D88F6141471 /* BRouterGeoJSON.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1283,6 +1294,7 @@
 				081D0959DD7866DA04BCB18D /* RAClimbsTests.m in Sources */,
 				43F643012514D9F60AF4C4A7 /* RATrimTests.m in Sources */,
 				F585E569A92ECD8B5C9B2358 /* RAComputationTests.m in Sources */,
+				048F56645212A24135E77F97 /* RARoadsTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

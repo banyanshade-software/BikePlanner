@@ -5,6 +5,8 @@
 
 #import "RARideDetailController.h"
 #import "RAComputation.h"
+#import "BPTrackReader.h"
+#import "RARoads.h"
 #import "RALibraryDocument.h"
 #import "RARide.h"
 #import "RAChartView.h"
@@ -87,6 +89,11 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     RAComputation *_ranksComputation;      // the climbs of the library, for the rank of each passage
     NSProgressIndicator *_spinner;
     NSArray<NSNumber *> *_analysisModel;   // mass, Crr, CdA of the estimated power shown; nil: none
+    RAComputation *_roadsComputation;      // R8: the roads of the ride shown, from OpenStreetMap
+    RARoadMatch *_analysisRoads;           // the roads of the analysis shown
+    NSMutableSet<NSString *> *_roadsFailed;   // rides whose roads could not be found in this session (not again)
+    NSTextField *_roadsTitle, *_roadsStatus;
+    NSGridView *_roadsGrid;
 }
 
 - (void)loadView
@@ -236,10 +243,23 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     };
     _analysisComputation.runningHandler = spin;
     _ranksComputation.runningHandler = spin;
+    _roadsComputation = [[RAComputation alloc] initWithLabel:@"detailRoads"];
+    _roadsComputation.runningHandler = spin;
+    _roadsTitle = [NSTextField labelWithString:NSLocalizedString(@"Roads and surfaces", @"detail")];
+    _roadsTitle.font = [NSFont boldSystemFontOfSize:13];
+    _roadsTitle.identifier = @"roadsTitle";
+    _roadsStatus = [NSTextField wrappingLabelWithString:@""];
+    _roadsStatus.textColor = [NSColor secondaryLabelColor];
+    _roadsStatus.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    _roadsStatus.identifier = @"roadsStatus";
+    _roadsGrid = [NSGridView gridViewWithNumberOfColumns:4 rows:0];
+    _roadsGrid.identifier = @"roadsGrid";
+    _roadsGrid.rowSpacing = 3;
+    _roadsGrid.columnSpacing = 14;
     NSStackView *titleRow = [NSStackView stackViewWithViews:@[ _title, _spinner ]];
     titleRow.spacing = 8;
     _stack = [NSStackView stackViewWithViews:@[ titleRow, _subtitle, _message, _notes, _tags, _equipmentRow, _trimRow, _figures, mapBar, _map,
-                                                _profile, _climbsTitle, _climbsScroll, _charts ]];
+                                                _profile, _roadsTitle, _roadsStatus, _roadsGrid, _climbsTitle, _climbsScroll, _charts ]];
     _stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     _stack.alignment = NSLayoutAttributeLeading;
     _stack.spacing = 10;
@@ -249,8 +269,9 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     for (NSView *v in @[ _notes, _tags, _equipmentRow, _map, _profile, _climbsScroll, _charts ]) {
         [v.widthAnchor constraintEqualToAnchor:_stack.widthAnchor constant:-40].active = YES;
     }
-    _rideViews = @[ _subtitle, _notes, _tags, _equipmentRow, _trimRow, _figures, mapBar, _map, _profile, _climbsTitle, _climbsScroll,
-                    _charts ];
+    _rideViews = @[ _subtitle, _notes, _tags, _equipmentRow, _trimRow, _figures, mapBar, _map, _profile, _roadsTitle,
+                    _roadsStatus, _roadsGrid, _climbsTitle, _climbsScroll, _charts ];
+    [_roadsStatus.widthAnchor constraintLessThanOrEqualToAnchor:_stack.widthAnchor constant:-40].active = YES;
 
     // a flipped document view, so the detail starts at the top of the scroll view
     NSView *document = [[RAFlippedView alloc] init];
@@ -278,7 +299,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
 
 - (BOOL)isComputing
 {
-    return _analysisComputation.running || _ranksComputation.running;
+    return _analysisComputation.running || _ranksComputation.running || _roadsComputation.running;
 }
 
 - (void)showRides:(NSArray<RARide *> *)rides
@@ -291,6 +312,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     if (!ride) {
         [_analysisComputation cancel];     // another selection: what was being computed is useless
         [_ranksComputation cancel];
+        [_roadsComputation cancel];
         _analysis = nil;
         _analysisModel = nil;
         _title.stringValue = rides.count == 0 ? NSLocalizedString(@"No Ride Selected", @"detail")
@@ -301,6 +323,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     }
     if (!same) {
         [_ranksComputation cancel];
+        [_roadsComputation cancel];
         _analysis = nil;
         _analysisModel = nil;
     }
@@ -333,10 +356,13 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     NSData *data = [self.library originalDataOfRide:ride];
     RAPowerModel *model = [RAPowerModel modelForRide:ride equipment:self.library.equipment];   // a snapshot
     NSArray<NSNumber *> *figures = [self modelFiguresOfRide:ride];
+    RARoadMatch *roads = ride.roads;
     [_analysisComputation start:^id(RACancellation *c) {
         RARideAnalysis *analysis = data ? [RARideAnalysis analysisOfData:data trimStart:trimStart trimEnd:trimEnd] : nil;
         if (!analysis) return [NSNull null];
         if (c.cancelled) return nil;
+        // R8: the surface of each point's road in the rolling resistance
+        if (roads) analysis.rollingFactors = [roads rollingFactorsFrom:analysis.firstFileIndex count:analysis.count];
         if (!analysis.hasPower && analysis.hasTimes) {
             // no power meter: the estimated power (R11), from the equipment of the library
             [analysis useEstimatedPowers:[model powersOfAnalysis:analysis wind:nil]];
@@ -346,6 +372,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
         if (self->_ride != ride) return;
         RARideAnalysis *analysis = [result isKindOfClass:[RARideAnalysis class]] ? result : nil;
         self->_analysisModel = analysis.powerIsEstimated ? figures : nil;
+        self->_analysisRoads = roads;
         [self showAnalysis:analysis];
     }];
 }
@@ -371,6 +398,8 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     [self updateFigures];
     // the equipment changed (bike, tyres, weights): the estimated power again, the curve shown until then
     if (_analysis && _analysisModel && ![_analysisModel isEqualToArray:[self modelFiguresOfRide:ride]]) [self startAnalysis];
+    // the roads were found (R8): the surfaces in the estimated power and the table
+    else if (_analysis && ride.roads != _analysisRoads) [self startAnalysis];
 }
 
 #pragma mark - trim
@@ -628,6 +657,7 @@ static void RAMotorizedEnds(RARideAnalysis *a, NSUInteger *fastFrom, NSUInteger 
     [_profile setGpxPoints:analysis.trace];
     [self updateTrim];
     [self updateClimbs];
+    [self updateRoads];
     [self drawTrack];
     [self buildCharts];
     [self moveCursorToIndex:NSNotFound];
@@ -818,6 +848,80 @@ static void RAMotorizedEnds(RARideAnalysis *a, NSUInteger *fastFrom, NSUInteger 
 - (void)chartView:(RAChartView *)chart didSelectDistance:(double)distance
 {
     [self moveCursorToDistance:distance];
+}
+
+#pragma mark - roads and surfaces (R8)
+
+- (void)updateRoads
+{
+    while (_roadsGrid.numberOfRows > 0) [_roadsGrid removeRowAtIndex:0];
+    RARide *ride = _ride;
+    RARideAnalysis *a = _analysis;
+    if (!ride || !a) return;
+    RARoadMatch *roads = ride.roads;
+    if (!roads || roads.version < RARoadMatchVersion) {
+        _roadsGrid.hidden = YES;
+        if ([_roadsFailed containsObject:ride.identifier] || ![RARoadMatcher findsRoadsAutomatically]) {
+            _roadsStatus.stringValue = NSLocalizedString(@"Not found yet: Edit ▸ Find Road Types (OpenStreetMap).", @"detail");
+        } else {
+            [self findRoads];
+        }
+        return;
+    }
+    _roadsGrid.hidden = NO;
+    NSArray<RARoadRow *> *rows = [roads rowsForAnalysis:a];
+    double total = 0;
+    for (RARoadRow *r in rows) if ([r.kind hasPrefix:@"road:"]) total += r.distance;
+    BOOL surfaces = NO;
+    for (RARoadRow *r in rows) {
+        if (!surfaces && [r.kind hasPrefix:@"surface:"]) {
+            surfaces = YES;
+            [_roadsGrid addRowWithViews:@[ [NSTextField labelWithString:@" "] ]];
+        }
+        NSTextField *name = [NSTextField labelWithString:r.name];
+        name.identifier = [@"roadRow." stringByAppendingString:r.kind];
+        NSTextField *km = [NSTextField labelWithString:[NSString localizedStringWithFormat:@"%.1f km", r.distance / 1000]];
+        NSTextField *pc = [NSTextField labelWithString:total > 0
+                           ? [NSString localizedStringWithFormat:@"%.0f %%", 100 * r.distance / total] : @""];
+        NSTextField *speed = [NSTextField labelWithString:isnan(r.speed) ? @""
+                              : [NSString localizedStringWithFormat:NSLocalizedString(@"%.1f km/h", @"detail: speed"), r.speed]];
+        for (NSTextField *t in @[ km, pc, speed ]) t.alignment = NSTextAlignmentRight;
+        speed.textColor = [NSColor secondaryLabelColor];
+        [_roadsGrid addRowWithViews:@[ name, km, pc, speed ]];
+    }
+    _roadsStatus.stringValue = [NSString localizedStringWithFormat:NSLocalizedString(@"© OpenStreetMap contributors — %.0f %% of the "
+        @"track on a mapped way; the surfaces are in the estimated power.", @"detail"), 100 * roads.matchedFraction];
+}
+
+/// the roads of the ride shown, in the background (R8); kept with the ride, which analyses it again
+- (void)findRoads
+{
+    RARide *ride = _ride;
+    RALibraryDocument *library = self.library;
+    if (!ride || !library || library.findingRoads) {
+        _roadsStatus.stringValue = NSLocalizedString(@"Finding the roads on OpenStreetMap…", @"detail");
+        return;
+    }
+    NSData *data = [library originalDataOfRide:ride];
+    if (!data) return;
+    _roadsStatus.stringValue = NSLocalizedString(@"Finding the roads on OpenStreetMap…", @"detail");
+    [_roadsComputation start:^id(RACancellation *c) {
+        BPTrackReader *reader = [BPTrackReader readerWithData:data error:NULL];
+        if (reader.trace.count < 2) return nil;
+        NSError *error = nil;
+        RARoadMatch *match = [RARoadMatcher matchTrace:reader.trace cancellation:c error:&error];
+        return match ?: (id)error;
+    } completion:^(id result) {
+        if (self->_ride != ride) return;
+        if ([result isKindOfClass:[RARoadMatch class]]) {
+            [library setRoads:result ofRide:ride];      // → refreshRideInfo: analysed again with the surfaces
+            return;
+        }
+        if (!self->_roadsFailed) self->_roadsFailed = [NSMutableSet set];
+        [self->_roadsFailed addObject:ride.identifier];
+        self->_roadsStatus.stringValue = [NSString stringWithFormat:NSLocalizedString(@"Roads not found: %@ Edit ▸ Find Road "
+            @"Types tries again.", @"detail"), [result isKindOfClass:[NSError class]] ? [result localizedDescription] : @""];
+    }];
 }
 
 #pragma mark - climbs of the ride (R7)
