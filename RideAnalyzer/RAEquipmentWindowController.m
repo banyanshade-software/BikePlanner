@@ -9,6 +9,7 @@
 #import "RARide.h"
 #import "RATyreDatabase.h"
 #import "RATyreDatabaseWindowController.h"
+#import "RALibraryWindowController.h"
 
 @interface RAEquipmentWindowController () <NSTableViewDataSource, NSTableViewDelegate>
 @end
@@ -26,6 +27,7 @@
     NSMutableDictionary<NSString *, NSControl *> *_sheetControls;
     NSTextField *_frontCrr, *_rearCrr, *_figures;
     NSTableView *_historyTable;
+    NSButton *_usesWeighings;          // the weight of the day, from the Garmin Connect weighings (R11)
 }
 
 - (instancetype)initWithLibrary:(RALibraryDocument *)library
@@ -125,6 +127,14 @@
                            action:@selector(showTyreDatabase:)] ]];
     top.views.lastObject.identifier = @"showTyreDatabase";
     top.spacing = 6;
+    _usesWeighings = [NSButton checkboxWithTitle:@"" target:self action:@selector(usesWeighingsChanged:)];
+    _usesWeighings.identifier = @"usesWeighings";
+    NSButton *getWeighings = [NSButton buttonWithTitle:NSLocalizedString(@"Get from Garmin Connect", @"equipment")
+                                                target:self action:@selector(updateWeighingsFromGarmin:)];
+    getWeighings.controlSize = NSControlSizeSmall;
+    getWeighings.identifier = @"getWeighings";
+    NSStackView *weights = [NSStackView stackViewWithViews:@[ _usesWeighings, getWeighings ]];
+    weights.spacing = 8;
     [top setCustomSpacing:24 afterView:top.views[2]];
     [top setCustomSpacing:24 afterView:_defaultBikePopup];
 
@@ -181,7 +191,7 @@
     bikesRow.alignment = NSLayoutAttributeTop;
     bikesRow.spacing = 14;
     NSStackView *stack = [NSStackView stackViewWithViews:@[
-        top, bikesRow,
+        top, weights, bikesRow,
         [self header:NSLocalizedString(@"All parts", @"equipment") add:@selector(addPart:) remove:@selector(removePart:)
           identifier:@"part"], parts, help, _status ]];
     stack.orientation = NSUserInterfaceLayoutOrientationVertical;
@@ -417,7 +427,7 @@
     double crr = [e crrOfBike:b.identifier atDate:now] * [RABike rollingFactorOfSurface:b.surface];
     _figures.stringValue = [NSString localizedStringWithFormat:
         NSLocalizedString(@"%.0f kg with the rider · Crr %.4f on these roads · CdA %.2f m²", @"bike sheet"),
-        e.effectiveRiderWeight + b.effectiveWeight, crr, b.effectiveCdA];
+        [e riderWeightAtDate:now] + b.effectiveWeight, crr, b.effectiveCdA];
 }
 
 /// the edit of a control of the sheet
@@ -550,6 +560,15 @@
 {
     RAEquipment *e = [self equipment];
     _riderWeightField.objectValue = e.riderWeight > 0 ? @(e.riderWeight) : nil;
+    RAWeighing *last = e.weighings.lastObject;
+    _usesWeighings.title = last
+        ? [NSString localizedStringWithFormat:NSLocalizedString(@"Weight of the day of each ride, from the %lu weighings of Garmin "
+                                                                @"Connect (last: %.1f kg on %@); else the weight entered", @"equipment"),
+           (unsigned long)e.weighings.count, last.kilograms,
+           [NSDateFormatter localizedStringFromDate:last.date dateStyle:NSDateFormatterShortStyle timeStyle:NSDateFormatterNoStyle]]
+        : NSLocalizedString(@"Weight of the day of each ride, from the weighings of Garmin Connect (none yet)", @"equipment");
+    _usesWeighings.state = e.usesWeighings ? NSControlStateValueOn : NSControlStateValueOff;
+    _usesWeighings.enabled = last != nil;
     [_defaultBikePopup removeAllItems];
     [_defaultBikePopup addItemWithTitle:NSLocalizedString(@"None", @"equipment: no default bike")];
     _defaultBikePopup.lastItem.representedObject = @"";
@@ -859,6 +878,24 @@
     double w = [self numberOf:_riderWeightField.objectValue ?: _riderWeightField.stringValue];
     [_library changeEquipment:^(RAEquipment *e) { e.riderWeight = w; }
                    actionName:NSLocalizedString(@"Rider Weight", @"undo action name")];
+}
+
+/// the library window does it (its key, its alerts)
+- (IBAction)updateWeighingsFromGarmin:(nullable id)sender
+{
+    for (NSWindowController *wc in _library.windowControllers) {
+        if ([wc isKindOfClass:[RALibraryWindowController class]]) {
+            [(RALibraryWindowController *)wc updateWeighingsFromGarmin:sender];
+            return;
+        }
+    }
+}
+
+- (void)usesWeighingsChanged:(id)sender
+{
+    BOOL uses = _usesWeighings.state == NSControlStateValueOn;
+    [_library changeEquipment:^(RAEquipment *e) { e.usesWeighings = uses; }
+                   actionName:NSLocalizedString(@"Weight of the Day", @"undo action name")];
 }
 
 - (void)defaultBikeChosen:(id)sender

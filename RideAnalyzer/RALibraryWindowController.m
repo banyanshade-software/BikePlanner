@@ -1021,6 +1021,11 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     alert.informativeText = [NSString localizedStringWithFormat:
         NSLocalizedString(@"Already in the library: %lu. Unreadable: %lu.", @"import summary"),
         (unsigned long)summary.duplicates, (unsigned long)summary.unreadable];
+    if (summary.weighings) {
+        alert.informativeText = [alert.informativeText stringByAppendingFormat:@" %@", [NSString localizedStringWithFormat:
+            NSLocalizedString(@"%lu new weighings of the rider (estimated power).", @"import summary"),
+            (unsigned long)summary.weighings]];
+    }
     NSArray<RAPart *> *worn = [self.library takeNewlyWornParts];
     [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse r) {
         if (worn.count) [self warnWornParts:worn];
@@ -1203,6 +1208,42 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     if (progress) [self observeProgress:progress];
 }
 
+/// the rider's weighings of Garmin Connect now (R11; also done at the end of each fetch)
+- (IBAction)updateWeighingsFromGarmin:(nullable id)sender
+{
+    RALibraryDocument *library = self.library;
+    if (!library) return;
+    NSString *key = library.garminKey;
+    if (key.length == 0) {
+        NSAlert *alert = [[NSAlert alloc] init];
+        alert.messageText = NSLocalizedString(@"No Garmin Connect key for this library", @"corrections");
+        alert.informativeText = NSLocalizedString(@"Enter it in File ▸ Fetch from Garmin Connect… first.", @"corrections");
+        [alert beginSheetModalForWindow:self.window completionHandler:nil];
+        return;
+    }
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
+    RAGarminConnect *client = [[RAGarminConnect alloc] initWithKey:key session:session];
+    [library updateWeighingsFromGarmin:client completion:^(NSUInteger added, NSError *error) {
+        [session finishTasksAndInvalidate];
+        if (error) {
+            [self presentError:error modalForWindow:self.window delegate:nil didPresentSelector:NULL contextInfo:NULL];
+            return;
+        }
+        RAWeighing *last = library.equipment.weighings.lastObject;
+        NSAlert *alert = [[NSAlert alloc] init];
+        alert.messageText = added
+            ? [NSString localizedStringWithFormat:NSLocalizedString(@"%lu new weighings", @"weighings"), (unsigned long)added]
+            : NSLocalizedString(@"No new weighing", @"weighings");
+        alert.informativeText = last
+            ? [NSString localizedStringWithFormat:NSLocalizedString(@"Last one: %.1f kg on %@. Each ride uses the weight of its "
+                                                                    @"date (Equipment window).", @"weighings"),
+               last.kilograms, [NSDateFormatter localizedStringFromDate:last.date dateStyle:NSDateFormatterMediumStyle
+                                                               timeStyle:NSDateFormatterNoStyle]]
+            : NSLocalizedString(@"Garmin Connect gave no weight: the weight entered in the Equipment window is used.", @"weighings");
+        [alert beginSheetModalForWindow:self.window completionHandler:nil];
+    }];
+}
+
 - (IBAction)fetchFromGarminConnect:(id)sender
 {
     RALibraryDocument *library = self.library;
@@ -1282,7 +1323,8 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 {
     if (action == @selector(delete:)) return _table.selectedRowIndexes.count > 0;
     if (action == @selector(importFiles:) || action == @selector(importFromDevice:)
-        || action == @selector(fetchFromGarminConnect:) || action == @selector(applyGarminCorrections:)) {
+        || action == @selector(fetchFromGarminConnect:) || action == @selector(applyGarminCorrections:)
+        || action == @selector(updateWeighingsFromGarmin:)) {
         return self.library && !self.library.importing;
     }
     if (action == @selector(saveFilter:) || action == @selector(clearFilter:)) return ![self currentFilter].empty;

@@ -63,10 +63,12 @@ Mockup (2026-11-21): `doc/05-ride-analyzer-mockup.pdf` — library and ride deta
 - A climb ridden again is compared with the previous passages (best time, trend).
 - The analysis is stored with the ride (computed once, recomputed only on request or when the algorithm changes).
 
-### R8 — Road types and surfaces *(accepted 2026-11-21, postponed to a later version of the app)*
+### R8 — Road types and surfaces *(accepted 2026-11-21; back in the first version 2026-11-22: the estimated power needs the surface)*
 - For a ride: distance and time per road type (cycleway, tertiary road, track…) and per surface (asphalt,
   gravel…), with the average speed on each; reuses the *Road types* display of BikePlanner (#66).
 - Types from OpenStreetMap: the track is matched to the roads (through BRouter or Overpass).
+- Used by the estimated power (R11): the rolling resistance of each stretch from its surface, instead of the
+  "usual roads" of the bike.
 
 ### R9 — Export and sharing *(accepted 2026-11-21)*
 - Export a ride as GPX, optionally cleaned up: pauses removed, start and end trimmed near home.
@@ -342,7 +344,16 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   ride's date — a change of equipment applies at once. The clamping at 0 is per point in the detail but over the
   whole terrain in the trends (the descents are therefore not meaningful there).
 - The estimate is computed for the rides shown (the filter, R3), e.g. those of the Edge, not those of the watch.
-- Not yet: the wind (R12), the rider's weight from Garmin Connect, a calibration on rides with a power meter.
+- **Rider's weight from Garmin Connect** (2026-11-22): the weighings (`RAWeighing`, kept in the equipment,
+  `RAEquipment.weighings`) are fetched at the end of each Garmin Connect fetch and by *File ▸ Get Rider Weights from
+  Garmin Connect* (or the button of the Equipment window): since the last weighing known, else since the first ride,
+  a year per request; `weight-service/weight/range/<from>/<to>?includeAll=true`, else
+  `weight-service/weight/dateRange`, else the weight of the profile (`userprofile-service/userprofile/user-settings`,
+  dated today) — grams in the answers; TO CHECK with the key (#91). Each ride uses the weighing of its day, else the
+  last one before (the first for an older ride): `riderWeightAtDate:`; the checkbox *Weight of the day…* of the
+  Equipment window (`usesWeighings`, on by default) goes back to the weight entered. One weighing per day (the latest).
+  Fetched data, not undoable (an undo of an equipment edit keeps them); a failure does not fail the fetch.
+- Not yet: the wind (R12), a calibration on rides with a power meter (#94).
 
 ## Climbs (2026-11-21, R7)
 - **Detection** (`RAClimbDetector`, with the stats of the ride: `RARideStats.climbs`, stats version 4, computed once):

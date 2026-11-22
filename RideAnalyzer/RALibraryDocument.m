@@ -831,10 +831,60 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
             me->_garminLastFetch = [NSDate date];
             if (added.imported == 0) [me updateChangeCount:NSChangeDone]; // the date is saved
         }
-        completion(summary, nil);
+        if (summary.cancelled) {
+            completion(summary, nil);
+            return;
+        }
+        // the rider's weight at the date of the rides (R11); an error there does not fail the fetch
+        [me updateWeighingsFromGarmin:client completion:^(NSUInteger n, NSError *weightError) {
+            if (weightError) NSLog(@"RideAnalyzer: weighings not fetched: %@", weightError.localizedDescription);
+            summary.weighings = n;
+            completion(summary, nil);
+        }];
     };
     [fetch start];
     return fetch.progress;
+}
+
+- (void)updateWeighingsFromGarmin:(RAGarminConnect *)client
+                       completion:(void (^)(NSUInteger added, NSError * _Nullable error))completion
+{
+    NSCalendar *cal = [NSCalendar currentCalendar];
+    NSDate *today = [NSDate date];
+    NSDate *from = _equipment.weighings.lastObject.date;
+    if (from) {
+        from = [cal dateByAddingUnit:NSCalendarUnitDay value:-1 toDate:(NSDate *)from options:0];
+    } else {
+        for (RARide *r in _rides) if (r.startDate && (!from || [r.startDate compare:(NSDate *)from] == NSOrderedAscending)) from = r.startDate;
+        if (!from) from = [cal dateByAddingUnit:NSCalendarUnitYear value:-1 toDate:today options:0];
+    }
+    [self weighingsFrom:(NSDate *)from to:today client:client found:[NSMutableArray array] completion:completion];
+}
+
+/// a year at a time, then merged into the equipment
+- (void)weighingsFrom:(NSDate *)from to:(NSDate *)to client:(RAGarminConnect *)client
+                found:(NSMutableArray<RAWeighing *> *)found completion:(void (^)(NSUInteger, NSError *))completion
+{
+    NSCalendar *cal = [NSCalendar currentCalendar];
+    NSDate *end = [cal dateByAddingUnit:NSCalendarUnitDay value:364 toDate:from options:0] ?: to;
+    if ([end compare:to] == NSOrderedDescending) end = to;
+    [client weighingsFrom:from to:end completion:^(NSArray<RAWeighing *> *weighings, NSError *error) {
+        if (error && found.count == 0) { completion(0, error); return; }
+        [found addObjectsFromArray:weighings ?: @[]];
+        NSDate *next = [cal dateByAddingUnit:NSCalendarUnitDay value:1 toDate:end options:0];
+        if (!error && next && [next compare:to] != NSOrderedDescending) {
+            [self weighingsFrom:next to:to client:client found:found completion:completion];
+            return;
+        }
+        NSUInteger before = self->_equipment.weighings.count;
+        RAEquipment *e = [self->_equipment copy];
+        if ([e mergeWeighings:found]) {
+            self->_equipment = e;
+            [self updateChangeCount:NSChangeDone];   // fetched data, saved with the library; not undoable
+            [self libraryDidChange];
+        }
+        completion(self->_equipment.weighings.count > before ? self->_equipment.weighings.count - before : 0, nil);
+    }];
 }
 
 - (nullable NSData *)originalDataOfRide:(RARide *)ride
@@ -1182,7 +1232,9 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
 {
     NSDictionary *currentPlist = _equipment.propertyList;
     NSDictionary *currentBikes = [self rideBikes];
+    NSArray<RAWeighing *> *weighings = _equipment.weighings;
     _equipment = [RAEquipment equipmentWithPropertyList:plist];
+    _equipment.weighings = weighings;      // fetched from Garmin Connect, not part of the edits undone
     for (RARide *r in _rides) {
         NSString *b = bikes[r.identifier];
         if (b) r.bikeID = b;

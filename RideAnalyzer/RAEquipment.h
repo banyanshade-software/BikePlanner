@@ -126,8 +126,26 @@ typedef NS_ENUM(NSInteger, RASurface) {
 + (nullable RAPart *)partWithPropertyList:(nullable id)plist;
 @end
 
+/// a weighing of the rider (R11: from Garmin Connect)
+@interface RAWeighing : NSObject
+@property (copy, nonatomic) NSDate *date;
+@property (nonatomic) double kilograms;
++ (instancetype)weighingOnDate:(NSDate *)date kilograms:(double)kilograms;
+- (NSDictionary *)propertyList;
++ (nullable RAWeighing *)weighingWithPropertyList:(nullable id)plist;
+@end
+
 @interface RAEquipment : NSObject <NSCopying>
-@property (nonatomic) double riderWeight;       // kg, 0: unknown (→ 75 kg)
+@property (nonatomic) double riderWeight;       // kg, entered, 0: unknown (→ 75 kg)
+/// the rider's weighings (Garmin Connect, R11), oldest first
+@property (copy, nonatomic) NSArray<RAWeighing *> *weighings;
+/// the weight of each ride is the weighing of its date (YES by default), else the entered weight
+@property (nonatomic) BOOL usesWeighings;
+/// the rider's weight for a ride on that date: the last weighing on or before it (the first one for an older ride),
+/// when usesWeighings and there are some; else the entered weight; else 75 kg
+- (double)riderWeightAtDate:(nullable NSDate *)date;
+/// adds weighings, one per day (a newer value of the same day replaces it); YES if something changed
+- (BOOL)mergeWeighings:(NSArray<RAWeighing *> *)weighings;
 @property (copy, nonatomic) NSString *defaultBikeID;   // @"" none
 @property (copy, nonatomic) NSArray<RABike *> *bikes;
 @property (copy, nonatomic) NSArray<RAPart *> *parts;

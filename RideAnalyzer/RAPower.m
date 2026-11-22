@@ -52,7 +52,7 @@ const double RAWheelInertia = 1.5;
     m.crr = 0.005 * [RABike rollingFactorOfSurface:RASurfaceAsphalt];
     RAEquipment *e = equipment ?: [[RAEquipment alloc] init];
     RABike *bike = ride ? [e bikeOfRide:(RARide *)ride] : [e bikeWithID:e.defaultBikeID];
-    m.mass = e.effectiveRiderWeight + (bike ? bike.effectiveWeight : 12);
+    m.mass = [e riderWeightAtDate:ride.startDate] + (bike ? bike.effectiveWeight : 12);   // weighing of the day (R11)
     if (bike) {
         m.cdA = bike.effectiveCdA;
         m.crr = [e crrOfBike:bike.identifier atDate:ride.startDate ?: [NSDate date]]

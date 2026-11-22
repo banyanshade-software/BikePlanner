@@ -65,6 +65,8 @@
                       action:@selector(fetchFromGarminConnect:) key:@""]];
     [file addItem:[self item:NSLocalizedString(@"Apply Garmin Connect Corrections", @"menu")
                       action:@selector(applyGarminCorrections:) key:@""]];
+    [file addItem:[self item:NSLocalizedString(@"Get Rider Weights from Garmin Connect", @"menu")
+                      action:@selector(updateWeighingsFromGarmin:) key:@""]];
     [main addItem:[self submenu:file]];
 
     NSMenu *edit = [[NSMenu alloc] initWithTitle:NSLocalizedString(@"Edit", @"menu")];

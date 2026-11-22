@@ -37,6 +37,7 @@ typedef NS_ENUM(NSInteger, RAImportStatus) {
 @property (nonatomic) NSUInteger duplicates;
 @property (nonatomic) NSUInteger unreadable;    // files that are not tracks, or activities that could not be fetched
 @property (nonatomic) BOOL cancelled;
+@property (nonatomic) NSUInteger weighings;     // new weighings of the rider (Garmin Connect fetch, R11)
 @end
 
 /// where a library is compared with the place it was last opened or saved from on this user account
@@ -81,6 +82,12 @@ typedef NS_ENUM(NSInteger, RALibraryLocation) {
 /// main queue, with an error when the listing failed (nothing imported). Returns nil when an import is running.
 - (nullable NSProgress *)fetchFromGarmin:(RAGarminConnect *)client since:(nullable NSDate *)since
                               completion:(void (^)(RAImportSummary * _Nullable summary, NSError * _Nullable error))completion;
+/// the rider's weighings of Garmin Connect (R11) added to the equipment: since the last one known (else since the
+/// first ride, else a year), a year per request. Also done at the end of each fetch (its errors ignored there).
+/// Not undoable (data of Garmin Connect, like the rides' stats); marks the document edited. Completion on the main
+/// queue with the number of new weighings.
+- (void)updateWeighingsFromGarmin:(RAGarminConnect *)client
+                       completion:(void (^)(NSUInteger added, NSError * _Nullable error))completion;
 
 // Garmin Connect Personal API key of the library. Kept in the Keychain of the user account, one per library
 // (two people sharing a Mac account each have their own library, so their own key), or, if the user chooses, in

@@ -14,6 +14,8 @@
 
 #import <Foundation/Foundation.h>
 
+@class RAWeighing;
+
 NS_ASSUME_NONNULL_BEGIN
 
 extern NSString *const RAGarminErrorDomain;
@@ -81,6 +83,14 @@ extern NSString *const RAGarminStepKey;
                  completion:(void (^)(NSData * _Nullable gpx, NSError * _Nullable error))completion;
 - (void)fitFileOfActivity:(NSString *)activityID
      completion:(void (^)(NSData * _Nullable fit, NSError * _Nullable error))completion;
+/// the rider's weighings between two days (R11), oldest first: weight-service/weight/range/<from>/<to>, else
+/// weight-service/weight/dateRange, else the weight of the user profile (userprofile-service/userprofile/user-settings,
+/// dated today, only when the period includes today). Grams in the answers. Completion on the main queue.
+/// TO CHECK: the endpoints with the Personal API (#91).
+- (void)weighingsFrom:(NSDate *)from to:(NSDate *)to
+           completion:(void (^)(NSArray<RAWeighing *> * _Nullable weighings, NSError * _Nullable error))completion;
+/// the weighings of an answer of one of these endpoints (any of the three shapes); nil when it is none of them
++ (nullable NSArray<RAWeighing *> *)weighingsOfJSON:(nullable id)json;
 
 /// seconds before the one retry of a transient error (HTTP 408, 429, 502–504) when the answer has no Retry-After;
 /// 2 by default

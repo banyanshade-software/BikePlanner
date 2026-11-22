@@ -340,6 +340,32 @@ static double RADouble(id v)
 
 #pragma mark - equipment
 
+#pragma mark - weighings
+
+@implementation RAWeighing
+
++ (instancetype)weighingOnDate:(NSDate *)date kilograms:(double)kilograms
+{
+    RAWeighing *w = [[RAWeighing alloc] init];
+    w.date = date;
+    w.kilograms = kilograms;
+    return w;
+}
+
+- (NSDictionary *)propertyList
+{
+    return @{ @"date": self.date, @"kg": @(self.kilograms) };
+}
+
++ (nullable RAWeighing *)weighingWithPropertyList:(nullable id)plist
+{
+    if (![plist isKindOfClass:[NSDictionary class]] || ![plist[@"date"] isKindOfClass:[NSDate class]]) return nil;
+    double kg = RADouble(plist[@"kg"]);
+    return kg > 0 ? [RAWeighing weighingOnDate:plist[@"date"] kilograms:kg] : nil;
+}
+
+@end
+
 @implementation RAEquipment
 
 - (instancetype)init
@@ -349,6 +375,8 @@ static double RADouble(id v)
         _defaultBikeID = @"";
         _bikes = @[];
         _parts = @[];
+        _weighings = @[];
+        _usesWeighings = YES;
     }
     return self;
 }
@@ -485,6 +513,44 @@ static double RADouble(id v)
     return self.riderWeight > 0 ? self.riderWeight : 75;
 }
 
+- (double)riderWeightAtDate:(nullable NSDate *)date
+{
+    if (!self.usesWeighings || self.weighings.count == 0) return self.effectiveRiderWeight;
+    if (!date) return self.weighings.lastObject.kilograms;
+    // the day of the ride counts: a weighing that morning or that evening
+    NSCalendar *cal = [NSCalendar currentCalendar];
+    NSDate *endOfDay = [cal dateByAddingUnit:NSCalendarUnitDay value:1 toDate:[cal startOfDayForDate:(NSDate *)date] options:0]
+                       ?: (NSDate *)date;
+    RAWeighing *found = self.weighings.firstObject;
+    for (RAWeighing *w in self.weighings) {
+        if ([w.date compare:endOfDay] != NSOrderedAscending) break;
+        found = w;
+    }
+    return found.kilograms;
+}
+
+- (BOOL)mergeWeighings:(NSArray<RAWeighing *> *)weighings
+{
+    NSCalendar *cal = [NSCalendar currentCalendar];
+    NSMutableDictionary<NSDate *, RAWeighing *> *byDay = [NSMutableDictionary dictionary];
+    for (RAWeighing *w in self.weighings) byDay[[cal startOfDayForDate:w.date]] = w;
+    BOOL changed = NO;
+    for (RAWeighing *w in weighings) {
+        if (w.kilograms <= 0) continue;
+        NSDate *day = [cal startOfDayForDate:w.date];
+        RAWeighing *old = byDay[day];
+        if (old && ([old.date compare:w.date] == NSOrderedDescending
+                    || ([old.date isEqualToDate:w.date] && old.kilograms == w.kilograms))) continue;
+        byDay[day] = w;
+        changed = YES;
+    }
+    if (!changed) return NO;
+    self.weighings = [byDay.allValues sortedArrayUsingComparator:^NSComparisonResult(RAWeighing *a, RAWeighing *b) {
+        return [a.date compare:b.date];
+    }];
+    return YES;
+}
+
 - (double)distanceOfBike:(NSString *)bikeID rides:(NSArray<RARide *> *)rides
 {
     double d = 0;
@@ -515,7 +581,8 @@ static double RADouble(id v)
 - (NSDictionary *)propertyList
 {
     return @{ @"riderWeight": @(self.riderWeight), @"defaultBikeID": self.defaultBikeID,
-              @"bikes": [self.bikes valueForKey:@"propertyList"], @"parts": [self.parts valueForKey:@"propertyList"] };
+              @"bikes": [self.bikes valueForKey:@"propertyList"], @"parts": [self.parts valueForKey:@"propertyList"],
+              @"weighings": [self.weighings valueForKey:@"propertyList"], @"usesWeighings": @(self.usesWeighings) };
 }
 
 + (RAEquipment *)equipmentWithPropertyList:(nullable id)plist
@@ -533,6 +600,13 @@ static double RADouble(id v)
     }
     e.bikes = bikes;
     e.parts = parts;
+    NSMutableArray<RAWeighing *> *weighings = [NSMutableArray array];
+    if ([plist[@"weighings"] isKindOfClass:[NSArray class]]) {
+        for (id w in plist[@"weighings"]) { RAWeighing *x = [RAWeighing weighingWithPropertyList:w]; if (x) [weighings addObject:x]; }
+    }
+    [weighings sortUsingComparator:^NSComparisonResult(RAWeighing *a, RAWeighing *b) { return [a.date compare:b.date]; }];
+    e.weighings = weighings;
+    e.usesWeighings = plist[@"usesWeighings"] ? [plist[@"usesWeighings"] boolValue] : YES;
     return e;
 }
 

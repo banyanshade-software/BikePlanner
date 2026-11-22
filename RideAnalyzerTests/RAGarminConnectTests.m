@@ -11,6 +11,7 @@
 #import "RAZipReader.h"
 #import "RALibraryDocument.h"
 #import "RARide.h"
+#import "RAEquipment.h"
 #import "RATestSupport.h"
 
 static NSString *const kBase = @"https://garmin.stub";
@@ -28,6 +29,9 @@ static NSString *const kBase = @"https://garmin.stub";
     BOOL _rejectKey;
     BOOL _expireNextAPICall;
     NSInteger _busyAnswers;      // the next requests answered with HTTP 408
+    id _weightRange;             // answers of the weight endpoints (nil: 404)
+    id _weightDateRange;
+    id _userSettings;
 }
 
 - (void)setUp
@@ -44,6 +48,9 @@ static NSString *const kBase = @"https://garmin.stub";
     _rejectKey = NO;
     _expireNextAPICall = NO;
     _busyAnswers = 0;
+    _weightRange = nil;
+    _weightDateRange = nil;
+    _userSettings = nil;
     __weak RAGarminConnectTests *weakSelf = self;
     RAStubURLProtocol.handler = ^RAStubResponse *(NSURLRequest *r) { return [weakSelf answer:r]; };
 }
@@ -92,6 +99,9 @@ static NSString *const kBase = @"https://garmin.stub";
             ? [_activities subarrayWithRange:NSMakeRange(start, MIN(limit, _activities.count - start))] : @[];
         return [RAStubResponse json:page];
     }
+    if ([path hasPrefix:@"/weight-service/weight/range/"]) return _weightRange ? [RAStubResponse json:_weightRange] : nil;
+    if ([path isEqualToString:@"/weight-service/weight/dateRange"]) return _weightDateRange ? [RAStubResponse json:_weightDateRange] : nil;
+    if ([path isEqualToString:@"/userprofile-service/userprofile/user-settings"]) return _userSettings ? [RAStubResponse json:_userSettings] : nil;
     NSString *gpxPrefix = @"/download-service/export/gpx/activity/";
     if ([path hasPrefix:gpxPrefix]) {
         NSData *gpx = _gpxs[[path substringFromIndex:gpxPrefix.length]];
@@ -476,6 +486,58 @@ static NSString *const kBase = @"https://garmin.stub";
     XCTAssertEqual(ride.trimStart, 0);
     XCTAssertEqualWithAccuracy(ride.trimEnd, 601, 1, @"to the last time of the export");
     XCTAssertEqualWithAccuracy(ride.distance, 1112, 30);
+}
+
+#pragma mark - weighings (R11)
+
+- (void)testWeighingsOfTheThreeAnswers
+{
+    NSArray<RAWeighing *> *a = [RAGarminConnect weighingsOfJSON:@{ @"dailyWeightSummaries": @[
+        @{ @"summaryDate": @"2026-11-02", @"latestWeight": @{ @"weight": @72400.0, @"date": @1793620800000, @"calendarDate": @"2026-11-02" } },
+        @{ @"summaryDate": @"2026-11-01", @"allWeightMetrics": @[ @{ @"weight": @73100, @"calendarDate": @"2026-11-01" } ] } ] }];
+    XCTAssertEqual(a.count, 2u);
+    XCTAssertEqualWithAccuracy(a[0].kilograms, 73.1, 1e-9, @"oldest first, grams to kg");
+    XCTAssertEqualWithAccuracy(a[1].kilograms, 72.4, 1e-9);
+    NSArray<RAWeighing *> *b = [RAGarminConnect weighingsOfJSON:@{ @"dateWeightList": @[ @{ @"date": @1793620800000, @"weight": @72400 } ] }];
+    XCTAssertEqual(b.count, 1u);
+    XCTAssertEqualObjects(b[0].date, [NSDate dateWithTimeIntervalSince1970:1793620800]);
+    NSArray<RAWeighing *> *c = [RAGarminConnect weighingsOfJSON:@{ @"userData": @{ @"weight": @71000.0 } }];
+    XCTAssertEqualWithAccuracy(c.firstObject.kilograms, 71, 1e-9);
+    XCTAssertNil([RAGarminConnect weighingsOfJSON:@{ @"other": @1 }]);
+    XCTAssertEqual([RAGarminConnect weighingsOfJSON:@{ @"dateWeightList": @[] }].count, 0u, @"an answer without weighing");
+}
+
+// the rides of a fetch get the weight of their day; another endpoint when the first does not answer
+- (void)testFetchGetsTheWeighings
+{
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    [self addActivity:1 day:0 type:@"road_biking"];
+    _weightDateRange = @{ @"dateWeightList": @[ @{ @"date": @1795478400000, @"weight": @80000 },     // 2026-11-18
+                                                 @{ @"date": @1795737600000, @"weight": @78000 } ] }; // 2026-11-21
+    NSError *error = nil;
+    RAImportSummary *s = [self fetchInto:doc client:[self clientWithKey:@"good-key"] since:nil error:&error];
+    XCTAssertNil(error);
+    XCTAssertEqual(s.weighings, 2u);
+    XCTAssertEqual(doc.equipment.weighings.count, 2u);
+    NSArray *paths = [RAStubURLProtocol.requests valueForKeyPath:@"URL.path"];
+    XCTAssertTrue([[paths filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"SELF BEGINSWITH '/weight-service/weight/range/'"]] count] >= 1,
+                  @"the range endpoint first");
+    XCTAssertEqualWithAccuracy([doc.equipment riderWeightAtDate:[NSDate dateWithTimeIntervalSince1970:1795478400 + 3600]], 80, 1e-9);
+    XCTAssertEqualWithAccuracy([doc.equipment riderWeightAtDate:[NSDate dateWithTimeIntervalSince1970:1795737600 + 86400 * 3]], 78, 1e-9);
+
+    // again: nothing new
+    __block NSInteger added = -1;
+    [doc updateWeighingsFromGarmin:[self clientWithKey:@"good-key"] completion:^(NSUInteger n, NSError *e) { added = (NSInteger)n; }];
+    XCTAssertTrue(RAWaitUntil(5, ^{ return (BOOL)(added >= 0); }));
+    XCTAssertEqual(added, 0);
+
+    // no weight endpoint answers: the fetch still succeeds
+    _weightDateRange = nil;
+    [self addActivity:2 day:1 type:@"road_biking"];
+    s = [self fetchInto:doc client:[self clientWithKey:@"good-key"] since:nil error:&error];
+    XCTAssertNil(error);
+    XCTAssertEqual(s.imported, 1u);
+    XCTAssertEqual(s.weighings, 0u);
 }
 
 @end

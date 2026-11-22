@@ -8,6 +8,7 @@
 
 #import <XCTest/XCTest.h>
 #import "RAEquipment.h"
+#import "RAPower.h"
 #import "RAEquipmentWindowController.h"
 #import "RARideDetailController.h"
 #import "RATyreDatabase.h"
@@ -430,6 +431,39 @@
     XCTAssertEqualObjects([doc.equipment tyreOfBike:bike.identifier wheel:RAWheelRear atDate:[NSDate date]].model,
                           @"Marathon Plus", @"undoable");
     [wc close];
+}
+
+// the rider's weight at the date of each ride (R11): the weighing of that day or the last one before
+- (void)testWeighings
+{
+    RAEquipment *e = [[RAEquipment alloc] init];
+    XCTAssertEqual([e riderWeightAtDate:[NSDate date]], 75, @"nothing known");
+    e.riderWeight = 70;
+    XCTAssertEqual([e riderWeightAtDate:[NSDate date]], 70, @"entered");
+    NSDate *d1 = [self day:2026 month:3 day:1], *d2 = [self day:2026 month:9 day:1];
+    XCTAssertTrue([e mergeWeighings:@[ [RAWeighing weighingOnDate:[d2 dateByAddingTimeInterval:8 * 3600] kilograms:78],
+                                       [RAWeighing weighingOnDate:[d1 dateByAddingTimeInterval:8 * 3600] kilograms:82] ]]);
+    XCTAssertEqual(e.weighings.firstObject.kilograms, 82, @"oldest first");
+    XCTAssertEqual([e riderWeightAtDate:[self day:2025 month:6 day:1]], 82, @"before the first: the first");
+    XCTAssertEqual([e riderWeightAtDate:[d1 dateByAddingTimeInterval:6 * 3600]], 82, @"weighed later that day: that day's");
+    XCTAssertEqual([e riderWeightAtDate:[self day:2026 month:8 day:31]], 82);
+    XCTAssertEqual([e riderWeightAtDate:[self day:2026 month:11 day:1]], 78);
+    XCTAssertFalse([e mergeWeighings:@[ [RAWeighing weighingOnDate:[d2 dateByAddingTimeInterval:8 * 3600] kilograms:78] ]], @"known");
+    XCTAssertTrue([e mergeWeighings:@[ [RAWeighing weighingOnDate:[d2 dateByAddingTimeInterval:20 * 3600] kilograms:77] ]]);
+    XCTAssertEqual(e.weighings.count, 2u, @"one per day: the latest of the day");
+    XCTAssertEqual([e riderWeightAtDate:[self day:2026 month:11 day:1]], 77);
+    e.usesWeighings = NO;
+    XCTAssertEqual([e riderWeightAtDate:[self day:2026 month:11 day:1]], 70, @"the entered weight");
+    RAEquipment *read = [RAEquipment equipmentWithPropertyList:e.propertyList];
+    XCTAssertEqual(read.weighings.count, 2u);
+    XCTAssertFalse(read.usesWeighings);
+    XCTAssertTrue([RAEquipment equipmentWithPropertyList:@{}].usesWeighings, @"older libraries");
+
+    // the power model takes the weight of the ride's day
+    e.usesWeighings = YES;
+    RARide *ride = [[RARide alloc] initWithTrace:RATrace(@[ @1, @2 ], 0) name:@"r"];
+    ride.startDate = [self day:2026 month:4 day:1];
+    XCTAssertEqualWithAccuracy([RAPowerModel modelForRide:ride equipment:e].mass, 82 + 12, 1e-9, @"no bike: 12 kg");
 }
 
 @end

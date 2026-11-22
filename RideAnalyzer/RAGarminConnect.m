@@ -5,6 +5,7 @@
 
 #import "RAGarminConnect.h"
 #import "RAZipReader.h"
+#import "RAEquipment.h"
 #import <Security/Security.h>
 
 NSString *const RAGarminErrorDomain = @"RAGarminConnect";
@@ -437,6 +438,98 @@ static NSString *const RADefaultAPIBaseURL = @"https://personal.connectapi.garmi
         [self get:tcx step:@"tcx" completion:^(NSData *tcxData, NSError *tcxError) {
             completion(tcxData.length ? tcxData : nil,
                        tcxData.length ? nil : (tcxError ?: error ?: [RAGarminConnect errorWithCode:RAGarminErrorBadAnswer status:0]));
+        }];
+    }];
+}
+
+#pragma mark - weighings (R11)
+
+/// a weight in kilograms from a JSON value in grams (a small value is taken as kilograms already)
+static double RAKilograms(id v)
+{
+    if (![v isKindOfClass:[NSNumber class]]) return 0;
+    double x = [v doubleValue];
+    if (x <= 0) return 0;
+    return x > 500 ? x / 1000 : x;
+}
+
+static NSDate *_Nullable RADateOfWeight(NSDictionary *d)
+{
+    for (NSString *k in @[ @"date", @"timestampGMT", @"samplePk" ]) {
+        id v = d[k];
+        if ([v isKindOfClass:[NSNumber class]] && [v doubleValue] > 1e11) return [NSDate dateWithTimeIntervalSince1970:[v doubleValue] / 1000];
+    }
+    id day = d[@"calendarDate"] ?: d[@"summaryDate"];
+    if ([day isKindOfClass:[NSString class]]) {
+        NSDateFormatter *f = [[NSDateFormatter alloc] init];
+        f.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+        f.dateFormat = @"yyyy-MM-dd";
+        NSDate *date = [f dateFromString:day];
+        // noon of that day: the weighing belongs to that day in any time zone near the user's
+        return date ? [date dateByAddingTimeInterval:12 * 3600] : nil;
+    }
+    return nil;
+}
+
++ (nullable NSArray<RAWeighing *> *)weighingsOfJSON:(nullable id)json
+{
+    if (![json isKindOfClass:[NSDictionary class]]) return nil;
+    NSMutableArray<RAWeighing *> *out = [NSMutableArray array];
+    void (^add)(id) = ^(id item) {
+        if (![item isKindOfClass:[NSDictionary class]]) return;
+        double kg = RAKilograms(item[@"weight"]);
+        NSDate *date = RADateOfWeight(item);
+        if (kg > 0 && date) [out addObject:[RAWeighing weighingOnDate:date kilograms:kg]];
+    };
+    id summaries = json[@"dailyWeightSummaries"], list = json[@"dateWeightList"], user = json[@"userData"];
+    if ([summaries isKindOfClass:[NSArray class]]) {
+        // weight/range: per day, all the weighings of the day or the latest one
+        for (NSDictionary *day in summaries) {
+            if (![day isKindOfClass:[NSDictionary class]]) continue;
+            NSArray *all = [day[@"allWeightMetrics"] isKindOfClass:[NSArray class]] ? day[@"allWeightMetrics"] : nil;
+            if (all.count) for (id w in all) add(w);
+            else add(day[@"latestWeight"]);
+        }
+    } else if ([list isKindOfClass:[NSArray class]]) {
+        for (id w in list) add(w);                                  // weight/dateRange
+    } else if ([user isKindOfClass:[NSDictionary class]]) {
+        double kg = RAKilograms(user[@"weight"]);                   // user-settings: the profile's weight, today
+        if (kg > 0) [out addObject:[RAWeighing weighingOnDate:[NSDate date] kilograms:kg]];
+    } else {
+        return nil;
+    }
+    [out sortUsingComparator:^NSComparisonResult(RAWeighing *a, RAWeighing *b) { return [a.date compare:b.date]; }];
+    return out;
+}
+
+- (void)weighingsFrom:(NSDate *)from to:(NSDate *)to
+           completion:(void (^)(NSArray<RAWeighing *> * _Nullable weighings, NSError * _Nullable error))completion
+{
+    NSString *a = [RAGarminConnect dayString:from], *b = [RAGarminConnect dayString:to];
+    NSURL *base = [RAEnvironment garminAPIBaseURL];
+    NSURLComponents *range = [NSURLComponents componentsWithURL:[base URLByAppendingPathComponent:
+        [NSString stringWithFormat:@"weight-service/weight/range/%@/%@", a, b]] resolvingAgainstBaseURL:NO];
+    range.queryItems = @[ [NSURLQueryItem queryItemWithName:@"includeAll" value:@"true"] ];
+    NSURLComponents *dateRange = [NSURLComponents componentsWithURL:[base URLByAppendingPathComponent:@"weight-service/weight/dateRange"]
+                                            resolvingAgainstBaseURL:NO];
+    dateRange.queryItems = @[ [NSURLQueryItem queryItemWithName:@"startDate" value:a],
+                              [NSURLQueryItem queryItemWithName:@"endDate" value:b] ];
+    NSURL *profile = [base URLByAppendingPathComponent:@"userprofile-service/userprofile/user-settings"];
+    BOOL includesToday = [to timeIntervalSinceNow] > -86400;
+    [self get:range.URL step:@"weight" completion:^(NSData *data, NSError *error) {
+        NSArray *w = data ? [RAGarminConnect weighingsOfJSON:[NSJSONSerialization JSONObjectWithData:data options:0 error:NULL]] : nil;
+        if (w) { completion(w, nil); return; }
+        [self get:dateRange.URL step:@"weight" completion:^(NSData *data2, NSError *error2) {
+            NSArray *w2 = data2 ? [RAGarminConnect weighingsOfJSON:[NSJSONSerialization JSONObjectWithData:data2 options:0 error:NULL]] : nil;
+            if (w2) { completion(w2, nil); return; }
+            if (!includesToday) {
+                completion(nil, error2 ?: error ?: [RAGarminConnect errorWithCode:RAGarminErrorBadAnswer status:0 step:@"weight" body:data2]);
+                return;
+            }
+            [self get:profile step:@"weight" completion:^(NSData *data3, NSError *error3) {
+                NSArray *w3 = data3 ? [RAGarminConnect weighingsOfJSON:[NSJSONSerialization JSONObjectWithData:data3 options:0 error:NULL]] : nil;
+                completion(w3, w3 ? nil : (error3 ?: error2 ?: error ?: [RAGarminConnect errorWithCode:RAGarminErrorBadAnswer status:0 step:@"weight" body:data3]));
+            }];
         }];
     }];
 }
