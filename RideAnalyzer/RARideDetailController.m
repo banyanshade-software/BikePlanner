@@ -434,6 +434,11 @@ static void RAMotorizedEnds(RARideAnalysis *a, NSUInteger *fastFrom, NSUInteger 
         [_bikePopup addItemWithTitle:b.name];
         _bikePopup.lastItem.representedObject = b.identifier;
     }
+    [_bikePopup.menu addItem:[NSMenuItem separatorItem]];
+    [_bikePopup addItemWithTitle:e.bikes.count ? NSLocalizedString(@"Edit Bike…", @"detail: bike sheet")
+                                               : NSLocalizedString(@"New Bike…", @"detail: bike sheet")];
+    _bikePopup.lastItem.tag = 1;
+    _bikePopup.lastItem.identifier = @"rideEditBike";
     RABike *bike = [e bikeOfRide:ride];
     [_bikePopup selectItemAtIndex:MAX(0, [_bikePopup indexOfItemWithRepresentedObject:bike.identifier ?: @""])];
     if (e.bikes.count == 0) {
@@ -458,6 +463,12 @@ static void RAMotorizedEnds(RARideAnalysis *a, NSUInteger *fastFrom, NSUInteger 
 - (void)bikeChosen:(id)sender
 {
     RARide *ride = _ride;
+    if (_bikePopup.selectedItem.tag == 1) {        // Edit Bike…: the sheet of the ride's bike
+        RABike *current = ride ? [self.library.equipment bikeOfRide:(RARide *)ride] : nil;
+        [self updateEquipment];
+        if (self.editBikeHandler) self.editBikeHandler(current.identifier ?: @"");
+        return;
+    }
     NSString *bike = _bikePopup.selectedItem.representedObject;
     if (ride && [bike isKindOfClass:[NSString class]]) [self.library setBikeID:bike ofRides:@[ ride ]];
 }

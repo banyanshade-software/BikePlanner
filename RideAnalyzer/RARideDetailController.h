@@ -26,6 +26,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)refreshRideInfo;
 /// a double-click on a climb of the ride (R7): compare its passages (the window shows the Climbs tab)
 @property (copy, nonatomic, nullable) void (^compareClimbHandler)(RAClimb *climb);
+/// "Edit Bike…" in the bike pop-up: the sheet of the ride's bike (@"": none yet, a new bike)
+@property (copy, nonatomic, nullable) void (^editBikeHandler)(NSString *bikeID);
 
 // for tests
 @property (readonly, nonatomic, nullable) RARide *ride;

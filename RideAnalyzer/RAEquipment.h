@@ -149,6 +149,19 @@ typedef NS_ENUM(NSInteger, RASurface) {
 /// parts over their wear limit
 - (NSArray<RAPart *> *)wornPartsWithRides:(NSArray<RARide *> *)rides;
 
+// the tyres of a bike, as the bike sheet shows them (front and rear, with their history)
+/// the tyre on that wheel of a bike at a date (a pair counts for both wheels), nil none
+- (nullable RAPart *)tyreOfBike:(NSString *)bikeID wheel:(RAWheel)wheel atDate:(NSDate *)date;
+/// a new tyre on a wheel of a bike from a day (nil: since always, for the first tyre entered): the tyre on that
+/// wheel until then is taken off the day before — a pair keeps the other wheel through a copy mounted from the same
+/// day; a tyre mounted on that day or later is replaced (a correction, its mounting removed). Returns the new part
+/// (wheel set, to fill in: model, width…). Not undoable by itself: call within changeEquipment:actionName:.
+- (RAPart *)mountTyreOnBike:(NSString *)bikeID wheel:(RAWheel)wheel fromDate:(nullable NSDate *)date;
+/// the tyres ever mounted on a bike, the latest mounting first
+- (NSArray<RAPart *> *)tyreHistoryOfBike:(NSString *)bikeID;
+/// the latest mounting of a part on a bike, nil none
+- (nullable RAMounting *)lastMountingOfPart:(RAPart *)part onBike:(NSString *)bikeID;
+
 - (NSDictionary *)propertyList;
 + (RAEquipment *)equipmentWithPropertyList:(nullable id)plist;
 

@@ -20,14 +20,20 @@
     NSDateFormatter *_day;
     NSTextField *_status;
     RATyreDatabaseWindowController *_tyreDatabase;
+    // the bike sheet: the selected bike and its tyres
+    NSView *_sheet;
+    NSTextField *_noBike;
+    NSMutableDictionary<NSString *, NSControl *> *_sheetControls;
+    NSTextField *_frontCrr, *_rearCrr, *_figures;
+    NSTableView *_historyTable;
 }
 
 - (instancetype)initWithLibrary:(RALibraryDocument *)library
 {
-    NSWindow *window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 1060, 620)
+    NSWindow *window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 1060, 760)
         styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable
                   | NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:YES];
-    window.minSize = NSMakeSize(860, 460);
+    window.minSize = NSMakeSize(900, 640);
     window.identifier = @"equipment";
     self = [super initWithWindow:window];
     if (!self) return nil;
@@ -123,12 +129,16 @@
     [top setCustomSpacing:24 afterView:_defaultBikePopup];
 
     _bikesTable = [self tableWithIdentifier:@"bikes" columns:@[
-        @[ @"name", NSLocalizedString(@"Bike", @"column"), @180 ],
-        @[ @"kind", NSLocalizedString(@"Kind", @"column"), @110 ],
-        @[ @"weight", NSLocalizedString(@"Weight (kg)", @"column"), @80 ],
-        @[ @"position", NSLocalizedString(@"Position", @"column"), @110 ],
-        @[ @"cdA", NSLocalizedString(@"CdA (m²)", @"column"), @80 ],
-        @[ @"distance", NSLocalizedString(@"Ridden (km)", @"column"), @90 ] ]];
+        @[ @"name", NSLocalizedString(@"Bike", @"column"), @150 ],
+        @[ @"distance", NSLocalizedString(@"Ridden (km)", @"column"), @80 ] ]];
+    _historyTable = [self tableWithIdentifier:@"tyreHistory" columns:@[
+        @[ @"wheel", NSLocalizedString(@"Wheel", @"column"), @100 ],
+        @[ @"tyre", NSLocalizedString(@"Tyre", @"column"), @230 ],
+        @[ @"pressure", NSLocalizedString(@"bar", @"column: tyre pressure"), @45 ],
+        @[ @"from", NSLocalizedString(@"From", @"column"), @80 ],
+        @[ @"to", NSLocalizedString(@"To", @"column"), @80 ],
+        @[ @"distance", NSLocalizedString(@"Ridden (km)", @"column"), @80 ] ]];
+    _historyTable.rowHeight = 18;
     _partsTable = [self tableWithIdentifier:@"parts" columns:@[
         @[ @"name", NSLocalizedString(@"Part", @"column"), @120 ],
         @[ @"kind", NSLocalizedString(@"Kind", @"column"), @100 ],
@@ -146,7 +156,8 @@
         @"Crr: rolling resistance of a tyre; empty, the value shown in gray comes from the tyre database (published "
         @"tests, Tyre Database…) for its model, else from its width. "
         @"CdA: air drag of bike and rider; empty, from the riding position. To: empty while the part is mounted. "
-        @"Choosing another bike for a part already ridden moves it from today.", @"equipment")];
+        @"Choosing another bike for a part already ridden moves it from today. On the bike sheet, editing a tyre "
+        @"corrects it; Change Tyre… mounts a new one from a date and keeps the old one in the history.", @"equipment")];
     help.textColor = [NSColor secondaryLabelColor];
     help.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
     _status = [NSTextField labelWithString:@""];
@@ -155,22 +166,372 @@
 
     NSScrollView *bikes = [self scroll:_bikesTable];
     NSScrollView *parts = [self scroll:_partsTable];
+    NSStackView *bikeList = [NSStackView stackViewWithViews:@[
+        [self header:NSLocalizedString(@"Bikes", @"equipment") add:@selector(addBike:) remove:@selector(removeBike:)
+          identifier:@"bike"], bikes ]];
+    bikeList.orientation = NSUserInterfaceLayoutOrientationVertical;
+    bikeList.alignment = NSLayoutAttributeLeading;
+    [bikes.widthAnchor constraintEqualToConstant:250].active = YES;
+    [bikes.heightAnchor constraintGreaterThanOrEqualToConstant:200].active = YES;
+    [self buildSheet];
+    NSBox *sheetBox = [[NSBox alloc] init];
+    sheetBox.title = NSLocalizedString(@"Bike sheet", @"equipment");
+    sheetBox.contentView = _sheet;
+    NSStackView *bikesRow = [NSStackView stackViewWithViews:@[ bikeList, sheetBox ]];
+    bikesRow.alignment = NSLayoutAttributeTop;
+    bikesRow.spacing = 14;
     NSStackView *stack = [NSStackView stackViewWithViews:@[
-        top, [self header:NSLocalizedString(@"Bikes", @"equipment") add:@selector(addBike:) remove:@selector(removeBike:)
-               identifier:@"bike"], bikes,
-        [self header:NSLocalizedString(@"Parts", @"equipment") add:@selector(addPart:) remove:@selector(removePart:)
+        top, bikesRow,
+        [self header:NSLocalizedString(@"All parts", @"equipment") add:@selector(addPart:) remove:@selector(removePart:)
           identifier:@"part"], parts, help, _status ]];
     stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     stack.alignment = NSLayoutAttributeLeading;
     stack.spacing = 8;
     stack.edgeInsets = NSEdgeInsetsMake(14, 16, 14, 16);
-    for (NSView *v in @[ bikes, parts, help ]) {
+    for (NSView *v in @[ bikesRow, parts, help ]) {
         [v.widthAnchor constraintEqualToAnchor:stack.widthAnchor constant:-32].active = YES;
     }
-    [bikes.heightAnchor constraintEqualToConstant:150].active = YES;
-    [parts.heightAnchor constraintGreaterThanOrEqualToConstant:180].active = YES;
+    [bikes.heightAnchor constraintEqualToAnchor:sheetBox.heightAnchor constant:-24].active = YES;
+    [parts.heightAnchor constraintGreaterThanOrEqualToConstant:140].active = YES;
     [parts setContentHuggingPriority:NSLayoutPriorityDefaultLow - 1 forOrientation:NSLayoutConstraintOrientationVertical];
     self.window.contentView = stack;
+}
+
+#pragma mark - the bike sheet
+
+- (NSTextField *)sheetField:(NSString *)identifier width:(CGFloat)width
+{
+    NSTextField *f = [NSTextField textFieldWithString:@""];
+    f.identifier = identifier;
+    f.target = self;
+    f.action = @selector(sheetEdited:);
+    [f.widthAnchor constraintEqualToConstant:width].active = YES;
+    _sheetControls[identifier] = f;
+    return f;
+}
+
+- (NSPopUpButton *)sheetPopup:(NSString *)identifier titles:(NSArray<NSString *> *)titles
+{
+    NSPopUpButton *p = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
+    for (NSUInteger i = 0; i < titles.count; i++) {
+        [p addItemWithTitle:titles[i]];
+        p.lastItem.representedObject = @(i);
+    }
+    p.identifier = identifier;
+    p.target = self;
+    p.action = @selector(sheetEdited:);
+    _sheetControls[identifier] = p;
+    return p;
+}
+
+- (NSComboBox *)tyreCombo:(NSString *)identifier
+{
+    NSComboBox *box = [[NSComboBox alloc] init];
+    box.completes = YES;
+    box.numberOfVisibleItems = 15;
+    [box addItemsWithObjectValues:[[RATyreDatabase shared].tyres valueForKey:@"displayName"]];
+    box.placeholderString = NSLocalizedString(@"Tyre (database or any)", @"bike sheet");
+    box.identifier = identifier;
+    box.target = self;
+    box.action = @selector(sheetEdited:);
+    [box.widthAnchor constraintEqualToConstant:280].active = YES;
+    _sheetControls[identifier] = box;
+    return box;
+}
+
+- (NSStackView *)row:(NSArray<NSView *> *)views
+{
+    NSStackView *r = [NSStackView stackViewWithViews:views];
+    r.spacing = 6;
+    return r;
+}
+
+- (NSTextField *)unit:(NSString *)text
+{
+    NSTextField *t = [NSTextField labelWithString:text];
+    t.textColor = [NSColor secondaryLabelColor];
+    return t;
+}
+
+- (NSView *)tyreRow:(NSString *)prefix wheel:(RAWheel)wheel crr:(NSTextField *)crr
+{
+    NSButton *change = [NSButton buttonWithTitle:NSLocalizedString(@"Change Tyre…", @"bike sheet") target:self
+                                          action:@selector(changeTyre:)];
+    change.identifier = [prefix stringByAppendingString:@"TyreChange"];
+    change.tag = wheel;
+    crr.identifier = [prefix stringByAppendingString:@"TyreCrr"];
+    crr.textColor = [NSColor secondaryLabelColor];
+    crr.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    NSStackView *line = [self row:@[ [self tyreCombo:[prefix stringByAppendingString:@"TyreModel"]],
+                                     [self sheetField:[prefix stringByAppendingString:@"TyreWidth"] width:44], [self unit:@"mm"],
+                                     [self sheetField:[prefix stringByAppendingString:@"TyrePressure"] width:44], [self unit:@"bar"],
+                                     change ]];
+    NSStackView *v = [NSStackView stackViewWithViews:@[ line, crr ]];
+    v.orientation = NSUserInterfaceLayoutOrientationVertical;
+    v.alignment = NSLayoutAttributeLeading;
+    v.spacing = 2;
+    return v;
+}
+
+- (void)buildSheet
+{
+    _sheetControls = [NSMutableDictionary dictionary];
+    NSMutableArray *kinds = [NSMutableArray array], *positions = [NSMutableArray array], *surfaces = [NSMutableArray array];
+    for (NSInteger k = RABikeRoad; k <= RABikeElectric; k++) [kinds addObject:[RABike nameOfKind:k]];
+    for (NSInteger k = RAPositionUpright; k <= RAPositionDrops; k++) [positions addObject:[RABike nameOfPosition:k]];
+    for (NSInteger k = RASurfaceSmoothAsphalt; k <= RASurfaceGravel; k++) {
+        [surfaces addObject:[NSString localizedStringWithFormat:@"%@ (Crr × %.2f)", [RABike nameOfSurface:k],
+                             [RABike rollingFactorOfSurface:k]]];
+    }
+    NSTextField *model = [self sheetField:@"bikeModel" width:220];
+    model.placeholderString = NSLocalizedString(@"e.g. Giant Rapid 4", @"bike sheet");
+    _frontCrr = [NSTextField labelWithString:@""];
+    _rearCrr = [NSTextField labelWithString:@""];
+    _figures = [NSTextField labelWithString:@""];
+    _figures.identifier = @"bikeFigures";
+    _figures.font = [NSFont boldSystemFontOfSize:NSFont.smallSystemFontSize];
+    NSScrollView *history = [self scroll:_historyTable];
+    [history.heightAnchor constraintEqualToConstant:96].active = YES;
+    [history.widthAnchor constraintEqualToConstant:640].active = YES;
+
+    NSGridView *grid = [NSGridView gridViewWithViews:@[
+        @[ [NSTextField labelWithString:NSLocalizedString(@"Name:", @"bike sheet")], [self sheetField:@"bikeName" width:220] ],
+        @[ [NSTextField labelWithString:NSLocalizedString(@"Model:", @"bike sheet")], model ],
+        @[ [NSTextField labelWithString:NSLocalizedString(@"Kind:", @"bike sheet")],
+           [self row:@[ [self sheetPopup:@"bikeKind" titles:kinds],
+                        [NSTextField labelWithString:NSLocalizedString(@"Weight:", @"bike sheet")],
+                        [self sheetField:@"bikeWeight" width:50], [self unit:NSLocalizedString(@"kg, with bags and bottles", @"bike sheet")] ]] ],
+        @[ [NSTextField labelWithString:NSLocalizedString(@"Position:", @"bike sheet")],
+           [self row:@[ [self sheetPopup:@"bikePosition" titles:positions],
+                        [NSTextField labelWithString:NSLocalizedString(@"CdA:", @"bike sheet")],
+                        [self sheetField:@"bikeCdA" width:50], [self unit:@"m²"] ]] ],
+        @[ [NSTextField labelWithString:NSLocalizedString(@"Usual roads:", @"bike sheet")], [self sheetPopup:@"bikeSurface" titles:surfaces] ],
+        @[ [NSTextField labelWithString:NSLocalizedString(@"Front tyre:", @"bike sheet")], [self tyreRow:@"front" wheel:RAWheelFront crr:_frontCrr] ],
+        @[ [NSTextField labelWithString:NSLocalizedString(@"Rear tyre:", @"bike sheet")], [self tyreRow:@"rear" wheel:RAWheelRear crr:_rearCrr] ],
+        @[ [NSTextField labelWithString:NSLocalizedString(@"Tyres over time:", @"bike sheet")], history ],
+        @[ [NSTextField labelWithString:NSLocalizedString(@"Estimate:", @"bike sheet")], _figures ] ]];
+    grid.rowSpacing = 6;
+    grid.columnSpacing = 8;
+    [grid columnAtIndex:0].xPlacement = NSGridCellPlacementTrailing;
+    for (NSInteger r = 0; r < grid.numberOfRows; r++) [grid rowAtIndex:r].yPlacement = NSGridCellPlacementCenter;
+    [grid rowAtIndex:5].yPlacement = NSGridCellPlacementTop;
+    [grid rowAtIndex:6].yPlacement = NSGridCellPlacementTop;
+    [grid rowAtIndex:7].yPlacement = NSGridCellPlacementTop;
+    _noBike = [NSTextField wrappingLabelWithString:NSLocalizedString(@"No bike: add one with +.", @"bike sheet")];
+    _noBike.textColor = [NSColor secondaryLabelColor];
+    _noBike.identifier = @"bikeSheetEmpty";
+    NSStackView *v = [NSStackView stackViewWithViews:@[ _noBike, grid ]];
+    v.orientation = NSUserInterfaceLayoutOrientationVertical;
+    v.alignment = NSLayoutAttributeLeading;
+    v.edgeInsets = NSEdgeInsetsMake(6, 8, 8, 8);
+    _sheet = v;
+}
+
+- (NSTableView *)tyreHistoryTable
+{
+    return _historyTable;
+}
+
+- (NSDictionary<NSString *, NSControl *> *)sheetControls
+{
+    return _sheetControls;
+}
+
+- (NSTextField *)sheetFigures
+{
+    return _figures;
+}
+
+- (nullable RABike *)selectedBike
+{
+    RAEquipment *e = [self equipment];
+    NSInteger row = _bikesTable.selectedRow;
+    return row >= 0 && (NSUInteger)row < e.bikes.count ? e.bikes[(NSUInteger)row] : nil;
+}
+
+- (void)selectBikeWithID:(NSString *)bikeID
+{
+    (void)self.window;
+    NSUInteger index = [[[self equipment].bikes valueForKey:@"identifier"] indexOfObject:bikeID];
+    if (index == NSNotFound) return;
+    [_bikesTable selectRowIndexes:[NSIndexSet indexSetWithIndex:index] byExtendingSelection:NO];
+    [_bikesTable scrollRowToVisible:(NSInteger)index];
+    [self refreshSheet];
+}
+
+- (void)tableViewSelectionDidChange:(NSNotification *)n
+{
+    if (n.object == _bikesTable) [self refreshSheet];
+}
+
+- (void)setSheetText:(NSString *)text placeholder:(nullable NSString *)placeholder of:(NSString *)identifier
+{
+    NSControl *c = _sheetControls[identifier];
+    // not while the user is typing in it
+    if (c.currentEditor && [c.stringValue isEqualToString:text]) return;
+    c.stringValue = text;
+    if ([c isKindOfClass:[NSTextField class]]) ((NSTextField *)c).placeholderString = placeholder;
+}
+
+- (void)refreshTyre:(nullable RAPart *)tyre prefix:(NSString *)prefix crr:(NSTextField *)crr
+{
+    [self setSheetText:tyre.model ?: @"" placeholder:nil of:[prefix stringByAppendingString:@"TyreModel"]];
+    [self setSheetText:tyre ? [self format:tyre.width] : @"" placeholder:@"28" of:[prefix stringByAppendingString:@"TyreWidth"]];
+    RATyre *known = tyre ? [[RATyreDatabase shared] tyreMatchingModel:tyre.model width:tyre.width] : nil;
+    [self setSheetText:tyre ? [self format:tyre.pressure] : @""
+           placeholder:known.pressureBar > 0 ? [self format:known.pressureBar] : nil
+                    of:[prefix stringByAppendingString:@"TyrePressure"]];
+    if (!tyre) {
+        crr.stringValue = NSLocalizedString(@"No tyre entered: Crr 0.0050", @"bike sheet");
+    } else if (tyre.crr > 0) {
+        crr.stringValue = [NSString localizedStringWithFormat:NSLocalizedString(@"Crr %.4f (entered)", @"bike sheet"), tyre.crr];
+    } else {
+        crr.stringValue = [NSString localizedStringWithFormat:NSLocalizedString(@"Crr %.4f — %@", @"bike sheet"),
+                           tyre.effectiveCrr, tyre.crrSource];
+    }
+}
+
+- (void)refreshSheet
+{
+    RAEquipment *e = [self equipment];
+    RABike *b = [self selectedBike];
+    _noBike.hidden = b != nil;
+    for (NSControl *c in _sheetControls.allValues) c.enabled = b != nil;
+    for (NSView *v in _sheet.subviews) if (v != _noBike) v.hidden = b == nil;
+    [_historyTable reloadData];
+    if (!b) return;
+    [self setSheetText:b.name placeholder:nil of:@"bikeName"];
+    [self setSheetText:b.model placeholder:NSLocalizedString(@"e.g. Giant Rapid 4", @"bike sheet") of:@"bikeModel"];
+    [self setSheetText:[self format:b.weight]
+           placeholder:[NSString localizedStringWithFormat:@"%.0f", [RABike typicalWeightForKind:b.kind]] of:@"bikeWeight"];
+    [self setSheetText:[self format:b.cdA] placeholder:[self format:[RABike defaultCdAForPosition:b.position]] of:@"bikeCdA"];
+    [(NSPopUpButton *)_sheetControls[@"bikeKind"] selectItemAtIndex:b.kind];
+    [(NSPopUpButton *)_sheetControls[@"bikePosition"] selectItemAtIndex:b.position];
+    [(NSPopUpButton *)_sheetControls[@"bikeSurface"] selectItemAtIndex:b.surface];
+    NSDate *now = [NSDate date];
+    RAPart *front = [e tyreOfBike:b.identifier wheel:RAWheelFront atDate:now];
+    RAPart *rear = [e tyreOfBike:b.identifier wheel:RAWheelRear atDate:now];
+    [self refreshTyre:front prefix:@"front" crr:_frontCrr];
+    [self refreshTyre:rear prefix:@"rear" crr:_rearCrr];
+    // what the estimated power uses today with this bike
+    double crr = [e crrOfBike:b.identifier atDate:now] * [RABike rollingFactorOfSurface:b.surface];
+    _figures.stringValue = [NSString localizedStringWithFormat:
+        NSLocalizedString(@"%.0f kg with the rider · Crr %.4f on these roads · CdA %.2f m²", @"bike sheet"),
+        e.effectiveRiderWeight + b.effectiveWeight, crr, b.effectiveCdA];
+}
+
+/// the edit of a control of the sheet
+- (void)sheetEdited:(NSControl *)sender
+{
+    id value = [sender isKindOfClass:[NSPopUpButton class]] ? ((NSPopUpButton *)sender).selectedItem.representedObject
+                                                             : sender.stringValue;
+    NSString *identifier = sender.identifier;
+    if ([identifier hasPrefix:@"front"] || [identifier hasPrefix:@"rear"]) {
+        BOOL front = [identifier hasPrefix:@"front"];
+        NSString *field = [[identifier substringFromIndex:front ? 9 : 8] lowercaseString];   // "frontTyre" / "rearTyre"
+        [self setValue:value forTyreField:field wheel:front ? RAWheelFront : RAWheelRear];
+    } else if ([identifier hasPrefix:@"bike"]) {
+        [self setValue:value forBikeField:[[identifier substringFromIndex:4] lowercaseString]];
+    }
+}
+
+- (void)setValue:(id)value forBikeField:(NSString *)field
+{
+    NSInteger row = _bikesTable.selectedRow;
+    if (row < 0) return;
+    NSString *column = [field isEqualToString:@"cda"] ? @"cdA" : field;
+    [self setValue:value forColumn:column ofBikeAtRow:row];
+}
+
+- (void)setValue:(nullable id)value forTyreField:(NSString *)field wheel:(RAWheel)wheel
+{
+    RALibraryDocument *library = _library;
+    RABike *bike = [self selectedBike];
+    if (!library || !bike) return;
+    NSString *bikeID = bike.identifier;
+    NSString *text = [value description] ?: @"";
+    double number = [self numberOf:value];
+    if (![[self equipment] tyreOfBike:bikeID wheel:wheel atDate:[NSDate date]] && text.length == 0) return;  // nothing
+    [library changeEquipment:^(RAEquipment *e) {
+        NSDate *now = [NSDate date];
+        RAPart *tyre = [e tyreOfBike:bikeID wheel:wheel atDate:now];
+        if (!tyre) {
+            // the first tyre entered on this wheel counts since always; after others, from today
+            BOOL before = NO;
+            for (RAPart *t in [e tyreHistoryOfBike:bikeID]) before = before || t.wheel == wheel || t.wheel == RAWheelBoth;
+            tyre = [e mountTyreOnBike:bikeID wheel:wheel fromDate:before ? now : nil];
+        } else if (tyre.wheel == RAWheelBoth && ([field isEqualToString:@"model"] || [field isEqualToString:@"width"])) {
+            // a pair corrected on one wheel only: two tyres with the same history
+            RAPart *other = [tyre copy];
+            other.identifier = [[RAPart alloc] init].identifier;
+            other.wheel = wheel;
+            tyre.wheel = wheel == RAWheelFront ? RAWheelRear : RAWheelFront;
+            e.parts = [e.parts arrayByAddingObject:other];
+            tyre = other;
+        }
+        if ([field isEqualToString:@"model"]) [RAEquipmentWindowController setModel:text ofPart:tyre];
+        else if ([field isEqualToString:@"width"]) tyre.width = number;
+        else if ([field isEqualToString:@"pressure"]) tyre.pressure = number;
+        else if ([field isEqualToString:@"crr"]) tyre.crr = number;
+    } actionName:NSLocalizedString(@"Edit Tyre", @"undo action name")];
+    [self refreshSheet];
+}
+
+- (void)changeTyreOnWheel:(RAWheel)wheel model:(NSString *)model width:(double)width date:(NSDate *)date
+{
+    RALibraryDocument *library = _library;
+    RABike *bike = [self selectedBike];
+    if (!library || !bike) return;
+    NSString *bikeID = bike.identifier;
+    [library changeEquipment:^(RAEquipment *e) {
+        RAPart *before = [e tyreOfBike:bikeID wheel:wheel atDate:date];
+        RAPart *tyre = [e mountTyreOnBike:bikeID wheel:wheel fromDate:date];
+        [RAEquipmentWindowController setModel:model ofPart:tyre];
+        if (width > 0) tyre.width = width;
+        tyre.pressure = before.pressure;                 // the same rim, the same habit
+        tyre.wearLimit = before.wearLimit;
+    } actionName:NSLocalizedString(@"Change Tyre", @"undo action name")];
+    [self refreshSheet];
+}
+
+/// asks the new tyre and the day it was mounted (a sheet on the window)
+- (IBAction)changeTyre:(nullable id)sender
+{
+    RABike *bike = [self selectedBike];
+    if (!bike) return;
+    RAWheel wheel = [sender isKindOfClass:[NSButton class]] ? (RAWheel)[(NSButton *)sender tag] : RAWheelFront;
+    RAPart *current = [[self equipment] tyreOfBike:bike.identifier wheel:wheel atDate:[NSDate date]];
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = [NSString stringWithFormat:NSLocalizedString(@"New %@ tyre on “%@”", @"change tyre"),
+                         [[RAPart nameOfWheel:wheel] lowercaseString], bike.name];
+    alert.informativeText = current
+        ? [NSString stringWithFormat:NSLocalizedString(@"“%@” is taken off the day before and stays in the history: the rides "
+                                                       @"before keep it.", @"change tyre"), current.model.length ? current.model : current.name]
+        : NSLocalizedString(@"The rides from that day use it.", @"change tyre");
+    NSComboBox *box = [[NSComboBox alloc] initWithFrame:NSMakeRect(0, 58, 300, 26)];
+    box.completes = YES;
+    box.numberOfVisibleItems = 15;
+    [box addItemsWithObjectValues:[[RATyreDatabase shared].tyres valueForKey:@"displayName"]];
+    box.placeholderString = NSLocalizedString(@"Tyre (database or any)", @"bike sheet");
+    box.stringValue = current.model ?: @"";
+    NSTextField *width = [NSTextField textFieldWithString:current.width > 0 ? [self format:current.width] : @""];
+    width.frame = NSMakeRect(0, 30, 50, 22);
+    width.placeholderString = NSLocalizedString(@"mm", @"change tyre: width");
+    NSDatePicker *day = [[NSDatePicker alloc] initWithFrame:NSMakeRect(0, 0, 160, 24)];
+    day.datePickerElements = NSDatePickerElementFlagYearMonthDay;
+    day.datePickerStyle = NSDatePickerStyleTextFieldAndStepper;
+    day.dateValue = [NSDate date];
+    NSTextField *from = [NSTextField labelWithString:NSLocalizedString(@"mounted on", @"change tyre")];
+    from.frame = NSMakeRect(170, 3, 130, 18);
+    NSView *accessory = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 300, 86)];
+    for (NSView *v in @[ box, width, day, from ]) [accessory addSubview:v];
+    alert.accessoryView = accessory;
+    [alert addButtonWithTitle:NSLocalizedString(@"Change", @"change tyre")];
+    [alert addButtonWithTitle:NSLocalizedString(@"Cancel", @"button")];
+    [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse r) {
+        if (r != NSAlertFirstButtonReturn || box.stringValue.length == 0) return;
+        [self changeTyreOnWheel:wheel model:box.stringValue width:[self numberOf:width.stringValue] date:day.dateValue];
+    }];
 }
 
 #pragma mark - data
@@ -201,8 +562,13 @@
     NSIndexSet *bikeRows = _bikesTable.selectedRowIndexes, *partRows = _partsTable.selectedRowIndexes;
     [_bikesTable reloadData];
     [_partsTable reloadData];
+    if (bikeRows.count == 0 && e.bikes.count) bikeRows = [NSIndexSet indexSetWithIndex:0];
+    if (bikeRows.lastIndex != NSNotFound && bikeRows.lastIndex >= e.bikes.count) {
+        bikeRows = [NSIndexSet indexSetWithIndex:e.bikes.count - 1];
+    }
     [_bikesTable selectRowIndexes:bikeRows byExtendingSelection:NO];
     [_partsTable selectRowIndexes:partRows byExtendingSelection:NO];
+    [self refreshSheet];
     NSArray<RAPart *> *worn = [e wornPartsWithRides:_library.rides ?: @[]];
     _status.stringValue = worn.count ? [NSString stringWithFormat:NSLocalizedString(@"Worn: %@", @"equipment"),
                                         [[worn valueForKey:@"name"] componentsJoinedByString:@", "]] : @"";
@@ -211,6 +577,10 @@
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView
 {
     RAEquipment *e = [self equipment];
+    if (tableView == _historyTable) {
+        RABike *bike = [self selectedBike];
+        return bike ? (NSInteger)[e tyreHistoryOfBike:bike.identifier].count : 0;
+    }
     return (NSInteger)(tableView == _bikesTable ? e.bikes.count : e.parts.count);
 }
 
@@ -269,21 +639,29 @@
     NSString *c = tableColumn.identifier;
     NSArray<RARide *> *rides = _library.rides ?: @[];
     NSView *view = nil;
-    if (tableView == _bikesTable) {
+    if (tableView == _historyTable) {
+        RABike *bike = [self selectedBike];
+        NSArray<RAPart *> *history = bike ? [e tyreHistoryOfBike:bike.identifier] : @[];
+        if ((NSUInteger)row >= history.count) return nil;
+        RAPart *p = history[(NSUInteger)row];
+        RAMounting *m = [e lastMountingOfPart:p onBike:(NSString *)bike.identifier];
+        NSString *text = @"";
+        if ([c isEqualToString:@"wheel"]) text = [RAPart nameOfWheel:p.wheel];
+        else if ([c isEqualToString:@"tyre"]) {
+            text = p.model.length ? p.model : p.name;
+            if (p.width > 0) text = [NSString localizedStringWithFormat:@"%@ %.0f mm", text, p.width];
+        } else if ([c isEqualToString:@"pressure"]) text = [self format:p.pressure];
+        else if ([c isEqualToString:@"from"]) text = m.from.timeIntervalSinceReferenceDate > 86400 ? [_day stringFromDate:m.from] : @"…";
+        else if ([c isEqualToString:@"to"]) text = m.to ? [_day stringFromDate:(NSDate *)m.to] : NSLocalizedString(@"mounted", @"equipment");
+        else if ([c isEqualToString:@"distance"]) {
+            text = [NSString localizedStringWithFormat:@"%.0f", [e distanceOfPart:p rides:rides] / 1000];
+        }
+        view = [self field:text placeholder:nil editable:NO];
+        ((NSTextField *)view).font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    } else if (tableView == _bikesTable) {
         RABike *b = e.bikes[(NSUInteger)row];
         if ([c isEqualToString:@"name"]) view = [self field:b.name placeholder:nil editable:YES];
-        else if ([c isEqualToString:@"kind"]) {
-            NSMutableArray *t = [NSMutableArray array], *v = [NSMutableArray array];
-            for (NSInteger k = RABikeRoad; k <= RABikeElectric; k++) { [t addObject:[RABike nameOfKind:k]]; [v addObject:@(k)]; }
-            view = [self popup:t values:v selected:@(b.kind)];
-        } else if ([c isEqualToString:@"weight"]) view = [self field:[self format:b.weight] placeholder:@"12" editable:YES];
-        else if ([c isEqualToString:@"position"]) {
-            NSMutableArray *t = [NSMutableArray array], *v = [NSMutableArray array];
-            for (NSInteger k = RAPositionUpright; k <= RAPositionDrops; k++) { [t addObject:[RABike nameOfPosition:k]]; [v addObject:@(k)]; }
-            view = [self popup:t values:v selected:@(b.position)];
-        } else if ([c isEqualToString:@"cdA"]) {
-            view = [self field:[self format:b.cdA] placeholder:[self format:[RABike defaultCdAForPosition:b.position]] editable:YES];
-        } else if ([c isEqualToString:@"distance"]) {
+        else if ([c isEqualToString:@"distance"]) {
             view = [self field:[NSString localizedStringWithFormat:@"%.0f", [e distanceOfBike:b.identifier rides:rides] / 1000]
                    placeholder:nil editable:NO];
         }
@@ -355,6 +733,23 @@
 
 #pragma mark - editing
 
+/// a model typed or chosen: a tyre of the database gives its name and width, its Crr by default
++ (void)setModel:(NSString *)text ofPart:(RAPart *)p
+{
+    RATyre *chosen = nil;
+    for (RATyre *t in [RATyreDatabase shared].tyres) if ([t.displayName isEqualToString:text]) chosen = t;
+    if (!chosen) {
+        p.model = [text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+        return;
+    }
+    BOOL defaultName = [p.name isEqualToString:[RAPart nameOfKind:RAPartTyre]] || [p.name hasPrefix:[[RAPart nameOfKind:RAPartTyre] stringByAppendingString:@" ("]]
+                       || [p.name isEqualToString:p.model];
+    p.model = chosen.variant.length ? [NSString stringWithFormat:@"%@ %@", chosen.name, chosen.variant] : chosen.name;
+    p.width = chosen.width;
+    p.crr = 0;
+    if (defaultName) p.name = chosen.model;
+}
+
 - (void)cellEdited:(NSControl *)sender
 {
     NSInteger row = [_bikesTable rowForView:sender];
@@ -396,6 +791,10 @@
         } else if ([column isEqualToString:@"weight"]) b.weight = [self numberOf:value];
         else if ([column isEqualToString:@"position"]) b.position = (RARidingPosition)[value integerValue];
         else if ([column isEqualToString:@"cdA"]) b.cdA = [self numberOf:value];
+        else if ([column isEqualToString:@"surface"]) b.surface = (RASurface)[value integerValue];
+        else if ([column isEqualToString:@"model"]) {
+            b.model = [[value description] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet] ?: @"";
+        }
     } actionName:NSLocalizedString(@"Edit Bike", @"undo action name")];
 }
 
@@ -416,19 +815,7 @@
             NSString *s = [[value description] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
             if (s.length) p.name = s;
         } else if ([column isEqualToString:@"kind"]) p.kind = (RAPartKind)[value integerValue];
-        else if ([column isEqualToString:@"model"]) {
-            NSString *text = [value description] ?: @"";
-            RATyre *chosen = nil;
-            for (RATyre *t in [RATyreDatabase shared].tyres) if ([t.displayName isEqualToString:text]) chosen = t;
-            if (chosen) {           // a tyre of the database: its name and width, its Crr by default
-                p.model = chosen.variant.length ? [NSString stringWithFormat:@"%@ %@", chosen.name, chosen.variant] : chosen.name;
-                p.width = chosen.width;
-                p.crr = 0;
-                if ([p.name isEqualToString:[RAPart nameOfKind:RAPartTyre]]) p.name = chosen.model;
-            } else {
-                p.model = text;
-            }
-        }
+        else if ([column isEqualToString:@"model"]) [RAEquipmentWindowController setModel:[value description] ?: @"" ofPart:p];
         else if ([column isEqualToString:@"width"]) p.width = [self numberOf:value];
         else if ([column isEqualToString:@"wheel"]) p.wheel = (RAWheel)[value integerValue];
         else if ([column isEqualToString:@"crr"]) p.crr = [self numberOf:value];

@@ -282,6 +282,19 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   whose *Use for Selected Part* gives a tyre to the selected part. Drum values on a smooth surface: real roads give
   more; the user corrects a tyre's Crr if needed. To add tyres: edit `RATyres.plist` (brand, model, variant, width,
   crr, pressure, category, source).
+- **Bike sheet** (2026-11-22, owner's request: entering the tyres and the bike model was awkward): the equipment
+  window lists the bikes on the left and shows the sheet of the selected one on the right — name, model (free text,
+  e.g. "Giant Rapid 4"), kind, weight (placeholder: the typical weight of the kind, used when empty), position, CdA,
+  usual roads (surface factor of the Crr), **front and rear tyre** (combo box of the tyre database or any model,
+  width, pressure in bar — placeholder: the test pressure —, the Crr used and where it comes from), a line with what
+  the estimate uses today (mass with the rider, Crr on these roads, CdA), and the **tyres over time** (wheel, tyre,
+  pressure, from, to, km). Editing a tyre on the sheet corrects the tyre now on that wheel (a pair edited on one wheel
+  becomes two tyres with the same history); the first tyre entered on a wheel counts since always (the older rides
+  get it). **Change Tyre…** asks the new tyre, its width and the day it was mounted: the tyre on that wheel is taken
+  off the day before and stays in the history (a pair keeps the other wheel), the new one takes its pressure and
+  wear limit (`-[RAEquipment mountTyreOnBike:wheel:fromDate:]`, one undoable change). The table *All parts* below
+  keeps every part (chains, pads…, and the tyres with their dates). The bike pop-up of the ride detail has *Edit
+  Bike…* (*New Bike…* when there is none): the sheet of the ride's bike.
 - **Rides and bikes**: `RARide.bikeID`; a new ride gets the default bike; setting a default bike gives it to the rides
   without one (same undoable change); contextual menu of the list *Bike ▸ …*; a *Bike* column; the filter has a
   bike criterion (pop-up of the sidebar; `RAFilter.bikeIDs`).

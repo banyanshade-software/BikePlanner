@@ -345,4 +345,91 @@
     XCTAssertEqual([RABike bikeWithPropertyList:@{ @"identifier": @"x" }].surface, RASurfaceAsphalt, @"older libraries");
 }
 
+// the tyres of a bike as its sheet shows them: changing a tyre keeps the old one in the history (owner's request)
+- (void)testChangingATyre
+{
+    RAEquipment *e = [[RAEquipment alloc] init];
+    RABike *bike = [[RABike alloc] init];
+    e.bikes = @[ bike ];
+    NSString *b = bike.identifier;
+    RAPart *pair = [e mountTyreOnBike:b wheel:RAWheelBoth fromDate:nil];
+    pair.model = @"Marathon Plus";
+    XCTAssertEqualObjects([e tyreOfBike:b wheel:RAWheelFront atDate:[self day:2024 month:5 day:1]], pair, @"since always");
+    XCTAssertEqualObjects([e tyreOfBike:b wheel:RAWheelRear atDate:[NSDate date]], pair);
+
+    // October 1st: a GP5000 at the front; the rear keeps the Marathon Plus
+    RAPart *front = [e mountTyreOnBike:b wheel:RAWheelFront fromDate:[self day:2026 month:10 day:1]];
+    front.model = @"GP5000";
+    XCTAssertEqualObjects([e tyreOfBike:b wheel:RAWheelFront atDate:[self day:2026 month:9 day:30]].model, @"Marathon Plus");
+    XCTAssertEqualObjects([e tyreOfBike:b wheel:RAWheelFront atDate:[self day:2026 month:10 day:2]], front);
+    RAPart *rear = [e tyreOfBike:b wheel:RAWheelRear atDate:[self day:2026 month:10 day:2]];
+    XCTAssertEqualObjects(rear.model, @"Marathon Plus");
+    XCTAssertEqual(rear.wheel, RAWheelRear, @"the other tyre of the pair goes on");
+    XCTAssertNotNil(pair.mountings.lastObject.to, @"the pair taken off the day before");
+    XCTAssertEqual([e tyreHistoryOfBike:b].count, 3u);
+    XCTAssertEqualObjects([e tyreHistoryOfBike:b].lastObject, pair, @"the oldest last");
+
+    // the same day again: a correction, not a new history entry
+    RAPart *fixed = [e mountTyreOnBike:b wheel:RAWheelFront fromDate:[self day:2026 month:10 day:1]];
+    fixed.model = @"GP5000 S TR";
+    XCTAssertFalse([e.parts containsObject:front], @"mounted only that day: replaced");
+    XCTAssertEqual([e tyreHistoryOfBike:b].count, 3u);
+    XCTAssertEqualWithAccuracy([e crrOfBike:b atDate:[self day:2026 month:10 day:2]],
+                               0.4 * fixed.effectiveCrr + 0.6 * rear.effectiveCrr, 1e-9);
+}
+
+- (void)testBikeSheet
+{
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    doc.undoManager.groupsByEvent = NO;
+    [doc.undoManager beginUndoGrouping];
+    [doc importData:RATCX(@[ @1, @2, @3 ], 0, nil, nil) fileName:@"a.tcx" error:NULL];
+    RAEquipmentWindowController *wc = [[RAEquipmentWindowController alloc] initWithLibrary:doc];
+    (void)wc.window;
+    [wc addBike:self];
+    XCTAssertEqual(wc.bikesTable.selectedRow, 0, @"the sheet shows the first bike");
+    [wc setValue:@"Giant" forBikeField:@"name"];
+    [wc setValue:@"Giant Rapid 4" forBikeField:@"model"];
+    [wc setValue:@(RASurfaceRoughAsphalt) forBikeField:@"surface"];
+    RABike *bike = doc.equipment.bikes[0];
+    XCTAssertEqualObjects(bike.model, @"Giant Rapid 4");
+    XCTAssertEqual(bike.surface, RASurfaceRoughAsphalt);
+    XCTAssertEqualObjects(wc.sheetControls[@"bikeName"].stringValue, @"Giant");
+    XCTAssertEqualObjects(((NSTextField *)wc.sheetControls[@"bikeWeight"]).placeholderString, @"11", @"typical weight");
+
+    // tyres: chosen from the database, the first ones count since always
+    RATyre *gp = [[RATyreDatabase shared] tyreMatchingModel:@"GP5000" width:28];
+    [wc setValue:gp.displayName forTyreField:@"model" wheel:RAWheelFront];
+    [wc setValue:@"Marathon Plus" forTyreField:@"model" wheel:RAWheelRear];
+    [wc setValue:@"4" forTyreField:@"pressure" wheel:RAWheelRear];
+    RAEquipment *e = doc.equipment;
+    RAPart *front = [e tyreOfBike:bike.identifier wheel:RAWheelFront atDate:[NSDate date]];
+    RAPart *rear = [e tyreOfBike:bike.identifier wheel:RAWheelRear atDate:[NSDate date]];
+    XCTAssertEqual(front.wheel, RAWheelFront);
+    XCTAssertEqual(front.width, gp.width);
+    XCTAssertEqual(rear.pressure, 4);
+    XCTAssertNotNil([e tyreOfBike:bike.identifier wheel:RAWheelRear atDate:[self day:2020 month:1 day:1]]);
+    XCTAssertTrue([wc.sheetControls[@"frontTyreModel"].stringValue containsString:@"5000"]);
+    XCTAssertTrue([wc.sheetFigures.stringValue containsString:@"86 kg"], @"%@", wc.sheetFigures.stringValue);
+    XCTAssertEqual(wc.tyreHistoryTable.numberOfRows, 2);
+
+    [doc.undoManager endUndoGrouping];
+
+    // Change Tyre…: a new rear tyre from today, the old one in the history
+    [doc.undoManager beginUndoGrouping];
+    [wc changeTyreOnWheel:RAWheelRear model:@"Marathon Racer" width:37 date:[NSDate date]];
+    [doc.undoManager endUndoGrouping];
+    e = doc.equipment;
+    RAPart *newRear = [e tyreOfBike:bike.identifier wheel:RAWheelRear atDate:[NSDate date]];
+    XCTAssertEqualObjects(newRear.model, @"Marathon Racer");
+    XCTAssertEqual(newRear.pressure, 4, @"the pressure of the previous tyre");
+    XCTAssertEqualObjects([e tyreOfBike:bike.identifier wheel:RAWheelRear atDate:[self day:2020 month:1 day:1]].model,
+                          @"Marathon Plus", @"older rides keep the old tyre");
+    XCTAssertEqual(wc.tyreHistoryTable.numberOfRows, 3);
+    [doc.undoManager undo];
+    XCTAssertEqualObjects([doc.equipment tyreOfBike:bike.identifier wheel:RAWheelRear atDate:[NSDate date]].model,
+                          @"Marathon Plus", @"undoable");
+    [wc close];
+}
+
 @end

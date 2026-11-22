@@ -314,6 +314,7 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     _detail.title = NSLocalizedString(@"Ride", @"tab");
     __weak RALibraryWindowController *weakSelf = self;
     _detail.compareClimbHandler = ^(RAClimb *climb) { [weakSelf compareClimb:climb]; };
+    _detail.editBikeHandler = ^(NSString *bikeID) { [weakSelf showSheetOfBike:bikeID]; };
     _trends = [[RATrendsViewController alloc] init];
     _ridesMap = [[RARidesMapViewController alloc] init];
     _tabs = [[NSTabViewController alloc] init];
@@ -1086,18 +1087,35 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 
 - (IBAction)showEquipment:(nullable id)sender
 {
+    [self equipmentWindow];
+}
+
+- (nullable RAEquipmentWindowController *)equipmentWindow
+{
     RALibraryDocument *library = self.library;
-    if (!library) return;
+    if (!library) return nil;
     for (NSWindowController *wc in library.windowControllers) {
         if ([wc isKindOfClass:[RAEquipmentWindowController class]]) {
             [wc showWindow:self];
-            return;
+            return (RAEquipmentWindowController *)wc;
         }
     }
     RAEquipmentWindowController *equipment = [[RAEquipmentWindowController alloc] initWithLibrary:library];
     [library addWindowController:equipment];
     [equipment.window center];
     [equipment showWindow:self];
+    return equipment;
+}
+
+/// the sheet of a bike in the equipment window (a new bike when @"")
+- (void)showSheetOfBike:(NSString *)bikeID
+{
+    RAEquipmentWindowController *equipment = [self equipmentWindow];
+    if (bikeID.length == 0) {
+        [equipment addBike:self];
+        bikeID = self.library.equipment.bikes.lastObject.identifier ?: @"";
+    }
+    [equipment selectBikeWithID:bikeID];
 }
 
 #pragma mark - actions

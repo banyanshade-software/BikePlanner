@@ -398,6 +398,88 @@ static double RADouble(id v)
     return 0.4 * front + 0.6 * rear;     // the rear wheel carries most of the weight
 }
 
+- (nullable RAPart *)tyreOfBike:(NSString *)bikeID wheel:(RAWheel)wheel atDate:(NSDate *)date
+{
+    RAPart *found = nil;
+    for (RAPart *p in [self partsOfBike:bikeID atDate:date]) {
+        if (p.kind != RAPartTyre) continue;
+        if (p.wheel == wheel) return p;
+        if (p.wheel == RAWheelBoth || wheel == RAWheelBoth) found = found ?: p;
+    }
+    return found;
+}
+
+- (nullable RAMounting *)lastMountingOfPart:(RAPart *)part onBike:(NSString *)bikeID
+{
+    RAMounting *last = nil;
+    for (RAMounting *m in part.mountings) {
+        if ([m.bikeID isEqualToString:bikeID] && (!last || [m.from compare:last.from] != NSOrderedAscending)) last = m;
+    }
+    return last;
+}
+
+- (RAPart *)mountTyreOnBike:(NSString *)bikeID wheel:(RAWheel)wheel fromDate:(nullable NSDate *)date
+{
+    NSCalendar *cal = [NSCalendar currentCalendar];
+    NSDate *day = date ? [cal startOfDayForDate:(NSDate *)date] : [NSDate dateWithTimeIntervalSinceReferenceDate:0];
+    NSDate *dayBefore = [cal dateByAddingUnit:NSCalendarUnitDay value:-1 toDate:day options:0] ?: day;
+    NSMutableArray<RAPart *> *parts = [self.parts mutableCopy];
+    for (RAPart *p in self.parts) {
+        if (p.kind != RAPartTyre) continue;
+        BOOL sameWheel = p.wheel == wheel || p.wheel == RAWheelBoth || wheel == RAWheelBoth;
+        if (!sameWheel) continue;
+        NSMutableArray<RAMounting *> *mountings = [NSMutableArray array];
+        BOOL changed = NO;
+        for (RAMounting *mt in p.mountings) {
+            BOOL here = [mt.bikeID isEqualToString:bikeID];
+            BOOL after = here && [[cal startOfDayForDate:mt.from] compare:day] != NSOrderedAscending;
+            BOOL across = here && !after && (!mt.to || [(NSDate *)mt.to compare:day] != NSOrderedAscending);
+            if (after) { changed = YES; continue; }                     // mounted that day or later: replaced
+            RAMounting *kept = [mt copy];
+            if (across) { kept.to = dayBefore; changed = YES; }        // taken off the day before
+            [mountings addObject:kept];
+        }
+        if (!changed) continue;
+        BOOL stillOn = NO;      // the pair still was on the bike at that day: its other wheel goes on
+        for (RAMounting *mt in p.mountings) if ([mt.bikeID isEqualToString:bikeID] && [mt containsDate:day]) stillOn = YES;
+        if (p.wheel == RAWheelBoth && wheel != RAWheelBoth && stillOn) {
+            RAPart *other = [p copy];
+            other.identifier = RANewID();
+            other.wheel = wheel == RAWheelFront ? RAWheelRear : RAWheelFront;
+            other.wearWarned = NO;
+            RAMounting *on = [[RAMounting alloc] init];
+            on.bikeID = bikeID;
+            on.from = day;
+            other.mountings = @[ on ];
+            [parts addObject:other];
+        }
+        p.mountings = mountings;
+        if (mountings.count == 0) [parts removeObject:p];             // never used elsewhere: replaced
+    }
+    RAPart *tyre = [[RAPart alloc] init];
+    tyre.wheel = wheel;
+    tyre.name = [NSString stringWithFormat:@"%@ (%@)", [RAPart nameOfKind:RAPartTyre], [RAPart nameOfWheel:wheel]];
+    RAMounting *on = [[RAMounting alloc] init];
+    on.bikeID = bikeID;
+    on.from = day;
+    tyre.mountings = @[ on ];
+    [parts addObject:tyre];
+    self.parts = parts;
+    return tyre;
+}
+
+- (NSArray<RAPart *> *)tyreHistoryOfBike:(NSString *)bikeID
+{
+    NSMutableArray<RAPart *> *tyres = [NSMutableArray array];
+    for (RAPart *p in self.parts) {
+        if (p.kind == RAPartTyre && [self lastMountingOfPart:p onBike:bikeID]) [tyres addObject:p];
+    }
+    [tyres sortUsingComparator:^NSComparisonResult(RAPart *a, RAPart *b) {
+        return [[self lastMountingOfPart:b onBike:bikeID].from compare:(NSDate *)[self lastMountingOfPart:a onBike:bikeID].from];
+    }];
+    return tyres;
+}
+
 - (double)effectiveRiderWeight
 {
     return self.riderWeight > 0 ? self.riderWeight : 75;
