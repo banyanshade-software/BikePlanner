@@ -47,6 +47,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly, nonatomic) NSArray<NSDictionary<NSString *, NSNumber *> *> *recordMetrics;
 /// total_calories of the sessions (kcal); nil when absent
 @property (readonly, nonatomic, nullable) NSNumber *calories;
+/// total_ascent of the sessions (m), as the device computed it (filtered with data the file does not keep);
+/// nil when absent (a device without barometer may not write it)
+@property (readonly, nonatomic, nullable) NSNumber *totalAscent;
 
 @end
 

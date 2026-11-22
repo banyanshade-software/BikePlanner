@@ -263,9 +263,10 @@ static const int32_t kNoPos = 0x7FFFFFFF;
                              @142, @88, @8250, @215, @(-3) ]];
     [b dataLocal:0 values:@[ @(ts + 1), @([BPFITBuilder semicircles:45.001]), @([BPFITBuilder semicircles:5]),
                              @0xFF, @0xFF, @0xFFFF, @0xFFFF, @0x7F ]]; // all invalid
-    // session: total_calories
-    [b defineLocal:1 global:18 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @11, @2, @(BPFITUInt16) ] ]];
-    [b dataLocal:1 values:@[ @(ts + 2), @640 ]];
+    // session: total_calories, total_ascent
+    [b defineLocal:1 global:18 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @11, @2, @(BPFITUInt16) ],
+                                         @[ @22, @2, @(BPFITUInt16) ] ]];
+    [b dataLocal:1 values:@[ @(ts + 2), @640, @412 ]];
     BPTrackReader *r = [BPTrackReader readerWithData:b.data error:NULL];
     XCTAssertEqual(r.metrics.count, r.trace.count);
     NSDictionary *m = r.metrics[0];
@@ -276,6 +277,7 @@ static const int32_t kNoPos = 0x7FFFFFFF;
     XCTAssertEqualObjects(m[@"temperature"], @(-3));
     XCTAssertEqual([r.metrics[1] count], 0u, @"invalid values are left out");
     XCTAssertEqualObjects(r.calories, @640);
+    XCTAssertEqualObjects(r.deviceAscent, @412, @"the gain computed by the device");
 }
 
 - (void)testTCXMetrics

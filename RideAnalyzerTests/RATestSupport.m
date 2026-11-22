@@ -71,6 +71,12 @@ NSData *RAGPX(NSArray<NSNumber *> *altitudes, NSTimeInterval start)
 
 NSData *RAFIT(NSArray<NSNumber *> *altitudes, NSTimeInterval start, uint16_t product, uint32_t serial)
 {
+    return RAFITWithAscent(altitudes, start, product, serial, 0);
+}
+
+NSData *RAFITWithAscent(NSArray<NSNumber *> *altitudes, NSTimeInterval start, uint16_t product, uint32_t serial,
+                        uint16_t totalAscent)
+{
     NSArray<CLLocation *> *trace = RATrace(altitudes, start);
     BPFITBuilder *b = [[BPFITBuilder alloc] init];
     [b defineLocal:0 global:0 fields:@[ @[ @0, @1, @(BPFITEnum) ], @[ @1, @2, @(BPFITUInt16) ], @[ @2, @2, @(BPFITUInt16) ],
@@ -84,8 +90,14 @@ NSData *RAFIT(NSArray<NSNumber *> *altitudes, NSTimeInterval start, uint16_t pro
                                  @([BPFITBuilder semicircles:l.coordinate.longitude]),
                                  @(lround((l.altitude + 500) * 5)) ]];
     }
-    [b defineLocal:2 global:18 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @5, @1, @(BPFITEnum) ] ]];
-    [b dataLocal:2 values:@[ @([BPFITBuilder fitTimestamp:trace.lastObject.timestamp]), @2 ]];
+    if (totalAscent) {
+        [b defineLocal:2 global:18 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @5, @1, @(BPFITEnum) ],
+                                             @[ @22, @2, @(BPFITUInt16) ] ]];
+        [b dataLocal:2 values:@[ @([BPFITBuilder fitTimestamp:trace.lastObject.timestamp]), @2, @(totalAscent) ]];
+    } else {
+        [b defineLocal:2 global:18 fields:@[ @[ @253, @4, @(BPFITUInt32) ], @[ @5, @1, @(BPFITEnum) ] ]];
+        [b dataLocal:2 values:@[ @([BPFITBuilder fitTimestamp:trace.lastObject.timestamp]), @2 ]];
+    }
     return b.data;
 }
 

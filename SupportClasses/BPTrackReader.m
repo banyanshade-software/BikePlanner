@@ -150,6 +150,7 @@ static NSString *const BPTrackReaderErrorDomain = @"BPTrackReader";
     _trace = d.records;
     _metrics = d.recordMetrics.count == d.records.count ? d.recordMetrics : [BPTrackReader emptyMetricsForCount:d.records.count];
     _calories = d.calories;
+    _deviceAscent = d.totalAscent;
     _hasTimes = d.hasTimes;
     _deviceManufacturer = d.manufacturer;
     _deviceProduct = d.product;

@@ -358,6 +358,9 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   its duration (`elapsedDuration`, else `duration`, to check), else where the ride reaches its distance. For the rides imported before the cut: File ▸ *Apply Garmin
   Connect Corrections* lists the activities back to the oldest ride from Garmin Connect and trims those longer than
   their activity (one undoable change).
+- **Elevation gain**: a trim in Garmin Connect only saves new start and end points; the FIT is never changed
+  (forum thread linked in #91). The device's gain (FIT session `total_ascent`) is filtered with data the file does
+  not keep, so it is the ride's ascent for the whole recording; a trimmed ride keeps the gain computed from its points.
 - **Detail**: when 10 minutes or more go at car speed (> 45 km/h on average), a line proposes to end the ride where
   that stretch starts (or to start it after, when it is at the beginning); a *Trim* menu ends or starts the ride at
   the cursor, or gives back the whole recording.

@@ -99,4 +99,23 @@
     XCTAssertTrue(((NSButton *)[d2 valueForKey:@"_trimSuggestion"]).hidden);
 }
 
+// the elevation gain: the device's for the whole recording (it filters with data the file does not keep), the one
+// computed from the points for a trimmed ride (Garmin Connect does the same: forum thread of #91)
+- (void)testDeviceAscent
+{
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    doc.undoManager.groupsByEvent = NO;
+    [doc.undoManager beginUndoGrouping];
+    [doc importData:RAFITWithAscent(@[ @100, @150, @130, @180 ], 0, 3122, 1, 77) fileName:@"a.fit" error:NULL];
+    [doc.undoManager endUndoGrouping];
+    RARide *ride = doc.rides.firstObject;
+    XCTAssertEqualWithAccuracy(ride.ascent, 77, 1e-9, @"the device's gain");
+    [doc.undoManager beginUndoGrouping];
+    [doc trimRide:ride start:0 end:1200];          // the first three points: +50 m
+    [doc.undoManager endUndoGrouping];
+    XCTAssertEqualWithAccuracy(ride.ascent, 50, 5, @"computed from the points kept");
+    [doc.undoManager undo];
+    XCTAssertEqualWithAccuracy(ride.ascent, 77, 1e-9, @"the whole recording again");
+}
+
 @end

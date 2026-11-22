@@ -52,6 +52,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly, nonatomic) NSArray<NSDictionary<NSString *, NSNumber *> *> *metrics;
 /// total calories (kcal): FIT sessions, TCX laps; nil when absent
 @property (readonly, nonatomic, nullable) NSNumber *calories;
+/// the elevation gain computed by the device (FIT sessions total_ascent, m); nil when absent. Better than one
+/// computed from the points, but only for the whole recording.
+@property (readonly, nonatomic, nullable) NSNumber *deviceAscent;
 /// GPX <wpt>; TCX <CoursePoint> / FIT course_point, except turn cues (left, right, straight…)
 @property (readonly, nonatomic) NSArray<CLLocation *> *waypoints;
 /// for each waypoint: its GPX <type>, or the GPX type of the custom POI matching the TCX PointType; @"" when none

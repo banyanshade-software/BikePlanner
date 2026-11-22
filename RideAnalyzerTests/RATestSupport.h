@@ -24,6 +24,9 @@ NSData *RATCX(NSArray<NSNumber *> *altitudes, NSTimeInterval start, NSString * _
 NSData *RAGPX(NSArray<NSNumber *> *altitudes, NSTimeInterval start);
 /// a FIT activity of that trace: file_id (Garmin, product, serial), records, a session with sport cycling
 NSData *RAFIT(NSArray<NSNumber *> *altitudes, NSTimeInterval start, uint16_t product, uint32_t serial);
+/// the same, with the total_ascent of the session (the gain computed by the device), 0: none
+NSData *RAFITWithAscent(NSArray<NSNumber *> *altitudes, NSTimeInterval start, uint16_t product, uint32_t serial,
+                        uint16_t totalAscent);
 
 /// a ZIP archive holding one file, stored or deflated
 NSData *RAZip(NSString *name, NSData *content, BOOL deflate);

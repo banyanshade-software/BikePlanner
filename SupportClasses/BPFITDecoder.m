@@ -27,7 +27,7 @@ enum {
     BPFITFileIdType = 0, BPFITFileIdManufacturer = 1, BPFITFileIdProduct = 2, BPFITFileIdSerialNumber = 3,
     BPFITFileIdTimeCreated = 4,
     // sport: sport; session: sport
-    BPFITSportSport = 0, BPFITSessionSport = 5, BPFITSessionTotalCalories = 11,
+    BPFITSportSport = 0, BPFITSessionSport = 5, BPFITSessionTotalCalories = 11, BPFITSessionTotalAscent = 22,
 };
 
 // seconds between 1970-01-01 and the FIT epoch, 1989-12-31 00:00 UTC
@@ -228,6 +228,8 @@ static uint64_t BPFITReadUInt(const uint8_t *p, NSUInteger size, BOOL bigEndian)
             if (sport != nil && _sport == nil) _sport = sport;
             NSNumber *kcal = def->global == BPFITMesgSession ? values[@(BPFITSessionTotalCalories)] : nil;
             if (kcal != nil) _calories = @(_calories.unsignedIntegerValue + kcal.unsignedIntegerValue); // sessions add up
+            NSNumber *ascent = def->global == BPFITMesgSession ? values[@(BPFITSessionTotalAscent)] : nil;
+            if (ascent != nil) _totalAscent = @(_totalAscent.unsignedIntegerValue + ascent.unsignedIntegerValue);
             continue;
         }
         if (def->global == BPFITMesgRecord) {

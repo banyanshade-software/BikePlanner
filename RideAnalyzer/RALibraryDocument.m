@@ -653,6 +653,8 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
         ride.deviceName = [RARide nameOfGarminProduct:reader.deviceProduct.integerValue] ?: @"";
     }
     ride.sport = reader.sport ?: @"";
+    // the gain computed by the device (FIT): better filtered than one from the points (forum thread of #91)
+    if (reader.deviceAscent != nil && reader.deviceAscent.doubleValue > 0) ride.ascent = reader.deviceAscent.doubleValue;
     ride.stats = [RARideStats statsOfAnalysis:[[RARideAnalysis alloc] initWithTrace:reader.trace metrics:reader.metrics
                                                                          calories:reader.calories hasTimes:reader.hasTimes]];
     return ride;
@@ -867,6 +869,12 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     if (!a) return;
     ride.distance = a.distance;
     ride.ascent = a.ascent;
+    if (!ride.trimmed) {
+        // the whole recording: the gain computed by the device, when the file has it; a trimmed ride keeps the gain
+        // computed from its points (the device's covers the whole recording)
+        BPTrackReader *reader = [BPTrackReader readerWithData:data error:NULL];
+        if (reader.deviceAscent != nil && reader.deviceAscent.doubleValue > 0) ride.ascent = reader.deviceAscent.doubleValue;
+    }
     if (a.hasTimes) {
         ride.duration = a.elapsedTime;
         ride.startDate = a.trace.firstObject.timestamp;
