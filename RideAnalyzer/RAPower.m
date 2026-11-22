@@ -11,6 +11,7 @@
 
 const double RAGravity = 9.81;
 const double RADrivetrainEfficiency = 0.97;
+const double RAWheelInertia = 1.5;
 
 @implementation RAWind
 
@@ -40,6 +41,7 @@ const double RADrivetrainEfficiency = 0.97;
         _crr = 0.005;
         _cdA = [RABike defaultCdAForPosition:RAPositionFlatBar];
         _efficiency = RADrivetrainEfficiency;
+        _wheelInertia = RAWheelInertia;
     }
     return self;
 }
@@ -47,12 +49,14 @@ const double RADrivetrainEfficiency = 0.97;
 + (instancetype)modelForRide:(nullable RARide *)ride equipment:(nullable RAEquipment *)equipment
 {
     RAPowerModel *m = [[RAPowerModel alloc] init];
+    m.crr = 0.005 * [RABike rollingFactorOfSurface:RASurfaceAsphalt];
     RAEquipment *e = equipment ?: [[RAEquipment alloc] init];
     RABike *bike = ride ? [e bikeOfRide:(RARide *)ride] : [e bikeWithID:e.defaultBikeID];
     m.mass = e.effectiveRiderWeight + (bike ? bike.effectiveWeight : 12);
     if (bike) {
         m.cdA = bike.effectiveCdA;
-        m.crr = [e crrOfBike:bike.identifier atDate:ride.startDate ?: [NSDate date]];
+        m.crr = [e crrOfBike:bike.identifier atDate:ride.startDate ?: [NSDate date]]
+              * [RABike rollingFactorOfSurface:bike.surface];
     }
     return m;
 }
@@ -80,7 +84,7 @@ const double RADrivetrainEfficiency = 0.97;
     if (!(speed > 0)) return 0;
     double theta = atan(slope / 100);
     double air = speed + headwind;
-    double force = self.mass * RAGravity * (sin(theta) + self.crr * cos(theta)) + self.mass * acceleration
+    double force = self.mass * RAGravity * (sin(theta) + self.crr * cos(theta)) + (self.mass + self.wheelInertia) * acceleration
                  + 0.5 * density * self.cdA * air * fabs(air);
     double p = force * speed / self.efficiency;
     return p > 0 ? p : 0;
@@ -91,36 +95,56 @@ const double RADrivetrainEfficiency = 0.97;
     NSUInteger n = a.count;
     NSMutableArray<NSNumber *> *out = [NSMutableArray arrayWithCapacity:n];
     double temperature = a.hasTemperature ? a.averageTemperature : NAN;
+    // speed smoothed over 5 s (the sensor's when the file has it: RARideAnalysis.speeds), acceleration over 6 s
+    double *v = calloc(MAX(n, (NSUInteger)1), sizeof(double));
+    NSUInteger lo = 0, hi = 0;
     for (NSUInteger i = 0; i < n; i++) {
-        double v = a.speeds[i].doubleValue / 3.6;
-        BOOL moving = a.hasTimes && RAHasValue(v) && v > 3.0 / 3.6;
+        double t = a.elapsed[i].doubleValue;
+        while (lo < i && t - a.elapsed[lo].doubleValue > 2.5) lo++;
+        if (hi < i) hi = i;
+        while (hi + 1 < n && a.elapsed[hi + 1].doubleValue - t <= 2.5) hi++;
+        double sum = 0;
+        NSUInteger count = 0;
+        for (NSUInteger k = lo; k <= hi; k++) {
+            double s = a.speeds[k].doubleValue;
+            if (RAHasValue(s)) { sum += s; count++; }
+        }
+        v[i] = count ? sum / count / 3.6 : NAN;
+    }
+    for (NSUInteger i = 0; i < n; i++) {
+        BOOL moving = a.hasTimes && isfinite(v[i]) && v[i] > 3.0 / 3.6;
+        double cadence = a.hasCadence ? a.cadences[i].doubleValue : RANoValue;
         if (!moving) { [out addObject:@(RANoValue)]; continue; }
-        // acceleration over the neighbouring points (about ±2 records), heading over the next and previous ones
-        NSUInteger lo = i >= 2 ? i - 2 : 0, hi = MIN(i + 2, n - 1);
-        double dt = a.elapsed[hi].doubleValue - a.elapsed[lo].doubleValue;
-        double v0 = a.speeds[lo].doubleValue / 3.6, v1 = a.speeds[hi].doubleValue / 3.6;
-        double acc = dt > 0 && RAHasValue(v0) && RAHasValue(v1) ? (v1 - v0) / dt : 0;
+        if (a.hasCadence && RAHasValue(cadence) && cadence <= 0) { [out addObject:@0]; continue; }   // freewheeling
+        NSUInteger p0 = i, p1 = i;
+        double t = a.elapsed[i].doubleValue;
+        while (p0 > 0 && t - a.elapsed[p0 - 1].doubleValue <= 3) p0--;
+        while (p1 + 1 < n && a.elapsed[p1 + 1].doubleValue - t <= 3) p1++;
+        double dt = a.elapsed[p1].doubleValue - a.elapsed[p0].doubleValue;
+        double acc = dt > 0 && isfinite(v[p0]) && isfinite(v[p1]) ? (v[p1] - v[p0]) / dt : 0;
         double headwind = 0;
         RAWind *w = wind ? wind(i) : nil;
-        if (w && hi > lo) {
-            CLLocationCoordinate2D p = a.trace[lo].coordinate, q = a.trace[hi].coordinate;
+        NSUInteger h0 = i >= 2 ? i - 2 : 0, h1 = MIN(i + 2, n - 1);
+        if (w && h1 > h0) {
+            CLLocationCoordinate2D p = a.trace[h0].coordinate, q = a.trace[h1].coordinate;
             headwind = [w headwindForHeading:[RAPowerModel headingFromLatitude:p.latitude longitude:p.longitude
                                                                     toLatitude:q.latitude longitude:q.longitude]];
         }
         double rho = [RAPowerModel airDensityAtAltitude:a.altitudes[i].doubleValue
                                             temperature:a.hasTemperature ? a.temperatures[i].doubleValue : temperature];
         double slope = a.slopes[i].doubleValue;
-        [out addObject:@([self powerAtSpeed:v slope:RAHasValue(slope) ? slope : 0 acceleration:acc
+        [out addObject:@([self powerAtSpeed:v[i] slope:RAHasValue(slope) ? slope : 0 acceleration:acc
                                    headwind:headwind airDensity:rho])];
     }
+    free(v);
     return out;
 }
 
 - (double)averagePowerOfStats:(RATerrainStats *)t
 {
     if (t.time <= 0) return NAN;
-    double energy = self.mass * (t.gravityWork + t.inertiaWork) + self.mass * self.crr * t.rollingWork
-                  + self.cdA * t.airWork;
+    double energy = self.mass * t.gravityWork + (self.mass + self.wheelInertia) * t.inertiaWork
+                  + self.mass * self.crr * t.rollingWork + self.cdA * t.airWork;
     double p = energy / self.efficiency / t.time;
     return p > 0 ? p : 0;
 }

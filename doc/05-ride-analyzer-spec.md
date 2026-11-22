@@ -303,10 +303,21 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   filter sheet (More…), a bike per device (e.g. the watch for commuting).
 
 ## Estimated power (2026-11-21, R11)
-- **Model** (`RAPowerModel`): P = (m g sin θ + Crr m g cos θ + m a + ½ ρ CdA v_air |v_air|) v / η, v_air = v +
-  headwind; negative values (braking, coasting) count as 0. m: rider + bike, Crr: the tyres on the bike at the ride's
-  date, CdA: bike and position (R13; defaults 75 + 12 kg, Crr 0.005, flat bar 0.45 m² without equipment); ρ from the
-  altitude and the temperature of the file (15 °C when none); η 0.97.
+- **Model** (`RAPowerModel`): P = (m g sin θ + Crr m g cos θ + (m + m_w) a + ½ ρ CdA v_air |v_air|) v / η, v_air
+  = v + headwind; negative values (braking) count as 0. m: rider + bike (an unknown bike weight is the typical one
+  of its kind: road 9, gravel 10, hybrid 11, mountain 13, electric 23 kg); m_w = 1.5 kg, the inertia of the wheels
+  (acceleration only); CdA: bike and position (R13; defaults 75 kg rider, flat bar 0.45 m²); ρ from the altitude
+  and the temperature of the file (15 °C when none); η 0.97.
+- **Rolling resistance** (2026-11-22, owner's request: "the tyres and their Crr first"): Crr = Crr of the tyre
+  (tyre database, measured on a drum at a published pressure) × a pressure correction × the surface factor of the
+  bike. Pressure: the tyre's pressure (bar) entered on the part; Crr × (test pressure / pressure)^0.4, bounded to
+  [0.7, 1.5] (none when the pressure is not entered or the test pressure not published). Surface (per bike, the
+  roads it usually rides): smooth asphalt × 1.15, ordinary asphalt × 1.3 (default), rough asphalt × 1.5, asphalt
+  and gravel × 1.8, gravel × 2.5 — a drum is smoother than any road. Without equipment: 0.005 × 1.3.
+- **Sensors**: the speed is the sensor's when the file has it (wheel sensor, smoother than GPS distances), smoothed
+  over 5 s in the detail; the slope is over ~100 m (`RARideAnalysis`). When the file has the cadence, the moments
+  without pedalling (cadence 0: freewheeling) are 0 W, and do no work in the stats (stats version 5): their time
+  still counts in the average.
 - **Wind** (`RAWind`, `RAWindProvider`: the wind at each point, speed and direction it comes from; headwind = speed ×
   cos(wind direction − heading)): already in the computations, nil (still air) until R12 gives it.
 - **Detail** (R4): a ride without power meter gets its estimated power per point (speed over ~4 records for the
@@ -314,7 +325,7 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
 - **Trends** (R6): measures *Estimated power* and *Watts per beat, estimated power*. So that the trends do not read the
   files again, the stats keep per terrain the work sums of each force per unit (`gravityWork`, `rollingWork`,
   `inertiaWork` per kg, `airWork` per m² of CdA; stats version 3, computed again for older rides): the average power
-  of a terrain is then (m (gravity + inertia) + m Crr rolling + CdA air) / η / time, with the equipment of each
+  of a terrain is then (m gravity + (m + m_w) inertia + m Crr rolling + CdA air) / η / time, with the equipment of each
   ride's date — a change of equipment applies at once. The clamping at 0 is per point in the detail but over the
   whole terrain in the trends (the descents are therefore not meaningful there).
 - The estimate is computed for the rides shown (the filter, R3), e.g. those of the Edge, not those of the watch.

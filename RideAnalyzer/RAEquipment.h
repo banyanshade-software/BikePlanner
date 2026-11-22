@@ -44,6 +44,15 @@ typedef NS_ENUM(NSInteger, RAWheel) {
     RAWheelBoth,        // a pair, same tyre front and rear
 };
 
+/// the usual road surface of a bike: the Crr of the tyres (measured on a smooth drum) is multiplied by a factor
+typedef NS_ENUM(NSInteger, RASurface) {
+    RASurfaceSmoothAsphalt,     // × 1.15
+    RASurfaceAsphalt,           // × 1.3, the default
+    RASurfaceRoughAsphalt,      // × 1.5 (chip seal, worn roads, cobbles here and there)
+    RASurfaceMixedGravel,       // × 1.8 (some gravel, cycle paths)
+    RASurfaceGravel,            // × 2.5
+};
+
 @interface RABike : NSObject <NSCopying>
 @property (copy, nonatomic) NSString *identifier;
 @property (copy, nonatomic) NSString *name;
@@ -52,6 +61,9 @@ typedef NS_ENUM(NSInteger, RAWheel) {
 @property (nonatomic) RARidingPosition position;
 /// m²; 0: from the position (rider included)
 @property (nonatomic) double cdA;
+@property (nonatomic) RASurface surface;
+/// the model, as the user writes it (e.g. "Giant Rapid 4"), @"" none
+@property (copy, nonatomic) NSString *model;
 /// Garmin Connect gear (uuid), @"" for a bike created here
 @property (copy, nonatomic) NSString *garminGearID;
 + (NSString *)nameOfKind:(RABikeKind)kind;
@@ -60,6 +72,11 @@ typedef NS_ENUM(NSInteger, RAWheel) {
 + (double)defaultCdAForPosition:(RARidingPosition)position;
 /// the position of a kind of bike by default
 + (RARidingPosition)defaultPositionForKind:(RABikeKind)kind;
++ (NSString *)nameOfSurface:(RASurface)surface;
+/// the factor of the Crr on that surface (rough estimates: drum tests are on smooth steel)
++ (double)rollingFactorOfSurface:(RASurface)surface;
+/// a usual weight of a kind of bike (kg), when the user has not weighed it
++ (double)typicalWeightForKind:(RABikeKind)kind;
 @property (readonly, nonatomic) double effectiveCdA;
 @property (readonly, nonatomic) double effectiveWeight;
 - (NSDictionary *)propertyList;
@@ -84,8 +101,10 @@ typedef NS_ENUM(NSInteger, RAWheel) {
 @property (copy, nonatomic) NSString *model;    // e.g. "Continental Grand Prix 5000"
 @property (nonatomic) double width;             // mm, tyres (0: unknown)
 @property (nonatomic) RAWheel wheel;            // tyres
-/// rolling resistance; 0: the default for the model and width
+/// rolling resistance; 0: the default for the model and width (and pressure)
 @property (nonatomic) double crr;
+/// the tyre's usual pressure (bar), 0: unknown (the database's test pressure)
+@property (nonatomic) double pressure;
 /// km after which the part is worn (0: none)
 @property (nonatomic) double wearLimit;
 /// the wear warning was shown (once per part)
@@ -96,8 +115,11 @@ typedef NS_ENUM(NSInteger, RAWheel) {
 + (double)defaultCrrForModel:(NSString *)model width:(double)width;
 + (NSString *)nameOfKind:(RAPartKind)kind;
 + (NSString *)nameOfWheel:(RAWheel)wheel;
-/// its Crr, else the default; 0 for a part that is not a tyre
+/// its Crr, else the default — the database's value corrected for the pressure (Crr ∝ (test pressure / pressure)^0.4,
+/// within ×0.7…×1.5); 0 for a part that is not a tyre
 @property (readonly, nonatomic) double effectiveCrr;
+/// where the default Crr comes from (tyre, test pressure, source; or "estimate from the width")
+@property (readonly, nonatomic) NSString *crrSource;
 /// the bike it is on at that date, nil when not mounted
 - (nullable NSString *)bikeIDAtDate:(NSDate *)date;
 - (NSDictionary *)propertyList;
@@ -116,8 +138,8 @@ typedef NS_ENUM(NSInteger, RAWheel) {
 - (nullable RABike *)bikeOfRide:(RARide *)ride;
 /// the parts mounted on a bike at a date
 - (NSArray<RAPart *> *)partsOfBike:(NSString *)bikeID atDate:(NSDate *)date;
-/// the rolling resistance of a bike at a date: tyres front 40 %, rear 60 % (a pair counts for both); 0.005 when
-/// no tyre is known
+/// the rolling resistance of the tyres of a bike at a date: front 40 %, rear 60 % (a pair counts for both); 0.005
+/// when no tyre is known. Not multiplied by the surface factor (RAPowerModel does)
 - (double)crrOfBike:(NSString *)bikeID atDate:(NSDate *)date;
 @property (readonly, nonatomic) double effectiveRiderWeight;
 

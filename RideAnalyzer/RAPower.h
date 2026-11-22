@@ -4,9 +4,12 @@
 //
 //  Estimated power (#82, R11), for rides without a power meter: the power the rider gives to move the bike, from the
 //  speed, the slope and the acceleration, against gravity, rolling resistance and air drag:
-//      P = (m g sin θ + Crr m g cos θ + m a + ½ ρ CdA v_air |v_air|) v / η,   v_air = v + headwind
-//  m: rider + bike (RAEquipment, R13), Crr: the tyres mounted at the date, CdA: bike and position, ρ: from the
-//  altitude and the temperature, η: drivetrain efficiency (0.97). Negative values (braking, coasting) count as 0.
+//      P = (m g sin θ + Crr m g cos θ + (m + m_w) a + ½ ρ CdA v_air |v_air|) v / η,   v_air = v + headwind
+//  m: rider + bike (RAEquipment, R13); m_w: the wheels' inertia (1.5 kg, in the acceleration only); Crr: the tyres
+//  mounted at the date (tyre database, pressure) × the surface factor of the bike; CdA: bike and position; ρ: from
+//  the altitude and the temperature; η: drivetrain efficiency (0.97). Speed: the sensor's when the file has it,
+//  smoothed over 5 s; slope over 100 m. Negative values count as 0, and so do the moments without pedalling when
+//  the file has the cadence (cadence 0: freewheeling).
 //  The wind (R12) is taken into account when given (RAWind); without it, still air.
 //  Estimated values are always shown as such.
 //
@@ -31,11 +34,13 @@ typedef RAWind * _Nullable (^RAWindProvider)(NSUInteger index);
 
 extern const double RAGravity;              // 9.81 m/s²
 extern const double RADrivetrainEfficiency; // 0.97
+extern const double RAWheelInertia;         // 1.5 kg
 
 @interface RAPowerModel : NSObject
 @property (nonatomic) double mass;          // kg, rider and bike
-@property (nonatomic) double crr;
+@property (nonatomic) double crr;           // tyres × surface
 @property (nonatomic) double cdA;           // m²
+@property (nonatomic) double wheelInertia;  // kg, equivalent mass of the wheels (1.5)
 @property (nonatomic) double efficiency;
 
 /// rider weight, the ride's bike (else the default bike, else 12 kg, flat bar), its tyres at the date of the ride

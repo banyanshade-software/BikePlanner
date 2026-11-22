@@ -18,7 +18,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, nonatomic) NSString *variant;      // @"" none
 @property (nonatomic) double width;                 // mm, as tested
 @property (nonatomic) double crr;
-@property (copy, nonatomic) NSString *pressure;     // of the test
+@property (copy, nonatomic) NSString *pressure;     // of the test, as published ("80 psi / 5.5 bar")
+/// the test pressure in bar (from `pressure`), 0 when not given
+@property (readonly, nonatomic) double pressureBar;
 @property (copy, nonatomic) NSString *category;     // road, touring, gravel
 @property (copy, nonatomic) NSString *source;
 /// "Continental Grand Prix 5000" (brand and model)

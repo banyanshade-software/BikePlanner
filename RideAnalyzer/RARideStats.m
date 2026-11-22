@@ -9,7 +9,8 @@
 #import "RARideAnalysis.h"
 
 const NSInteger RATerrainCount = 5;
-const NSInteger RARideStatsVersion = 4; // 2: track (R10); 3: work sums for the estimated power (R11); 4: climbs (R7)
+const NSInteger RARideStatsVersion = 5; // 2: track (R10); 3: work sums of the estimated power (R11); 4: climbs (R7);
+                                        // 5: no work while freewheeling
 
 static const double RAMovingSpeedStats = 3.0 / 3.6; // m/s, as RARideAnalysis
 
@@ -146,7 +147,10 @@ static NSArray<NSString *> *RATerrainKeys(void)
     double hr = a.heartRates[i].doubleValue, power = a.powers[i].doubleValue;
     if (RAHasValue(hr)) { interval.heartRateSum = hr * dt; interval.heartRateTime = dt; }
     if (RAHasValue(power) && !a.powerIsEstimated) { interval.powerSum = power * dt; interval.powerTime = dt; }
-    // work of the forces (R11): slope of the point, speed and acceleration of the interval
+    // work of the forces (R11): slope of the point, speed and acceleration of the interval; none while freewheeling
+    // (cadence 0, when the file has the cadence): the time still counts, so the average includes these zeros
+    double cadence = a.hasCadence ? a.cadences[i].doubleValue : RANoValue;
+    if (a.hasCadence && RAHasValue(cadence) && cadence <= 0) return interval;
     double slope = a.slopes[i].doubleValue, theta = atan((RAHasValue(slope) ? slope : 0) / 100);
     double v = dd / dt;
     double vPrev = 0;
@@ -166,7 +170,10 @@ static NSArray<NSString *> *RATerrainKeys(void)
     double temperature = a.hasTemperature ? a.temperatures[i].doubleValue : NAN;
     double rho = [RAPowerModel airDensityAtAltitude:a.altitudes[i].doubleValue
                                         temperature:RAHasValue(temperature) ? temperature : a.averageTemperature];
-    double air = v + headwind;
+    // the air: the speed of the sensor when the file has it (GPS distances are noisier), else of the interval
+    double s0 = a.speeds[i - 1].doubleValue, s1 = a.speeds[i].doubleValue;
+    double sensor = RAHasValue(s0) && RAHasValue(s1) && s0 > 0 && s1 > 0 ? (s0 + s1) / 2 / 3.6 : v;
+    double air = sensor + headwind;
     interval.gravityWork = RAGravity * sin(theta) * dd;
     interval.rollingWork = RAGravity * cos(theta) * dd;
     interval.inertiaWork = acc * dd;

@@ -34,6 +34,8 @@ static double RADouble(id v)
         _name = NSLocalizedString(@"Bike", @"equipment: default name");
         _kind = RABikeHybrid;
         _position = RAPositionFlatBar;
+        _surface = RASurfaceAsphalt;
+        _model = @"";
         _garminGearID = @"";
     }
     return self;
@@ -91,6 +93,42 @@ static double RADouble(id v)
     return RAPositionFlatBar;
 }
 
++ (NSString *)nameOfSurface:(RASurface)surface
+{
+    switch (surface) {
+        case RASurfaceSmoothAsphalt: return NSLocalizedString(@"Smooth asphalt", @"surface");
+        case RASurfaceAsphalt: return NSLocalizedString(@"Ordinary asphalt", @"surface");
+        case RASurfaceRoughAsphalt: return NSLocalizedString(@"Rough asphalt", @"surface");
+        case RASurfaceMixedGravel: return NSLocalizedString(@"Asphalt and gravel", @"surface");
+        case RASurfaceGravel: return NSLocalizedString(@"Gravel", @"surface");
+    }
+    return @"";
+}
+
++ (double)rollingFactorOfSurface:(RASurface)surface
+{
+    switch (surface) {
+        case RASurfaceSmoothAsphalt: return 1.15;
+        case RASurfaceAsphalt: return 1.3;
+        case RASurfaceRoughAsphalt: return 1.5;
+        case RASurfaceMixedGravel: return 1.8;
+        case RASurfaceGravel: return 2.5;
+    }
+    return 1.3;
+}
+
++ (double)typicalWeightForKind:(RABikeKind)kind
+{
+    switch (kind) {
+        case RABikeRoad: return 9;
+        case RABikeHybrid: return 11;
+        case RABikeGravel: return 10;
+        case RABikeMountain: return 13;
+        case RABikeElectric: return 23;
+    }
+    return 12;
+}
+
 - (double)effectiveCdA
 {
     return self.cdA > 0 ? self.cdA : [RABike defaultCdAForPosition:self.position];
@@ -98,13 +136,14 @@ static double RADouble(id v)
 
 - (double)effectiveWeight
 {
-    return self.weight > 0 ? self.weight : 12;
+    return self.weight > 0 ? self.weight : [RABike typicalWeightForKind:self.kind];
 }
 
 - (NSDictionary *)propertyList
 {
     return @{ @"identifier": self.identifier, @"name": self.name, @"kind": @(self.kind), @"weight": @(self.weight),
-              @"position": @(self.position), @"cdA": @(self.cdA), @"garminGearID": self.garminGearID };
+              @"position": @(self.position), @"cdA": @(self.cdA), @"garminGearID": self.garminGearID,
+              @"surface": @(self.surface), @"model": self.model };
 }
 
 + (nullable RABike *)bikeWithPropertyList:(nullable id)plist
@@ -118,6 +157,9 @@ static double RADouble(id v)
     b.position = (RARidingPosition)MIN(MAX(RADouble(plist[@"position"]), RAPositionUpright), RAPositionDrops);
     b.cdA = RADouble(plist[@"cdA"]);
     b.garminGearID = RAString(plist[@"garminGearID"], @"");
+    b.surface = plist[@"surface"] ? (RASurface)MIN(MAX(RADouble(plist[@"surface"]), RASurfaceSmoothAsphalt), RASurfaceGravel)
+                                  : RASurfaceAsphalt;
+    b.model = RAString(plist[@"model"], @"");
     return b;
 }
 
@@ -231,7 +273,28 @@ static double RADouble(id v)
 - (double)effectiveCrr
 {
     if (self.kind != RAPartTyre) return 0;
-    return self.crr > 0 ? self.crr : [RAPart defaultCrrForModel:self.model width:self.width];
+    if (self.crr > 0) return self.crr;
+    RATyre *tyre = [[RATyreDatabase shared] tyreMatchingModel:self.model width:self.width];
+    if (!tyre) return [RAPart defaultCrrForModel:self.model width:self.width];
+    double factor = 1;
+    if (self.pressure > 0 && tyre.pressureBar > 0) {
+        // lower pressure, more rolling resistance (on a drum; rough roads are another matter: the surface factor)
+        factor = MIN(MAX(pow(tyre.pressureBar / self.pressure, 0.4), 0.7), 1.5);
+    }
+    return tyre.crr * factor;
+}
+
+- (NSString *)crrSource
+{
+    if (self.kind != RAPartTyre) return @"";
+    RATyre *tyre = [[RATyreDatabase shared] tyreMatchingModel:self.model width:self.width];
+    if (!tyre) return NSLocalizedString(@"estimate from the width", @"Crr source");
+    NSString *s = [NSString stringWithFormat:NSLocalizedString(@"%@, measured at %@ (%@)", @"Crr source"),
+                   tyre.displayName, tyre.pressure, tyre.source];
+    if (self.pressure > 0 && tyre.pressureBar > 0) {
+        s = [s stringByAppendingFormat:NSLocalizedString(@", corrected for %.1f bar", @"Crr source"), self.pressure];
+    }
+    return s;
 }
 
 - (nullable NSString *)bikeIDAtDate:(NSDate *)date
@@ -243,7 +306,7 @@ static double RADouble(id v)
 - (NSDictionary *)propertyList
 {
     return @{ @"identifier": self.identifier, @"name": self.name, @"kind": @(self.kind), @"model": self.model,
-              @"width": @(self.width), @"wheel": @(self.wheel), @"crr": @(self.crr), @"wearLimit": @(self.wearLimit),
+              @"width": @(self.width), @"wheel": @(self.wheel), @"crr": @(self.crr), @"pressure": @(self.pressure), @"wearLimit": @(self.wearLimit),
               @"wearWarned": @(self.wearWarned), @"mountings": [self.mountings valueForKey:@"propertyList"] };
 }
 
@@ -258,6 +321,7 @@ static double RADouble(id v)
     p.width = RADouble(plist[@"width"]);
     p.wheel = (RAWheel)MIN(MAX(RADouble(plist[@"wheel"]), RAWheelFront), RAWheelBoth);
     p.crr = RADouble(plist[@"crr"]);
+    p.pressure = RADouble(plist[@"pressure"]);
     p.wearLimit = RADouble(plist[@"wearLimit"]);
     p.wearWarned = RADouble(plist[@"wearWarned"]) != 0;
     NSMutableArray<RAMounting *> *mountings = [NSMutableArray array];

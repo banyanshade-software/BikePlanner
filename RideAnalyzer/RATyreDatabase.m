@@ -26,6 +26,14 @@ static NSString *RANormalized(NSString *s)
     return [NSString stringWithFormat:@"%@ %@", self.brand, self.model];
 }
 
+- (double)pressureBar
+{
+    NSRegularExpression *re = [NSRegularExpression regularExpressionWithPattern:@"([0-9]+(?:\\.[0-9]+)?)\\s*bar"
+                                                                        options:NSRegularExpressionCaseInsensitive error:NULL];
+    NSTextCheckingResult *m = [re firstMatchInString:self.pressure options:0 range:NSMakeRange(0, self.pressure.length)];
+    return m ? [[self.pressure substringWithRange:[m rangeAtIndex:1]] doubleValue] : 0;
+}
+
 - (NSString *)displayName
 {
     NSString *variant = self.variant.length ? [NSString stringWithFormat:@" (%@)", self.variant] : @"";

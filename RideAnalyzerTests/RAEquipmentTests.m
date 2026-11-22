@@ -76,7 +76,11 @@
     XCTAssertEqualWithAccuracy(bike.effectiveCdA, 0.30, 1e-9);
     bike.cdA = 0.33;
     XCTAssertEqualWithAccuracy(bike.effectiveCdA, 0.33, 1e-9);
-    XCTAssertEqual(bike.effectiveWeight, 12);
+    XCTAssertEqual(bike.effectiveWeight, 11, @"typical weight of a hybrid");
+    bike.kind = RABikeElectric;
+    XCTAssertEqual(bike.effectiveWeight, 23);
+    bike.weight = 21.5;
+    XCTAssertEqual(bike.effectiveWeight, 21.5);
     XCTAssertEqual([RABike defaultPositionForKind:RABikeRoad], RAPositionHoods);
     XCTAssertEqual([[RAEquipment alloc] init].effectiveRiderWeight, 75);
 }
@@ -252,7 +256,7 @@
     NSTextField *equipment = [detail valueForKey:@"_equipment"];
     XCTAssertEqualObjects(bike.titleOfSelectedItem, @"Giant");
     XCTAssertTrue([equipment.stringValue containsString:@"GP5000"], @"%@", equipment.stringValue);
-    XCTAssertTrue([equipment.stringValue containsString:@"87 kg"], @"75 kg rider, 12 kg bike");
+    XCTAssertTrue([equipment.stringValue containsString:@"86 kg"], @"75 kg rider, 11 kg hybrid bike");
 
     [bike selectItemWithTitle:@"Route"];
     [bike sendAction:bike.action to:bike.target];
@@ -309,6 +313,36 @@
     [db useSelectedTyre:self];
     XCTAssertEqualObjects(used.model, @"Energizer Plus");
     [wc close];
+}
+
+// tyre pressure and road surface (owner's request: better power estimate, tyres and their Crr first)
+- (void)testPressureAndSurface
+{
+    RATyre *gp = [[RATyreDatabase shared] tyreMatchingModel:@"GP5000" width:28];
+    XCTAssertGreaterThan(gp.pressureBar, 3, @"the test pressure is parsed from the database");
+    RAPart *tyre = [[RAPart alloc] init];
+    tyre.model = @"GP5000";
+    tyre.width = 28;
+    double base = tyre.effectiveCrr;
+    tyre.pressure = gp.pressureBar;
+    XCTAssertEqualWithAccuracy(tyre.effectiveCrr, base, 1e-9, @"at the test pressure");
+    tyre.pressure = gp.pressureBar - 1.5;
+    XCTAssertGreaterThan(tyre.effectiveCrr, base * 1.1, @"softer: more rolling resistance");
+    tyre.pressure = 1;
+    XCTAssertLessThanOrEqual(tyre.effectiveCrr, base * 1.5 + 1e-9, @"bounded");
+    RAPart *read = [RAPart partWithPropertyList:tyre.propertyList];
+    XCTAssertEqual(read.pressure, 1);
+
+    XCTAssertEqualWithAccuracy([RABike rollingFactorOfSurface:RASurfaceAsphalt], 1.3, 1e-9);
+    XCTAssertGreaterThan([RABike rollingFactorOfSurface:RASurfaceGravel], [RABike rollingFactorOfSurface:RASurfaceRoughAsphalt]);
+    RABike *bike = [[RABike alloc] init];
+    XCTAssertEqual(bike.surface, RASurfaceAsphalt);
+    bike.surface = RASurfaceGravel;
+    bike.model = @"Giant Rapid 4";
+    RABike *b2 = [RABike bikeWithPropertyList:bike.propertyList];
+    XCTAssertEqual(b2.surface, RASurfaceGravel);
+    XCTAssertEqualObjects(b2.model, @"Giant Rapid 4");
+    XCTAssertEqual([RABike bikeWithPropertyList:@{ @"identifier": @"x" }].surface, RASurfaceAsphalt, @"older libraries");
 }
 
 @end

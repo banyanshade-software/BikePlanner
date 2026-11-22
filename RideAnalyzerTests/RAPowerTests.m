@@ -89,7 +89,9 @@
     RARide *ride = [[RARide alloc] initWithTrace:RATrace(@[ @1, @2 ], 0) name:@"r"];
     RAPowerModel *model = [RAPowerModel modelForRide:ride equipment:e];
     XCTAssertEqualWithAccuracy(model.mass, 88, 1e-9);
-    XCTAssertEqualWithAccuracy(model.crr, 0.00363, 1e-6);
+    XCTAssertEqualWithAccuracy(model.crr, 0.00363 * 1.3, 1e-6, @"drum Crr × ordinary asphalt");
+    bike.surface = RASurfaceSmoothAsphalt;
+    XCTAssertEqualWithAccuracy([RAPowerModel modelForRide:ride equipment:e].crr, 0.00363 * 1.15, 1e-6);
     XCTAssertEqualWithAccuracy(model.cdA, 0.45, 1e-9);
     RAPowerModel *none = [RAPowerModel modelForRide:ride equipment:nil];
     XCTAssertEqualWithAccuracy(none.mass, 87, 1e-9, @"75 kg rider, 12 kg bike");
@@ -153,6 +155,30 @@
     XCTAssertEqual([RATrends pointsForRides:@[ ride ] measure:RATrendEstimatedPowerPerBeat terrain:RATerrainClimb
                                    grouping:RATrendPerRide equipment:light].count, 0u, @"no heart rate");
     XCTAssertTrue([[RATrends nameOfMeasure:RATrendEstimatedPower] containsString:@"stimated"]);
+}
+
+// freewheeling (cadence 0) is 0 W, and does no work in the stats; the wheels add inertia
+- (void)testFreewheelingAndInertia
+{
+    RARideAnalysis *flat = [self climbOf:1 slope:2 speed:8];
+    NSMutableArray *metrics = [NSMutableArray array];
+    for (NSUInteger i = 0; i < flat.count; i++) [metrics addObject:@{ @"cadence": i < flat.count / 2 ? @80 : @0 }];
+    RARideAnalysis *a = [[RARideAnalysis alloc] initWithTrace:flat.trace metrics:metrics calories:nil hasTimes:YES];
+    XCTAssertTrue(a.hasCadence);
+    RAPowerModel *m = [self model];
+    NSArray<NSNumber *> *powers = [m powersOfAnalysis:a wind:nil];
+    XCTAssertGreaterThan(powers[a.count / 4].doubleValue, 50, @"pedalling");
+    XCTAssertEqual(powers[a.count * 3 / 4].doubleValue, 0, @"freewheeling");
+
+    RATerrainStats *all = [RARideStats statsOfAnalysis:a].total;
+    RATerrainStats *pedalled = [RARideStats statsOfAnalysis:flat].total;
+    XCTAssertEqualWithAccuracy([m averagePowerOfStats:all], [m averagePowerOfStats:pedalled] / 2,
+                               [m averagePowerOfStats:pedalled] * 0.1, @"half the time without work");
+
+    RAPowerModel *light = [self model];
+    light.wheelInertia = 0;
+    XCTAssertGreaterThan([m powerAtSpeed:5 slope:0 acceleration:0.5 headwind:0 airDensity:1.225],
+                         [light powerAtSpeed:5 slope:0 acceleration:0.5 headwind:0 airDensity:1.225] + 3, @"1.5 × 0.5 × 5 / 0.97 = 3.9 W");
 }
 
 @end
