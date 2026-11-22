@@ -74,8 +74,9 @@ extern NSString *const RAGarminStepKey;
 - (void)activitiesFrom:(NSUInteger)start limit:(NSUInteger)limit startDate:(nullable NSDate *)startDate
      completion:(void (^)(NSArray<RAGarminActivity *> * _Nullable activities, NSError * _Nullable error))completion;
 /// the FIT file of an activity (taken out of the ZIP)
-/// the GPX export of an activity: unlike the original FIT file, it follows the cuts made in Garmin Connect (owner's
-/// June 6 activity: FIT 276.7 km, GPX the 6:55 kept). TO CHECK: the endpoint with the Personal API.
+/// the GPX export of an activity, else its TCX export: unlike the original FIT file, they follow the cuts made in
+/// Garmin Connect (owner's June 6 activity: FIT 276.7 km; GPX and TCX the 2.21 km and 6:55 kept, 04:52:27–04:59:22).
+/// TO CHECK: the endpoints with the Personal API.
 - (void)gpxExportOfActivity:(NSString *)activityID
                  completion:(void (^)(NSData * _Nullable gpx, NSError * _Nullable error))completion;
 - (void)fitFileOfActivity:(NSString *)activityID

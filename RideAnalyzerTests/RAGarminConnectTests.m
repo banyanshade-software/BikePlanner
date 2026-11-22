@@ -23,6 +23,7 @@ static NSString *const kBase = @"https://garmin.stub";
     NSMutableArray<NSDictionary *> *_activities;   // newest first, as Garmin lists them
     NSMutableDictionary<NSString *, NSData *> *_fits;
     NSMutableDictionary<NSString *, NSData *> *_gpxs;   // GPX exports (they follow the cuts made in Garmin Connect)
+    NSMutableDictionary<NSString *, NSData *> *_tcxs;   // TCX exports (the same)
     NSInteger _tokenCount;
     BOOL _rejectKey;
     BOOL _expireNextAPICall;
@@ -38,6 +39,7 @@ static NSString *const kBase = @"https://garmin.stub";
     _activities = [NSMutableArray array];
     _fits = [NSMutableDictionary dictionary];
     _gpxs = [NSMutableDictionary dictionary];
+    _tcxs = [NSMutableDictionary dictionary];
     _tokenCount = 0;
     _rejectKey = NO;
     _expireNextAPICall = NO;
@@ -94,6 +96,11 @@ static NSString *const kBase = @"https://garmin.stub";
     if ([path hasPrefix:gpxPrefix]) {
         NSData *gpx = _gpxs[[path substringFromIndex:gpxPrefix.length]];
         return gpx ? [RAStubResponse status:200 body:gpx] : [RAStubResponse status:404 body:nil];
+    }
+    NSString *tcxPrefix = @"/download-service/export/tcx/activity/";
+    if ([path hasPrefix:tcxPrefix]) {
+        NSData *tcx = _tcxs[[path substringFromIndex:tcxPrefix.length]];
+        return tcx ? [RAStubResponse status:200 body:tcx] : [RAStubResponse status:404 body:nil];
     }
     NSString *prefix = @"/download-service/files/activity/";
     if ([path hasPrefix:prefix]) {
@@ -451,6 +458,24 @@ static NSString *const kBase = @"https://garmin.stub";
     NSTimeInterval s = 0, e = 0;
     XCTAssertFalse([RALibraryDocument trimOfData:_fits[@"34"] matchingGPX:[@"<gpx/>" dataUsingEncoding:NSUTF8StringEncoding]
                                            start:&s end:&e], @"no times");
+}
+
+// no GPX export: the TCX export, which follows the cut too (checked with the owner's June 6 activity)
+- (void)testCutFromTheTCXExport
+{
+    [self addActivity:35 day:0 type:@"road_biking"];
+    NSMutableDictionary *cut = [_activities[0] mutableCopy];
+    cut[@"distance"] = @1112;
+    _activities[0] = cut;
+    _tcxs[@"35"] = RATCX(@[ @100, @120 ], 0, @"vívomove Style", @3308);    // the first two points: the end was cut
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    NSError *error = nil;
+    [self fetchInto:doc client:[self clientWithKey:@"good-key"] since:nil error:&error];
+    RARide *ride = doc.rides.firstObject;
+    XCTAssertNotNil(ride, @"%@", error);
+    XCTAssertEqual(ride.trimStart, 0);
+    XCTAssertEqualWithAccuracy(ride.trimEnd, 601, 1, @"to the last time of the export");
+    XCTAssertEqualWithAccuracy(ride.distance, 1112, 30);
 }
 
 @end

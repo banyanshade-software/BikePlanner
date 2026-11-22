@@ -130,6 +130,7 @@ static const double RAAscentThreshold = 3.0; // meters
             @3076: @"Forerunner 245", @3077: @"Forerunner 245 Music", @3113: @"Forerunner 945",
             @3589: @"Forerunner 745", @3652: @"Forerunner 945 LTE", @3869: @"Forerunner 55",
             @2700: @"vívoactive 3",
+            @3308: @"vívomove Style",   // checked: the owner's watch (FIT file_id product, TCX export creator)
         };
     });
     return names[@(product)];

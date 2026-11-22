@@ -427,7 +427,17 @@ static NSString *const RADefaultAPIBaseURL = @"https://personal.connectapi.garmi
     NSURL *url = [[RAEnvironment garminAPIBaseURL] URLByAppendingPathComponent:
                   [@"download-service/export/gpx/activity/" stringByAppendingString:activityID]];
     [self get:url step:@"gpx" completion:^(NSData *data, NSError *error) {
-        completion(data.length ? data : nil, data.length ? nil : (error ?: [RAGarminConnect errorWithCode:RAGarminErrorBadAnswer status:0]));
+        if (data.length) {
+            completion(data, nil);
+            return;
+        }
+        // the TCX export, which follows the cuts too
+        NSURL *tcx = [[RAEnvironment garminAPIBaseURL] URLByAppendingPathComponent:
+                      [@"download-service/export/tcx/activity/" stringByAppendingString:activityID]];
+        [self get:tcx step:@"tcx" completion:^(NSData *tcxData, NSError *tcxError) {
+            completion(tcxData.length ? tcxData : nil,
+                       tcxData.length ? nil : (tcxError ?: error ?: [RAGarminConnect errorWithCode:RAGarminErrorBadAnswer status:0]));
+        }];
     }];
 }
 

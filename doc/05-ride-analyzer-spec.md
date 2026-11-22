@@ -352,8 +352,9 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   the cut. Both were checked with the owner's June 6 activity (#91): the FIT has 276.7 km over 3 h 07; the GPX of
   Garmin Connect runs from 04:52:27 to 04:59:22, the 2.21 km and 6:55 kept. At the fetch, a ride longer than its
   activity (distance + 3 % + 300 m) is trimmed to the times of the activity's GPX export
-  (`download-service/export/gpx/activity/<id>`, to check with the Personal API; `trimOfData:matchingGPX:`, keeping
-  the metrics of the FIT). Without the export, the summary is used: start from the activity's start time, end from
+  (`download-service/export/gpx/activity/<id>`), else of its TCX export (`…/export/tcx/activity/<id>`, also cut: the
+  owner's shows 04:52:27–04:59:22, 415 s, 2,209.82 m, 118 points). Both endpoints still to check with the Personal
+  API. The trim (`trimOfData:matchingGPX:`) keeps the metrics of the FIT. Without the export, the summary is used: start from the activity's start time, end from
   its duration (`elapsedDuration`, else `duration`, to check), else where the ride reaches its distance. For the rides imported before the cut: File ▸ *Apply Garmin
   Connect Corrections* lists the activities back to the oldest ride from Garmin Connect and trims those longer than
   their activity (one undoable change).
