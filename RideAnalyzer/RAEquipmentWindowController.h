@@ -33,6 +33,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (IBAction)showTyreDatabase:(nullable id)sender;
 /// the factors of the rolling resistance by surface (R8, configurable): RASurfaceFactorsWindowController
 - (IBAction)showSurfaceFactors:(nullable id)sender;
+/// the parameters of the estimated power and the calibration (#94): RAPowerSettingsWindowController
+- (IBAction)showPowerSettings:(nullable id)sender;
 /// gives a tyre of the database to the selected part (a new tyre part when none is selected)
 - (void)useTyre:(RATyre *)tyre;
 /// shows the sheet of that bike

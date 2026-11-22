@@ -74,6 +74,8 @@ extern const NSInteger RARideStatsVersion;
 @property (copy, nonatomic) NSArray<RAClimb *> *climbs;
 /// R8: computed with the roads of the ride (their surfaces in surfaceWorks)
 @property (nonatomic) BOOL usesRoads;
+/// #94: computed with no work while freewheeling (the library's parameter at the time)
+@property (nonatomic) BOOL freewheelingIsZero;
 /// the whole ride
 @property (readonly, nonatomic) RATerrainStats *total;
 /// one per terrain (RATerrainDescent… RATerrainSteep)

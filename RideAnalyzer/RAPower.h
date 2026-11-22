@@ -35,8 +35,10 @@ typedef RAWind * _Nullable (^RAWindProvider)(NSUInteger index);
 extern const double RAGravity;              // 9.81 m/s²
 extern const double RADrivetrainEfficiency; // 0.97
 extern const double RAWheelInertia;         // 1.5 kg
+extern NSString *const RAPowerGravity, *const RAPowerRolling, *const RAPowerAir, *const RAPowerInertia,
+                *const RAPowerLosses, *const RAPowerTotal;
 
-@interface RAPowerModel : NSObject
+@interface RAPowerModel : NSObject <NSCopying>
 @property (nonatomic) double mass;          // kg, rider and bike
 @property (nonatomic) double crr;           // tyres × the bike's usual roads (where the road is unknown)
 /// the tyres alone (R8: × the factor of each road's surface where it is known, RARideAnalysis.surfaceCategories)
@@ -48,8 +50,13 @@ extern const double RAWheelInertia;         // 1.5 kg
 @property (nonatomic) double cdA;           // m²
 @property (nonatomic) double wheelInertia;  // kg, equivalent mass of the wheels (1.5)
 @property (nonatomic) double efficiency;
+/// s: the speed is averaged over this time, the acceleration measured over that one (#94 settings: 5, 6)
+@property (nonatomic) double speedSmoothing, accelerationWindow;
+/// cadence 0 → 0 W (YES)
+@property (nonatomic) BOOL freewheelingIsZero;
 
-/// rider weight, the ride's bike (else the default bike, else 12 kg, flat bar), its tyres at the date of the ride
+/// rider weight, the ride's bike (else the default bike, else 12 kg, flat bar), its tyres at the date of the ride,
+/// the library's parameters (RAEquipment.powerParameters, RAPowerSettings)
 + (instancetype)modelForRide:(nullable RARide *)ride equipment:(nullable RAEquipment *)equipment;
 /// kg/m³; temperature in °C (15 when unknown)
 + (double)airDensityAtAltitude:(double)altitude temperature:(double)temperature;
@@ -63,6 +70,14 @@ extern const double RAWheelInertia;         // 1.5 kg
 - (NSArray<NSNumber *> *)powersOfAnalysis:(RARideAnalysis *)analysis wind:(nullable RAWindProvider)wind;
 /// the average power over terrain stats (from their work sums, RARideStats), NaN without moving time; ≥ 0
 - (double)averagePowerOfStats:(RATerrainStats *)stats;
+
+// #94: what the estimate is made of, and what moves it
+/// average W over the moving time of the stats, per force at the wheel — RAPowerGravity, RAPowerRolling, RAPowerAir,
+/// RAPowerInertia (each can be negative: a descent gives back) —, RAPowerLosses (drivetrain) and RAPowerTotal
+/// (averagePowerOfStats); nil without moving time
+- (nullable NSDictionary<NSString *, NSNumber *> *)breakdownOfStats:(RATerrainStats *)stats;
+/// the change of the average power (W) for a change of each parameter: [name, change of the parameter as text, ΔW]
+- (NSArray<NSArray *> *)sensitivityOfStats:(RATerrainStats *)stats;
 
 @end
 

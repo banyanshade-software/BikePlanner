@@ -171,6 +171,10 @@
 		048F56645212A24135E77F97 /* RARoadsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 2EC926B0EDC5A19A4265222E /* RARoadsTests.m */; };
 		3068F33064EDBBC14E791960 /* RASurfaceFactors.m in Sources */ = {isa = PBXBuildFile; fileRef = 10C733EFB68A13049B79EAC2 /* RASurfaceFactors.m */; };
 		28185DFF35EDFD497A72998B /* RASurfaceFactorsWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1A966C868E48751B08274AFF /* RASurfaceFactorsWindowController.m */; };
+		154655833B2E3CAB965BB9C5 /* RAPowerSettings.m in Sources */ = {isa = PBXBuildFile; fileRef = 32E9254CEE65E5B54564501E /* RAPowerSettings.m */; };
+		62231B5E6BC78E2FF0D36053 /* RACalibration.m in Sources */ = {isa = PBXBuildFile; fileRef = FDEDC2F9B775ED5663C499DF /* RACalibration.m */; };
+		C60E3ACD9AD49DCDEE38A94D /* RAPowerSettingsWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = F02EEB1AFB1A9C9EF1195714 /* RAPowerSettingsWindowController.m */; };
+		B22755E4F1E221C1D27B2494 /* RAPowerSettingsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 066DA2E854D46C1998A00632 /* RAPowerSettingsTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -463,6 +467,13 @@
 		B322384874BFAA061A3A624B /* RASurfaceFactors.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RASurfaceFactors.h; sourceTree = "<group>"; };
 		1A966C868E48751B08274AFF /* RASurfaceFactorsWindowController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RASurfaceFactorsWindowController.m; sourceTree = "<group>"; };
 		3B8B8BECF1137BE49F266433 /* RASurfaceFactorsWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RASurfaceFactorsWindowController.h; sourceTree = "<group>"; };
+		32E9254CEE65E5B54564501E /* RAPowerSettings.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAPowerSettings.m; sourceTree = "<group>"; };
+		2D9C748BA43B1672A39960EC /* RAPowerSettings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAPowerSettings.h; sourceTree = "<group>"; };
+		FDEDC2F9B775ED5663C499DF /* RACalibration.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RACalibration.m; sourceTree = "<group>"; };
+		2B679F94B7CDF26A2FF29B84 /* RACalibration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RACalibration.h; sourceTree = "<group>"; };
+		F02EEB1AFB1A9C9EF1195714 /* RAPowerSettingsWindowController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAPowerSettingsWindowController.m; sourceTree = "<group>"; };
+		848727DCC7672D7A1639728C /* RAPowerSettingsWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RAPowerSettingsWindowController.h; sourceTree = "<group>"; };
+		066DA2E854D46C1998A00632 /* RAPowerSettingsTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RAPowerSettingsTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -823,6 +834,12 @@
 				B322384874BFAA061A3A624B /* RASurfaceFactors.h */,
 				1A966C868E48751B08274AFF /* RASurfaceFactorsWindowController.m */,
 				3B8B8BECF1137BE49F266433 /* RASurfaceFactorsWindowController.h */,
+				32E9254CEE65E5B54564501E /* RAPowerSettings.m */,
+				2D9C748BA43B1672A39960EC /* RAPowerSettings.h */,
+				FDEDC2F9B775ED5663C499DF /* RACalibration.m */,
+				2B679F94B7CDF26A2FF29B84 /* RACalibration.h */,
+				F02EEB1AFB1A9C9EF1195714 /* RAPowerSettingsWindowController.m */,
+				848727DCC7672D7A1639728C /* RAPowerSettingsWindowController.h */,
 			);
 			path = RideAnalyzer;
 			sourceTree = "<group>";
@@ -847,6 +864,7 @@
 				2448B741C1BBB1A0D75A7324 /* RATrimTests.m */,
 				94C59FA4565F8502DA0CF555 /* RAComputationTests.m */,
 				2EC926B0EDC5A19A4265222E /* RARoadsTests.m */,
+				066DA2E854D46C1998A00632 /* RAPowerSettingsTests.m */,
 			);
 			path = RideAnalyzerTests;
 			sourceTree = "<group>";
@@ -1283,6 +1301,9 @@
 				56216F3235861D88F6141471 /* BRouterGeoJSON.m in Sources */,
 				3068F33064EDBBC14E791960 /* RASurfaceFactors.m in Sources */,
 				28185DFF35EDFD497A72998B /* RASurfaceFactorsWindowController.m in Sources */,
+				154655833B2E3CAB965BB9C5 /* RAPowerSettings.m in Sources */,
+				62231B5E6BC78E2FF0D36053 /* RACalibration.m in Sources */,
+				C60E3ACD9AD49DCDEE38A94D /* RAPowerSettingsWindowController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1307,6 +1328,7 @@
 				43F643012514D9F60AF4C4A7 /* RATrimTests.m in Sources */,
 				F585E569A92ECD8B5C9B2358 /* RAComputationTests.m in Sources */,
 				048F56645212A24135E77F97 /* RARoadsTests.m in Sources */,
+				B22755E4F1E221C1D27B2494 /* RAPowerSettingsTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

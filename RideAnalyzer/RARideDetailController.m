@@ -93,6 +93,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     RARoadMatch *_analysisRoads;           // the roads of the analysis shown
     NSMutableSet<NSString *> *_roadsFailed;   // rides whose roads could not be found in this session (not again)
     NSTextField *_roadsTitle, *_roadsStatus;
+    NSTextField *_powerTitle, *_powerText;      // #94: what the estimate is made of, and what moves it
     NSGridView *_roadsGrid;
 }
 
@@ -256,10 +257,16 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     _roadsGrid.identifier = @"roadsGrid";
     _roadsGrid.rowSpacing = 3;
     _roadsGrid.columnSpacing = 14;
+    _powerTitle = [NSTextField labelWithString:NSLocalizedString(@"Estimated power: what it is made of", @"detail")];
+    _powerTitle.font = [NSFont boldSystemFontOfSize:13];
+    _powerTitle.identifier = @"powerTitle";
+    _powerText = [NSTextField wrappingLabelWithString:@""];
+    _powerText.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    _powerText.identifier = @"powerBreakdown";
     NSStackView *titleRow = [NSStackView stackViewWithViews:@[ _title, _spinner ]];
     titleRow.spacing = 8;
-    _stack = [NSStackView stackViewWithViews:@[ titleRow, _subtitle, _message, _notes, _tags, _equipmentRow, _trimRow, _figures, mapBar, _map,
-                                                _profile, _roadsTitle, _roadsStatus, _roadsGrid, _climbsTitle, _climbsScroll, _charts ]];
+    _stack = [NSStackView stackViewWithViews:@[ titleRow, _subtitle, _message, _notes, _tags, _equipmentRow, _trimRow, _figures, _powerTitle, _powerText,
+                                                mapBar, _map, _profile, _roadsTitle, _roadsStatus, _roadsGrid, _climbsTitle, _climbsScroll, _charts ]];
     _stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     _stack.alignment = NSLayoutAttributeLeading;
     _stack.spacing = 10;
@@ -269,9 +276,10 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     for (NSView *v in @[ _notes, _tags, _equipmentRow, _map, _profile, _climbsScroll, _charts ]) {
         [v.widthAnchor constraintEqualToAnchor:_stack.widthAnchor constant:-40].active = YES;
     }
-    _rideViews = @[ _subtitle, _notes, _tags, _equipmentRow, _trimRow, _figures, mapBar, _map, _profile, _roadsTitle,
+    _rideViews = @[ _subtitle, _notes, _tags, _equipmentRow, _trimRow, _figures, _powerTitle, _powerText, mapBar, _map, _profile, _roadsTitle,
                     _roadsStatus, _roadsGrid, _climbsTitle, _climbsScroll, _charts ];
     [_roadsStatus.widthAnchor constraintLessThanOrEqualToAnchor:_stack.widthAnchor constant:-40].active = YES;
+    [_powerText.widthAnchor constraintLessThanOrEqualToAnchor:_stack.widthAnchor constant:-40].active = YES;
 
     // a flipped document view, so the detail starts at the top of the scroll view
     NSView *document = [[RAFlippedView alloc] init];
@@ -396,6 +404,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     [self updateEquipment];
     [self updateTrim];
     [self updateFigures];
+    [self updatePowerBreakdown];
     // the equipment changed (bike, tyres, weights): the estimated power again, the curve shown until then
     if (_analysis && _analysisModel && ![_analysisModel isEqualToArray:[self modelFiguresOfRide:ride]]) [self startAnalysis];
     // the roads were found (R8): the surfaces in the estimated power and the table
@@ -848,6 +857,46 @@ static void RAMotorizedEnds(RARideAnalysis *a, NSUInteger *fastFrom, NSUInteger 
 - (void)chartView:(RAChartView *)chart didSelectDistance:(double)distance
 {
     [self moveCursorToDistance:distance];
+}
+
+#pragma mark - estimated power: breakdown and sensitivity (#94)
+
+- (NSString *)signedWatts:(double)w
+{
+    return [NSString localizedStringWithFormat:@"%@%.0f W", w > 0.5 ? @"+" : @"", w];
+}
+
+/// the average power of the ride's moving time per force, and what each parameter moves (from its stats)
+- (void)updatePowerBreakdown
+{
+    RARide *ride = _ride;
+    RATerrainStats *total = ride.stats.total;
+    RAPowerModel *model = ride ? [RAPowerModel modelForRide:(RARide *)ride equipment:self.library.equipment] : nil;
+    NSDictionary<NSString *, NSNumber *> *b = total ? [model breakdownOfStats:total] : nil;
+    _powerTitle.hidden = b == nil;
+    _powerText.hidden = b == nil;
+    if (!b) return;
+    NSMutableString *t = [NSMutableString stringWithFormat:NSLocalizedString(
+        @"Over the moving time, at the wheel: gravity %@ · rolling resistance %@ · air %@ · accelerations %@; drivetrain "
+        @"losses %@ → %.0f W average.", @"detail: power breakdown"),
+        [self signedWatts:b[RAPowerGravity].doubleValue], [self signedWatts:b[RAPowerRolling].doubleValue],
+        [self signedWatts:b[RAPowerAir].doubleValue], [self signedWatts:b[RAPowerInertia].doubleValue],
+        [self signedWatts:b[RAPowerLosses].doubleValue], b[RAPowerTotal].doubleValue];
+    if (total.powerTime > 0) {
+        [t appendFormat:@" %@", [NSString localizedStringWithFormat:NSLocalizedString(@"Measured by the power meter: %.0f W.",
+                                                                                      @"detail: power breakdown"),
+                                  total.powerSum / total.powerTime]];
+    }
+    NSMutableArray<NSString *> *moves = [NSMutableArray array];
+    for (NSArray *s in [model sensitivityOfStats:total]) {
+        [moves addObject:[NSString stringWithFormat:@"%@ %@ → %@", s[0], s[1], [self signedWatts:[s[2] doubleValue]]]];
+    }
+    [t appendFormat:@"\n%@ %@", NSLocalizedString(@"What moves it:", @"detail: power breakdown"), [moves componentsJoinedByString:@" · "]];
+    [t appendFormat:@"\n%@", [NSString localizedStringWithFormat:NSLocalizedString(
+        @"Used: %.0f kg, Crr %.4f (tyres %.4f; the roads' surfaces where known), CdA %.2f m², efficiency %.2f. "
+        @"Parameters: Equipment ▸ Power Estimate…", @"detail: power breakdown"),
+        model.mass, model.crr, model.tyreCrr, model.cdA, model.efficiency]];
+    _powerText.stringValue = t;
 }
 
 #pragma mark - roads and surfaces (R8)

@@ -1138,7 +1138,11 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
 {
     NSMutableArray<RARide *> *rides = [NSMutableArray array];
     // R8: also those whose roads were found after their stats
-    for (RARide *r in _rides) if (!r.stats || (r.roads && !r.stats.usesRoads)) [rides addObject:r];
+    // #94: and those computed with another rule for freewheeling
+    BOOL freewheeling = _equipment.powerSettings.freewheelingIsZero;
+    for (RARide *r in _rides) {
+        if (!r.stats || (r.roads && !r.stats.usesRoads) || r.stats.freewheelingIsZero != freewheeling) [rides addObject:r];
+    }
     return rides;
 }
 
@@ -1190,6 +1194,7 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     NSMutableArray<NSData *> *datas = [NSMutableArray array];
     NSMutableArray<NSArray<NSNumber *> *> *trims = [NSMutableArray array];
     NSMutableArray *roads = [NSMutableArray array];
+    BOOL freewheeling = _equipment.powerSettings.freewheelingIsZero;
     for (RARide *r in rides) {
         [datas addObject:[self originalDataOfRide:r] ?: [NSData data]];
         [trims addObject:@[ @(r.trimStart), @(r.trimEnd) ]];
@@ -1231,6 +1236,7 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
                                                                         trimEnd:trims[k][1].doubleValue] : nil;
                 RARoadMatch *match = [roads[k] isKindOfClass:[RARoadMatch class]] ? roads[k] : nil;
                 if (a && match) a.surfaceCategories = [match surfaceCategoriesFrom:a.firstFileIndex count:a.count];   // R8
+                a.freewheelingIsZero = freewheeling;
                 [results addObject:a ? (id)[RARideStats statsOfAnalysis:a] : (id)[NSNull null]];
             }
             reporting.completedUnitCount = (int64_t)k + 1;

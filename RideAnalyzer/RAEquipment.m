@@ -5,6 +5,7 @@
 
 #import "RAEquipment.h"
 #import "RASurfaceFactors.h"
+#import "RAPowerSettings.h"
 #import "RARide.h"
 #import "RATyreDatabase.h"
 
@@ -278,6 +279,11 @@ static double RADouble(id v)
 
 - (double)effectiveCrr
 {
+    return [self effectiveCrrWithSettings:[RAPowerSettings defaultSettings]];
+}
+
+- (double)effectiveCrrWithSettings:(RAPowerSettings *)settings
+{
     if (self.kind != RAPartTyre) return 0;
     if (self.crr > 0) return self.crr;
     RATyre *tyre = [[RATyreDatabase shared] tyreMatchingModel:self.model width:self.width];
@@ -285,7 +291,8 @@ static double RADouble(id v)
     double factor = 1;
     if (self.pressure > 0 && tyre.pressureBar > 0) {
         // lower pressure, more rolling resistance (on a drum; rough roads are another matter: the surface factor)
-        factor = MIN(MAX(pow(tyre.pressureBar / self.pressure, 0.4), 0.7), 1.5);
+        factor = MIN(MAX(pow(tyre.pressureBar / self.pressure, settings.pressureExponent), settings.pressureMinFactor),
+                     settings.pressureMaxFactor);
     }
     return tyre.crr * factor;
 }
@@ -384,6 +391,7 @@ static double RADouble(id v)
         _weighings = @[];
         _usesWeighings = YES;
         _surfaceFactors = @{};
+        _powerParameters = @{};
     }
     return self;
 }
@@ -424,8 +432,9 @@ static double RADouble(id v)
     double front = 0, rear = 0;
     for (RAPart *p in [self partsOfBike:bikeID atDate:date]) {
         if (p.kind != RAPartTyre) continue;
-        if (p.wheel == RAWheelFront || p.wheel == RAWheelBoth) front = p.effectiveCrr;
-        if (p.wheel == RAWheelRear || p.wheel == RAWheelBoth) rear = p.effectiveCrr;
+        RAPowerSettings *settings = self.powerSettings;
+        if (p.wheel == RAWheelFront || p.wheel == RAWheelBoth) front = [p effectiveCrrWithSettings:settings];
+        if (p.wheel == RAWheelRear || p.wheel == RAWheelBoth) rear = [p effectiveCrrWithSettings:settings];
     }
     if (front <= 0 && rear <= 0) return 0.0050;
     if (front <= 0) front = rear;
@@ -517,7 +526,22 @@ static double RADouble(id v)
 
 - (double)effectiveRiderWeight
 {
-    return self.riderWeight > 0 ? self.riderWeight : 75;
+    return self.riderWeight > 0 ? self.riderWeight : self.powerSettings.riderWeight;
+}
+
+- (RAPowerSettings *)powerSettings
+{
+    return [RAPowerSettings settingsWithOverrides:self.powerParameters];
+}
+
+- (double)weightOfBike:(RABike *)bike
+{
+    return bike.weight > 0 ? bike.weight : [self.powerSettings weightForKind:bike.kind];
+}
+
+- (double)cdAOfBike:(RABike *)bike
+{
+    return bike.cdA > 0 ? bike.cdA : [self.powerSettings cdAForPosition:bike.position];
 }
 
 - (NSDictionary<NSString *, NSNumber *> *)effectiveSurfaceFactors
@@ -606,7 +630,7 @@ static double RADouble(id v)
     return @{ @"riderWeight": @(self.riderWeight), @"defaultBikeID": self.defaultBikeID,
               @"bikes": [self.bikes valueForKey:@"propertyList"], @"parts": [self.parts valueForKey:@"propertyList"],
               @"weighings": [self.weighings valueForKey:@"propertyList"], @"usesWeighings": @(self.usesWeighings),
-              @"surfaceFactors": self.surfaceFactors };
+              @"surfaceFactors": self.surfaceFactors, @"powerParameters": self.powerParameters };
 }
 
 + (RAEquipment *)equipmentWithPropertyList:(nullable id)plist
@@ -639,6 +663,14 @@ static double RADouble(id v)
         }
     }
     e.surfaceFactors = factors;
+    NSMutableDictionary<NSString *, NSNumber *> *parameters = [NSMutableDictionary dictionary];
+    if ([plist[@"powerParameters"] isKindOfClass:[NSDictionary class]]) {
+        NSDictionary *f = plist[@"powerParameters"];
+        for (id k in f) {
+            if ([k isKindOfClass:[NSString class]] && [f[k] isKindOfClass:[NSNumber class]]) parameters[k] = f[k];
+        }
+    }
+    e.powerParameters = parameters;
     return e;
 }
 

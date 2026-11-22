@@ -73,6 +73,7 @@ static NSArray<NSNumber *> *RANumbers(const double *values, NSUInteger count)
     NSUInteger n = trace.count;
     _trace = [trace copy];
     _count = n;
+    _freewheelingIsZero = YES;
     _hasTimes = hasTimes;
     _calories = calories;
 

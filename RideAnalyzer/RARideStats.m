@@ -162,7 +162,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
     // work of the forces (R11): slope of the point, speed and acceleration of the interval; none while freewheeling
     // (cadence 0, when the file has the cadence): the time still counts, so the average includes these zeros
     double cadence = a.hasCadence ? a.cadences[i].doubleValue : RANoValue;
-    if (a.hasCadence && RAHasValue(cadence) && cadence <= 0) return interval;
+    if (a.freewheelingIsZero && a.hasCadence && RAHasValue(cadence) && cadence <= 0) return interval;
     double slope = a.slopes[i].doubleValue, theta = atan((RAHasValue(slope) ? slope : 0) / 100);
     double v = dd / dt;
     double vPrev = 0;
@@ -206,6 +206,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
     s.track = [RAHeatmap packedTrackOfTrace:a.trace tolerance:8];
     s.climbs = [RAClimbDetector climbsOfAnalysis:a wind:wind];
     s.usesRoads = a.surfaceCategories != nil;
+    s.freewheelingIsZero = a.freewheelingIsZero;
     if (!a.hasTimes) return s;
     // each moving interval goes to the terrain of the slope at its end
     for (NSUInteger i = 1; i < a.count; i++) {
@@ -226,7 +227,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
                                  @"maxSpeed": @(self.maxSpeed), @"total": self.total.propertyList,
                                  @"terrains": terrains, @"track": self.track,
                                  @"climbs": [self.climbs valueForKey:@"propertyList"],
-                                 @"usesRoads": @(self.usesRoads) } mutableCopy];
+                                 @"usesRoads": @(self.usesRoads), @"freewheelingIsZero": @(self.freewheelingIsZero) } mutableCopy];
     // NaN cannot go into a property list: absent means no value
     if (!isnan(self.maxHeartRate)) d[@"maxHR"] = @(self.maxHeartRate);
     if (!isnan(self.maxPower)) d[@"maxPower"] = @(self.maxPower);
@@ -247,6 +248,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
     if ([(v = plist[@"maxPower"]) isKindOfClass:[NSNumber class]]) s.maxPower = [v doubleValue];
     if ([(v = plist[@"calories"]) isKindOfClass:[NSNumber class]]) s.calories = [v doubleValue];
     if ([(v = plist[@"track"]) isKindOfClass:[NSData class]]) s.track = v;
+    s.freewheelingIsZero = plist[@"freewheelingIsZero"] ? [plist[@"freewheelingIsZero"] boolValue] : YES;
     s.usesRoads = [plist[@"usesRoads"] boolValue] && [plist[@"total"] isKindOfClass:[NSDictionary class]]
                   && plist[@"total"][@"surfaceWorks"] != nil;      // (older: the factors were in the sums)
     if ([(v = plist[@"climbs"]) isKindOfClass:[NSArray class]]) {

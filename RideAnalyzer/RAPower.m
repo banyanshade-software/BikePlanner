@@ -5,6 +5,7 @@
 
 #import "RAPower.h"
 #import "RASurfaceFactors.h"
+#import "RAPowerSettings.h"
 #import "RAEquipment.h"
 #import "RARide.h"
 #import "RARideAnalysis.h"
@@ -13,6 +14,12 @@
 const double RAGravity = 9.81;
 const double RADrivetrainEfficiency = 0.97;
 const double RAWheelInertia = 1.5;
+NSString *const RAPowerGravity = @"gravity";
+NSString *const RAPowerRolling = @"rolling";
+NSString *const RAPowerAir = @"air";
+NSString *const RAPowerInertia = @"inertia";
+NSString *const RAPowerLosses = @"losses";
+NSString *const RAPowerTotal = @"total";
 
 @implementation RAWind
 
@@ -45,6 +52,9 @@ const double RAWheelInertia = 1.5;
         _cdA = [RABike defaultCdAForPosition:RAPositionFlatBar];
         _efficiency = RADrivetrainEfficiency;
         _wheelInertia = RAWheelInertia;
+        _speedSmoothing = 5;
+        _accelerationWindow = 6;
+        _freewheelingIsZero = YES;
     }
     return self;
 }
@@ -53,16 +63,25 @@ const double RAWheelInertia = 1.5;
 {
     RAPowerModel *m = [[RAPowerModel alloc] init];
     RAEquipment *e = equipment ?: [[RAEquipment alloc] init];
+    RAPowerSettings *settings = e.powerSettings;      // #94: the library's parameters
     m.surfaceFactors = e.effectiveSurfaceFactors;
+    m.efficiency = settings.efficiency;
+    m.wheelInertia = settings.wheelInertia;
+    m.speedSmoothing = settings.speedSmoothing;
+    m.accelerationWindow = settings.accelerationWindow;
+    m.freewheelingIsZero = settings.freewheelingIsZero;
+    m.cdA = [settings cdAForPosition:RAPositionFlatBar];
     m.tyreCrr = 0.005;
-    m.crr = 0.005 * [e factorOfBikeSurface:RASurfaceAsphalt];
     RABike *bike = ride ? [e bikeOfRide:(RARide *)ride] : [e bikeWithID:e.defaultBikeID];
-    m.mass = [e riderWeightAtDate:ride.startDate] + (bike ? bike.effectiveWeight : 12);   // weighing of the day (R11)
+    m.mass = [e riderWeightAtDate:ride.startDate] + (bike ? [e weightOfBike:(RABike *)bike] : 12);   // weighing of the day (R11)
+    RASurface usual = RASurfaceAsphalt;
     if (bike) {
-        m.cdA = bike.effectiveCdA;
+        m.cdA = [e cdAOfBike:(RABike *)bike];
         m.tyreCrr = [e crrOfBike:bike.identifier atDate:ride.startDate ?: [NSDate date]];
-        m.crr = m.tyreCrr * [e factorOfBikeSurface:bike.surface];
+        usual = bike.surface;
     }
+    m.tyreCrr *= settings.rollingScale;                // the calibration
+    m.crr = m.tyreCrr * [e factorOfBikeSurface:usual];
     return m;
 }
 
@@ -111,9 +130,10 @@ const double RAWheelInertia = 1.5;
     NSUInteger lo = 0, hi = 0;
     for (NSUInteger i = 0; i < n; i++) {
         double t = a.elapsed[i].doubleValue;
-        while (lo < i && t - a.elapsed[lo].doubleValue > 2.5) lo++;
+        double half = self.speedSmoothing / 2;
+        while (lo < i && t - a.elapsed[lo].doubleValue > half) lo++;
         if (hi < i) hi = i;
-        while (hi + 1 < n && a.elapsed[hi + 1].doubleValue - t <= 2.5) hi++;
+        while (hi + 1 < n && a.elapsed[hi + 1].doubleValue - t <= half) hi++;
         double sum = 0;
         NSUInteger count = 0;
         for (NSUInteger k = lo; k <= hi; k++) {
@@ -126,11 +146,14 @@ const double RAWheelInertia = 1.5;
         BOOL moving = a.hasTimes && isfinite(v[i]) && v[i] > 3.0 / 3.6;
         double cadence = a.hasCadence ? a.cadences[i].doubleValue : RANoValue;
         if (!moving) { [out addObject:@(RANoValue)]; continue; }
-        if (a.hasCadence && RAHasValue(cadence) && cadence <= 0) { [out addObject:@0]; continue; }   // freewheeling
+        if (self.freewheelingIsZero && a.hasCadence && RAHasValue(cadence) && cadence <= 0) {     // freewheeling
+            [out addObject:@0];
+            continue;
+        }
         NSUInteger p0 = i, p1 = i;
-        double t = a.elapsed[i].doubleValue;
-        while (p0 > 0 && t - a.elapsed[p0 - 1].doubleValue <= 3) p0--;
-        while (p1 + 1 < n && a.elapsed[p1 + 1].doubleValue - t <= 3) p1++;
+        double t = a.elapsed[i].doubleValue, halfWindow = self.accelerationWindow / 2;
+        while (p0 > 0 && t - a.elapsed[p0 - 1].doubleValue <= halfWindow) p0--;
+        while (p1 + 1 < n && a.elapsed[p1 + 1].doubleValue - t <= halfWindow) p1++;
         double dt = a.elapsed[p1].doubleValue - a.elapsed[p0].doubleValue;
         double acc = dt > 0 && isfinite(v[p0]) && isfinite(v[p1]) ? (v[p1] - v[p0]) / dt : 0;
         double headwind = 0;
@@ -169,6 +192,55 @@ const double RAWheelInertia = 1.5;
                   + self.mass * rolling + self.cdA * t.airWork;
     double p = energy / self.efficiency / t.time;
     return p > 0 ? p : 0;
+}
+
+- (id)copyWithZone:(nullable NSZone *)zone
+{
+    RAPowerModel *m = [[RAPowerModel alloc] init];
+    m.mass = self.mass;
+    m.crr = self.crr;
+    m.tyreCrr = self.tyreCrr;
+    m.surfaceFactors = self.surfaceFactors;
+    m.cdA = self.cdA;
+    m.wheelInertia = self.wheelInertia;
+    m.efficiency = self.efficiency;
+    m.speedSmoothing = self.speedSmoothing;
+    m.accelerationWindow = self.accelerationWindow;
+    m.freewheelingIsZero = self.freewheelingIsZero;
+    return m;
+}
+
+- (nullable NSDictionary<NSString *, NSNumber *> *)breakdownOfStats:(RATerrainStats *)t
+{
+    if (t.time <= 0) return nil;
+    double rolling = self.crr * t.rollingWork;
+    for (NSString *category in t.surfaceWorks) rolling += [self crrOnSurface:category] * t.surfaceWorks[category].doubleValue;
+    double gravity = self.mass * t.gravityWork / t.time, inertia = (self.mass + self.wheelInertia) * t.inertiaWork / t.time;
+    double roll = self.mass * rolling / t.time, air = self.cdA * t.airWork / t.time;
+    double wheel = gravity + inertia + roll + air;
+    return @{ RAPowerGravity: @(gravity), RAPowerRolling: @(roll), RAPowerAir: @(air), RAPowerInertia: @(inertia),
+              RAPowerLosses: @(MAX(0, wheel) * (1 / self.efficiency - 1)), RAPowerTotal: @([self averagePowerOfStats:t]) };
+}
+
+- (NSArray<NSArray *> *)sensitivityOfStats:(RATerrainStats *)t
+{
+    double base = [self averagePowerOfStats:t];
+    if (!isfinite(base)) return @[];
+    NSMutableArray<NSArray *> *out = [NSMutableArray array];
+    void (^add)(NSString *, NSString *, void (^)(RAPowerModel *)) = ^(NSString *name, NSString *change, void (^apply)(RAPowerModel *)) {
+        RAPowerModel *m = [self copy];
+        apply(m);
+        [out addObject:@[ name, change, @([m averagePowerOfStats:t] - base) ]];
+    };
+    add(NSLocalizedString(@"Rider and bike", @"sensitivity"), @"+5 kg", ^(RAPowerModel *m) { m.mass += 5; });
+    add(NSLocalizedString(@"Rolling resistance", @"sensitivity"), @"+10 %", ^(RAPowerModel *m) {
+        m.crr *= 1.1;
+        m.tyreCrr *= 1.1;
+    });
+    add(NSLocalizedString(@"Air drag (CdA)", @"sensitivity"), @"+10 %", ^(RAPowerModel *m) { m.cdA *= 1.1; });
+    add(NSLocalizedString(@"Drivetrain efficiency", @"sensitivity"), NSLocalizedString(@"−2 points", @"sensitivity"),
+        ^(RAPowerModel *m) { m.efficiency -= 0.02; });
+    return out;
 }
 
 @end

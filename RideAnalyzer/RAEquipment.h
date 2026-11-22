@@ -11,7 +11,7 @@
 
 #import <Foundation/Foundation.h>
 
-@class RARide;
+@class RARide, RAPowerSettings;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -121,6 +121,8 @@ typedef NS_ENUM(NSInteger, RASurface) {
 /// its Crr, else the default — the database's value corrected for the pressure (Crr ∝ (test pressure / pressure)^0.4,
 /// within ×0.7…×1.5); 0 for a part that is not a tyre
 @property (readonly, nonatomic) double effectiveCrr;
+/// the same with the library's parameters (pressure exponent and bounds)
+- (double)effectiveCrrWithSettings:(RAPowerSettings *)settings;
 /// where the default Crr comes from (tyre, test pressure, source; or "estimate from the width")
 @property (readonly, nonatomic) NSString *crrSource;
 /// the bike it is on at that date, nil when not mounted
@@ -156,6 +158,14 @@ typedef NS_ENUM(NSInteger, RASurface) {
 - (double)factorOfSurfaceCategory:(NSString *)category;
 /// the factor of a bike's usual roads, with the library's changes
 - (double)factorOfBikeSurface:(RASurface)surface;
+/// #94: the parameters of the estimated power the user changed (RAPowerSettings keys), @{} none
+@property (copy, nonatomic) NSDictionary<NSString *, NSNumber *> *powerParameters;
+/// the parameters used (defaults and changes)
+@property (readonly, nonatomic) RAPowerSettings *powerSettings;
+/// the weight of a bike: entered, else the typical one of its kind (powerSettings)
+- (double)weightOfBike:(RABike *)bike;
+/// the CdA of a bike: entered, else that of its position (powerSettings)
+- (double)cdAOfBike:(RABike *)bike;
 @property (copy, nonatomic) NSString *defaultBikeID;   // @"" none
 @property (copy, nonatomic) NSArray<RABike *> *bikes;
 @property (copy, nonatomic) NSArray<RAPart *> *parts;

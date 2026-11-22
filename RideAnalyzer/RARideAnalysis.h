@@ -40,6 +40,8 @@ static inline BOOL RAHasValue(double v) { return !isnan(v); }
 /// R8: the surface category of the road of each point (RARoadMatch, RASurfaceFactors), @"" where unknown; nil: no
 /// road match (the bike's usual roads then)
 @property (copy, nonatomic, nullable) NSArray<NSString *> *surfaceCategories;
+/// #94: the moments without pedalling (cadence 0) do no work in the stats (YES; the library's parameter)
+@property (nonatomic) BOOL freewheelingIsZero;
 
 // one value per point (RANoValue when missing)
 @property (readonly, nonatomic) NSArray<NSNumber *> *distances;   // meters from the start

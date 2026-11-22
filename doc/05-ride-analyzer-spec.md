@@ -355,6 +355,28 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   Fetched data, not undoable (an undo of an equipment edit keeps them); a failure does not fail the fetch.
 - Not yet: the wind (R12), a calibration on rides with a power meter (#94).
 
+## Power estimate: parameters, breakdown, calibration (2026-11-22, #94)
+- **Parameters** (`RAPowerSettings`; the values changed kept in the equipment, `RAEquipment.powerParameters`,
+  undoable; *Equipment ▸ Power Estimate…*, `RAPowerSettingsWindowController`: value — empty for the default —, unit,
+  default, explanation, *Restore Defaults*): drivetrain efficiency (0.97), Crr multiplier (1, set by the
+  calibration), tyre pressure correction (exponent 0.4, bounds 0.7–1.5), speed smoothing (5 s), acceleration window
+  (6 s), cadence 0 → no power (on; the only one that changes the stats: they are computed again), rider weight when
+  unknown (75 kg), wheel inertia (1.5 kg), typical bike weights by kind (road 9, hybrid 11, gravel 10, mountain 13,
+  electric 23 kg), CdA by position (upright 0.55, flat bar 0.45, hoods 0.36, drops 0.30 m²). The surface factors
+  are in *Surface Factors…* (button there too). The others apply at once (the stats keep the work of each force).
+- **Breakdown and sensitivity** (ride detail, *Estimated power: what it is made of*; `breakdownOfStats:` /
+  `sensitivityOfStats:`): over the moving time of the ride, the average power at the wheel against gravity, rolling
+  resistance, air and accelerations (each can be negative: a descent gives back), the drivetrain losses and the
+  average; the measured average when the file has a power meter; what moves it: rider and bike +5 kg, rolling
+  resistance +10 %, CdA +10 %, efficiency −2 points (ΔW each); and the values used (mass, Crr, tyres' Crr, CdA,
+  efficiency).
+- **Calibration** (`RACalibration`, *Calibrate* in the Power Estimate window): on the rides with a power meter,
+  per bike, least squares over each ride's flat and climbing terrains with at least 2 minutes of measured power
+  (not the descents): η × measured energy − m (gravity + inertia work) = k × the model's rolling energy + CdA × air
+  work. Shows measured, estimated before / after and the error (W) per bike; *Apply* multiplies the Crr multiplier
+  by k and sets the bike's CdA (undoable). Refused when the rides do not separate rolling from air (speeds too
+  alike) or the fit is implausible (k outside 0.3–3, CdA outside 0.15–1 m²).
+
 ## Climbs (2026-11-21, R7)
 - **Detection** (`RAClimbDetector`, with the stats of the ride: `RARideStats.climbs`, stats version 4, computed once):
   altitudes smoothed over 5 points; a climb goes from a low point to a high point as long as the road does not go

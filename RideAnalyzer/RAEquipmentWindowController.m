@@ -10,6 +10,8 @@
 #import "RATyreDatabase.h"
 #import "RATyreDatabaseWindowController.h"
 #import "RASurfaceFactorsWindowController.h"
+#import "RAPowerSettingsWindowController.h"
+#import "RAPowerSettings.h"
 #import "RALibraryWindowController.h"
 
 @interface RAEquipmentWindowController () <NSTableViewDataSource, NSTableViewDelegate>
@@ -23,6 +25,7 @@
     NSTextField *_status;
     RATyreDatabaseWindowController *_tyreDatabase;
     RASurfaceFactorsWindowController *_surfaceFactors;
+    RAPowerSettingsWindowController *_powerSettings;
     // the bike sheet: the selected bike and its tyres
     NSView *_sheet;
     NSTextField *_noBike;
@@ -128,9 +131,12 @@
         [NSButton buttonWithTitle:NSLocalizedString(@"Tyre Database…", @"equipment") target:self
                            action:@selector(showTyreDatabase:)],
         [NSButton buttonWithTitle:NSLocalizedString(@"Surface Factors…", @"equipment") target:self
-                           action:@selector(showSurfaceFactors:)] ]];
-    top.views[top.views.count - 2].identifier = @"showTyreDatabase";
-    top.views.lastObject.identifier = @"showSurfaceFactors";
+                           action:@selector(showSurfaceFactors:)],
+        [NSButton buttonWithTitle:NSLocalizedString(@"Power Estimate…", @"equipment") target:self
+                           action:@selector(showPowerSettings:)] ]];
+    top.views[top.views.count - 3].identifier = @"showTyreDatabase";
+    top.views[top.views.count - 2].identifier = @"showSurfaceFactors";
+    top.views.lastObject.identifier = @"showPowerSettings";
     top.spacing = 6;
     _usesWeighings = [NSButton checkboxWithTitle:@"" target:self action:@selector(usesWeighingsChanged:)];
     _usesWeighings.identifier = @"usesWeighings";
@@ -418,8 +424,8 @@
     [self setSheetText:b.name placeholder:nil of:@"bikeName"];
     [self setSheetText:b.model placeholder:NSLocalizedString(@"e.g. Giant Rapid 4", @"bike sheet") of:@"bikeModel"];
     [self setSheetText:[self format:b.weight]
-           placeholder:[NSString localizedStringWithFormat:@"%.0f", [RABike typicalWeightForKind:b.kind]] of:@"bikeWeight"];
-    [self setSheetText:[self format:b.cdA] placeholder:[self format:[RABike defaultCdAForPosition:b.position]] of:@"bikeCdA"];
+           placeholder:[NSString localizedStringWithFormat:@"%.0f", [e.powerSettings weightForKind:b.kind]] of:@"bikeWeight"];
+    [self setSheetText:[self format:b.cdA] placeholder:[self format:[e.powerSettings cdAForPosition:b.position]] of:@"bikeCdA"];
     [(NSPopUpButton *)_sheetControls[@"bikeKind"] selectItemAtIndex:b.kind];
     [(NSPopUpButton *)_sheetControls[@"bikePosition"] selectItemAtIndex:b.position];
     NSPopUpButton *surface = (NSPopUpButton *)_sheetControls[@"bikeSurface"];
@@ -437,7 +443,7 @@
     double crr = [e crrOfBike:b.identifier atDate:now] * [e factorOfBikeSurface:b.surface];
     _figures.stringValue = [NSString localizedStringWithFormat:
         NSLocalizedString(@"%.0f kg with the rider · Crr %.4f on these roads · CdA %.2f m²", @"bike sheet"),
-        [e riderWeightAtDate:now] + b.effectiveWeight, crr, b.effectiveCdA];
+        [e riderWeightAtDate:now] + [e weightOfBike:b], crr * e.powerSettings.rollingScale, [e cdAOfBike:b]];
 }
 
 /// the edit of a control of the sheet
@@ -913,6 +919,20 @@
     NSString *bike = _defaultBikePopup.selectedItem.representedObject ?: @"";
     [_library changeEquipment:^(RAEquipment *e) { e.defaultBikeID = bike; }
                    actionName:NSLocalizedString(@"Default Bike", @"undo action name")];
+}
+
+/// the parameters of the estimated power (#94) and the calibration
+- (IBAction)showPowerSettings:(nullable id)sender
+{
+    RALibraryDocument *library = _library;
+    if (!library) return;
+    if (!_powerSettings) {
+        _powerSettings = [[RAPowerSettingsWindowController alloc] initWithLibrary:library];
+        __weak RAEquipmentWindowController *weakSelf = self;
+        _powerSettings.surfaceFactorsHandler = ^{ [weakSelf showSurfaceFactors:weakSelf]; };
+        [_powerSettings.window center];
+    }
+    [_powerSettings showWindow:self];
 }
 
 /// the factors of the rolling resistance by surface (R8, configurable)
