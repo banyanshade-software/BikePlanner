@@ -23,12 +23,15 @@ NS_ASSUME_NONNULL_BEGIN
 
 // for tests
 @property (readonly, nonatomic) NSArray<RAClimbGroup *> *groups;
+/// the climbs are being grouped (in the background, RAComputation; refresh returns at once)
+@property (readonly, nonatomic, getter=isComputing) BOOL computing;
 @property (readonly, nonatomic) NSTableView *climbsTable;
 @property (readonly, nonatomic) NSTableView *passagesTable;
 @property (readonly, nonatomic) RATimeChartView *timeChart;
 - (void)refresh;
 - (void)renameClimbAtRow:(NSInteger)row to:(NSString *)name;
-/// chooses the climb of these rides that is the same as this one (compare from the detail of a ride); NO if none
+/// chooses the climb of these rides that is the same as this one (compare from the detail of a ride), now if it shows
+/// (YES), and again when the groups being computed show
 - (BOOL)selectClimb:(RAClimb *)climb;
 
 @end

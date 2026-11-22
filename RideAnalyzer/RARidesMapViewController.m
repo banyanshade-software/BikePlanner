@@ -5,6 +5,7 @@
 
 #import "RARidesMapViewController.h"
 #import "RAHeatmap.h"
+#import "RAComputation.h"
 #import "RALibraryDocument.h"
 #import "RARide.h"
 #import "RARideStats.h"
@@ -17,7 +18,8 @@
     NSArray<RARide *> *_rides;
     BOOL _selected;
     NSArray<NSString *> *_shownIdentifiers;   // rides of the heatmap shown (or being computed)
-    NSUInteger _generation;
+    RAComputation *_computation;               // the heatmap, cancelled when the rides change
+    NSProgressIndicator *_spinner;
     BOOL _computingStats;
 }
 
@@ -43,8 +45,15 @@
         self.title = NSLocalizedString(@"Map", @"tab");
         _rides = @[];
         _shownIdentifiers = @[];
+        _computation = [[RAComputation alloc] initWithLabel:@"map"];
+        _computation.delay = 0.1;     // typing in the search field: once
     }
     return self;
+}
+
+- (BOOL)isComputing
+{
+    return _computation.running;
 }
 
 - (void)loadView
@@ -88,7 +97,19 @@
     legendRow.spacing = 12;
     legendRow.identifier = @"ridesMapLegend";
 
-    NSStackView *bottom = [NSStackView stackViewWithViews:@[ legendRow, _status, all ]];
+    _spinner = [[NSProgressIndicator alloc] init];
+    _spinner.style = NSProgressIndicatorStyleSpinning;
+    _spinner.controlSize = NSControlSizeSmall;
+    _spinner.displayedWhenStopped = NO;
+    _spinner.identifier = @"ridesMapSpinner";
+    __weak RARidesMapViewController *weakSelf = self;
+    _computation.runningHandler = ^(BOOL running) {
+        RARidesMapViewController *me = weakSelf;
+        if (!me) return;
+        if (running) [me->_spinner startAnimation:nil]; else [me->_spinner stopAnimation:nil];
+        [me updateStatus];
+    };
+    NSStackView *bottom = [NSStackView stackViewWithViews:@[ legendRow, _spinner, _status, all ]];
     bottom.spacing = 12;
     bottom.edgeInsets = NSEdgeInsetsMake(6, 10, 6, 10);
     [bottom setHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
@@ -117,14 +138,20 @@
     _library = library;
     _rides = @[];
     _shownIdentifiers = @[];
+    [_computation cancel];
 }
 
 - (void)showRides:(NSArray<RARide *> *)rides selected:(BOOL)selected
 {
     _rides = [rides copy];
     _selected = selected;
-    // computed only when the tab shows (refresh when it appears)
-    if (self.viewLoaded && self.view.window && !self.view.hiddenOrHasHiddenAncestor) [self refresh];
+    // computed only when the tab shows (refresh when it appears); a computation for other rides is useless
+    if (self.viewLoaded && self.view.window && !self.view.hiddenOrHasHiddenAncestor) {
+        [self refresh];
+    } else if (_computation.running && ![[_rides valueForKey:@"identifier"] isEqualToArray:_shownIdentifiers]) {
+        [_computation cancel];
+        _shownIdentifiers = @[];
+    }
 }
 
 - (void)computeMissingStats
@@ -149,18 +176,14 @@
         return;
     }
     _shownIdentifiers = identifiers;
-    NSUInteger generation = ++_generation;
-    _computing = YES;
-    [self updateStatus];
     NSArray<RARide *> *rides = _rides;
-    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-        RAHeatmap *heatmap = [[RAHeatmap alloc] initWithRides:rides];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (generation != self->_generation) return;   // the rides changed meanwhile
-            self->_computing = NO;
-            [self showHeatmap:heatmap];
-        });
-    });
+    // the rides changed again before the end: this one is cancelled, its result never shows
+    [_computation start:^id(RACancellation *c) {
+        return [[RAHeatmap alloc] initWithRides:rides cellSize:40 cancellation:c];
+    } completion:^(RAHeatmap *heatmap) {
+        if (heatmap) [self showHeatmap:heatmap];
+    }];
+    [self updateStatus];
 }
 
 - (void)showHeatmap:(RAHeatmap *)heatmap
@@ -195,13 +218,13 @@
         : NSLocalizedString(@"%lu rides of the list", @"rides map status"), (unsigned long)_rides.count];
     if (_computingStats) {
         s = [s stringByAppendingFormat:@" · %@", NSLocalizedString(@"reading the tracks of older rides…", @"rides map status")];
-    } else if (_computing) {
+    } else if (self.computing) {
         s = [s stringByAppendingFormat:@" · %@", NSLocalizedString(@"drawing…", @"rides map status")];
     } else if (withoutTrack) {
         s = [s stringByAppendingFormat:@" · %@", [NSString localizedStringWithFormat:
              NSLocalizedString(@"%lu without track", @"rides map status"), (unsigned long)withoutTrack]];
     }
-    if (_heatmap.maxCount > 1 && !_computing) {
+    if (_heatmap.maxCount > 1 && !self.computing) {
         s = [s stringByAppendingFormat:@" · %@", [NSString localizedStringWithFormat:
              NSLocalizedString(@"up to %lu rides on a road", @"rides map status"), (unsigned long)_heatmap.maxCount]];
     }

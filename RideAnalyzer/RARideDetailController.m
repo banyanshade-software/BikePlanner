@@ -4,6 +4,7 @@
 //
 
 #import "RARideDetailController.h"
+#import "RAComputation.h"
 #import "RALibraryDocument.h"
 #import "RARide.h"
 #import "RAChartView.h"
@@ -81,7 +82,11 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     ElevationProfileView *_profile;
     NSStackView *_charts;
     NSArray<NSView *> *_rideViews;     // hidden when no single ride is shown
-    NSUInteger _generation;            // the analysis in flight belongs to the last ride shown
+    // in the background, cancelled when the ride, its trim or the equipment changes (RAComputation)
+    RAComputation *_analysisComputation;   // the file read, analysed, the estimated power
+    RAComputation *_ranksComputation;      // the climbs of the library, for the rank of each passage
+    NSProgressIndicator *_spinner;
+    NSArray<NSNumber *> *_analysisModel;   // mass, Crr, CdA of the estimated power shown; nil: none
 }
 
 - (void)loadView
@@ -215,7 +220,25 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     _charts.alignment = NSLayoutAttributeLeading;
     _charts.spacing = 6;
 
-    _stack = [NSStackView stackViewWithViews:@[ _title, _subtitle, _message, _notes, _tags, _equipmentRow, _trimRow, _figures, mapBar, _map,
+    _spinner = [[NSProgressIndicator alloc] init];
+    _spinner.style = NSProgressIndicatorStyleSpinning;
+    _spinner.controlSize = NSControlSizeSmall;
+    _spinner.displayedWhenStopped = NO;
+    _spinner.identifier = @"detailSpinner";
+    _analysisComputation = [[RAComputation alloc] initWithLabel:@"detail"];
+    _ranksComputation = [[RAComputation alloc] initWithLabel:@"detailRanks"];
+    _ranksComputation.delay = 0.1;
+    __weak RARideDetailController *weakSelf = self;
+    void (^spin)(BOOL) = ^(BOOL running) {
+        RARideDetailController *me = weakSelf;
+        if (!me) return;
+        if (me.computing) [me->_spinner startAnimation:nil]; else [me->_spinner stopAnimation:nil];
+    };
+    _analysisComputation.runningHandler = spin;
+    _ranksComputation.runningHandler = spin;
+    NSStackView *titleRow = [NSStackView stackViewWithViews:@[ _title, _spinner ]];
+    titleRow.spacing = 8;
+    _stack = [NSStackView stackViewWithViews:@[ titleRow, _subtitle, _message, _notes, _tags, _equipmentRow, _trimRow, _figures, mapBar, _map,
                                                 _profile, _climbsTitle, _climbsScroll, _charts ]];
     _stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     _stack.alignment = NSLayoutAttributeLeading;
@@ -253,6 +276,11 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
 
 #pragma mark - showing a ride
 
+- (BOOL)isComputing
+{
+    return _analysisComputation.running || _ranksComputation.running;
+}
+
 - (void)showRides:(NSArray<RARide *> *)rides
 {
     (void)self.view;
@@ -261,34 +289,65 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     _ride = ride;
     for (NSView *v in _rideViews) v.hidden = ride == nil;
     if (!ride) {
-        _generation++;
+        [_analysisComputation cancel];     // another selection: what was being computed is useless
+        [_ranksComputation cancel];
         _analysis = nil;
+        _analysisModel = nil;
         _title.stringValue = rides.count == 0 ? NSLocalizedString(@"No Ride Selected", @"detail")
             : [NSString localizedStringWithFormat:NSLocalizedString(@"%lu Rides Selected", @"detail"),
                (unsigned long)rides.count];
         _message.hidden = YES;
         return;
     }
+    if (!same) {
+        [_ranksComputation cancel];
+        _analysis = nil;
+        _analysisModel = nil;
+    }
     [self refreshRideInfo];
     if (same && _analysis && _analysisTrimStart == ride.trimStart && _analysisTrimEnd == ride.trimEnd) return;
-    NSTimeInterval trimStart = ride.trimStart, trimEnd = ride.trimEnd;
-    _analysisTrimStart = trimStart;
-    _analysisTrimEnd = trimEnd;
-    // the track: read from the original file, in the background
     _analysis = nil;
     _cursorIndex = NSNotFound;
     [self clearTrack];
     _message.hidden = NO;
     _message.stringValue = NSLocalizedString(@"Reading the track…", @"detail");
+    [self startAnalysis];
+}
+
+/// the power model of the ride with the equipment now: mass, Crr, CdA (what the estimated power depends on)
+- (NSArray<NSNumber *> *)modelFiguresOfRide:(RARide *)ride
+{
+    RAPowerModel *model = [RAPowerModel modelForRide:ride equipment:self.library.equipment];
+    return @[ @(model.mass), @(model.crr), @(model.cdA) ];
+}
+
+/// reads, analyses and estimates the power of the ride in the background; cancels the one in progress (another
+/// ride, another trim, other equipment): only the last one shows
+- (void)startAnalysis
+{
+    RARide *ride = _ride;
+    if (!ride) return;
+    NSTimeInterval trimStart = ride.trimStart, trimEnd = ride.trimEnd;
+    _analysisTrimStart = trimStart;
+    _analysisTrimEnd = trimEnd;
     NSData *data = [self.library originalDataOfRide:ride];
-    NSUInteger generation = ++_generation;
-    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+    RAPowerModel *model = [RAPowerModel modelForRide:ride equipment:self.library.equipment];   // a snapshot
+    NSArray<NSNumber *> *figures = [self modelFiguresOfRide:ride];
+    [_analysisComputation start:^id(RACancellation *c) {
         RARideAnalysis *analysis = data ? [RARideAnalysis analysisOfData:data trimStart:trimStart trimEnd:trimEnd] : nil;
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (generation != self->_generation) return; // another ride was selected meanwhile
-            [self showAnalysis:analysis];
-        });
-    });
+        if (!analysis) return [NSNull null];
+        if (c.cancelled) return nil;
+        if (!analysis.hasPower && analysis.hasTimes) {
+            // no power meter: the estimated power (R11), from the equipment of the library
+            [analysis useEstimatedPowers:[model powersOfAnalysis:analysis wind:nil]];
+        }
+        return analysis;
+    } completion:^(id result) {
+        if (self->_ride != ride) return;
+        RARideAnalysis *analysis = [result isKindOfClass:[RARideAnalysis class]] ? result : nil;
+        self->_analysisModel = analysis.powerIsEstimated ? figures : nil;
+        [self showAnalysis:analysis];
+    }];
 }
 
 - (void)refreshRideInfo
@@ -310,6 +369,8 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
     [self updateEquipment];
     [self updateTrim];
     [self updateFigures];
+    // the equipment changed (bike, tyres, weights): the estimated power again, the curve shown until then
+    if (_analysis && _analysisModel && ![_analysisModel isEqualToArray:[self modelFiguresOfRide:ride]]) [self startAnalysis];
 }
 
 #pragma mark - trim
@@ -554,11 +615,6 @@ static void RAMotorizedEnds(RARideAnalysis *a, NSUInteger *fastFrom, NSUInteger 
         _charts.hidden = YES;
         return;
     }
-    if (!analysis.hasPower && analysis.hasTimes) {
-        // no power meter: the estimated power (R11), from the equipment of the library
-        RAPowerModel *model = [RAPowerModel modelForRide:_ride equipment:self.library.equipment];
-        [analysis useEstimatedPowers:[model powersOfAnalysis:analysis wind:nil]];
-    }
     _message.hidden = YES;
     _map.hidden = NO;
     _profile.hidden = NO;
@@ -770,7 +826,22 @@ static void RAMotorizedEnds(RARideAnalysis *a, NSUInteger *fastFrom, NSUInteger 
 {
     RARide *ride = _ride;
     _climbs = ride.stats.climbs ?: @[];
-    _climbGroups = _climbs.count ? [RAClimbGroup groupsOfRides:self.library.rides ?: @[]] : @[];
+    // the ranks: all the rides of the library compared, in the background (the table fills them in then)
+    if (_climbs.count) {
+        NSArray<RARide *> *rides = [self.library.rides copy] ?: @[];
+        [_ranksComputation start:^id(RACancellation *c) {
+            return [RAClimbGroup groupsOfRides:rides cancellation:c];
+        } completion:^(NSArray<RAClimbGroup *> *groups) {
+            if (!groups || self->_ride != ride) return;
+            self->_climbGroups = groups;
+            NSIndexSet *rows = self->_climbsTable.selectedRowIndexes;
+            [self->_climbsTable reloadData];
+            [self->_climbsTable selectRowIndexes:rows byExtendingSelection:NO];
+        }];
+    } else {
+        [_ranksComputation cancel];
+        _climbGroups = @[];
+    }
     NSMutableArray<NSValue *> *ranges = [NSMutableArray array];
     for (RAClimb *c in _climbs) [ranges addObject:[NSValue valueWithPoint:NSMakePoint(c.startDistance, c.startDistance + c.length)]];
     _profile.shadedRanges = ranges;

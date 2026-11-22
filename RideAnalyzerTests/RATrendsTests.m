@@ -166,11 +166,18 @@
     trends.grouping = RATrendPerRide;
     [trends showRides:doc.rides selected:NO];
     [trends refresh];
+    XCTAssertTrue(trends.computing, @"in the background");
+    XCTAssertTrue(RAWaitUntil(10, ^BOOL { return !trends.computing; }));
     XCTAssertEqual(trends.trendChart.points.count, 2u);
     XCTAssertEqual(trends.totalsChart.points.count, 2u, @"two months");
     XCTAssertGreaterThan(trends.records.count, 0u);
+    // a change of settings cancels the computation in progress: only the last one shows
+    trends.measure = RATrendHeartRate;
+    [trends refresh];
+    trends.measure = RATrendSpeed;
     [trends showRides:@[ doc.rides.firstObject ] selected:YES];
     [trends refresh];
+    XCTAssertTrue(RAWaitUntil(10, ^BOOL { return !trends.computing; }));
     XCTAssertEqual(trends.trendChart.points.count, 1u, @"only the rides given");
     XCTAssertTrue([trends.status.stringValue containsString:@"1"]);
 }

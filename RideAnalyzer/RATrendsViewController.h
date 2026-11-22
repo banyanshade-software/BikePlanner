@@ -34,6 +34,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly, nonatomic) RATimeChartView *totalsChart;
 @property (readonly, nonatomic) NSArray<RARecord *> *records;
 @property (readonly, nonatomic) NSTextField *status;
+/// the charts are being computed (in the background, RAComputation; refresh returns at once)
+@property (readonly, nonatomic, getter=isComputing) BOOL computing;
 - (void)refresh;
 
 @end

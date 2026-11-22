@@ -13,7 +13,7 @@
 #import <CoreLocation/CoreLocation.h>
 #import <MapKit/MapKit.h>
 
-@class RARide;
+@class RARide, RACancellation;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -36,6 +36,9 @@ extern const NSUInteger RAHeatLevelCount;
 /// any thread; rides without track are left out
 - (instancetype)initWithRides:(NSArray<RARide *> *)rides cellSize:(double)meters;
 - (instancetype)initWithRides:(NSArray<RARide *> *)rides;   // 40 m
+/// the same, stopped early (nil) when the cancellation is set (RAComputation)
+- (nullable instancetype)initWithRides:(NSArray<RARide *> *)rides cellSize:(double)meters
+                          cancellation:(nullable RACancellation *)cancellation;
 
 /// rides that have a track
 @property (readonly, nonatomic) NSUInteger rideCount;

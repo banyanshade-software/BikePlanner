@@ -8,6 +8,8 @@
 #import "RARide.h"
 #import "RAFilter.h"
 #import "RATimeChartView.h"
+#import "RAComputation.h"
+#import "RAEquipment.h"
 
 // the document view of the scroll view: the content starts at the top
 @interface RATrendsFlippedView : NSView
@@ -24,6 +26,8 @@
     NSTextField *_selection;
     NSGridView *_recordsGrid;
     BOOL _computingStats;
+    RAComputation *_computation;    // the points, totals and records; cancelled when the rides or the settings change
+    NSProgressIndicator *_spinner;
 }
 
 - (NSPopUpButton *)popup:(NSArray<NSString *> *)titles identifier:(NSString *)identifier
@@ -66,7 +70,14 @@
     _grouping = RATrendPerRide;
     _totalMeasure = RATotalDistance;
     _period = RAPeriodMonth;
+    _computation = [[RAComputation alloc] initWithLabel:@"trends"];
+    _computation.delay = 0.1;
     return self;
+}
+
+- (BOOL)isComputing
+{
+    return _computation.running;
 }
 
 - (void)loadView
@@ -95,6 +106,19 @@
     _status.identifier = @"trendsStatus";
     _status.textColor = [NSColor secondaryLabelColor];
     _status.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    _spinner = [[NSProgressIndicator alloc] init];
+    _spinner.style = NSProgressIndicatorStyleSpinning;
+    _spinner.controlSize = NSControlSizeSmall;
+    _spinner.displayedWhenStopped = NO;
+    _spinner.identifier = @"trendsSpinner";
+    [controls addArrangedSubview:_spinner];
+    __weak RATrendsViewController *weakSelf = self;
+    _computation.runningHandler = ^(BOOL running) {
+        RATrendsViewController *me = weakSelf;
+        if (!me) return;
+        if (running) [me->_spinner startAnimation:nil]; else [me->_spinner stopAnimation:nil];
+        [me updateStatus];
+    };
 
     _trendChart = [[RATimeChartView alloc] initWithFrame:NSZeroRect];
     _trendChart.delegate = self;
@@ -163,6 +187,7 @@
 {
     _library = library;
     _rides = @[];
+    [_computation cancel];
 }
 
 - (NSArray<RARide *> *)rides
@@ -174,8 +199,9 @@
 {
     _rides = [rides copy];
     _selected = selected;
-    // charts are drawn only when the tab shows (refresh when it appears)
+    // charts are drawn only when the tab shows (refresh when it appears); a computation for other rides is useless
     if (self.viewLoaded && self.view.window && !self.view.hiddenOrHasHiddenAncestor) [self refresh];
+    else [_computation cancel];
 }
 
 - (void)computeMissingStats
@@ -220,6 +246,8 @@
     if (_computingStats) {
         s = [s stringByAppendingFormat:@" · %@", [NSString localizedStringWithFormat:
              NSLocalizedString(@"computing the figures of %lu rides…", @"trends status"), (unsigned long)missing]];
+    } else if (_computation.running) {
+        s = [s stringByAppendingFormat:@" · %@", NSLocalizedString(@"computing…", @"trends status")];
     } else if (missing) {
         s = [s stringByAppendingFormat:@" · %@", [NSString localizedStringWithFormat:
              NSLocalizedString(@"%lu without track figures (file unreadable)", @"trends status"), (unsigned long)missing]];
@@ -231,18 +259,41 @@
 {
     (void)self.view;
     [self syncControls];
-    NSArray<RARide *> *rides = _rides;
-    NSArray<RATrendPoint *> *points = [RATrends pointsForRides:rides measure:_measure terrain:_terrain grouping:_grouping
-                                                      equipment:_library.equipment];
+    // computed in the background from snapshots; a change of rides or settings cancels it (RAComputation)
+    NSArray<RARide *> *rides = [_rides copy];
+    RAEquipment *equipment = [_library.equipment copy];
+    RATrendMeasure measure = _measure;
+    RATerrain terrain = _terrain;
+    RATrendGrouping grouping = _grouping;
+    RATotalMeasure totalMeasure = _totalMeasure;
+    RAPeriod period = _period;
+    [_computation start:^id(RACancellation *c) {
+        NSArray<RATrendPoint *> *points = [RATrends pointsForRides:rides measure:measure terrain:terrain grouping:grouping
+                                                          equipment:equipment];
+        if (c.cancelled) return nil;
+        NSArray *line = [RATrends trendLineOfPoints:points];
+        NSArray<RATrendPoint *> *totals = [RATrends totalsForRides:rides measure:totalMeasure period:period];
+        if (c.cancelled) return nil;
+        NSArray<RARecord *> *records = [RATrends recordsForRides:rides];
+        return @{ @"points": points, @"line": line ?: [NSNull null], @"totals": totals, @"records": records };
+    } completion:^(NSDictionary *result) {
+        if (result) [self showResult:result measure:measure terrain:terrain period:period];
+    }];
+    [self updateStatus];
+}
+
+- (void)showResult:(NSDictionary *)result measure:(RATrendMeasure)measure terrain:(RATerrain)terrain period:(RAPeriod)period
+{
+    NSArray<RATrendPoint *> *points = result[@"points"];
     _trendChart.points = points;
-    _trendChart.trendLine = [RATrends trendLineOfPoints:points];
+    _trendChart.trendLine = [result[@"line"] isKindOfClass:[NSArray class]] ? result[@"line"] : nil;
     _selection.stringValue = points.count
         ? [NSString localizedStringWithFormat:NSLocalizedString(@"%@ · %@ · %lu points — click one for details", @"trends"),
-           [RATrends nameOfMeasure:_measure], [RATrends nameOfTerrain:_terrain], (unsigned long)points.count]
+           [RATrends nameOfMeasure:measure], [RATrends nameOfTerrain:terrain], (unsigned long)points.count]
         : @" ";
-    _totalsChart.points = [RATrends totalsForRides:rides measure:_totalMeasure period:_period];
-    _totalsChart.barLabelFormat = _period == RAPeriodYear ? @"yyyy" : _period == RAPeriodMonth ? @"MMM yy" : @"d MMM";
-    _records = [RATrends recordsForRides:rides];
+    _totalsChart.points = result[@"totals"];
+    _totalsChart.barLabelFormat = period == RAPeriodYear ? @"yyyy" : period == RAPeriodMonth ? @"MMM yy" : @"d MMM";
+    _records = result[@"records"];
     while (_recordsGrid.numberOfRows > 0) [_recordsGrid removeRowAtIndex:0];
     NSDateFormatter *f = [[NSDateFormatter alloc] init];
     f.dateStyle = NSDateFormatterMediumStyle;

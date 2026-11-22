@@ -150,6 +150,7 @@
     RAClimbsViewController *tab = [wc valueForKey:@"_climbs"];
     [wc showClimbs:self];
     [tab refresh];
+    XCTAssertTrue(RAWaitUntil(10, ^BOOL { return !tab.computing; }), @"grouped in the background");
     XCTAssertEqual(tab.groups.count, 2u, @"nothing selected: the climbs of the list");
     XCTAssertEqual(tab.groups.firstObject.passages.count, 3u);
     XCTAssertEqualObjects(tab.groups.firstObject.name, @"Col de test");
@@ -159,6 +160,7 @@
     NSTableView *table = [wc valueForKey:@"_table"];
     [table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
     [tab refresh];
+    XCTAssertTrue(RAWaitUntil(10, ^BOOL { return !tab.computing; }));
     XCTAssertEqual(tab.groups.count, 2u, @"one ride selected: still the climbs of the list (its own are in its detail)");
     XCTAssertTrue([tab.climbsTable tableColumnWithIdentifier:@"mine"].hidden);
     [tab renameClimbAtRow:1 to:@"Côte"];
@@ -166,6 +168,7 @@
 
     // the detail of the selected ride: its climbs, shaded on the profile; a double-click compares (Climbs tab)
     RARideDetailController *detail = [wc valueForKey:@"_detail"];
+    XCTAssertTrue(RAWaitUntil(10, ^BOOL { return !detail.computing; }), @"the ranks: in the background");
     NSTableView *climbsOfRide = [detail valueForKey:@"_climbsTable"];
     XCTAssertEqual(climbsOfRide.numberOfRows, 2);
     ElevationProfileView *profile = [detail valueForKey:@"_profile"];
@@ -181,6 +184,7 @@
     XCTAssertEqual(profile.emphasizedRange, 1u);
     [detail compareClimb:self];
     XCTAssertEqual(tabs.selectedTabViewItemIndex, 3, @"the Climbs tab");
+    XCTAssertTrue(RAWaitUntil(10, ^BOOL { return !tab.computing; }));
     XCTAssertEqualObjects(tab.groups[(NSUInteger)tab.climbsTable.selectedRow].name, @"Côte", @"on that climb");
     wc.document = nil;
     [wc close];

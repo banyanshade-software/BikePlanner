@@ -4,6 +4,7 @@
 //
 
 #import "RAHeatmap.h"
+#import "RAComputation.h"
 #import "RARide.h"
 #import "RARideStats.h"
 
@@ -142,6 +143,12 @@ static MKMapPoint RAPoint(NSValue *v)
 
 - (instancetype)initWithRides:(NSArray<RARide *> *)rides cellSize:(double)meters
 {
+    return (RAHeatmap *)[self initWithRides:rides cellSize:meters cancellation:nil];
+}
+
+- (nullable instancetype)initWithRides:(NSArray<RARide *> *)rides cellSize:(double)meters
+                          cancellation:(nullable RACancellation *)cancellation
+{
     self = [super init];
     if (!self) return nil;
     _counts = [NSMutableDictionary dictionary];
@@ -164,6 +171,7 @@ static MKMapPoint RAPoint(NSValue *v)
     // 1. the rides crossing each cell
     NSMutableArray<NSArray<NSValue *> *> *dense = [NSMutableArray array];
     for (NSData *t in tracks) {
+        if (cancellation.cancelled) return nil;
         @autoreleasepool {
             NSArray<NSValue *> *points = [self densified:t];
             [dense addObject:points];
@@ -183,6 +191,7 @@ static MKMapPoint RAPoint(NSValue *v)
 
     // 2. each piece of track gets the level of the cell of its middle; consecutive pieces of a level are joined
     for (NSArray<NSValue *> *points in dense) {
+        if (cancellation.cancelled) return nil;
         @autoreleasepool {
             NSMutableData *run = [NSMutableData data];
             NSUInteger runLevel = NSNotFound;

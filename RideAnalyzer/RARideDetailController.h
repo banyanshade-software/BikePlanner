@@ -32,6 +32,8 @@ NS_ASSUME_NONNULL_BEGIN
 // for tests
 @property (readonly, nonatomic, nullable) RARide *ride;
 @property (readonly, nonatomic, nullable) RARideAnalysis *analysis;
+/// the analysis or the ranks of the climbs are being computed (in the background, RAComputation)
+@property (readonly, nonatomic, getter=isComputing) BOOL computing;
 @property (nonatomic) RAColorMode colorMode;
 /// the index of the point under the cursor, NSNotFound when none
 @property (readonly, nonatomic) NSUInteger cursorIndex;

@@ -389,6 +389,26 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   that stretch starts (or to start it after, when it is at the beginning); a *Trim* menu ends or starts the ride at
   the cursor, or gives back the whole recording.
 
+## Asynchronous computations (2026-11-22, owner's request)
+- What a view computes from the selection or its settings runs in the background and is **cancelled** when they
+  change: only the latest result shows (`RAComputation`, one per view; serial queue, so one computation at a time per
+  view; the work gets an `RACancellation` it checks between steps or in its loops; the completion runs on the main
+  thread only if not cancelled; a spinner next to the status while running).
+  - Ride detail: reading the file, the analysis and the estimated power; another ride, another trim or **other
+    equipment** (mass, Crr or CdA of the estimate changed) starts it again — the curves shown stay until the new
+    result; the ranks of its climbs (all the rides of the library compared) separately.
+  - Trends: the points, trend line, totals and records, from a copy of the equipment; a change of measure, terrain,
+    grouping, period or rides cancels it.
+  - Map: the heatmap (`-[RAHeatmap initWithRides:cellSize:cancellation:]`).
+  - Climbs: the groups (`+[RAClimbGroup groupsOfRides:cancellation:]`); *Compare* selects the climb when they show.
+  - A hidden tab cancels its computation when the rides change (computed again when it shows). Trends, map, climbs
+    and the ranks wait 0.1 s before starting, so typing in the search field computes once.
+- The work reads snapshots taken on the main thread (arrays of rides, a copy of the equipment, a power model); the
+  properties of `RARide` that it reads and that the main thread sets (name, start date, device, bike, tags, stats)
+  are atomic.
+- Not cancelled by the selection: the library tasks (import, missing stats, Garmin Connect), which have their own
+  progress.
+
 ## Handoff (2026-11-21): written without Xcode, never compiled
 The skeleton and the imports were written in a session without Xcode. First steps on the owner's Mac (Claude Code):
 1. `git checkout ride_analyzer && git pull`.

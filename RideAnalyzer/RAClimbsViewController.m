@@ -11,6 +11,7 @@
 #import "RAPower.h"
 #import "RATrends.h"
 #import "RATimeChartView.h"
+#import "RAComputation.h"
 
 @interface RAClimbsViewController () <NSTableViewDataSource, NSTableViewDelegate, RATimeChartViewDelegate>
 @end
@@ -25,6 +26,9 @@
     NSTextField *_status;
     NSTextField *_chartLabel;
     NSDateFormatter *_dateFormatter;
+    RAComputation *_computation;    // the groups of climbs; cancelled when the rides change
+    RAClimb *_pendingClimb;         // to select when the groups show (selectClimb:)
+    NSProgressIndicator *_spinner;
 }
 
 - (instancetype)init
@@ -38,6 +42,8 @@
         _dateFormatter = [[NSDateFormatter alloc] init];
         _dateFormatter.dateStyle = NSDateFormatterShortStyle;
     }
+    _computation = [[RAComputation alloc] initWithLabel:@"climbs"];
+    _computation.delay = 0.1;
     return self;
 }
 
@@ -97,8 +103,21 @@
     _chartLabel.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
     _chartLabel.textColor = [NSColor secondaryLabelColor];
 
+    _spinner = [[NSProgressIndicator alloc] init];
+    _spinner.style = NSProgressIndicatorStyleSpinning;
+    _spinner.controlSize = NSControlSizeSmall;
+    _spinner.displayedWhenStopped = NO;
+    _spinner.identifier = @"climbsSpinner";
+    __weak RAClimbsViewController *weakSelf = self;
+    _computation.runningHandler = ^(BOOL running) {
+        RAClimbsViewController *me = weakSelf;
+        if (!me) return;
+        if (running) [me->_spinner startAnimation:nil]; else [me->_spinner stopAnimation:nil];
+    };
+    NSStackView *statusRow = [NSStackView stackViewWithViews:@[ _spinner, _status ]];
+    statusRow.spacing = 6;
     NSScrollView *climbs = [self scroll:_climbsTable], *passages = [self scroll:_passagesTable];
-    NSStackView *stack = [NSStackView stackViewWithViews:@[ _status, climbs, passages, _chartLabel, _timeChart ]];
+    NSStackView *stack = [NSStackView stackViewWithViews:@[ statusRow, climbs, passages, _chartLabel, _timeChart ]];
     stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     stack.alignment = NSLayoutAttributeLeading;
     stack.spacing = 6;
@@ -139,31 +158,45 @@
     _focus = focus;
     _selected = selected;
     if (self.viewLoaded && self.view.window && !self.view.hiddenOrHasHiddenAncestor) [self refresh];
+    else [_computation cancel];      // for other rides: useless
 }
 
 - (void)refresh
 {
     (void)self.view;
-    RAClimbGroup *chosen = _climbsTable.selectedRow >= 0 && (NSUInteger)_climbsTable.selectedRow < _groups.count
-        ? _groups[(NSUInteger)_climbsTable.selectedRow] : nil;
-    NSArray<RAClimbGroup *> *all = [RAClimbGroup groupsOfRides:_rides];
-    if (_focus) {
+    // grouped in the background (the passages of every ride compared); a change of rides cancels it
+    NSArray<RARide *> *rides = [_rides copy];
+    RARide *focus = _focus;
+    BOOL selected = _selected;
+    [_computation start:^id(RACancellation *c) {
+        NSArray<RAClimbGroup *> *all = [RAClimbGroup groupsOfRides:rides cancellation:c];
+        if (!all || !focus) return all;
         // the climbs of the selected ride, in the order of the ride
         NSMutableArray<RAClimbGroup *> *mine = [NSMutableArray array];
+        NSMapTable<RAClimbGroup *, NSNumber *> *starts = [NSMapTable strongToStrongObjectsMapTable];
         for (RAClimbGroup *g in all) {
-            for (RAClimbPassage *p in g.passages) if (p.ride == _focus) { [mine addObject:g]; break; }
+            for (RAClimbPassage *p in g.passages) {
+                if (p.ride == focus) { [mine addObject:g]; [starts setObject:@(p.climb.startDistance) forKey:g]; break; }
+            }
         }
         [mine sortUsingComparator:^NSComparisonResult(RAClimbGroup *x, RAClimbGroup *y) {
-            double a = [self passageOf:self->_focus in:x].climb.startDistance, b = [self passageOf:self->_focus in:y].climb.startDistance;
-            return a < b ? NSOrderedAscending : a > b ? NSOrderedDescending : NSOrderedSame;
+            return [[starts objectForKey:x] compare:(NSNumber *)[starts objectForKey:y]];
         }];
-        all = mine;
-    }
+        return mine;
+    } completion:^(NSArray<RAClimbGroup *> *groups) {
+        if (groups) [self showGroups:groups rides:rides focus:focus selected:selected];
+    }];
+}
+
+- (void)showGroups:(NSArray<RAClimbGroup *> *)all rides:(NSArray<RARide *> *)rides focus:(nullable RARide *)focus
+          selected:(BOOL)selected
+{
+    RAClimbGroup *chosen = [self chosenGroup];
     RALibraryDocument *library = _library;
     for (RAClimbGroup *g in all) g.name = library ? [library nameOfClimb:g.reference] : @"";
     _groups = all;
     [_climbsTable reloadData];
-    [_climbsTable tableColumnWithIdentifier:@"mine"].hidden = _focus == nil;
+    [_climbsTable tableColumnWithIdentifier:@"mine"].hidden = focus == nil;
     // keep the chosen climb (the same reference), else the first
     NSInteger row = _groups.count ? 0 : -1;
     for (NSUInteger i = 0; i < _groups.count && chosen; i++) {
@@ -171,14 +204,23 @@
     }
     if (row >= 0) [_climbsTable selectRowIndexes:[NSIndexSet indexSetWithIndex:(NSUInteger)row] byExtendingSelection:NO];
     [self showPassages];
+    if (_pendingClimb) {
+        [self selectGroupOfClimb:(RAClimb *)_pendingClimb];
+        _pendingClimb = nil;
+    }
     NSUInteger withClimbs = 0;
-    for (RARide *r in _rides) if (r.stats.climbs.count) withClimbs++;
-    _status.stringValue = _focus
+    for (RARide *r in rides) if (r.stats.climbs.count) withClimbs++;
+    _status.stringValue = focus
         ? [NSString localizedStringWithFormat:NSLocalizedString(@"%lu climbs in this ride, compared with the %lu rides of the list", @"climbs"),
-           (unsigned long)_groups.count, (unsigned long)_rides.count]
+           (unsigned long)_groups.count, (unsigned long)rides.count]
         : [NSString localizedStringWithFormat:NSLocalizedString(@"%lu climbs in %lu %@", @"climbs: n climbs in n rides"),
            (unsigned long)_groups.count, (unsigned long)withClimbs,
-           _selected ? NSLocalizedString(@"selected rides", @"climbs") : NSLocalizedString(@"rides of the list", @"climbs")];
+           selected ? NSLocalizedString(@"selected rides", @"climbs") : NSLocalizedString(@"rides of the list", @"climbs")];
+}
+
+- (BOOL)isComputing
+{
+    return _computation.running;
 }
 
 - (nullable RAClimbPassage *)passageOf:(RARide *)ride in:(RAClimbGroup *)group
@@ -322,7 +364,13 @@
 
 - (BOOL)selectClimb:(RAClimb *)climb
 {
+    _pendingClimb = climb;      // selected again when the groups being computed show
     [self refresh];
+    return [self selectGroupOfClimb:climb];
+}
+
+- (BOOL)selectGroupOfClimb:(RAClimb *)climb
+{
     for (NSUInteger i = 0; i < _groups.count; i++) {
         if ([_groups[i].reference isSameClimbAs:climb]) {
             [_climbsTable selectRowIndexes:[NSIndexSet indexSetWithIndex:i] byExtendingSelection:NO];

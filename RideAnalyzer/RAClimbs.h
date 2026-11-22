@@ -16,7 +16,7 @@
 #import <CoreLocation/CoreLocation.h>
 #import "RAPower.h"
 
-@class RARideAnalysis, RATerrainStats, RARide;
+@class RARideAnalysis, RATerrainStats, RARide, RACancellation;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -64,6 +64,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, nonatomic) NSString *name;
 /// groups of the climbs of the rides, the most ridden first
 + (NSArray<RAClimbGroup *> *)groupsOfRides:(NSArray<RARide *> *)rides;
+/// the same, stopped early (nil) when the cancellation is set (RAComputation); any thread
++ (nullable NSArray<RAClimbGroup *> *)groupsOfRides:(NSArray<RARide *> *)rides cancellation:(nullable RACancellation *)cancellation;
 /// the passage of a climb of a ride, its rank by time (1: best) among the group's passages; 0 without time
 - (NSUInteger)rankOfPassage:(RAClimbPassage *)passage;
 @end

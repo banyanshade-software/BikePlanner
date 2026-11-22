@@ -4,6 +4,7 @@
 //
 
 #import "RAClimbs.h"
+#import "RAComputation.h"
 #import "RARideAnalysis.h"
 #import "RARideStats.h"
 #import "RARide.h"
@@ -220,12 +221,18 @@ static double RAMeters(CLLocationCoordinate2D a, CLLocationCoordinate2D b)
 
 + (NSArray<RAClimbGroup *> *)groupsOfRides:(NSArray<RARide *> *)rides
 {
+    return [self groupsOfRides:rides cancellation:nil] ?: @[];
+}
+
++ (nullable NSArray<RAClimbGroup *> *)groupsOfRides:(NSArray<RARide *> *)rides cancellation:(nullable RACancellation *)cancellation
+{
     NSArray<RARide *> *sorted = [rides sortedArrayUsingComparator:^NSComparisonResult(RARide *x, RARide *y) {
         if (!x.startDate || !y.startDate) return x.startDate ? NSOrderedAscending : y.startDate ? NSOrderedDescending : NSOrderedSame;
         return [x.startDate compare:(NSDate *)y.startDate];
     }];
     NSMutableArray<RAClimbGroup *> *groups = [NSMutableArray array];
     for (RARide *r in sorted) {
+        if (cancellation.cancelled) return nil;
         for (RAClimb *c in r.stats.climbs ?: @[]) {
             RAClimbGroup *group = nil;
             for (RAClimbGroup *g in groups) {
