@@ -925,7 +925,7 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
     RARideAnalysis *a = [RARideAnalysis analysisOfData:data trimStart:ride.trimStart trimEnd:ride.trimEnd];
     if (!a) return;
     RARoadMatch *roads = ride.roads;
-    if (roads) a.rollingFactors = [roads rollingFactorsFrom:a.firstFileIndex count:a.count];   // R8
+    if (roads) a.surfaceCategories = [roads surfaceCategoriesFrom:a.firstFileIndex count:a.count];   // R8
     ride.distance = a.distance;
     ride.ascent = a.ascent;
     if (!ride.trimmed) {
@@ -1230,7 +1230,7 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
                 RARideAnalysis *a = data.length ? [RARideAnalysis analysisOfData:data trimStart:trims[k][0].doubleValue
                                                                         trimEnd:trims[k][1].doubleValue] : nil;
                 RARoadMatch *match = [roads[k] isKindOfClass:[RARoadMatch class]] ? roads[k] : nil;
-                if (a && match) a.rollingFactors = [match rollingFactorsFrom:a.firstFileIndex count:a.count];   // R8
+                if (a && match) a.surfaceCategories = [match surfaceCategoriesFrom:a.firstFileIndex count:a.count];   // R8
                 [results addObject:a ? (id)[RARideStats statsOfAnalysis:a] : (id)[NSNull null]];
             }
             reporting.completedUnitCount = (int64_t)k + 1;

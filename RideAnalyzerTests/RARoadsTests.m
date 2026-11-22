@@ -8,6 +8,9 @@
 
 #import <XCTest/XCTest.h>
 #import "RARoads.h"
+#import "RASurfaceFactors.h"
+#import "RASurfaceFactorsWindowController.h"
+#import "RAEquipment.h"
 #import "RARide.h"
 #import "RARideStats.h"
 #import "RARideAnalysis.h"
@@ -84,6 +87,17 @@ typedef struct { float lat, lon; } RATestWayPoint;
     XCTAssertEqualWithAccuracy(RARollingFactorOfTags(@{ @"highway": @"track", @"tracktype": @"grade1" }), 1.4, 1e-9);
     XCTAssertEqualWithAccuracy(RARollingFactorOfTags(@{ @"highway": @"track" }), 2.5, 1e-9);
     XCTAssertEqualWithAccuracy(RARollingFactorOfTags(@{ @"highway": @"residential" }), 1.3, 1e-9, @"a road: asphalt");
+    XCTAssertEqualObjects([RASurfaceFactors categoryOfTags:@{ @"surface": @"fine_gravel" }], RASurfaceKeyFineGravel);
+    XCTAssertEqualObjects([RASurfaceFactors categoryOfTags:@{ @"surface": @"asphalt", @"smoothness": @"bad" }], RASurfaceKeyBadAsphalt);
+    XCTAssertEqualObjects([RASurfaceFactors categoryOfTags:@{ @"highway": @"track", @"tracktype": @"grade5" }], RASurfaceKeyTrackGrade45);
+    XCTAssertEqualObjects([RASurfaceFactors categoryOfTags:@{ @"highway": @"cycleway" }], RASurfaceKeyRoad);
+    for (NSString *c in [RASurfaceFactors categories]) {
+        XCTAssertGreaterThan([RASurfaceFactors nameOfCategory:c].length, 0u);
+        XCTAssertGreaterThan([RASurfaceFactors defaultFactorOfCategory:c], 1.0);
+    }
+    XCTAssertEqual([RASurfaceFactors factorsWithOverrides:@{ RASurfaceKeyGravel: @4, @"nonsense": @9 }][RASurfaceKeyGravel].doubleValue, 4);
+    XCTAssertNil([RASurfaceFactors factorsWithOverrides:@{ @"nonsense": @9 }][@"nonsense"]);
+    XCTAssertGreaterThan([RASurfaceFactors sources].count, 3u, @"the defaults have sources");
 }
 
 - (void)testMatchingAndRuns
@@ -104,14 +118,16 @@ typedef struct { float lat, lon; } RATestWayPoint;
     XCTAssertEqualObjects([m surfaceClassAtIndex:150], RASurfaceClassUnpaved);
     XCTAssertEqualObjects([m roadClassAtIndex:210], RARoadNone, @"far from any way");
     XCTAssertEqual(m.runs.count, 3u, @"cycleway, track, none");
-    NSArray<NSNumber *> *f = [m rollingFactorsFrom:95 count:10];
-    XCTAssertEqualWithAccuracy(f.firstObject.doubleValue, 1.3, 1e-9);
-    XCTAssertEqualWithAccuracy(f.lastObject.doubleValue, 2.5, 1e-9);
-    XCTAssertEqual([m rollingFactorsFrom:215 count:1].firstObject.doubleValue, 0);
+    NSArray<NSString *> *f = [m surfaceCategoriesFrom:95 count:10];
+    XCTAssertEqualObjects(f.firstObject, RASurfaceKeyAsphalt);
+    XCTAssertEqualObjects(f.lastObject, RASurfaceKeyGravel);
+    XCTAssertEqualObjects([m surfaceCategoriesFrom:215 count:1].firstObject, @"", @"no way");
     XCTAssertEqualWithAccuracy(m.matchedFraction, 201.0 / 221, 0.01);
     RARoadMatch *read = [RARoadMatch matchWithPropertyList:m.propertyList];
     XCTAssertEqualObjects(read.runs, m.runs);
     XCTAssertNil([RARoadMatch matchWithPropertyList:@{ @"runs": @[ @[ @1 ] ] }]);
+    XCTAssertNil([RARoadMatch matchWithPropertyList:@{ @"runs": @[ @[ @"cycleway", @"paved", @1.3, @3 ] ] }],
+                 @"version 1 (factors): matched again");
 
     // rows over an analysis of the trace (distance per class and surface)
     RARideAnalysis *a = [[RARideAnalysis alloc] initWithTrace:trace metrics:@[] calories:nil hasTimes:NO];
@@ -167,8 +183,9 @@ typedef struct { float lat, lon; } RATestWayPoint;
     XCTAssertEqual([doc ridesWithoutRoads:doc.rides].count, 0u);
     XCTAssertTrue(doc.documentEdited);
     RATerrainStats *after = ride.stats.total;
-    XCTAssertGreaterThan(after.surfaceRollingWork, 0);
-    XCTAssertLessThan(after.rollingWork, before.rollingWork, @"the known part moved to surfaceRollingWork");
+    XCTAssertGreaterThan(after.surfaceWorks[RASurfaceKeyGravel].doubleValue, 0);
+    XCTAssertGreaterThan(after.surfaceWorks[RASurfaceKeyAsphalt].doubleValue, 0);
+    XCTAssertLessThan(after.rollingWork, before.rollingWork, @"the known part moved to surfaceWorks");
     // half on gravel (2.5), half on asphalt (1.3): more rolling resistance than the bike's ordinary asphalt (1.3)
     RAPowerModel *m = [RAPowerModel modelForRide:ride equipment:nil];
     XCTAssertGreaterThan([m averagePowerOfStats:after], [m averagePowerOfStats:before]);
@@ -186,11 +203,59 @@ typedef struct { float lat, lon; } RATestWayPoint;
     m.tyreCrr = 0.004;
     m.crr = 0.004 * 1.3;
     double plain = [[m powersOfAnalysis:a wind:nil][2] doubleValue];
-    a.rollingFactors = @[ @2.5, @2.5, @2.5, @2.5 ];
+    a.surfaceCategories = @[ RASurfaceKeyGravel, RASurfaceKeyGravel, RASurfaceKeyGravel, RASurfaceKeyGravel ];
     double gravel = [[m powersOfAnalysis:a wind:nil][2] doubleValue];
     XCTAssertGreaterThan(gravel, plain, @"gravel rolls harder");
-    a.rollingFactors = @[ @0, @0, @0, @0 ];
+    m.surfaceFactors = [RASurfaceFactors factorsWithOverrides:@{ RASurfaceKeyGravel: @4 }];
+    XCTAssertGreaterThan([[m powersOfAnalysis:a wind:nil][2] doubleValue], gravel, @"a factor changed by the user");
+    a.surfaceCategories = @[ @"", @"", @"", @"" ];
     XCTAssertEqualWithAccuracy([[m powersOfAnalysis:a wind:nil][2] doubleValue], plain, 1e-9, @"unknown: the bike's usual roads");
+}
+
+// the factors are settings of the library (owner's request): a change applies at once, undoable, without new stats
+- (void)testConfigurableFactors
+{
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    doc.undoManager.groupsByEvent = NO;
+    [doc.undoManager beginUndoGrouping];
+    [doc importData:RATCX(@[ @100, @100, @100, @100, @100, @100 ], 0, nil, nil) fileName:@"flat.tcx" error:NULL];
+    [doc.undoManager endUndoGrouping];
+    RARide *ride = doc.rides.firstObject;
+    __block NSInteger found = -1;
+    [doc findRoadsOfRides:doc.rides completion:^(NSUInteger n, NSError *e) { found = (NSInteger)n; }];
+    XCTAssertTrue(RAWaitUntil(10, ^BOOL { return found >= 0 && ride.stats.usesRoads; }));
+    RARideStats *stats = ride.stats;
+    double before = [[RAPowerModel modelForRide:ride equipment:doc.equipment] averagePowerOfStats:stats.total];
+
+    RASurfaceFactorsWindowController *wc = [[RASurfaceFactorsWindowController alloc] initWithLibrary:doc];
+    (void)wc.window;
+    XCTAssertEqual(wc.tableView.numberOfRows, (NSInteger)[RASurfaceFactors categories].count);
+    [doc.undoManager beginUndoGrouping];
+    [wc setFactor:@4 ofCategory:RASurfaceKeyGravel];
+    [doc.undoManager endUndoGrouping];
+    XCTAssertEqual(doc.equipment.surfaceFactors[RASurfaceKeyGravel].doubleValue, 4);
+    XCTAssertEqual(ride.stats, stats, @"no new stats");
+    double after = [[RAPowerModel modelForRide:ride equipment:doc.equipment] averagePowerOfStats:stats.total];
+    XCTAssertGreaterThan(after, before, @"gravel harder: more watts at once");
+
+    [doc.undoManager beginUndoGrouping];
+    [wc setFactor:@100 ofCategory:RASurfaceKeyDirt];
+    XCTAssertEqual(doc.equipment.surfaceFactors[RASurfaceKeyDirt].doubleValue, [RASurfaceFactors maximumFactor], @"bounded");
+    [wc setFactor:nil ofCategory:RASurfaceKeyDirt];
+    XCTAssertNil(doc.equipment.surfaceFactors[RASurfaceKeyDirt], @"back to the default");
+    // the bike's usual roads use the same factors
+    [wc setFactor:@1.6 ofCategory:RASurfaceKeyAsphalt];
+    XCTAssertEqualWithAccuracy([doc.equipment factorOfBikeSurface:RASurfaceAsphalt], 1.6, 1e-9);
+    XCTAssertEqualObjects([RAEquipment equipmentWithPropertyList:doc.equipment.propertyList].surfaceFactors,
+                          doc.equipment.surfaceFactors, @"saved");
+    [doc.undoManager endUndoGrouping];
+    [doc.undoManager beginUndoGrouping];
+    [wc restoreDefaults:self];
+    [doc.undoManager endUndoGrouping];
+    XCTAssertEqual(doc.equipment.surfaceFactors.count, 0u);
+    [doc.undoManager undo];
+    XCTAssertEqual(doc.equipment.surfaceFactors[RASurfaceKeyAsphalt].doubleValue, 1.6, @"undoable");
+    [wc close];
 }
 
 @end

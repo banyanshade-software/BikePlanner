@@ -414,16 +414,26 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   ridden often are fetched once. Each point goes to the nearest way within 30 m, the difference of direction counting
   as up to 20 m (crossings), the way of the previous point kept while it is about as good (8 m). TO CHECK once against
   the real Overpass (Claude's shell has no network).
-- **Result** (`RARoadMatch`, kept with the ride, `RARide.roads`; not undoable): runs of points of the file's trace
-  with the road class (BikePlanner's classes, #66: cycleway, path, track, small, tertiary, secondary, primary, other;
-  "none" off the map), the surface class (paved, unpaved, unknown) and the **rolling factor** of the surface
-  (`RARollingFactorOfTags`: asphalt 1.3 — 1.15 excellent, 1.45 intermediate, 1.7 bad —, paving stones 1.5, compacted
-  1.8, fine gravel 2.0, cobbles 2.2, gravel 2.5, dirt / grass 3.0; without surface tag a track by its tracktype —
-  grade1 1.4 … grade4–5 3.0, 2.5 without —, a path 2.0, roads and cycleways 1.3).
-- **Estimated power** (R11): the Crr of a point is the tyres' Crr × its road's factor where the road is known, else ×
-  the bike's usual roads (`RARideAnalysis.rollingFactors`, `RAPowerModel.tyreCrr`); the stats keep the two parts
-  (`rollingWork` where unknown, `surfaceRollingWork` already × the factor; `RARideStats.usesRoads`); a ride whose roads
-  are found after its stats gets its stats again (`ridesWithoutStats`). The climbs' estimated power too.
+- **Result** (`RARoadMatch`, kept with the ride, `RARide.roads`; not undoable; version 2): runs of points of the
+  file's trace with the road class (BikePlanner's classes, #66: cycleway, path, track, small, tertiary, secondary,
+  primary, other; "none" off the map), the surface class (paved, unpaved, unknown) and the **surface category**
+  (`RASurfaceFactors categoryOfTags:`: smooth / ordinary / rough / bad asphalt, paving stones, compacted, fine gravel,
+  cobbles, gravel, dirt-grass-sand; without surface tag a track by its tracktype, a path, a road).
+- **Factors, configurable** (2026-11-22, owner's request; `RASurfaceFactors`, sources in `RASurfaceFactors.m` and
+  #94): each category multiplies the tyres' drum Crr — defaults smooth asphalt 1.15, asphalt 1.3, road without
+  surface 1.3, track grade 1 1.4, rough asphalt 1.5, paving stones 1.5, bad asphalt 1.7, compacted 1.8, asphalt and
+  gravel (a bike's usual roads) 1.8, track grade 2 1.9, fine gravel 2.0, path 2.0, cobbles 2.2, gravel 2.5, track
+  grade 3 2.5, track without surface 2.5, dirt / grass / sand 3.0, track grade 4–5 3.0. *Equipment ▸ Surface
+  Factors…* (`RASurfaceFactorsWindowController`): the table of the categories with their OSM tags, default and
+  factor (empty: the default; 0.8–6), *Restore Defaults*, the sources as links. Kept in the equipment
+  (`RAEquipment.surfaceFactors`, undoable, saved); the bike's usual roads use the same factors
+  (`factorOfBikeSurface:`).
+- **Estimated power** (R11): the Crr of a point is the tyres' Crr × the factor of its road's category where the road
+  is known, else × the bike's usual roads (`RARideAnalysis.surfaceCategories`, `RAPowerModel.tyreCrr` /
+  `surfaceFactors` / `crrOnSurface:`); the stats keep the rolling work per category (`surfaceWorks`, `rollingWork`
+  where unknown; `RARideStats.usesRoads`): a change of the factors applies at once to the trends, the detail and the
+  climbs, without reading the rides again. A ride whose roads are found after its stats gets its stats again
+  (`ridesWithoutStats`).
 - **When**: the detail finds the roads of the ride it shows (in the background, cancelled with the selection; once
   per session after a failure; not with `RANoAutomaticRoads`; never the real service in the unit tests: only with a
   stub session, `RARoadMatcher.session`); *Edit ▸ Find Road Types* and the list's contextual menu for the selected

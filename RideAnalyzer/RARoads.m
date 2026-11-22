@@ -8,12 +8,13 @@
 #import "RAGarminConnect.h"
 #import "RARideAnalysis.h"
 #import "BRouterGeoJSON.h"
+#import "RASurfaceFactors.h"
 
 NSString *const RARoadNone = @"none";
 NSString *const RASurfaceClassPaved = @"paved";
 NSString *const RASurfaceClassUnpaved = @"unpaved";
 NSString *const RASurfaceClassUnknown = @"unknown";
-const NSInteger RARoadMatchVersion = 1;
+const NSInteger RARoadMatchVersion = 2;   // 2: surface categories (configurable factors) instead of factors
 
 static const double RACellSize = 0.01;           // degrees
 static const double RAMatchDistance = 30;        // m: farther, no way
@@ -23,31 +24,7 @@ static const NSTimeInterval RACacheLifetime = 180 * 86400;
 
 double RARollingFactorOfTags(NSDictionary<NSString *, NSString *> *tags)
 {
-    NSString *surface = tags[@"surface"] ?: @"", *smoothness = tags[@"smoothness"] ?: @"";
-    NSString *highway = tags[@"highway"] ?: @"", *tracktype = tags[@"tracktype"] ?: @"";
-    if (surface.length) {
-        if ([@[ @"asphalt", @"paved", @"concrete", @"chipseal" ] containsObject:surface] || [surface hasPrefix:@"concrete:"]) {
-            if ([smoothness isEqualToString:@"excellent"]) return 1.15;
-            if ([smoothness isEqualToString:@"intermediate"]) return 1.45;
-            if ([@[ @"bad", @"very_bad", @"horrible" ] containsObject:smoothness]) return 1.7;
-            return 1.3;
-        }
-        if ([surface isEqualToString:@"paving_stones"] || [@[ @"wood", @"metal" ] containsObject:surface]) return 1.5;
-        if ([surface isEqualToString:@"compacted"]) return 1.8;
-        if ([surface isEqualToString:@"fine_gravel"]) return 2.0;
-        if ([@[ @"sett", @"cobblestone", @"unhewn_cobblestone" ] containsObject:surface]) return 2.2;
-        if ([@[ @"gravel", @"pebblestone", @"unpaved", @"rock" ] containsObject:surface]) return 2.5;
-        if ([@[ @"dirt", @"earth", @"ground", @"mud", @"sand", @"grass", @"woodchips" ] containsObject:surface]) return 3.0;
-    }
-    if ([highway isEqualToString:@"track"]) {
-        if ([tracktype isEqualToString:@"grade1"]) return 1.4;
-        if ([tracktype isEqualToString:@"grade2"]) return 1.9;
-        if ([tracktype isEqualToString:@"grade3"]) return 2.5;
-        if ([tracktype isEqualToString:@"grade4"] || [tracktype isEqualToString:@"grade5"]) return 3.0;
-        return 2.5;
-    }
-    if ([@[ @"path", @"footway", @"bridleway" ] containsObject:highway]) return 2.0;
-    return 1.3;     // roads, cycleways, pedestrian streets: asphalt as a rule
+    return [RASurfaceFactors defaultFactorOfCategory:[RASurfaceFactors categoryOfTags:tags]];
 }
 
 #pragma mark - match
@@ -66,14 +43,14 @@ double RARollingFactorOfTags(NSDictionary<NSString *, NSString *> *tags)
 }
 
 + (RARoadMatch *)matchWithRoadClasses:(NSArray<NSString *> *)roads surfaces:(NSArray<NSString *> *)surfaces
-                              factors:(NSArray<NSNumber *> *)factors
+                           categories:(NSArray<NSString *> *)factors
 {
     RARoadMatch *m = [[RARoadMatch alloc] init];
     NSMutableArray<NSArray *> *runs = [NSMutableArray array];
     for (NSUInteger i = 0; i < roads.count; i++) {
         NSArray *last = runs.lastObject;
         if (last && [last[0] isEqualToString:roads[i]] && [last[1] isEqualToString:surfaces[i]]
-            && [last[2] doubleValue] == factors[i].doubleValue) {
+            && [last[2] isEqual:factors[i]]) {
             runs[runs.count - 1] = @[ last[0], last[1], last[2], @(i) ];
         } else {
             [runs addObject:@[ roads[i], surfaces[i], factors[i], @(i) ]];
@@ -99,7 +76,7 @@ double RARollingFactorOfTags(NSDictionary<NSString *, NSString *> *tags)
     NSMutableArray<NSArray *> *runs = [NSMutableArray array];
     for (NSArray *r in plist[@"runs"]) {
         if (![r isKindOfClass:[NSArray class]] || r.count != 4 || ![r[0] isKindOfClass:[NSString class]]
-            || ![r[1] isKindOfClass:[NSString class]] || ![r[2] isKindOfClass:[NSNumber class]] || ![r[3] isKindOfClass:[NSNumber class]]) {
+            || ![r[1] isKindOfClass:[NSString class]] || ![r[2] isKindOfClass:[NSString class]] || ![r[3] isKindOfClass:[NSNumber class]]) {
             return nil;
         }
         [runs addObject:r];
@@ -120,14 +97,14 @@ double RARollingFactorOfTags(NSDictionary<NSString *, NSString *> *tags)
     return lo < self.runs.count ? self.runs[lo] : self.runs.lastObject;
 }
 
-- (NSArray<NSNumber *> *)rollingFactorsFrom:(NSUInteger)first count:(NSUInteger)count
+- (NSArray<NSString *> *)surfaceCategoriesFrom:(NSUInteger)first count:(NSUInteger)count
 {
-    NSMutableArray<NSNumber *> *out = [NSMutableArray arrayWithCapacity:count];
+    NSMutableArray<NSString *> *out = [NSMutableArray arrayWithCapacity:count];
     NSUInteger r = 0;
     for (NSUInteger i = 0; i < count; i++) {
         NSUInteger index = first + i;
         while (r + 1 < self.runs.count && [self.runs[r][3] unsignedIntegerValue] < index) r++;
-        [out addObject:self.runs.count ? self.runs[r][2] : @0];
+        [out addObject:self.runs.count ? self.runs[r][2] : @""];
     }
     return out;
 }
@@ -500,7 +477,7 @@ static double RAAngle(double a, double b)
 + (RARoadMatch *)matchTrace:(NSArray<CLLocation *> *)trace toWays:(NSArray<NSArray *> *)ways
 {
     NSUInteger n = trace.count;
-    if (n == 0) return [RARoadMatch matchWithRoadClasses:@[] surfaces:@[] factors:@[]];
+    if (n == 0) return [RARoadMatch matchWithRoadClasses:@[] surfaces:@[] categories:@[]];
     // local meters around the first point
     double lat0 = trace.firstObject.coordinate.latitude, lon0 = trace.firstObject.coordinate.longitude;
     double mx = 111195 * cos(lat0 * M_PI / 180), my = 111195;
@@ -539,7 +516,7 @@ static double RAAngle(double a, double b)
     }
     const RASegment *seg = segments.bytes;
     NSMutableArray<NSString *> *roads = [NSMutableArray arrayWithCapacity:n], *surfaces = [NSMutableArray arrayWithCapacity:n];
-    NSMutableArray<NSNumber *> *factors = [NSMutableArray arrayWithCapacity:n];
+    NSMutableArray<NSString *> *factors = [NSMutableArray arrayWithCapacity:n];
     NSUInteger previous = NSNotFound;
     for (NSUInteger i = 0; i < n; i++) {
         CLLocationCoordinate2D c = trace[i].coordinate;
@@ -568,15 +545,15 @@ static double RAAngle(double a, double b)
         if (bestWay == NSNotFound) {
             [roads addObject:RARoadNone];
             [surfaces addObject:RASurfaceClassUnknown];
-            [factors addObject:@0];
+            [factors addObject:@""];
         } else {
             NSDictionary *tags = unique[bestWay][0];
             [roads addObject:[BRouterGeoJSON roadClassForTags:tags]];
             [surfaces addObject:[BRouterGeoJSON surfaceClassForTags:tags]];
-            [factors addObject:@(RARollingFactorOfTags(tags))];
+            [factors addObject:[RASurfaceFactors categoryOfTags:tags]];
         }
     }
-    return [RARoadMatch matchWithRoadClasses:roads surfaces:surfaces factors:factors];
+    return [RARoadMatch matchWithRoadClasses:roads surfaces:surfaces categories:factors];
 }
 
 @end

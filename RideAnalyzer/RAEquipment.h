@@ -73,9 +73,11 @@ typedef NS_ENUM(NSInteger, RASurface) {
 /// the position of a kind of bike by default
 + (RARidingPosition)defaultPositionForKind:(RABikeKind)kind;
 + (NSString *)nameOfSurface:(RASurface)surface;
-/// the factor of the Crr on that surface (rough estimates: drum tests are on smooth steel); the sources of these
-/// factors: the comment of RARollingFactorOfTags (RARoads.h)
+/// the default factor of the Crr on that surface (drum tests are on smooth steel; the sources: RASurfaceFactors.m);
+/// the factor used is the library's (-[RAEquipment factorOfBikeSurface:])
 + (double)rollingFactorOfSurface:(RASurface)surface;
+/// the surface category (RASurfaceFactors) of a bike's usual roads
++ (NSString *)categoryOfSurface:(RASurface)surface;
 /// a usual weight of a kind of bike (kg), when the user has not weighed it
 + (double)typicalWeightForKind:(RABikeKind)kind;
 @property (readonly, nonatomic) double effectiveCdA;
@@ -147,6 +149,13 @@ typedef NS_ENUM(NSInteger, RASurface) {
 - (double)riderWeightAtDate:(nullable NSDate *)date;
 /// adds weighings, one per day (a newer value of the same day replaces it); YES if something changed
 - (BOOL)mergeWeighings:(NSArray<RAWeighing *> *)weighings;
+/// R8 / R11: the factors of the rolling resistance by surface category (RASurfaceFactors) the user changed, @{} none
+@property (copy, nonatomic) NSDictionary<NSString *, NSNumber *> *surfaceFactors;
+/// every category with the factor used (defaults and changes)
+@property (readonly, nonatomic) NSDictionary<NSString *, NSNumber *> *effectiveSurfaceFactors;
+- (double)factorOfSurfaceCategory:(NSString *)category;
+/// the factor of a bike's usual roads, with the library's changes
+- (double)factorOfBikeSurface:(RASurface)surface;
 @property (copy, nonatomic) NSString *defaultBikeID;   // @"" none
 @property (copy, nonatomic) NSArray<RABike *> *bikes;
 @property (copy, nonatomic) NSArray<RAPart *> *parts;

@@ -37,9 +37,9 @@ static inline BOOL RAHasValue(double v) { return !isnan(v); }
 @property (readonly, nonatomic) BOOL hasTimes;
 /// the index in the file's trace of the first point (a trim cuts the start; R8 road matches are by file index)
 @property (nonatomic) NSUInteger firstFileIndex;
-/// R8: the factor of the Crr of the tyres on the road of each point (its surface, RARoadMatch), 0 where unknown;
-/// nil: no road match (the bike's usual roads then)
-@property (copy, nonatomic, nullable) NSArray<NSNumber *> *rollingFactors;
+/// R8: the surface category of the road of each point (RARoadMatch, RASurfaceFactors), @"" where unknown; nil: no
+/// road match (the bike's usual roads then)
+@property (copy, nonatomic, nullable) NSArray<NSString *> *surfaceCategories;
 
 // one value per point (RANoValue when missing)
 @property (readonly, nonatomic) NSArray<NSNumber *> *distances;   // meters from the start

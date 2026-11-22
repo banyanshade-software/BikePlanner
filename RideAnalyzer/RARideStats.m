@@ -61,7 +61,11 @@ static NSArray<NSString *> *RATerrainKeys(void)
     self.powerTime += other.powerTime;
     self.gravityWork += other.gravityWork;
     self.rollingWork += other.rollingWork;
-    self.surfaceRollingWork += other.surfaceRollingWork;
+    if (other.surfaceWorks.count) {
+        NSMutableDictionary<NSString *, NSNumber *> *sum = [self.surfaceWorks mutableCopy] ?: [NSMutableDictionary dictionary];
+        for (NSString *k in other.surfaceWorks) sum[k] = @(sum[k].doubleValue + other.surfaceWorks[k].doubleValue);
+        self.surfaceWorks = sum;
+    }
     self.inertiaWork += other.inertiaWork;
     self.airWork += other.airWork;
     self.estimatedPowerSum += other.estimatedPowerSum;
@@ -73,7 +77,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
               @"hrSum": @(self.heartRateSum), @"hrTime": @(self.heartRateTime),
               @"powerSum": @(self.powerSum), @"powerTime": @(self.powerTime),
               @"gravityWork": @(self.gravityWork), @"rollingWork": @(self.rollingWork),
-              @"surfaceRollingWork": @(self.surfaceRollingWork),
+              @"surfaceWorks": self.surfaceWorks ?: @{},
               @"inertiaWork": @(self.inertiaWork), @"airWork": @(self.airWork) };
 }
 
@@ -94,7 +98,12 @@ static NSArray<NSString *> *RATerrainKeys(void)
     t.powerTime = num(@"powerTime");
     t.gravityWork = num(@"gravityWork");
     t.rollingWork = num(@"rollingWork");
-    t.surfaceRollingWork = num(@"surfaceRollingWork");
+    NSMutableDictionary<NSString *, NSNumber *> *works = [NSMutableDictionary dictionary];
+    if ([plist[@"surfaceWorks"] isKindOfClass:[NSDictionary class]]) {
+        NSDictionary *w = plist[@"surfaceWorks"];
+        for (id k in w) if ([k isKindOfClass:[NSString class]] && [w[k] isKindOfClass:[NSNumber class]]) works[k] = w[k];
+    }
+    t.surfaceWorks = works;
     t.inertiaWork = num(@"inertiaWork");
     t.airWork = num(@"airWork");
     return t;
@@ -178,9 +187,9 @@ static NSArray<NSString *> *RATerrainKeys(void)
     double sensor = RAHasValue(s0) && RAHasValue(s1) && s0 > 0 && s1 > 0 ? (s0 + s1) / 2 / 3.6 : v;
     double air = sensor + headwind;
     interval.gravityWork = RAGravity * sin(theta) * dd;
-    // R8: the surface of the road when known (its factor of the tyres' Crr), else the bike's usual roads (at power time)
-    double factor = a.rollingFactors && i < a.rollingFactors.count ? a.rollingFactors[i].doubleValue : 0;
-    if (factor > 0) interval.surfaceRollingWork = RAGravity * cos(theta) * dd * factor;
+    // R8: per surface category of the road when known, else for the bike's usual roads (the factors at power time)
+    NSString *category = a.surfaceCategories && i < a.surfaceCategories.count ? a.surfaceCategories[i] : @"";
+    if (category.length) interval.surfaceWorks = @{ category: @(RAGravity * cos(theta) * dd) };
     else interval.rollingWork = RAGravity * cos(theta) * dd;
     interval.inertiaWork = acc * dd;
     interval.airWork = 0.5 * rho * air * fabs(air) * dd;
@@ -196,7 +205,7 @@ static NSArray<NSString *> *RATerrainKeys(void)
     s.calories = a.calories != nil ? a.calories.doubleValue : NAN;
     s.track = [RAHeatmap packedTrackOfTrace:a.trace tolerance:8];
     s.climbs = [RAClimbDetector climbsOfAnalysis:a wind:wind];
-    s.usesRoads = a.rollingFactors != nil;
+    s.usesRoads = a.surfaceCategories != nil;
     if (!a.hasTimes) return s;
     // each moving interval goes to the terrain of the slope at its end
     for (NSUInteger i = 1; i < a.count; i++) {
@@ -238,7 +247,8 @@ static NSArray<NSString *> *RATerrainKeys(void)
     if ([(v = plist[@"maxPower"]) isKindOfClass:[NSNumber class]]) s.maxPower = [v doubleValue];
     if ([(v = plist[@"calories"]) isKindOfClass:[NSNumber class]]) s.calories = [v doubleValue];
     if ([(v = plist[@"track"]) isKindOfClass:[NSData class]]) s.track = v;
-    s.usesRoads = [plist[@"usesRoads"] boolValue];
+    s.usesRoads = [plist[@"usesRoads"] boolValue] && [plist[@"total"] isKindOfClass:[NSDictionary class]]
+                  && plist[@"total"][@"surfaceWorks"] != nil;      // (older: the factors were in the sums)
     if ([(v = plist[@"climbs"]) isKindOfClass:[NSArray class]]) {
         NSMutableArray<RAClimb *> *climbs = [NSMutableArray array];
         for (id c in v) { RAClimb *climb = [RAClimb climbWithPropertyList:c]; if (climb) [climbs addObject:climb]; }

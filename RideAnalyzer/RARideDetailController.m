@@ -341,7 +341,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
 - (NSArray<NSNumber *> *)modelFiguresOfRide:(RARide *)ride
 {
     RAPowerModel *model = [RAPowerModel modelForRide:ride equipment:self.library.equipment];
-    return @[ @(model.mass), @(model.crr), @(model.cdA) ];
+    return @[ @(model.mass), @(model.crr), @(model.cdA), @(model.tyreCrr), model.surfaceFactors ];
 }
 
 /// reads, analyses and estimates the power of the ride in the background; cancels the one in progress (another
@@ -362,7 +362,7 @@ static NSArray<NSColor *> *RAPalette(RAColorMode mode)
         if (!analysis) return [NSNull null];
         if (c.cancelled) return nil;
         // R8: the surface of each point's road in the rolling resistance
-        if (roads) analysis.rollingFactors = [roads rollingFactorsFrom:analysis.firstFileIndex count:analysis.count];
+        if (roads) analysis.surfaceCategories = [roads surfaceCategoriesFrom:analysis.firstFileIndex count:analysis.count];
         if (!analysis.hasPower && analysis.hasTimes) {
             // no power meter: the estimated power (R11), from the equipment of the library
             [analysis useEstimatedPowers:[model powersOfAnalysis:analysis wind:nil]];

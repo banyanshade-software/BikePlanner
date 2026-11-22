@@ -4,6 +4,7 @@
 //
 
 #import "RAEquipment.h"
+#import "RASurfaceFactors.h"
 #import "RARide.h"
 #import "RATyreDatabase.h"
 
@@ -105,16 +106,21 @@ static double RADouble(id v)
     return @"";
 }
 
-+ (double)rollingFactorOfSurface:(RASurface)surface
++ (NSString *)categoryOfSurface:(RASurface)surface
 {
     switch (surface) {
-        case RASurfaceSmoothAsphalt: return 1.15;
-        case RASurfaceAsphalt: return 1.3;
-        case RASurfaceRoughAsphalt: return 1.5;
-        case RASurfaceMixedGravel: return 1.8;
-        case RASurfaceGravel: return 2.5;
+        case RASurfaceSmoothAsphalt: return RASurfaceKeySmoothAsphalt;
+        case RASurfaceAsphalt: return RASurfaceKeyAsphalt;
+        case RASurfaceRoughAsphalt: return RASurfaceKeyRoughAsphalt;
+        case RASurfaceMixedGravel: return RASurfaceKeyMixed;
+        case RASurfaceGravel: return RASurfaceKeyGravel;
     }
-    return 1.3;
+    return RASurfaceKeyAsphalt;
+}
+
++ (double)rollingFactorOfSurface:(RASurface)surface
+{
+    return [RASurfaceFactors defaultFactorOfCategory:[self categoryOfSurface:surface]];
 }
 
 + (double)typicalWeightForKind:(RABikeKind)kind
@@ -377,6 +383,7 @@ static double RADouble(id v)
         _parts = @[];
         _weighings = @[];
         _usesWeighings = YES;
+        _surfaceFactors = @{};
     }
     return self;
 }
@@ -513,6 +520,22 @@ static double RADouble(id v)
     return self.riderWeight > 0 ? self.riderWeight : 75;
 }
 
+- (NSDictionary<NSString *, NSNumber *> *)effectiveSurfaceFactors
+{
+    return [RASurfaceFactors factorsWithOverrides:self.surfaceFactors];
+}
+
+- (double)factorOfSurfaceCategory:(NSString *)category
+{
+    NSNumber *f = self.effectiveSurfaceFactors[category];
+    return f != nil ? f.doubleValue : [RASurfaceFactors defaultFactorOfCategory:category];
+}
+
+- (double)factorOfBikeSurface:(RASurface)surface
+{
+    return [self factorOfSurfaceCategory:[RABike categoryOfSurface:surface]];
+}
+
 - (double)riderWeightAtDate:(nullable NSDate *)date
 {
     if (!self.usesWeighings || self.weighings.count == 0) return self.effectiveRiderWeight;
@@ -582,7 +605,8 @@ static double RADouble(id v)
 {
     return @{ @"riderWeight": @(self.riderWeight), @"defaultBikeID": self.defaultBikeID,
               @"bikes": [self.bikes valueForKey:@"propertyList"], @"parts": [self.parts valueForKey:@"propertyList"],
-              @"weighings": [self.weighings valueForKey:@"propertyList"], @"usesWeighings": @(self.usesWeighings) };
+              @"weighings": [self.weighings valueForKey:@"propertyList"], @"usesWeighings": @(self.usesWeighings),
+              @"surfaceFactors": self.surfaceFactors };
 }
 
 + (RAEquipment *)equipmentWithPropertyList:(nullable id)plist
@@ -607,6 +631,14 @@ static double RADouble(id v)
     [weighings sortUsingComparator:^NSComparisonResult(RAWeighing *a, RAWeighing *b) { return [a.date compare:b.date]; }];
     e.weighings = weighings;
     e.usesWeighings = plist[@"usesWeighings"] ? [plist[@"usesWeighings"] boolValue] : YES;
+    NSMutableDictionary<NSString *, NSNumber *> *factors = [NSMutableDictionary dictionary];
+    if ([plist[@"surfaceFactors"] isKindOfClass:[NSDictionary class]]) {
+        NSDictionary *f = plist[@"surfaceFactors"];
+        for (id k in f) {
+            if ([k isKindOfClass:[NSString class]] && [f[k] isKindOfClass:[NSNumber class]] && [f[k] doubleValue] > 0) factors[k] = f[k];
+        }
+    }
+    e.surfaceFactors = factors;
     return e;
 }
 

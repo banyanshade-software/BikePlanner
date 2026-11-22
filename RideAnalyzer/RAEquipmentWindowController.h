@@ -31,6 +31,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (IBAction)removePart:(nullable id)sender;
 /// the tyre database (published Crr): its window, whose "Use" gives a tyre to the selected part
 - (IBAction)showTyreDatabase:(nullable id)sender;
+/// the factors of the rolling resistance by surface (R8, configurable): RASurfaceFactorsWindowController
+- (IBAction)showSurfaceFactors:(nullable id)sender;
 /// gives a tyre of the database to the selected part (a new tyre part when none is selected)
 - (void)useTyre:(RATyre *)tyre;
 /// shows the sheet of that bike

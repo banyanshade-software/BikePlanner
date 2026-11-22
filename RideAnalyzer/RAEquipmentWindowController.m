@@ -9,6 +9,7 @@
 #import "RARide.h"
 #import "RATyreDatabase.h"
 #import "RATyreDatabaseWindowController.h"
+#import "RASurfaceFactorsWindowController.h"
 #import "RALibraryWindowController.h"
 
 @interface RAEquipmentWindowController () <NSTableViewDataSource, NSTableViewDelegate>
@@ -21,6 +22,7 @@
     NSDateFormatter *_day;
     NSTextField *_status;
     RATyreDatabaseWindowController *_tyreDatabase;
+    RASurfaceFactorsWindowController *_surfaceFactors;
     // the bike sheet: the selected bike and its tyres
     NSView *_sheet;
     NSTextField *_noBike;
@@ -124,8 +126,11 @@
         [NSTextField labelWithString:NSLocalizedString(@"kg", @"unit")],
         [NSTextField labelWithString:NSLocalizedString(@"Default bike:", @"equipment")], _defaultBikePopup,
         [NSButton buttonWithTitle:NSLocalizedString(@"Tyre Database…", @"equipment") target:self
-                           action:@selector(showTyreDatabase:)] ]];
-    top.views.lastObject.identifier = @"showTyreDatabase";
+                           action:@selector(showTyreDatabase:)],
+        [NSButton buttonWithTitle:NSLocalizedString(@"Surface Factors…", @"equipment") target:self
+                           action:@selector(showSurfaceFactors:)] ]];
+    top.views[top.views.count - 2].identifier = @"showTyreDatabase";
+    top.views.lastObject.identifier = @"showSurfaceFactors";
     top.spacing = 6;
     _usesWeighings = [NSButton checkboxWithTitle:@"" target:self action:@selector(usesWeighingsChanged:)];
     _usesWeighings.identifier = @"usesWeighings";
@@ -417,14 +422,19 @@
     [self setSheetText:[self format:b.cdA] placeholder:[self format:[RABike defaultCdAForPosition:b.position]] of:@"bikeCdA"];
     [(NSPopUpButton *)_sheetControls[@"bikeKind"] selectItemAtIndex:b.kind];
     [(NSPopUpButton *)_sheetControls[@"bikePosition"] selectItemAtIndex:b.position];
-    [(NSPopUpButton *)_sheetControls[@"bikeSurface"] selectItemAtIndex:b.surface];
+    NSPopUpButton *surface = (NSPopUpButton *)_sheetControls[@"bikeSurface"];
+    for (NSInteger k = RASurfaceSmoothAsphalt; k <= RASurfaceGravel; k++) {     // the library's factors
+        [surface itemAtIndex:k].title = [NSString localizedStringWithFormat:@"%@ (Crr × %.2f)", [RABike nameOfSurface:k],
+                                         [e factorOfBikeSurface:k]];
+    }
+    [surface selectItemAtIndex:b.surface];
     NSDate *now = [NSDate date];
     RAPart *front = [e tyreOfBike:b.identifier wheel:RAWheelFront atDate:now];
     RAPart *rear = [e tyreOfBike:b.identifier wheel:RAWheelRear atDate:now];
     [self refreshTyre:front prefix:@"front" crr:_frontCrr];
     [self refreshTyre:rear prefix:@"rear" crr:_rearCrr];
     // what the estimated power uses today with this bike
-    double crr = [e crrOfBike:b.identifier atDate:now] * [RABike rollingFactorOfSurface:b.surface];
+    double crr = [e crrOfBike:b.identifier atDate:now] * [e factorOfBikeSurface:b.surface];
     _figures.stringValue = [NSString localizedStringWithFormat:
         NSLocalizedString(@"%.0f kg with the rider · Crr %.4f on these roads · CdA %.2f m²", @"bike sheet"),
         [e riderWeightAtDate:now] + b.effectiveWeight, crr, b.effectiveCdA];
@@ -903,6 +913,18 @@
     NSString *bike = _defaultBikePopup.selectedItem.representedObject ?: @"";
     [_library changeEquipment:^(RAEquipment *e) { e.defaultBikeID = bike; }
                    actionName:NSLocalizedString(@"Default Bike", @"undo action name")];
+}
+
+/// the factors of the rolling resistance by surface (R8, configurable)
+- (IBAction)showSurfaceFactors:(nullable id)sender
+{
+    RALibraryDocument *library = _library;
+    if (!library) return;
+    if (!_surfaceFactors) {
+        _surfaceFactors = [[RASurfaceFactorsWindowController alloc] initWithLibrary:library];
+        [_surfaceFactors.window center];
+    }
+    [_surfaceFactors showWindow:self];
 }
 
 - (IBAction)showTyreDatabase:(nullable id)sender

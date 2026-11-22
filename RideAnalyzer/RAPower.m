@@ -4,6 +4,7 @@
 //
 
 #import "RAPower.h"
+#import "RASurfaceFactors.h"
 #import "RAEquipment.h"
 #import "RARide.h"
 #import "RARideAnalysis.h"
@@ -40,6 +41,7 @@ const double RAWheelInertia = 1.5;
         _mass = 75 + 12;
         _crr = 0.005;
         _tyreCrr = 0.005;
+        _surfaceFactors = [RASurfaceFactors factorsWithOverrides:nil];
         _cdA = [RABike defaultCdAForPosition:RAPositionFlatBar];
         _efficiency = RADrivetrainEfficiency;
         _wheelInertia = RAWheelInertia;
@@ -50,15 +52,16 @@ const double RAWheelInertia = 1.5;
 + (instancetype)modelForRide:(nullable RARide *)ride equipment:(nullable RAEquipment *)equipment
 {
     RAPowerModel *m = [[RAPowerModel alloc] init];
-    m.tyreCrr = 0.005;
-    m.crr = 0.005 * [RABike rollingFactorOfSurface:RASurfaceAsphalt];
     RAEquipment *e = equipment ?: [[RAEquipment alloc] init];
+    m.surfaceFactors = e.effectiveSurfaceFactors;
+    m.tyreCrr = 0.005;
+    m.crr = 0.005 * [e factorOfBikeSurface:RASurfaceAsphalt];
     RABike *bike = ride ? [e bikeOfRide:(RARide *)ride] : [e bikeWithID:e.defaultBikeID];
     m.mass = [e riderWeightAtDate:ride.startDate] + (bike ? bike.effectiveWeight : 12);   // weighing of the day (R11)
     if (bike) {
         m.cdA = bike.effectiveCdA;
         m.tyreCrr = [e crrOfBike:bike.identifier atDate:ride.startDate ?: [NSDate date]];
-        m.crr = m.tyreCrr * [RABike rollingFactorOfSurface:bike.surface];
+        m.crr = m.tyreCrr * [e factorOfBikeSurface:bike.surface];
     }
     return m;
 }
@@ -142,19 +145,28 @@ const double RAWheelInertia = 1.5;
                                             temperature:a.hasTemperature ? a.temperatures[i].doubleValue : temperature];
         double slope = a.slopes[i].doubleValue;
         // R8: the surface of the road of the point when known
-        double factor = a.rollingFactors && i < a.rollingFactors.count ? a.rollingFactors[i].doubleValue : 0;
+        NSString *category = a.surfaceCategories && i < a.surfaceCategories.count ? a.surfaceCategories[i] : @"";
         [out addObject:@([self powerAtSpeed:v[i] slope:RAHasValue(slope) ? slope : 0 acceleration:acc
-                                   headwind:headwind airDensity:rho crr:factor > 0 ? self.tyreCrr * factor : self.crr])];
+                                   headwind:headwind airDensity:rho crr:[self crrOnSurface:category]])];
     }
     free(v);
     return out;
 }
 
+- (double)crrOnSurface:(NSString *)category
+{
+    if (category.length == 0) return self.crr;
+    NSNumber *f = self.surfaceFactors[category];
+    return self.tyreCrr * (f != nil ? f.doubleValue : [RASurfaceFactors defaultFactorOfCategory:category]);
+}
+
 - (double)averagePowerOfStats:(RATerrainStats *)t
 {
     if (t.time <= 0) return NAN;
+    double rolling = self.crr * t.rollingWork;
+    for (NSString *category in t.surfaceWorks) rolling += [self crrOnSurface:category] * t.surfaceWorks[category].doubleValue;
     double energy = self.mass * t.gravityWork + (self.mass + self.wheelInertia) * t.inertiaWork
-                  + self.mass * (self.crr * t.rollingWork + self.tyreCrr * t.surfaceRollingWork) + self.cdA * t.airWork;
+                  + self.mass * rolling + self.cdA * t.airWork;
     double p = energy / self.efficiency / t.time;
     return p > 0 ? p : 0;
 }
