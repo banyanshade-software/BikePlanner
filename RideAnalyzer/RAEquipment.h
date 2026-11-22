@@ -73,7 +73,8 @@ typedef NS_ENUM(NSInteger, RASurface) {
 /// the position of a kind of bike by default
 + (RARidingPosition)defaultPositionForKind:(RABikeKind)kind;
 + (NSString *)nameOfSurface:(RASurface)surface;
-/// the factor of the Crr on that surface (rough estimates: drum tests are on smooth steel)
+/// the factor of the Crr on that surface (rough estimates: drum tests are on smooth steel); the sources of these
+/// factors: the comment of RARollingFactorOfTags (RARoads.h)
 + (double)rollingFactorOfSurface:(RASurface)surface;
 /// a usual weight of a kind of bike (kg), when the user has not weighed it
 + (double)typicalWeightForKind:(RABikeKind)kind;
