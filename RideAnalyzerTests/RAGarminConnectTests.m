@@ -22,6 +22,7 @@ static NSString *const kBase = @"https://garmin.stub";
 {
     NSMutableArray<NSDictionary *> *_activities;   // newest first, as Garmin lists them
     NSMutableDictionary<NSString *, NSData *> *_fits;
+    NSMutableDictionary<NSString *, NSData *> *_gpxs;   // GPX exports (they follow the cuts made in Garmin Connect)
     NSInteger _tokenCount;
     BOOL _rejectKey;
     BOOL _expireNextAPICall;
@@ -36,6 +37,7 @@ static NSString *const kBase = @"https://garmin.stub";
     [RAStubURLProtocol reset];
     _activities = [NSMutableArray array];
     _fits = [NSMutableDictionary dictionary];
+    _gpxs = [NSMutableDictionary dictionary];
     _tokenCount = 0;
     _rejectKey = NO;
     _expireNextAPICall = NO;
@@ -87,6 +89,11 @@ static NSString *const kBase = @"https://garmin.stub";
         NSArray *page = start < _activities.count
             ? [_activities subarrayWithRange:NSMakeRange(start, MIN(limit, _activities.count - start))] : @[];
         return [RAStubResponse json:page];
+    }
+    NSString *gpxPrefix = @"/download-service/export/gpx/activity/";
+    if ([path hasPrefix:gpxPrefix]) {
+        NSData *gpx = _gpxs[[path substringFromIndex:gpxPrefix.length]];
+        return gpx ? [RAStubResponse status:200 body:gpx] : [RAStubResponse status:404 body:nil];
     }
     NSString *prefix = @"/download-service/files/activity/";
     if ([path hasPrefix:prefix]) {
@@ -411,6 +418,39 @@ static NSString *const kBase = @"https://garmin.stub";
     [doc.undoManager undo];
     XCTAssertFalse(r32.trimmed, @"undoable");
     XCTAssertEqualWithAccuracy(r32.distance, 2224, 30);
+}
+
+// the GPX export follows the cut (owner's June 6 activity: the FIT has 276.7 km, the GPX the 6:55 kept), even
+// when the summary has no duration
+- (void)testCutFromTheGPXExport
+{
+    [self addActivity:34 day:0 type:@"road_biking"];
+    NSMutableDictionary *cut = [_activities[0] mutableCopy];
+    cut[@"distance"] = @1112;                                 // no duration in this summary
+    _activities[0] = cut;
+    // the export: the last two points only (the start was cut)
+    NSArray<CLLocation *> *trace = RATrace(@[ @100, @120, @130 ], 0);
+    NSISO8601DateFormatter *f = [[NSISO8601DateFormatter alloc] init];
+    NSMutableString *gpx = [NSMutableString stringWithString:@"<?xml version=\"1.0\"?><gpx version=\"1.1\" creator=\"Garmin Connect\"><trk><trkseg>"];
+    for (NSUInteger i = 1; i < trace.count; i++) {
+        [gpx appendFormat:@"<trkpt lat=\"%.7f\" lon=\"%.7f\"><ele>%.0f</ele><time>%@</time></trkpt>",
+         trace[i].coordinate.latitude, trace[i].coordinate.longitude, trace[i].altitude, [f stringFromDate:trace[i].timestamp]];
+    }
+    [gpx appendString:@"</trkseg></trk></gpx>"];
+    _gpxs[@"34"] = [gpx dataUsingEncoding:NSUTF8StringEncoding];
+
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    NSError *error = nil;
+    [self fetchInto:doc client:[self clientWithKey:@"good-key"] since:nil error:&error];
+    RARide *ride = doc.rides.firstObject;
+    XCTAssertNotNil(ride, @"%@", error);
+    XCTAssertEqualWithAccuracy(ride.trimStart, 600, 1, @"from the first time of the export");
+    XCTAssertEqual(ride.trimEnd, 0, @"the end is not cut");
+    XCTAssertEqualWithAccuracy(ride.distance, 1112, 30);
+
+    NSTimeInterval s = 0, e = 0;
+    XCTAssertFalse([RALibraryDocument trimOfData:_fits[@"34"] matchingGPX:[@"<gpx/>" dataUsingEncoding:NSUTF8StringEncoding]
+                                           start:&s end:&e], @"no times");
 }
 
 @end

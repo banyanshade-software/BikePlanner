@@ -120,6 +120,11 @@ typedef NS_ENUM(NSInteger, RALibraryLocation) {
 /// the ride already matches (distance within 3 % + 300 m) or nothing can be deduced
 + (BOOL)garminTrimForRide:(RARide *)ride activity:(RAGarminActivity *)activity data:(NSData *)data
                     start:(NSTimeInterval *)start end:(NSTimeInterval *)end;
+/// YES when a ride is longer than its Garmin Connect activity (distance + 3 % + 300 m): cut there
++ (BOOL)ride:(RARide *)ride isLongerThanActivity:(RAGarminActivity *)activity data:(NSData *)data;
+/// the trim of an original file that keeps the part of Garmin Connect's GPX export (which follows the cuts made
+/// there): from its first to its last time; NO when the GPX has no times or covers the whole file
++ (BOOL)trimOfData:(NSData *)data matchingGPX:(NSData *)gpx start:(NSTimeInterval *)start end:(NSTimeInterval *)end;
 /// the Garmin Connect corrections of the rides already imported (R1): lists the activities back to the oldest ride
 /// from Garmin Connect and trims the rides that are longer than their activity. Completion on the main queue with
 /// the number of rides corrected (undoable together). Returns nil when an import is running.

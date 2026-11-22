@@ -421,6 +421,16 @@ static NSString *const RADefaultAPIBaseURL = @"https://personal.connectapi.garmi
     }];
 }
 
+- (void)gpxExportOfActivity:(NSString *)activityID
+                 completion:(void (^)(NSData * _Nullable gpx, NSError * _Nullable error))completion
+{
+    NSURL *url = [[RAEnvironment garminAPIBaseURL] URLByAppendingPathComponent:
+                  [@"download-service/export/gpx/activity/" stringByAppendingString:activityID]];
+    [self get:url step:@"gpx" completion:^(NSData *data, NSError *error) {
+        completion(data.length ? data : nil, data.length ? nil : (error ?: [RAGarminConnect errorWithCode:RAGarminErrorBadAnswer status:0]));
+    }];
+}
+
 - (void)fitFileOfActivity:(NSString *)activityID
      completion:(void (^)(NSData * _Nullable fit, NSError * _Nullable error))completion
 {

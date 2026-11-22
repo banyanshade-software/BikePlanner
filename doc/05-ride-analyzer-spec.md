@@ -348,10 +348,13 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
 - **Trim** (`RARide.trimStart` / `trimEnd`, seconds from the first point of the file; the file itself is kept):
   the figures, stats, climbs, track of the map and detail are those of the part kept (`analysisOfData:trimStart:
   trimEnd:`, `trimRide:start:end:` undoable, `updateFiguresOfRide:fromData:`).
-- **Activities cut in Garmin Connect**: the file downloaded has the whole recording (to check), the activity's
-  summary the corrected distance and duration (`elapsedDuration`, else `duration`, to check). At the fetch, a ride
-  longer than its activity (distance + 3 % + 300 m) is trimmed: start from the activity's start time, end from its
-  duration (else where the ride reaches its distance). For the rides imported before the cut: File ▸ *Apply Garmin
+- **Activities cut in Garmin Connect**: the original FIT file keeps the whole recording, but the GPX export follows
+  the cut. Both were checked with the owner's June 6 activity (#91): the FIT has 276.7 km over 3 h 07; the GPX of
+  Garmin Connect runs from 04:52:27 to 04:59:22, the 2.21 km and 6:55 kept. At the fetch, a ride longer than its
+  activity (distance + 3 % + 300 m) is trimmed to the times of the activity's GPX export
+  (`download-service/export/gpx/activity/<id>`, to check with the Personal API; `trimOfData:matchingGPX:`, keeping
+  the metrics of the FIT). Without the export, the summary is used: start from the activity's start time, end from
+  its duration (`elapsedDuration`, else `duration`, to check), else where the ride reaches its distance. For the rides imported before the cut: File ▸ *Apply Garmin
   Connect Corrections* lists the activities back to the oldest ride from Garmin Connect and trims those longer than
   their activity (one undoable change).
 - **Detail**: when 10 minutes or more go at car speed (> 45 km/h on average), a line proposes to end the ride where

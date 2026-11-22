@@ -164,23 +164,36 @@ static NSString * _Nullable RAKeyFromObfuscated(id value, NSString *libraryID)
     [self.client fitFileOfActivity:a.activityID completion:^(NSData *fit, NSError *error) {
         NSString *fileName = [NSString stringWithFormat:@"%@.fit", a.activityID];
         RARide *ride = fit ? [RALibraryDocument rideFromData:fit fileName:fileName error:NULL] : nil;
-        if (ride && fit) {
-            ride.garminActivityID = a.activityID;
-            if (a.name.length) ride.name = a.name;
-            // an activity cut in Garmin Connect (e.g. the computer left running in the car): the file has the whole
-            // recording, the summary the corrected ride
+        if (!ride || !fit) {
+            self->_summary.unreadable++;
+            self->_progress.completedUnitCount = (int64_t)index + 1;
+            [self fetch:index + 1];
+            return;
+        }
+        ride.garminActivityID = a.activityID;
+        if (a.name.length) ride.name = a.name;
+        void (^next)(void) = ^{
+            [self->_candidates addObject:@[ ride, fit ]];
+            self->_progress.completedUnitCount = (int64_t)index + 1;
+            [self fetch:index + 1];
+        };
+        // an activity cut in Garmin Connect (e.g. the computer left running in the car): the original file has the
+        // whole recording; the GPX export follows the cut, else the summary gives its distance and duration
+        if (![RALibraryDocument ride:ride isLongerThanActivity:a data:fit]) {
+            next();
+            return;
+        }
+        [self.client gpxExportOfActivity:a.activityID completion:^(NSData *gpx, NSError *gpxError) {
             NSTimeInterval s = 0, e = 0;
-            if ([RALibraryDocument garminTrimForRide:ride activity:a data:fit start:&s end:&e]) {
+            BOOL trim = (gpx && [RALibraryDocument trimOfData:fit matchingGPX:gpx start:&s end:&e])
+                     || [RALibraryDocument garminTrimForRide:ride activity:a data:fit start:&s end:&e];
+            if (trim) {
                 ride.trimStart = s;
                 ride.trimEnd = e;
                 [RALibraryDocument updateFiguresOfRide:ride fromData:fit];
             }
-            [self->_candidates addObject:@[ ride, fit ]];
-        } else {
-            self->_summary.unreadable++;
-        }
-        self->_progress.completedUnitCount = (int64_t)index + 1;
-        [self fetch:index + 1];
+            next();
+        }];
     }];
 }
 
@@ -201,6 +214,7 @@ static NSString * _Nullable RAKeyFromObfuscated(id value, NSString *libraryID)
 @implementation RAGarminCorrections
 {
     NSMutableArray<NSArray *> *_toTrim;     // @[ ride, @start, @end ]
+    NSMutableArray<NSArray *> *_longer;     // @[ ride, activity, data ]: longer than their activity
 }
 
 - (void)finishWithError:(nullable NSError *)error
@@ -213,6 +227,7 @@ static NSString * _Nullable RAKeyFromObfuscated(id value, NSString *libraryID)
 - (void)listPage:(NSUInteger)page
 {
     if (!_toTrim) _toTrim = [NSMutableArray array];
+    if (!_longer) _longer = [NSMutableArray array];
     if (self.progress.cancelled || !self.document) {
         [self finishWithError:nil];
         return;
@@ -228,13 +243,34 @@ static NSString * _Nullable RAKeyFromObfuscated(id value, NSString *libraryID)
             for (RAGarminActivity *a in activities) {
                 RARide *ride = self.byActivity[a.activityID];
                 NSData *data = ride ? [doc originalDataOfRide:ride] : nil;
-                NSTimeInterval s = 0, e = 0;
-                if (data && !ride.trimmed && [RALibraryDocument garminTrimForRide:ride activity:a data:data start:&s end:&e]) {
-                    [self->_toTrim addObject:@[ ride, @(s), @(e) ]];
+                if (data && !ride.trimmed && [RALibraryDocument ride:ride isLongerThanActivity:a data:data]) {
+                    [self->_longer addObject:@[ ride, a, data ]];
                 }
             }
             if (activities.count == RAGarminPageSize && page + 1 < RAGarminMaxPages) [self listPage:page + 1];
-            else [self finishWithError:nil];
+            else [self refine:0];
+        });
+    }];
+}
+
+/// the trim of each longer ride: from the GPX export of its activity (it follows the cut), else from the summary
+- (void)refine:(NSUInteger)index
+{
+    if (index >= _longer.count || self.progress.cancelled) {
+        [self finishWithError:nil];
+        return;
+    }
+    RARide *ride = _longer[index][0];
+    RAGarminActivity *a = _longer[index][1];
+    NSData *data = _longer[index][2];
+    [self.client gpxExportOfActivity:a.activityID completion:^(NSData *gpx, NSError *error) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSTimeInterval s = 0, e = 0;
+            if ((gpx && [RALibraryDocument trimOfData:data matchingGPX:gpx start:&s end:&e])
+                || [RALibraryDocument garminTrimForRide:ride activity:a data:data start:&s end:&e]) {
+                [self->_toTrim addObject:@[ ride, @(s), @(e) ]];
+            }
+            [self refine:index + 1];
         });
     }];
 }
@@ -857,6 +893,30 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
         [self.undoManager setActionName:NSLocalizedString(@"Trim Ride", @"undo action name")];
     }
     [self libraryDidChange];
+}
+
++ (BOOL)ride:(RARide *)ride isLongerThanActivity:(RAGarminActivity *)activity data:(NSData *)data
+{
+    if (activity.distance <= 0) return NO;
+    RARideAnalysis *whole = [RARideAnalysis analysisOfData:data];
+    return whole && whole.hasTimes && whole.distance > activity.distance * 1.03 + 300;
+}
+
++ (BOOL)trimOfData:(NSData *)data matchingGPX:(NSData *)gpx start:(NSTimeInterval *)start end:(NSTimeInterval *)end
+{
+    BPTrackReader *file = [BPTrackReader readerWithData:data error:NULL];
+    BPTrackReader *cut = [BPTrackReader readerWithData:gpx error:NULL];
+    if (!file.hasTimes || !cut.hasTimes || file.trace.count < 2 || cut.trace.count < 2) return NO;
+    NSDate *t0 = file.trace.firstObject.timestamp, *t1 = file.trace.lastObject.timestamp;
+    NSDate *c0 = cut.trace.firstObject.timestamp, *c1 = cut.trace.lastObject.timestamp;
+    NSTimeInterval s = MAX(0, [c0 timeIntervalSinceDate:t0]);
+    NSTimeInterval e = [c1 timeIntervalSinceDate:t0];
+    if (s < 20) s = 0;                                       // the export starts a few seconds after the file
+    BOOL endCut = [t1 timeIntervalSinceDate:c1] > 20;
+    if (s == 0 && !endCut) return NO;                        // the whole file
+    if (start) *start = s;
+    if (end) *end = endCut ? e + 1 : 0;
+    return YES;
 }
 
 + (BOOL)garminTrimForRide:(RARide *)ride activity:(RAGarminActivity *)activity data:(NSData *)data
