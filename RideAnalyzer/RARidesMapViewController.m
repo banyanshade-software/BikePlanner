@@ -18,9 +18,14 @@
     NSArray<RARide *> *_rides;
     BOOL _selected;
     NSArray<NSString *> *_shownIdentifiers;   // rides of the heatmap shown (or being computed)
+    NSArray<RARide *> *_heatmapRides;         // the rides of the heatmap shown
     RAComputation *_computation;               // the heatmap, cancelled when the rides change
     NSProgressIndicator *_spinner;
     BOOL _computingStats;
+    NSUInteger _statsDone, _statsTotal;       // older rides whose track is computed (by batches)
+    NSUInteger _expectedTracks;               // rides with a track in the computation in progress
+    BOOL _growing;                            // its rides include those shown: keep them until it has more
+    BOOL _zoomed;                             // the map was zoomed on the tracks of these rides
 }
 
 + (NSColor *)colorOfLevel:(NSUInteger)level
@@ -139,6 +144,8 @@
     _rides = @[];
     _shownIdentifiers = @[];
     [_computation cancel];
+    _heatmapRides = nil;
+    _zoomed = NO;
 }
 
 - (void)showRides:(NSArray<RARide *> *)rides selected:(BOOL)selected
@@ -160,10 +167,16 @@
     if (!library || _computingStats || library.ridesWithoutStats.count == 0) return;
     _computingStats = YES;
     [self updateStatus];
-    [library computeMissingStatsWithCompletion:^(NSUInteger computed) {
-        self->_computingStats = NO;
+    // the tracks of the older rides come by batches: the map grows with them
+    [library computeMissingStatsWithProgress:^(NSUInteger done, NSUInteger total) {
+        self->_statsDone = done;
+        self->_statsTotal = total;
         self->_shownIdentifiers = @[];   // tracks added: compute again
-        [self refresh];
+        [self refreshVisible];
+    } completion:^(NSUInteger computed) {
+        self->_computingStats = NO;
+        self->_shownIdentifiers = @[];
+        [self refreshVisible];
     }];
 }
 
@@ -175,27 +188,53 @@
         [self updateStatus];
         return;
     }
+    // more tracks of the same rides (missing stats computed), or more rides: the map shown stays until the new one
+    // has more; other rides: replaced at once
+    NSSet *shown = [NSSet setWithArray:[_heatmapRides valueForKey:@"identifier"] ?: @[]];
+    _growing = _heatmap && [shown isSubsetOfSet:[NSSet setWithArray:identifiers]];
+    if (!_growing) _zoomed = NO;
     _shownIdentifiers = identifiers;
-    NSArray<RARide *> *rides = _rides;
-    // the rides changed again before the end: this one is cancelled, its result never shows
+    NSArray<RARide *> *rides = [_rides copy];
+    _expectedTracks = 0;
+    for (RARide *r in rides) if ([RAHeatmap pointCountOfPackedTrack:r.stats.track] >= 2) _expectedTracks++;
+    // the rides changed again before the end: this one is cancelled, its result never shows; meanwhile the
+    // heatmaps of the first rides show as it goes (a long computation)
     [_computation start:^id(RACancellation *c) {
-        return [[RAHeatmap alloc] initWithRides:rides cellSize:40 cancellation:c];
+        return [[RAHeatmap alloc] initWithRides:rides cellSize:40 cancellation:c
+                                        partial:^(RAHeatmap *partial) { [c deliverPartialResult:partial]; }];
+    } partial:^(RAHeatmap *partial) {
+        if (self->_growing && partial.rideCount <= self->_heatmap.rideCount) return;   // fewer than shown
+        self->_growing = NO;
+        [self showHeatmap:partial rides:rides];
     } completion:^(RAHeatmap *heatmap) {
-        if (heatmap) [self showHeatmap:heatmap];
+        if (heatmap) [self showHeatmap:heatmap rides:rides];
     }];
     [self updateStatus];
 }
 
-- (void)showHeatmap:(RAHeatmap *)heatmap
+- (void)showHeatmap:(RAHeatmap *)heatmap rides:(NSArray<RARide *> *)rides
 {
+    BOOL grew = _heatmap && !MKMapRectIsNull(_heatmap.boundingRect)
+                && !MKMapRectContainsRect(_mapView.visibleMapRect, heatmap.boundingRect);
     _heatmap = heatmap;
+    _heatmapRides = rides;
     [_mapView removeOverlays:_mapView.overlays];
     // the most ridden last: drawn on top
     for (NSUInteger l = 0; l < RAHeatLevelCount; l++) {
         [_mapView addOverlays:[heatmap polylinesOfLevel:l] level:MKOverlayLevelAboveRoads];
     }
-    [self showAll:self];
+    // zoomed on the tracks once per set of rides; again when they go out of the view (more rides came)
+    if (!_zoomed || grew) {
+        [self showAll:self];
+        _zoomed = YES;
+    }
     [self updateStatus];
+}
+
+/// computes when the tab shows
+- (void)refreshVisible
+{
+    if (self.viewLoaded && self.view.window && !self.view.hiddenOrHasHiddenAncestor) [self refresh];
 }
 
 - (IBAction)showAll:(nullable id)sender
@@ -217,9 +256,15 @@
         ? NSLocalizedString(@"%lu selected rides", @"rides map status")
         : NSLocalizedString(@"%lu rides of the list", @"rides map status"), (unsigned long)_rides.count];
     if (_computingStats) {
-        s = [s stringByAppendingFormat:@" · %@", NSLocalizedString(@"reading the tracks of older rides…", @"rides map status")];
+        s = [s stringByAppendingFormat:@" · %@", _statsTotal
+             ? [NSString localizedStringWithFormat:NSLocalizedString(@"reading the tracks of older rides (%lu / %lu)…", @"rides map status"),
+                (unsigned long)_statsDone, (unsigned long)_statsTotal]
+             : NSLocalizedString(@"reading the tracks of older rides…", @"rides map status")];
     } else if (self.computing) {
-        s = [s stringByAppendingFormat:@" · %@", NSLocalizedString(@"drawing…", @"rides map status")];
+        s = [s stringByAppendingFormat:@" · %@", _heatmap && _heatmap.rideCount < _expectedTracks
+             ? [NSString localizedStringWithFormat:NSLocalizedString(@"drawing… %lu / %lu rides", @"rides map status"),
+                (unsigned long)_heatmap.rideCount, (unsigned long)_expectedTracks]
+             : NSLocalizedString(@"drawing…", @"rides map status")];
     } else if (withoutTrack) {
         s = [s stringByAppendingFormat:@" · %@", [NSString localizedStringWithFormat:
              NSLocalizedString(@"%lu without track", @"rides map status"), (unsigned long)withoutTrack]];

@@ -39,6 +39,15 @@ extern const NSUInteger RAHeatLevelCount;
 /// the same, stopped early (nil) when the cancellation is set (RAComputation)
 - (nullable instancetype)initWithRides:(NSArray<RARide *> *)rides cellSize:(double)meters
                           cancellation:(nullable RACancellation *)cancellation;
+/// the same, with intermediate heatmaps of the first rides (a long computation shows as it goes): partial is called
+/// on the computing thread with the heatmap of the rides done so far — the first one after partialDelay, then each
+/// time their number has doubled and at least 0.5 s later (so all the intermediate ones cost less than the final
+/// one); none when it finishes sooner
+- (nullable instancetype)initWithRides:(NSArray<RARide *> *)rides cellSize:(double)meters
+                          cancellation:(nullable RACancellation *)cancellation
+                               partial:(nullable void (^)(RAHeatmap *partial))partial;
+/// before the first intermediate heatmap, s (0.25; 0 in tests: after the first ride, then at 2, 4, 8… rides)
+@property (class, nonatomic) NSTimeInterval partialDelay;
 
 /// rides that have a track
 @property (readonly, nonatomic) NSUInteger rideCount;

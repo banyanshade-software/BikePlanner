@@ -51,6 +51,34 @@
     XCTAssertEqualObjects(shown, @[ @2 ]);
 }
 
+// intermediate results show before the final one, never after it, and not once cancelled
+- (void)testPartialResults
+{
+    RAComputation *computation = [[RAComputation alloc] initWithLabel:@"partial"];
+    NSMutableArray *shown = [NSMutableArray array];
+    [computation start:^id(RACancellation *c) {
+        for (int i = 1; i <= 3; i++) {
+            [c deliverPartialResult:@(i)];
+            [NSThread sleepForTimeInterval:0.05];
+        }
+        return @"done";
+    } partial:^(id result) { [shown addObject:result]; } completion:^(id result) { [shown addObject:result]; }];
+    XCTAssertTrue(RAWaitUntil(5, ^BOOL { return !computation.running; }));
+    XCTAssertEqualObjects(shown.lastObject, @"done");
+    XCTAssertGreaterThan(shown.count, 1u, @"%@", shown);
+    XCTAssertEqual(computation.partialCount, shown.count - 1);
+
+    [shown removeAllObjects];
+    [computation start:^id(RACancellation *c) {
+        [NSThread sleepForTimeInterval:0.1];
+        [c deliverPartialResult:@"late"];
+        return @"cancelled";
+    } partial:^(id result) { [shown addObject:result]; } completion:^(id result) { [shown addObject:result]; }];
+    [computation cancel];
+    RAWaitUntil(0.4, ^BOOL { return NO; });
+    XCTAssertEqualObjects(shown, @[]);
+}
+
 // quick successive changes (typing, a slider): with a delay, only the last one is computed
 - (void)testDelayComputesOnce
 {

@@ -19,6 +19,9 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/// the missing stats are given to the rides by batches, at least this often (s; 2, less in tests)
+extern NSTimeInterval RAStatsBatchInterval;
+
 extern NSString *const RALibraryDocumentType;              // UTI of a library
 extern NSNotificationName const RALibraryDidChangeNotification;
 
@@ -146,6 +149,10 @@ typedef NS_ENUM(NSInteger, RALibraryLocation) {
 @property (readonly, nonatomic) NSArray<RARide *> *ridesWithoutStats;
 /// computes them in the background from their original files; completion on the main queue
 - (void)computeMissingStatsWithCompletion:(void (^)(NSUInteger computed))completion;
+/// the same, giving the stats to the rides by batches (every RAStatsBatchInterval s, a library change each time) so
+/// that the views show the rides done so far; progress on the main queue after each batch but the last
+- (void)computeMissingStatsWithProgress:(nullable void (^)(NSUInteger done, NSUInteger total))progress
+                             completion:(void (^)(NSUInteger computed))completion;
 
 // equipment (R13): rider, bikes, parts
 /// do not change it directly: changeEquipment:actionName:

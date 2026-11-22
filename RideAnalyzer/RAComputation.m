@@ -5,9 +5,20 @@
 
 #import "RAComputation.h"
 
+@interface RACancellation ()
+/// set by RAComputation: shows an intermediate result on the main thread
+@property (copy, nullable) void (^partialHandler)(id result);
+@end
+
 @implementation RACancellation
 {
     BOOL _cancelled;
+}
+
+- (void)deliverPartialResult:(id)result
+{
+    void (^handler)(id) = self.partialHandler;
+    if (handler && !self.cancelled) handler(result);
 }
 
 - (BOOL)isCancelled
@@ -65,6 +76,11 @@
 
 - (void)start:(RAComputationWork)work completion:(void (^)(id _Nullable))completion
 {
+    [self start:work partial:nil completion:completion];
+}
+
+- (void)start:(RAComputationWork)work partial:(nullable void (^)(id))partial completion:(void (^)(id _Nullable))completion
+{
     NSAssert(NSThread.isMainThread, @"RAComputation: start on the main thread");
     BOOL wasRunning = _current != nil;
     if (_current) {
@@ -74,13 +90,40 @@
     RACancellation *token = [[RACancellation alloc] init];
     _current = token;
     _startedCount++;
+    if (partial) {
+        // the latest intermediate result waits for the main thread; older ones not shown yet are dropped
+        __weak RAComputation *weakComputation = self;
+        void (^show)(id) = [partial copy];
+        NSMutableArray *pending = [NSMutableArray array];
+        token.partialHandler = ^(id result) {
+            @synchronized (pending) {
+                [pending removeAllObjects];
+                [pending addObject:result];
+            }
+            dispatch_async(dispatch_get_main_queue(), ^{
+                RAComputation *me = weakComputation;
+                id latest = nil;
+                @synchronized (pending) {
+                    latest = pending.firstObject;
+                    [pending removeAllObjects];
+                }
+                if (!me || !latest || token.cancelled || me->_current != token) return;
+                me->_partialCount++;
+                show(latest);
+            });
+        };
+    }
     if (!wasRunning) [self notifyRunning:YES];
     __weak RAComputation *weakSelf = self;
     RAComputationWork job = [work copy];
     void (^done)(id) = [completion copy];
     dispatch_block_t run = ^{
-        if (token.cancelled) return;
+        if (token.cancelled) {
+            token.partialHandler = nil;     // (it holds the token)
+            return;
+        }
         id result = job(token);
+        token.partialHandler = nil;
         dispatch_async(dispatch_get_main_queue(), ^{
             RAComputation *me = weakSelf;
             if (!me || token.cancelled || me->_current != token) return;   // replaced or cancelled meanwhile

@@ -24,6 +24,9 @@ NS_ASSUME_NONNULL_BEGIN
 @interface RACancellation : NSObject
 @property (readonly, getter=isCancelled) BOOL cancelled;
 - (void)cancel;
+/// from the work, any thread: an intermediate result, shown (the partial block of -start:partial:completion:, on the
+/// main thread) unless cancelled meanwhile or a later one is already waiting; ignored without a partial block
+- (void)deliverPartialResult:(id)result;
 @end
 
 typedef id _Nullable (^RAComputationWork)(RACancellation *cancellation);
@@ -44,6 +47,11 @@ typedef id _Nullable (^RAComputationWork)(RACancellation *cancellation);
 /// cancels the computation in progress and starts this one; the completion runs on the main thread with the result,
 /// unless it was cancelled meanwhile. Call on the main thread.
 - (void)start:(RAComputationWork)work completion:(void (^)(id _Nullable result))completion;
+/// the same, with intermediate results (a long computation shows as it goes): partial runs on the main thread for
+/// each result the work delivers, before the completion, never after it nor once cancelled
+- (void)start:(RAComputationWork)work partial:(nullable void (^)(id result))partial
+   completion:(void (^)(id _Nullable result))completion;
+@property (readonly, nonatomic) NSUInteger partialCount;   // intermediate results shown (tests)
 /// cancels the computation in progress (its completion will not run). Call on the main thread.
 - (void)cancel;
 

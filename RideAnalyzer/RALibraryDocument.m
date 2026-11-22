@@ -277,6 +277,9 @@ static NSString * _Nullable RAKeyFromObfuscated(id value, NSString *libraryID)
 
 @end
 
+/// the missing stats are given to the rides by batches, at least this often (s)
+NSTimeInterval RAStatsBatchInterval = 2;
+
 @implementation RALibraryDocument
 {
     NSMutableArray<RARide *> *_rides;
@@ -292,6 +295,7 @@ static NSString * _Nullable RAKeyFromObfuscated(id value, NSString *libraryID)
     BOOL _locationChecked;
     NSAlert *_copyAlert;
     NSMutableArray *_statsCompletions;  // callers waiting for the running computation of missing stats
+    NSMutableArray *_statsProgress;     // and their progress blocks (a batch of rides done)
     RAEquipment *_equipment;
     NSMutableArray<NSDictionary *> *_climbNames;   // @{ @"name", @"climb": climb property list }
 }
@@ -1084,9 +1088,16 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
 
 - (void)computeMissingStatsWithCompletion:(void (^)(NSUInteger computed))completion
 {
+    [self computeMissingStatsWithProgress:nil completion:completion];
+}
+
+- (void)computeMissingStatsWithProgress:(nullable void (^)(NSUInteger done, NSUInteger total))progress
+                             completion:(void (^)(NSUInteger computed))completion
+{
     // one computation at a time (the Trends and Map tabs both ask): later callers wait for the running one
     if (_statsCompletions) {
         [_statsCompletions addObject:[completion copy]];
+        if (progress) [_statsProgress addObject:[progress copy]];
         return;
     }
     NSArray<RARide *> *rides = [self ridesWithoutStats];
@@ -1095,14 +1106,42 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
         return;
     }
     _statsCompletions = [NSMutableArray arrayWithObject:[completion copy]];
+    _statsProgress = progress ? [NSMutableArray arrayWithObject:[progress copy]] : [NSMutableArray array];
     NSMutableArray<NSData *> *datas = [NSMutableArray array];
     NSMutableArray<NSArray<NSNumber *> *> *trims = [NSMutableArray array];
     for (RARide *r in rides) {
         [datas addObject:[self originalDataOfRide:r] ?: [NSData data]];
         [trims addObject:@[ @(r.trimStart), @(r.trimEnd) ]];
     }
+    __block NSUInteger computed = 0;
+    // the stats are given to the rides by batches (every 2 s): the views show the rides done so far
+    void (^commit)(NSArray *, NSRange, BOOL) = ^(NSArray *results, NSRange range, BOOL last) {
+        NSUInteger batch = 0;
+        for (NSUInteger i = range.location; i < NSMaxRange(range); i++) {
+            id r = results[i - range.location];
+            if ([r isKindOfClass:[RARideStats class]] && [self->_rides containsObject:rides[i]]) {
+                rides[i].stats = r;
+                batch++;
+            }
+        }
+        computed += batch;
+        if (batch) {
+            [self updateChangeCount:NSChangeDone]; // derived figures, saved with the library; not undoable
+            [self libraryDidChange];
+        }
+        if (!last) {
+            for (void (^p)(NSUInteger, NSUInteger) in self->_statsProgress) p(NSMaxRange(range), rides.count);
+            return;
+        }
+        NSArray *completions = self->_statsCompletions;
+        self->_statsCompletions = nil;
+        self->_statsProgress = nil;
+        for (void (^c)(NSUInteger) in completions) c(computed);
+    };
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
         NSMutableArray *results = [NSMutableArray array];
+        NSUInteger from = 0;
+        NSDate *batchStart = [NSDate date];
         for (NSUInteger k = 0; k < datas.count; k++) {
             @autoreleasepool {
                 NSData *data = datas[k];
@@ -1110,23 +1149,16 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
                                                                         trimEnd:trims[k][1].doubleValue] : nil;
                 [results addObject:a ? (id)[RARideStats statsOfAnalysis:a] : (id)[NSNull null]];
             }
+            BOOL last = k + 1 == datas.count;
+            if (last || -[batchStart timeIntervalSinceNow] >= RAStatsBatchInterval) {
+                NSArray *batch = [results copy];
+                NSRange range = NSMakeRange(from, batch.count);
+                [results removeAllObjects];
+                from = k + 1;
+                batchStart = [NSDate date];
+                dispatch_async(dispatch_get_main_queue(), ^{ commit(batch, range, last); });
+            }
         }
-        dispatch_async(dispatch_get_main_queue(), ^{
-            NSUInteger computed = 0;
-            for (NSUInteger i = 0; i < rides.count; i++) {
-                if ([results[i] isKindOfClass:[RARideStats class]] && [self->_rides containsObject:rides[i]]) {
-                    rides[i].stats = results[i];
-                    computed++;
-                }
-            }
-            if (computed) {
-                [self updateChangeCount:NSChangeDone]; // derived figures, saved with the library; not undoable
-                [self libraryDidChange];
-            }
-            NSArray *completions = self->_statsCompletions;
-            self->_statsCompletions = nil;
-            for (void (^c)(NSUInteger) in completions) c(computed);
-        });
     });
 }
 

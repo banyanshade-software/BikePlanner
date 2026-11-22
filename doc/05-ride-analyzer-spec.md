@@ -399,7 +399,17 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
     result; the ranks of its climbs (all the rides of the library compared) separately.
   - Trends: the points, trend line, totals and records, from a copy of the equipment; a change of measure, terrain,
     grouping, period or rides cancels it.
-  - Map: the heatmap (`-[RAHeatmap initWithRides:cellSize:cancellation:]`).
+  - Map: the heatmap (`-[RAHeatmap initWithRides:cellSize:cancellation:partial:]`), with **intermediate displays**
+    (owner's request: the map can be long): after 0.25 s the heatmap of the rides done so far shows, then again each
+    time their number has doubled (at least 0.5 s apart; all of them cost less than the final one), with "drawing…
+    n / N rides"; delivered by `-[RACancellation deliverPartialResult:]` and the partial block of
+    `-[RAComputation start:partial:completion:]` (main thread, only the latest one waiting, never after the final
+    result nor once cancelled). When the rides grow (more rides, or more tracks computed) the map shown stays until
+    the new one has more rides; other rides replace it at once. Zoomed on the tracks once per set of rides, again
+    when new ones go out of the view.
+  - The tracks of older rides (missing stats) are given to the rides **by batches** every 2 s
+    (`computeMissingStatsWithProgress:completion:`, `RAStatsBatchInterval`): the map grows with them ("reading the
+    tracks of older rides (n / N)…"), the trends too.
   - Climbs: the groups (`+[RAClimbGroup groupsOfRides:cancellation:]`); *Compare* selects the climb when they show.
   - A hidden tab cancels its computation when the rides change (computed again when it shows). Trends, map, climbs
     and the ranks wait 0.1 s before starting, so typing in the search field computes once.

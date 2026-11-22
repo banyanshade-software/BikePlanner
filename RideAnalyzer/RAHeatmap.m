@@ -149,26 +149,53 @@ static MKMapPoint RAPoint(NSValue *v)
 - (nullable instancetype)initWithRides:(NSArray<RARide *> *)rides cellSize:(double)meters
                           cancellation:(nullable RACancellation *)cancellation
 {
-    self = [super init];
-    if (!self) return nil;
-    _counts = [NSMutableDictionary dictionary];
-    NSMutableArray *levels = [NSMutableArray array];
-    for (NSUInteger l = 0; l < RAHeatLevelCount; l++) [levels addObject:[NSMutableArray array]];
-    _levels = levels;
-    _boundingRect = MKMapRectNull;
+    return [self initWithRides:rides cellSize:meters cancellation:cancellation partial:nil];
+}
 
+static NSTimeInterval RAPartialDelay = 0.25;
+
++ (NSTimeInterval)partialDelay
+{
+    return RAPartialDelay;
+}
+
++ (void)setPartialDelay:(NSTimeInterval)delay
+{
+    RAPartialDelay = delay;
+}
+
+- (instancetype)initEmpty
+{
+    self = [super init];
+    if (self) {
+        _counts = [NSMutableDictionary dictionary];
+        NSMutableArray *levels = [NSMutableArray array];
+        for (NSUInteger l = 0; l < RAHeatLevelCount; l++) [levels addObject:[NSMutableArray array]];
+        _levels = levels;
+        _boundingRect = MKMapRectNull;
+    }
+    return self;
+}
+
+- (nullable instancetype)initWithRides:(NSArray<RARide *> *)rides cellSize:(double)meters
+                          cancellation:(nullable RACancellation *)cancellation
+                               partial:(nullable void (^)(RAHeatmap *partial))partial
+{
+    self = [self initEmpty];
+    if (!self) return nil;
     NSMutableArray<NSData *> *tracks = [NSMutableArray array];
     for (RARide *r in rides) {
         NSData *t = r.stats.track;
         if ([RAHeatmap pointCountOfPackedTrack:t] >= 2) [tracks addObject:t];
     }
-    _rideCount = tracks.count;
     if (tracks.count == 0) return self;
     // one grid for all the rides: the cell size at the latitude of the first point
     double lat = [RAHeatmap coordinateAtIndex:0 ofPackedTrack:tracks[0]].latitude;
     _cell = meters * MKMapPointsPerMeterAtLatitude(lat);
 
     // 1. the rides crossing each cell
+    NSDate *start = [NSDate date], *lastPartial = nil;
+    NSUInteger partialCount = 0;
     NSMutableArray<NSArray<NSValue *> *> *dense = [NSMutableArray array];
     for (NSData *t in tracks) {
         if (cancellation.cancelled) return nil;
@@ -187,11 +214,34 @@ static MKMapPoint RAPoint(NSValue *v)
                 _maxCount = MAX(_maxCount, c);
             }
         }
+        _rideCount = dense.count;
+        // an intermediate heatmap: the rides done so far (their levels computed from their own counts)
+        BOOL due = partial && dense.count < tracks.count && dense.count >= MAX(1, 2 * partialCount)
+                   && -[start timeIntervalSinceNow] >= RAPartialDelay
+                   && (!lastPartial || -[lastPartial timeIntervalSinceNow] >= MIN(0.5, RAPartialDelay * 2));
+        if (due) {
+            RAHeatmap *h = [[RAHeatmap alloc] initEmpty];
+            h->_cell = _cell;
+            [h->_counts addEntriesFromDictionary:_counts];
+            h->_maxCount = _maxCount;
+            h->_rideCount = dense.count;
+            h->_boundingRect = _boundingRect;
+            if (![h buildLevelsOf:dense cancellation:cancellation]) return nil;
+            partial(h);
+            partialCount = dense.count;
+            lastPartial = [NSDate date];
+        }
     }
+    if (![self buildLevelsOf:dense cancellation:cancellation]) return nil;
+    return self;
+}
 
-    // 2. each piece of track gets the level of the cell of its middle; consecutive pieces of a level are joined
+/// 2. each piece of track gets the level of the cell of its middle; consecutive pieces of a level are joined. NO:
+/// cancelled
+- (BOOL)buildLevelsOf:(NSArray<NSArray<NSValue *> *> *)dense cancellation:(nullable RACancellation *)cancellation
+{
     for (NSArray<NSValue *> *points in dense) {
-        if (cancellation.cancelled) return nil;
+        if (cancellation.cancelled) return NO;
         @autoreleasepool {
             NSMutableData *run = [NSMutableData data];
             NSUInteger runLevel = NSNotFound;
@@ -209,7 +259,7 @@ static MKMapPoint RAPoint(NSValue *v)
             [self closeRun:run level:runLevel];
         }
     }
-    return self;
+    return YES;
 }
 
 - (void)closeRun:(NSData *)run level:(NSUInteger)level

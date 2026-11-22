@@ -83,6 +83,34 @@
     XCTAssertTrue(doc.documentEdited, @"saved with the library");
 }
 
+// the missing stats come by batches: the views (the map) show the rides done so far
+- (void)testMissingStatsByBatches
+{
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    for (int i = 0; i < 3; i++) {
+        [doc importData:RAFIT(@[ @100, @150, @130 ], 86400 * i, 3122, 1) fileName:[NSString stringWithFormat:@"%d.fit", i] error:NULL];
+    }
+    for (RARide *r in doc.rides) r.stats = nil;
+    NSTimeInterval interval = RAStatsBatchInterval;
+    RAStatsBatchInterval = 0;     // a batch per ride
+    NSMutableArray<NSNumber *> *done = [NSMutableArray array];
+    NSMutableArray<NSNumber *> *withStats = [NSMutableArray array];
+    __block NSInteger computed = -1;
+    [doc computeMissingStatsWithProgress:^(NSUInteger n, NSUInteger total) {
+        [done addObject:@(n)];
+        XCTAssertEqual(total, 3u);
+        NSUInteger k = 0;
+        for (RARide *r in doc.rides) if (r.stats) k++;
+        [withStats addObject:@(k)];
+    } completion:^(NSUInteger n) { computed = (NSInteger)n; }];
+    XCTAssertTrue(RAWaitUntil(10, ^{ return (BOOL)(computed >= 0); }));
+    RAStatsBatchInterval = interval;
+    XCTAssertEqual(computed, 3);
+    XCTAssertEqualObjects(done, (@[ @1, @2 ]));
+    XCTAssertEqualObjects(withStats, (@[ @1, @2 ]), @"given to the rides batch by batch");
+    XCTAssertEqual(doc.ridesWithoutStats.count, 0u);
+}
+
 // a ride on that day with that speed and heart rate on the flat (10 min moving)
 - (RARide *)rideOnDay:(NSInteger)day speed:(double)kmh heartRate:(double)hr km:(double)km
 {

@@ -131,4 +131,49 @@
     [wc close];
 }
 
+// a long map shows as it goes (owner's request): heatmaps of the first rides, then of twice as many…
+- (void)testIntermediateHeatmaps
+{
+    NSMutableArray<RARide *> *rides = [NSMutableArray array];
+    for (int i = 0; i < 5; i++) [rides addObject:[self rideOnTrace:[self lineFromLatitude:43.6 longitude:1.44 + i * 0.01 km:1]]];
+    NSTimeInterval delay = RAHeatmap.partialDelay;
+    RAHeatmap.partialDelay = 0;
+    NSMutableArray<NSNumber *> *counts = [NSMutableArray array];
+    RAHeatmap *final = [[RAHeatmap alloc] initWithRides:rides cellSize:40 cancellation:nil
+                                                partial:^(RAHeatmap *partial) {
+        [counts addObject:@(partial.rideCount)];
+        XCTAssertGreaterThan([partial polylinesOfLevel:0].count, 0u, @"drawable");
+    }];
+    RAHeatmap.partialDelay = delay;
+    XCTAssertEqualObjects(counts, (@[ @1, @2, @4 ]), @"each time the number doubles, never the whole");
+    XCTAssertEqual(final.rideCount, 5u);
+    XCTAssertEqual([[RAHeatmap alloc] initWithRides:rides cellSize:40 cancellation:nil partial:^(RAHeatmap *p) {
+        XCTFail(@"too quick for an intermediate heatmap");
+    }].rideCount, 5u);
+}
+
+// more rides for the map (or more tracks computed): the map shown stays until the new one has more rides
+- (void)testMapGrowsWithoutGoingBack
+{
+    NSMutableArray<RARide *> *rides = [NSMutableArray array];
+    for (int i = 0; i < 6; i++) [rides addObject:[self rideOnTrace:[self lineFromLatitude:43.6 longitude:1.44 + i * 0.01 km:1]]];
+    NSTimeInterval delay = RAHeatmap.partialDelay;
+    RAHeatmap.partialDelay = 0;
+    RARidesMapViewController *map = [[RARidesMapViewController alloc] init];
+    (void)map.view;
+    [map showRides:[rides subarrayWithRange:NSMakeRange(0, 3)] selected:YES];
+    [map refresh];
+    XCTAssertTrue(RAWaitUntil(5, ^BOOL { return map.heatmap.rideCount == 3 && !map.computing; }));
+    [map showRides:rides selected:YES];
+    [map refresh];
+    __block NSUInteger least = 3;
+    XCTAssertTrue(RAWaitUntil(5, ^BOOL {
+        least = MIN(least, map.heatmap.rideCount);
+        return !map.computing;
+    }));
+    RAHeatmap.partialDelay = delay;
+    XCTAssertEqual(least, 3u, @"never fewer rides than before");
+    XCTAssertEqual(map.heatmap.rideCount, 6u);
+}
+
 @end
