@@ -377,7 +377,12 @@ in both apps), Objective-C like BikePlanner, **document-based**: a document is a
   the time of each passage against the date with its trend line (a click selects the passage).
 - **Names**: a climb can be named in the table; the name is kept in the library with the climb's position
   (`nameOfClimb:` / `setName:ofClimb:`, undoable) and goes to every passage of the same climb.
-- Not yet: the wind (R12) in their estimated power.
+- **Computed once, again on request** (2026-11-22): the climbs are part of the stats, computed at import and kept in
+  the library; computed again by themselves when the stats version changes (a new detection), and on request by
+  *Edit ▸ Analyse Again* or the contextual menu of the list (*Analyse Again*) for the selected rides
+  (`recomputeAnalysisOfRides:completion:`, with progress, one computation of stats at a time, not undoable). The
+  names stay: they belong to the place of the climb.
+- Not yet: the wind (R12) in their estimated power; the grouping issues of #90.
 
 ## Trimmed rides (2026-11-21, owner's case: 277 km of which 3 by bike, the computer left running in the car)
 - **Trim** (`RARide.trimStart` / `trimEnd`, seconds from the first point of the file; the file itself is kept):

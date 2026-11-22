@@ -190,4 +190,37 @@
     [wc close];
 }
 
+// R7: the analysis again on request (e.g. a new detection): the climbs come back, their names stay
+- (void)testAnalyseAgain
+{
+    RALibraryDocument *doc = [[RALibraryDocument alloc] init];
+    NSArray<CLLocation *> *trace = [self traceOf:[self profileWithClimbSpeed:4] day:0];
+    NSMutableString *gpx = [NSMutableString stringWithString:@"<?xml version=\"1.0\"?><gpx version=\"1.1\" creator=\"t\"><trk><trkseg>"];
+    NSISO8601DateFormatter *f = [[NSISO8601DateFormatter alloc] init];
+    for (CLLocation *l in trace) {
+        [gpx appendFormat:@"<trkpt lat=\"%.7f\" lon=\"%.7f\"><ele>%.1f</ele><time>%@</time></trkpt>",
+         l.coordinate.latitude, l.coordinate.longitude, l.altitude, [f stringFromDate:l.timestamp]];
+    }
+    [gpx appendString:@"</trkseg></trk></gpx>"];
+    XCTAssertEqual([doc importData:[gpx dataUsingEncoding:NSUTF8StringEncoding] fileName:@"r.gpx" error:NULL], RAImportStatusImported);
+    RARide *ride = doc.rides.firstObject;
+    XCTAssertEqual(ride.stats.climbs.count, 2u);
+    [doc setName:@"Col de test" ofClimb:ride.stats.climbs.firstObject];
+    RARideStats *stale = [RARideStats statsWithPropertyList:ride.stats.propertyList];
+    stale.climbs = @[];                     // as an older detection could have left it
+    ride.stats = stale;
+
+    __block NSInteger computed = -1;
+    NSProgress *progress = [doc recomputeAnalysisOfRides:@[ ride ] completion:^(NSUInteger n) { computed = (NSInteger)n; }];
+    XCTAssertNotNil(progress);
+    XCTAssertTrue(doc.computingStats);
+    XCTAssertNil([doc recomputeAnalysisOfRides:@[ ride ] completion:^(NSUInteger n) {}], @"one at a time");
+    XCTAssertTrue(RAWaitUntil(10, ^{ return (BOOL)(computed >= 0); }));
+    XCTAssertEqual(computed, 1);
+    XCTAssertEqual(progress.completedUnitCount, 1);
+    XCTAssertFalse(doc.computingStats);
+    XCTAssertEqual(ride.stats.climbs.count, 2u, @"detected again");
+    XCTAssertEqualObjects([doc nameOfClimb:ride.stats.climbs.firstObject], @"Col de test", @"named by place: kept");
+}
+
 @end

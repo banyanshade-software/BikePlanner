@@ -160,6 +160,14 @@ typedef NS_ENUM(NSInteger, RALibraryLocation) {
 /// that the views show the rides done so far; progress on the main queue after each batch but the last
 - (void)computeMissingStatsWithProgress:(nullable void (^)(NSUInteger done, NSUInteger total))progress
                              completion:(void (^)(NSUInteger computed))completion;
+/// the stats are being computed (missing ones, or again)
+@property (readonly, nonatomic) BOOL computingStats;
+/// R7: the analysis of these rides again from their original files (figures, track, terrain sums, climbs), on
+/// request — e.g. after the detection of the climbs changed; also done by itself for stats of an older version.
+/// The names of the climbs stay (they are matched by place). Not undoable (derived data). nil when stats are already
+/// being computed or an import runs. Completion on the main queue.
+- (nullable NSProgress *)recomputeAnalysisOfRides:(NSArray<RARide *> *)rides
+                                       completion:(void (^)(NSUInteger computed))completion;
 
 // equipment (R13): rider, bikes, parts
 /// do not change it directly: changeEquipment:actionName:

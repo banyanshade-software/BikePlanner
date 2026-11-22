@@ -1056,6 +1056,11 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 {
     if (menu != _table.menu) return;
     [menu removeAllItems];
+    NSMenuItem *again = [menu addItemWithTitle:NSLocalizedString(@"Analyse Again", @"list menu")
+                                        action:@selector(recomputeAnalysis:) keyEquivalent:@""];
+    again.target = self;
+    again.identifier = @"recomputeAnalysis";
+    [menu addItem:[NSMenuItem separatorItem]];
     NSArray<RABike *> *bikes = self.library.equipment.bikes ?: @[];
     if (bikes.count == 0) {
         [menu addItemWithTitle:NSLocalizedString(@"Equipment…", @"list menu") action:@selector(showEquipment:)
@@ -1273,6 +1278,19 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
     }];
 }
 
+/// R7: the analysis of the selected rides again (climbs, figures), from their original files
+- (IBAction)recomputeAnalysis:(nullable id)sender
+{
+    RALibraryDocument *library = self.library;
+    NSArray<RARide *> *rides = [sender isKindOfClass:[NSMenuItem class]] && ((NSMenuItem *)sender).menu == _table.menu
+        ? [self ridesOfMenu] : [self selectedRides];
+    if (!library || rides.count == 0) return;
+    NSProgress *progress = [library recomputeAnalysisOfRides:rides completion:^(NSUInteger computed) {
+        [self observeProgress:nil];
+    }];
+    if (progress) [self observeProgress:progress];
+}
+
 - (IBAction)delete:(nullable id)sender
 {
     NSArray<RARide *> *rides = [self selectedRides];
@@ -1322,6 +1340,10 @@ typedef NS_ENUM(NSInteger, RASidebarKind) { RASidebarAll, RASidebarHeader, RASid
 - (BOOL)validateAction:(nullable SEL)action
 {
     if (action == @selector(delete:)) return _table.selectedRowIndexes.count > 0;
+    if (action == @selector(recomputeAnalysis:)) {
+        return (_table.selectedRowIndexes.count > 0 || _table.clickedRow >= 0) && self.library
+               && !self.library.computingStats && !self.library.importing;
+    }
     if (action == @selector(importFiles:) || action == @selector(importFromDevice:)
         || action == @selector(fetchFromGarminConnect:) || action == @selector(applyGarminCorrections:)
         || action == @selector(updateWeighingsFromGarmin:)) {

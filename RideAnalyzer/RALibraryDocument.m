@@ -1150,7 +1150,31 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
         if (progress) [_statsProgress addObject:[progress copy]];
         return;
     }
-    NSArray<RARide *> *rides = [self ridesWithoutStats];
+    [self computeStatsOfRides:[self ridesWithoutStats] reporting:nil progress:progress completion:completion];
+}
+
+- (BOOL)computingStats
+{
+    return _statsCompletions != nil;
+}
+
+- (nullable NSProgress *)recomputeAnalysisOfRides:(NSArray<RARide *> *)rides
+                                       completion:(void (^)(NSUInteger computed))completion
+{
+    if (_statsCompletions || _importing || rides.count == 0) return nil;
+    NSProgress *p = [NSProgress discreteProgressWithTotalUnitCount:(int64_t)rides.count];
+    p.cancellable = NO;
+    p.localizedDescription = NSLocalizedString(@"Analysing the rides again…", @"progress");
+    [self computeStatsOfRides:rides reporting:p progress:nil completion:completion];
+    return p;
+}
+
+/// the stats of these rides from their original files, in the background, given to the rides by batches
+- (void)computeStatsOfRides:(NSArray<RARide *> *)rides reporting:(nullable NSProgress *)reporting
+                   progress:(nullable void (^)(NSUInteger done, NSUInteger total))progress
+                 completion:(void (^)(NSUInteger computed))completion
+{
+    rides = [rides copy];
     if (rides.count == 0) {
         completion(0);
         return;
@@ -1199,6 +1223,7 @@ static NSMutableDictionary<NSString *, NSString *> *RAStringDictionary(id value)
                                                                         trimEnd:trims[k][1].doubleValue] : nil;
                 [results addObject:a ? (id)[RARideStats statsOfAnalysis:a] : (id)[NSNull null]];
             }
+            reporting.completedUnitCount = (int64_t)k + 1;
             BOOL last = k + 1 == datas.count;
             if (last || -[batchStart timeIntervalSinceNow] >= RAStatsBatchInterval) {
                 NSArray *batch = [results copy];
