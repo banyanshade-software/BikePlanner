@@ -67,6 +67,15 @@ typedef NS_ENUM(NSInteger, BPGarminRemember) {
 @property (readonly, nonatomic) BOOL loginBarShown;
 - (IBAction)fillLoginFromFields:(id)sender;
 
+/// Report a Problem… (owner's choice 2026-11-23): a popup with the report of the session, copied to the clipboard
+- (IBAction)reportProblem:(id)sender;
+/// the report: app and macOS versions, step, page path, the button texts of the page, the lines of the session; never
+/// the login
+- (void)reportTextWithCompletion:(void (^)(NSString *text))completion;
+/// tests: a private pasteboard (default: the general one)
+@property (strong, nullable) NSPasteboard *reportPasteboard;
+- (void)copyReportText:(NSString *)text;
+
 @end
 
 NS_ASSUME_NONNULL_END

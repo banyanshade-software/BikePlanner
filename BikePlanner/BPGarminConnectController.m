@@ -96,6 +96,10 @@ static NSString *const BPGarminHelpers =
     NSString *_loggedMiss;                              // diagnostics: a button not found, logged once
     NSDictionary<NSString *, NSString *> *_savedLogin;  // the Keychain item, read once per sheet
     BOOL _savedLoginRead;
+    NSDate *_lastStartClick;                            // "Mise en route" clicked again if the editor does not open
+    NSMutableArray<NSString *> *_report;                // the diagnostics of the session (Report a Problem…)
+    NSAlert *_reportAlert;
+    NSDate *_lateNoted;                                 // the step noted as not recognized in the report
 }
 
 - (instancetype)initWithFiles:(NSArray<NSURL *> *)files activity:(BPGarminActivity)activity
@@ -118,6 +122,7 @@ static NSString *const BPGarminHelpers =
         _base = [BPEnvironment garminConnectURL];
         _statusText = @"";
         // never the user's Keychain in the unit test host
+        _report = [NSMutableArray array];
         _credentials = [BPEnvironment isUnitTestHost] ? [[BPGarminMemoryCredentials alloc] init] : [BPGarminKeychain shared];
 
         WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
@@ -147,7 +152,11 @@ static NSString *const BPGarminHelpers =
                                              target:self action:@selector(closeSheet:)];
         close.keyEquivalent = @"\e";
         close.accessibilityIdentifier = @"garminClose";
-        for (NSView *v in @[ logOut, close ]) v.translatesAutoresizingMaskIntoConstraints = NO;
+        NSButton *report = [NSButton buttonWithTitle:NSLocalizedString(@"Report a Problem…", @"Garmin Connect window")
+                                              target:self action:@selector(reportProblem:)];
+        report.accessibilityIdentifier = @"garminReport";
+        report.toolTip = NSLocalizedString(@"Shows what BikePlanner did in this window (no password), to copy and send", @"Garmin Connect window");
+        for (NSView *v in @[ report, logOut, close ]) v.translatesAutoresizingMaskIntoConstraints = NO;
 
         // the login bar: native fields, so that macOS offers its Passwords AutoFill (Safari's passwords cannot be
         // read by the app nor offered in a web view of another app)
@@ -182,14 +191,16 @@ static NSString *const BPGarminHelpers =
         [_webView.widthAnchor constraintEqualToAnchor:top.widthAnchor].active = YES;
 
         NSView *content = window.contentView;
-        for (NSView *v in @[ top, _status, logOut, close ]) [content addSubview:v];
+        for (NSView *v in @[ top, _status, report, logOut, close ]) [content addSubview:v];
         [NSLayoutConstraint activateConstraints:@[
             [top.topAnchor constraintEqualToAnchor:content.topAnchor],
             [top.leadingAnchor constraintEqualToAnchor:content.leadingAnchor],
             [top.trailingAnchor constraintEqualToAnchor:content.trailingAnchor],
             [top.bottomAnchor constraintEqualToAnchor:_status.topAnchor constant:-10],
             [_status.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:16],
-            [_status.trailingAnchor constraintEqualToAnchor:logOut.leadingAnchor constant:-12],
+            [_status.trailingAnchor constraintEqualToAnchor:report.leadingAnchor constant:-12],
+            [report.centerYAnchor constraintEqualToAnchor:_status.centerYAnchor],
+            [report.trailingAnchor constraintEqualToAnchor:logOut.leadingAnchor constant:-8],
             [_status.bottomAnchor constraintEqualToAnchor:content.bottomAnchor constant:-14],
             [logOut.centerYAnchor constraintEqualToAnchor:_status.centerYAnchor],
             [logOut.trailingAnchor constraintEqualToAnchor:close.leadingAnchor constant:-8],
@@ -255,8 +266,8 @@ static NSString *BPGarminStepLabel(BPGarminStep s)
 {
     if (step == _step && _stepStarted) return;
     // diagnostics (public: no personal data; never the login)
-    os_log(OS_LOG_DEFAULT, "Garmin: step %{public}@ (course %lu/%lu) at %{public}@", BPGarminStepLabel(step),
-           (unsigned long)_fileIndex + 1, (unsigned long)_files.count, _webView.URL.path ?: @"-");
+    [self note:[NSString stringWithFormat:@"step %@ (course %lu/%lu) at %@", BPGarminStepLabel(step),
+           (unsigned long)_fileIndex + 1, (unsigned long)_files.count, _webView.URL.path ?: @"-"]];
     _step = step;
     _stepStarted = [NSDate date];
     [self showLoginBar:step == BPGarminStepLogin];
@@ -294,7 +305,7 @@ static NSString *BPGarminStepLabel(BPGarminStep s)
     NSString *js = [NSString stringWithFormat:@"window.__bpg ? __bpg.fill.apply(null, %@) : false",
                     [[NSString alloc] initWithData:args encoding:NSUTF8StringEncoding]];
     [self evaluate:js then:^(BOOL ok) {
-        os_log(OS_LOG_DEFAULT, "Garmin: login fields %{public}@ from the login bar", ok ? @"filled" : @"not found");
+        [self note:[NSString stringWithFormat:@"login fields %@ from the login bar", ok ? @"filled" : @"not found"]];
         if (ok) {
             self->_filledPage = self->_webView.URL;
             [self setStatus:NSLocalizedString(@"Your login is filled in the Garmin page: click “Se connecter” (Sign In).", @"Garmin Connect status")];
@@ -308,6 +319,11 @@ static NSString *BPGarminStepLabel(BPGarminStep s)
 - (void)showStatus
 {
     BOOL late = -[_stepStarted timeIntervalSinceNow] > self.stepTimeout;
+    if (late && _lateNoted != _stepStarted && _step != BPGarminStepLogin && _step != BPGarminStepUserSave && _step != BPGarminStepDone) {
+        _lateNoted = _stepStarted;
+        [self note:[NSString stringWithFormat:@"step %@ not recognized after %.0f s at %@", BPGarminStepLabel(_step),
+                    self.stepTimeout, _webView.URL.path ?: @"-"]];
+    }
     NSString *name = [self courseName], *progress = [self progress];
     NSString *working = [NSString stringWithFormat:NSLocalizedString(@"Importing “%@” (%@)…", @"Garmin Connect status"), name, progress];
     switch (_step) {
@@ -356,12 +372,99 @@ static NSString *BPGarminStepLabel(BPGarminStep s)
 {
     NSString *what = [texts componentsJoinedByString:@" | "];
     if (found) {
-        os_log(OS_LOG_DEFAULT, "Garmin: clicked “%{public}@” at %{public}@", what, _webView.URL.path ?: @"-");
+        [self note:[NSString stringWithFormat:@"clicked “%@” at %@", what, _webView.URL.path ?: @"-"]];
         _loggedMiss = nil;
     } else if (![_loggedMiss isEqualToString:what]) {
-        os_log(OS_LOG_DEFAULT, "Garmin: “%{public}@” not found yet at %{public}@", what, _webView.URL.path ?: @"-");
+        [self note:[NSString stringWithFormat:@"“%@” not found yet at %@", what, _webView.URL.path ?: @"-"]];
         _loggedMiss = what;
     }
+}
+
+#pragma mark - the report of the session (owner's choice 2026-11-23: a popup, copied to the clipboard)
+
+// a line of the diagnostics: in the system log (public: no personal data, never the login) and in the report
+- (void)note:(NSString *)line
+{
+    os_log(OS_LOG_DEFAULT, "Garmin: %{public}@", line);
+    static NSDateFormatter *f;
+    if (!f) {
+        f = [[NSDateFormatter alloc] init];
+        f.dateFormat = @"HH:mm:ss.S";
+        f.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+    }
+    [_report addObject:[NSString stringWithFormat:@"%@ %@", [f stringFromDate:[NSDate date]], line]];
+    if (_report.count > 500) [_report removeObjectAtIndex:0];
+}
+
+// the report: the app and the system, the current step and page, the texts of the buttons of the page (to see a
+// renamed button), then the lines of the session. The page path only (no query); never the login
+- (void)reportTextWithCompletion:(void (^)(NSString *text))completion
+{
+    NSDictionary *info = NSBundle.mainBundle.infoDictionary;
+    NSMutableString *t = [NSMutableString string];
+    [t appendFormat:@"BikePlanner %@ (build %@, %@), macOS %@\n", info[@"CFBundleShortVersionString"] ?: @"?",
+     info[@"CFBundleVersion"] ?: @"?", info[@"BPGitCommit"] ?: @"?", NSProcessInfo.processInfo.operatingSystemVersionString];
+    [t appendFormat:@"Send to Garmin Connect (#79), %@\n", [NSISO8601DateFormatter stringFromDate:[NSDate date]
+                                                            timeZone:NSTimeZone.localTimeZone
+                                                       formatOptions:NSISO8601DateFormatWithInternetDateTime]];
+    [t appendFormat:@"Course %lu/%lu, activity %@, step %@, page %@%@\n", (unsigned long)_fileIndex + 1, (unsigned long)_files.count,
+     [self activityName], BPGarminStepLabel(_step), _webView.URL.host ?: @"-", _webView.URL.path ?: @""];
+    [t appendFormat:@"Status: %@\n", _statusText];
+    NSString *js = @"(function () { var seen = {}, out = [];"
+                   @"  document.querySelectorAll('button, a, [role=button], input[type=submit], input[type=button]').forEach(function (e) {"
+                   @"    if (!e.offsetParent && e.getClientRects().length === 0) return;"
+                   @"    var s = (e.innerText || e.value || e.getAttribute('aria-label') || '').replace(/\\s+/g, ' ').trim().slice(0, 80);"
+                   @"    if (s && !seen[s] && out.length < 120) { seen[s] = 1; out.push(s); } });"
+                   @"  return out; })()";
+    NSArray<NSString *> *lines = [_report copy];
+    [_webView evaluateJavaScript:js completionHandler:^(id result, NSError *error) {
+        [t appendString:@"\nButtons on the page:\n"];
+        if ([result isKindOfClass:[NSArray class]] && [result count]) {
+            for (id b in result) if ([b isKindOfClass:[NSString class]]) [t appendFormat:@"  - %@\n", b];
+        } else {
+            [t appendString:@"  (none)\n"];
+        }
+        [t appendString:@"\nSession:\n"];
+        for (NSString *l in lines) [t appendFormat:@"  %@\n", l];
+        completion(t);
+    }];
+}
+
+- (IBAction)reportProblem:(id)sender
+{
+    [self note:@"report shown"];
+    [self reportTextWithCompletion:^(NSString *text) {
+        NSAlert *alert = [[NSAlert alloc] init];
+        alert.messageText = NSLocalizedString(@"Report a Problem with Garmin Connect", @"Garmin Connect report");
+        alert.informativeText = NSLocalizedString(@"What BikePlanner did in this window (no password). Copy it and send it "
+                                                  @"with a few words on what went wrong.", @"Garmin Connect report");
+        NSScrollView *scroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, 520, 260)];
+        scroll.hasVerticalScroller = YES;
+        scroll.borderType = NSBezelBorder;
+        NSTextView *view = [[NSTextView alloc] initWithFrame:scroll.bounds];
+        view.editable = NO;
+        view.font = [NSFont monospacedSystemFontOfSize:NSFont.smallSystemFontSize weight:NSFontWeightRegular];
+        view.string = text;
+        view.autoresizingMask = NSViewWidthSizable;
+        view.accessibilityIdentifier = @"garminReportText";
+        scroll.documentView = view;
+        alert.accessoryView = scroll;
+        [alert addButtonWithTitle:NSLocalizedString(@"Copy to Clipboard", @"Garmin Connect report")];
+        [alert addButtonWithTitle:NSLocalizedString(@"Close", @"Garmin Connect report")];
+        self->_reportAlert = alert;
+        [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse r) {
+            self->_reportAlert = nil;
+            if (r == NSAlertFirstButtonReturn) [self copyReportText:text];
+        }];
+    }];
+}
+
+- (void)copyReportText:(NSString *)text
+{
+    NSPasteboard *pb = self.reportPasteboard ?: NSPasteboard.generalPasteboard;
+    [pb clearContents];
+    [pb setString:text forType:NSPasteboardTypeString];
+    [self note:@"report copied"];
 }
 
 - (void)evaluate:(NSString *)js then:(void (^)(BOOL ok))then
@@ -434,13 +537,24 @@ static NSString *BPGarminStepLabel(BPGarminStep s)
             } else if (_fileGiven) {
                 [self evaluate:[self clickScript:[BPGarminCourse startButtonTexts]] then:^(BOOL ok) {
                     [self logClick:[BPGarminCourse startButtonTexts] found:ok];
-                    if (ok) [self setStep:BPGarminStepActivity];
+                    if (ok) {
+                        self->_lastStartClick = [NSDate date];
+                        [self setStep:BPGarminStepActivity];
+                    }
                 }];
             }
             break;
         }
         case BPGarminStepActivity: {
-            if (inEditor) {
+            if (!inEditor && [path hasPrefix:@"/app/courses"]) {
+                // "Mise en route" clicked while Garmin still processed the file (real site, 2026-11-23: the page
+                // stayed): clicked again every 2 s while the button is there
+                if (-[_lastStartClick timeIntervalSinceNow] < 2) break;
+                self->_lastStartClick = [NSDate date];
+                [self evaluate:[self clickScript:[BPGarminCourse startButtonTexts]] then:^(BOOL ok) {
+                    if (ok) [self note:@"“mise en route” clicked again (the editor did not open)"];
+                }];
+            } else if (inEditor) {
                 [self evaluate:[self clickScript:[BPGarminCourse buttonTextsForActivity:_activity]] then:^(BOOL ok) {
                     [self logClick:[BPGarminCourse buttonTextsForActivity:self->_activity] found:ok];
                     if (ok) [self setStep:BPGarminStepName];
@@ -501,7 +615,7 @@ static NSString *BPGarminStepLabel(BPGarminStep s)
     NSString *list = [[NSString alloc] initWithData:args encoding:NSUTF8StringEncoding];
     NSString *js = [NSString stringWithFormat:@"window.__bpg ? __bpg.fill.apply(null, %@) : false", list];
     [self evaluate:js then:^(BOOL ok) {
-        os_log(OS_LOG_DEFAULT, "Garmin: login fields %{public}@ from the Keychain", ok ? @"filled" : @"not found");
+        [self note:[NSString stringWithFormat:@"login fields %@ from the Keychain", ok ? @"filled" : @"not found"]];
         if (ok) {
             self->_filledPage = page;
             [self showStatus];
@@ -515,7 +629,7 @@ static NSString *BPGarminStepLabel(BPGarminStep s)
     NSString *account = message.body[@"account"], *password = message.body[@"password"];
     if ([account isKindOfClass:[NSString class]] && [password isKindOfClass:[NSString class]] && account.length && password.length) {
         _typedLogin = @{ @"account": account, @"password": password };
-        os_log(OS_LOG_DEFAULT, "Garmin: login typed on the login page (kept until logged in)");
+        [self note:@"login typed on the login page (kept until logged in)"];
     }
 }
 
@@ -529,8 +643,8 @@ static NSString *BPGarminStepLabel(BPGarminStep s)
     _askedToRemember = YES;
     id<BPGarminCredentialStore> store = self.credentials;
     void (^answer)(BPGarminRemember) = ^(BPGarminRemember choice) {
-        os_log(OS_LOG_DEFAULT, "Garmin: remember the login? %{public}@", choice == BPGarminRememberYes ? @"yes"
-               : choice == BPGarminRememberNever ? @"never for this account" : @"not now");
+        [self note:[NSString stringWithFormat:@"remember the login? %@", choice == BPGarminRememberYes ? @"yes"
+               : choice == BPGarminRememberNever ? @"never for this account" : @"not now"]];
         if (choice == BPGarminRememberYes && [store saveAccount:account password:typed[@"password"]]) self->_savedLogin = typed;
         else if (choice == BPGarminRememberNever) [store setNeverSaved:account];
     };
@@ -563,7 +677,7 @@ initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(NSArray<NSURL 
         return;
     }
     _fileGiven = YES;
-    os_log(OS_LOG_DEFAULT, "Garmin: file chooser answered with “%{public}@”", _files[_fileIndex].lastPathComponent);
+    [self note:[NSString stringWithFormat:@"file chooser answered with “%@”", _files[_fileIndex].lastPathComponent]];
     if (_step == BPGarminStepCourses || _step == BPGarminStepImportPopup) [self setStep:BPGarminStepStart]; // by hand
     completionHandler(@[ _files[_fileIndex] ]);
 }

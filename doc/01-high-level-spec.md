@@ -349,6 +349,11 @@ changes nothing.
 - F10.4 Export is only possible once a route has been computed in the current session.
 - F10.5 *File ▸ Send to Garmin Connect…*, or the toolbar button *Garmin* (a course going to a bike computer, #85; after *export GPX*) (#79;
   enabled with a route):
+  - *Report a Problem…* in the sheet (owner's choice 2026-11-23): a popup with the report of the session (app and
+    macOS versions, course, activity, step, page path without query, the texts of the visible buttons of the page, the
+    lines of the session: steps, clicks found or not, steps not recognized, file given) and *Copy to Clipboard*; never
+    the login. The same lines go to the system log (`Garmin:`). A step not recognized is retried where it is safe
+    ("Mise en route" clicked again every 2 s until the editor opens, §9 item 33).
   - Can be left out of a build: `BP_GARMIN_CONNECT` in `BikePlanner/BPFeatures.h` (default 1; 0: no menu item, no
     toolbar button, no code of the sheet nor of the Keychain item) — Garmin's Terms of Use make it a gray zone for a
     distributed app (#20). a sheet on the document window with the Garmin

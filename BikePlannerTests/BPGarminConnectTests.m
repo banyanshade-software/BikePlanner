@@ -24,6 +24,7 @@
 @interface BPFakeGarmin : NSObject <WKURLSchemeHandler>
 @property (nonatomic) BOOL loggedIn;
 @property (nonatomic) BOOL withoutImportButton;   // a changed site: the degraded mode
+@property (nonatomic) NSInteger ignoredStartClicks; // "Mise en route" clicked while the file is still processed: no effect
 @property (nonatomic, strong) NSMutableArray<NSString *> *paths;
 @end
 
@@ -54,8 +55,10 @@
             @"<input type=file id=f multiple style='display:none' onchange=\"window.gotFiles=Array.from(this.files).map(f=>f.name);"
             @"  var r=new FileReader(); r.onload=()=>{window.gotText=r.result; document.getElementById('list').textContent=window.gotFiles.join(',')}; r.readAsText(this.files[0])\">"
             @"<ul id=list></ul>"
-            @"<button id=start onclick=\"sessionStorage.setItem('file', window.gotFiles[0]); sessionStorage.setItem('gpx', window.gotText);"
-            @"  location.href='bpgarmin://connect.test/app/course/create'\">Mise en route</button></div>", importButton];
+            @"<button id=start onclick=\"if (window.ignoredStarts > 0) { window.ignoredStarts--; return; }"
+            @"  sessionStorage.setItem('file', window.gotFiles[0]); sessionStorage.setItem('gpx', window.gotText);"
+            @"  location.href='bpgarmin://connect.test/app/course/create'\">Mise en route</button></div>"
+            @"<script>window.ignoredStarts=%ld</script>", importButton, (long)self.ignoredStartClicks];
     }
     if ([path isEqualToString:@"/app/course/create"]) {
         return @"<h1>Créer un parcours</h1>"
@@ -206,6 +209,55 @@
     [self evaluate:@"document.getElementById('save2').click(); 'ok'" in:c];
     XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(c.step == BPGarminStepDone); }));
     XCTAssertTrue([c.statusText containsString:@"Send to Device"], @"%@", c.statusText);
+    [c close];
+}
+
+// "Mise en route" clicked too early (Garmin still processing the file, seen on the real site 2026-11-23: the sheet
+// stayed on the courses page): clicked again until the editor opens
+- (void)testStartClickedAgainWhenIgnored
+{
+    garmin.ignoredStartClicks = 2;
+    BPGarminConnectController *c = [self controllerWithFiles:@[ [self gpxNamed:@"Tour"] ] activity:BPGarminActivityRoad];
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(c.step == BPGarminStepLogin); }));
+    [self evaluate:@"document.getElementById('login').click(); 'ok'" in:c];
+    XCTAssertTrue(BPWaitUntil(15, ^{ return (BOOL)(c.step == BPGarminStepUserSave); }), @"step %ld: %@", (long)c.step, c.statusText);
+    XCTAssertEqualObjects([self evaluate:@"sessionStorage.getItem('type')" in:c], @"road");
+    [c close];
+}
+
+// Report a Problem… (owner's choice 2026-11-23): versions, step, page path (no query), the buttons of the page, the
+// lines of the session; never the password; copied to the clipboard
+- (void)testReportOfTheSession
+{
+    garmin.withoutImportButton = YES; // stops on the courses page: a step not recognized
+    BPGarminConnectController *c = [self controllerWithFiles:@[ [self gpxNamed:@"Tour"] ] activity:BPGarminActivityRoad];
+    c.rememberPrompt = ^(NSString *account, void (^answer)(BPGarminRemember)) { answer(BPGarminRememberNotNow); };
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(c.step == BPGarminStepLogin); }));
+    [self evaluate:@"document.getElementById('email').value='rider@example.org'; document.getElementById('password').value='s3cret';"
+                   @"document.getElementById('login').click(); 'ok'" in:c];
+    XCTAssertTrue(BPWaitUntil(10, ^{ return (BOOL)([c.statusText containsString:@"not recognized"]); }), @"%@", c.statusText);
+    XCTAssertNotNil([self viewWithIdentifier:@"garminReport" in:c.window.contentView]);
+    __block NSString *report = nil;
+    [c reportTextWithCompletion:^(NSString *text) { report = text; }];
+    XCTAssertTrue(BPWaitUntil(5, ^{ return (BOOL)(report != nil); }));
+    NSString *version = NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"];
+    NSString *withVersion = [@"BikePlanner " stringByAppendingString:version];
+    XCTAssertTrue([report containsString:withVersion], @"%@", report);
+    XCTAssertTrue([report containsString:@"macOS"]);
+    XCTAssertTrue([report containsString:@"step courses"], @"the step");
+    XCTAssertTrue([report containsString:@"not recognized"], @"the step not recognized");
+    XCTAssertTrue([report containsString:@"connect.test/app/courses"], @"the page");
+    XCTAssertTrue([report containsString:@"step login"], @"the session");
+    XCTAssertTrue([report containsString:@"Buttons on the page:"], @"%@", report);
+    XCTAssertFalse([report containsString:@"- Mise en route"], @"hidden buttons left out");
+    XCTAssertFalse([report containsString:@"s3cret"], @"never the password");
+    XCTAssertFalse([report containsString:@"login=1"], @"no query");
+
+    NSPasteboard *pb = [NSPasteboard pasteboardWithUniqueName]; // never the user's clipboard
+    c.reportPasteboard = pb;
+    [c copyReportText:report];
+    XCTAssertEqualObjects([pb stringForType:NSPasteboardTypeString], report);
+    [pb releaseGlobally];
     [c close];
 }
 
